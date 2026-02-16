@@ -6,7 +6,7 @@ export default function SummarizeBox() {
   const [result, setResult] = useState("");
 
   async function summarize() {
-    const res = await fetch("/api/ai", {
+    const res = await fetch("/api/summarize", {
       method: "POST",
       body: JSON.stringify({ text: input }),
     });
