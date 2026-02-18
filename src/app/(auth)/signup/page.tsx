@@ -34,30 +34,31 @@ export default function Signup() {
   };
 
   async function handleSignup() {
-    const newErrors: {[key: string]: string} = {};
-    
-    if (!email) {
-      newErrors.email = "Email is required";
-    }
-    
-    const passwordErrors = validatePassword(password);
-    if (passwordErrors.length > 0) {
-      newErrors.password = passwordErrors.join(", ");
-    }
-    
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    
-    setErrors({});
+  const newErrors: { [key: string]: string } = {};
 
+  if (!email) {
+    newErrors.email = "Email is required";
+  }
+
+  const passwordErrors = validatePassword(password);
+  if (passwordErrors.length > 0) {
+    newErrors.password = passwordErrors.join(", ");
+  }
+
+  if (!confirmPassword) {
+    newErrors.confirmPassword = "Please confirm your password";
+  } else if (password !== confirmPassword) {
+    newErrors.confirmPassword = "Passwords do not match";
+  }
+
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
+
+  setErrors({});
+
+  try {
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: {
@@ -69,12 +70,16 @@ export default function Signup() {
     const data = await res.json();
 
     if (data.success) {
-      alert("Account created!");
-      router.push("/login");
+      // ✅ Store user ID in localStorage and redirect to onboarding
+      localStorage.setItem('userId', data.user.id);
+      router.push("/onboarding");
     } else {
       alert(data.error || "Signup failed");
     }
+  } catch (err) {
+    alert("Something went wrong");
   }
+}
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-all duration-300 p-4 ${

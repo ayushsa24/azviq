@@ -1,15 +1,53 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Menu, Bell, Bot, User, Sun, Moon } from "lucide-react";
+import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown } from "lucide-react";
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { theme, toggleTheme } = useTheme();
-  
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      fetch(`/api/profile`, {
+        headers: { "x-user-id": userId }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+      })
+      .catch(() => {
+        // Silently fail if can't fetch avatar
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('userId');
+    window.location.href = '/login';
+  };
+ 
   return (
-    <header className={`h-16 flex items-center justify-between px-6 transition-all duration-300 shadow-sm
-      ${theme === 'dark' 
+    <header className={`h-16 flex items-center justify-between px-6 transition-all duration-300 shadow-sm fixed top-0 left-0 right-0 z-50 ${
+      theme === 'dark' 
         ? 'bg-[#252525] border-b border-[#545454]' 
         : 'bg-[#CFCFCF] border-b border-[#7D7D7D]'
       }`}>
@@ -57,41 +95,84 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           <span className="absolute top-1 right-1 w-2 h-2 bg-[#7D7D7D] rounded-full"></span>
         </button>
         
-        <button className={`p-2 rounded-xl transition-all duration-200 hover:scale-105
-          ${theme === 'dark' 
-            ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white' 
-            : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
-          }`}>
-          <User className="w-5 h-5" />
-        </button>
-        
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className={`p-2 rounded-xl transition-all duration-200 hover:scale-105
-            ${theme === 'dark' 
-              ? 'text-yellow-400 hover:bg-[#545454]' 
-              : 'text-[#545454] hover:bg-[#7D7D7D]'
-            }`}
-          title="Toggle theme"
-        >
-          {theme === 'dark' ? (
-            <Moon className="w-5 h-5" />
-          ) : (
-            <Sun className="w-5 h-5" />
+        {/* PROFILE DROPDOWN */}
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className={`p-1 rounded-xl transition-all duration-200 hover:scale-105 overflow-hidden flex items-center gap-1 cursor-pointer
+              ${theme === 'dark' 
+                ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white' 
+                : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
+              }`}>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profile"
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <User className="w-8 h-8" />
+            )}
+            <ChevronDown className="w-4 h-4" />
+          </button>
+
+          {/* DROPDOWN MENU */}
+          {dropdownOpen && (
+            <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-lg border transition-all duration-200 z-50 ${
+              theme === 'dark' 
+                ? 'bg-[#252525] border-[#545454]' 
+                : 'bg-white border-[#7D7D7D]'
+            }`}>
+              <Link href="/profile">
+                <button 
+                  onClick={() => setDropdownOpen(false)}
+                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${
+                    theme === 'dark' 
+                      ? 'text-[#CFCFCF] hover:bg-[#545454]' 
+                      : 'text-[#545454] hover:bg-[#CFCFCF]'
+                  }`}>
+                  <User className="w-4 h-4" />
+                  My Profile
+                </button>
+              </Link>
+              
+              <button 
+                onClick={() => {
+                  toggleTheme();
+                  setDropdownOpen(false);
+                }}
+                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${
+                  theme === 'dark' 
+                    ? 'text-[#CFCFCF] hover:bg-[#545454]' 
+                    : 'text-[#545454] hover:bg-[#CFCFCF]'
+                }`}>
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="w-4 h-4" />
+                    Light Mode
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4" />
+                    Dark Mode
+                  </>
+                )}
+              </button>
+              
+              <button 
+                onClick={handleLogout}
+                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-b-xl cursor-pointer ${
+                  theme === 'dark' 
+                    ? 'text-red-400 hover:bg-[#545454]' 
+                    : 'text-red-600 hover:bg-[#CFCFCF]'
+                }`}>
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </header>
   );
 }
-
-// "use client";
-
-// export default function Header({ title }: { title?: string }) {
-//   return (
-//     <header className="flex items-center justify-between border-b p-4">
-//       <h1 className="text-xl font-semibold">{title ?? "Ascend AI"}</h1>
-//     </header>
-//   );
-// }

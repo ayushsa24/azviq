@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { supabase } from "@/lib/supabase";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,16 +9,17 @@ export async function POST(req: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email and password required" },
         { status: 400 }
       );
     }
 
+    // Check existing user
     const { data: existingUser } = await supabase
       .from("users")
-      .select("*")
+      .select("id")
       .eq("email", email)
-      .single();
+      .maybeSingle();
 
     if (existingUser) {
       return NextResponse.json(
@@ -28,56 +30,36 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Insert user
     const { data, error } = await supabase
       .from("users")
-      .insert([{ email, password: hashedPassword }])
+      .insert([
+        {
+          id: randomUUID(),
+          email,
+          password_hash: hashedPassword,
+          is_onboarded: false,
+        },
+      ])
       .select()
       .single();
 
     if (error) {
-      console.error("Supabase error:", error);
-      
-      // If RLS policy error, try using service role key
-      if (error.code === '42501') {
-        const { createClient } = await import("@supabase/supabase-js");
-        const serviceClient = createClient(
-          process.env.SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        
-        const { data: serviceData, error: serviceError } = await serviceClient
-          .from("users")
-          .insert([{ email, password: hashedPassword }])
-          .select()
-          .single();
-          
-        if (serviceError) {
-          console.error("Service role error:", serviceError);
-          return NextResponse.json(
-            { error: "Failed to create user - check database permissions" },
-            { status: 500 }
-          );
-        }
-        
-        return NextResponse.json({
-          success: true,
-          user: { id: serviceData.id, email: serviceData.email }
-        });
-      }
-      
+      console.error(error);
       return NextResponse.json(
-        { error: `Failed to create user: ${error.message}` },
+        { error: error.message },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      user: { id: data.id, email: data.email }
+      user: { id: data.id, email: data.email },
     });
-  } catch (error) {
+
+  } catch (err) {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Server error" },
       { status: 500 }
     );
   }

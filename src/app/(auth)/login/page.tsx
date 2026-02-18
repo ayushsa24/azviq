@@ -13,11 +13,39 @@ export default function Login() {
   const { theme } = useTheme();
 
   async function handleLogin() {
-    await signIn("credentials", {
-      email,
-      password,
-      callbackUrl: "/dashboard",
-    });
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        alert("Invalid email or password");
+        return;
+      }
+
+      if (result?.ok) {
+        // Get user data and set userId in localStorage
+        const res = await fetch("/api/auth/get-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await res.json();
+        if (data.user?.id) {
+          localStorage.setItem('userId', data.user.id);
+          window.location.href = "/dashboard";
+        } else {
+          alert("Login failed");
+        }
+      }
+    } catch (err) {
+      alert("Something went wrong");
+    }
   }
 
   return (
