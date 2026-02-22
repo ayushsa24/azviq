@@ -111,9 +111,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
-              <User className="w-8 h-8" />
+              <User className="w-5 h-5" />
             )}
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
+              dropdownOpen ? 'rotate-180' : ''
+            }`} />
           </button>
 
           {/* DROPDOWN MENU */}

@@ -48,12 +48,21 @@ export default function Login() {
     }
   }
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
+  };
+
   return (
-    <div className={`min-h-screen flex items-center justify-center transition-all duration-300 p-4 ${
-      theme === 'dark' 
-        ? 'bg-gradient-to-br from-[#252525] via-[#545454]/20 to-[#252525]' 
-        : 'bg-gradient-to-br from-[#CFCFCF] via-[#7D7D7D]/20 to-[#CFCFCF]'
-    }`}>
+    <div 
+      className={`min-h-screen flex items-center justify-center transition-all duration-300 p-4 ${
+        theme === 'dark' 
+          ? 'bg-gradient-to-br from-[#252525] via-[#545454]/20 to-[#252525]' 
+          : 'bg-gradient-to-br from-[#CFCFCF] via-[#7D7D7D]/20 to-[#CFCFCF]'
+      }`}
+      onKeyPress={handleKeyPress}
+    >
 
       <div className={`w-full max-w-sm p-6 rounded-3xl shadow-2xl backdrop-blur-xl transition-all duration-300 border ${
         theme === 'dark' 

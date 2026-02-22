@@ -111,7 +111,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen p-3">
+    <div className="min-h-screen p-3 mt-[17px]">
       
       <div className={`max-w-2xl mx-auto rounded-2xl p-4 ${
         theme === 'dark' ? 'bg-[#252525]/90 border border-[#545454]' : 'bg-gray-100 border border-gray-300'

@@ -14,7 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Header onMenuClick={() => setOpen(!open)} />
       <Sidebar open={open} />
 
-      <main className={`pt-21 transition-all duration-200 ${open ? 'md:pl-64' : 'md:pl-0'} pb-16 md:pb-0 overflow-hidden h-screen border-t-2 ${
+      <main className={`pt-19 transition-all duration-200 ${open ? 'md:pl-64 md:border-l-2' : 'md:pl-0'} pb-16 md:pb-0 overflow-hidden h-screen border-t-2 ${
         theme === 'dark' ? 'bg-[#161514] border-[#545454]' : 'bg-gray-50 border-gray-200'
       }`}>
         {children}
