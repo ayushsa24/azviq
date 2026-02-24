@@ -7,11 +7,11 @@ import { Home, FileText, CheckSquare, TrendingUp, MessageCircle, Settings, LogOu
 
 export default function Sidebar({ open }: { open: boolean }) {
   const { theme } = useTheme();
-  
+
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
   };
-  
+
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
     { href: "/notes", label: "Notes", icon: FileText },
@@ -20,12 +20,12 @@ export default function Sidebar({ open }: { open: boolean }) {
     { href: "/ai", label: "AI Chat", icon: MessageCircle },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
-  
+
   return (
     <aside
-      className={`fixed top-16 left-0 h-full w-56 transition-all duration-300 ease-in-out z-50 hidden md:block
+      className={`fixed top-16 left-0 h-[calc(100vh-4rem)] w-56 transition-all duration-300 ease-in-out z-40 hidden md:block
         ${open ? "translate-x-0" : "-translate-x-full"}
-        ${theme === 'dark' ? 'bg-[#252525]' : 'bg-[#CFCFCF]'}`}
+        ${theme === 'dark' ? 'bg-[#252525] border-r border-[#545454]' : 'bg-[#CFCFCF] border-r border-[#7D7D7D]'}`}
     >
       <nav className="flex flex-col gap-1 p-3">
         {navItems.map((item) => {
@@ -35,8 +35,8 @@ export default function Sidebar({ open }: { open: boolean }) {
               key={item.href}
               href={item.href}
               className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                ${theme === 'dark' 
-                  ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white' 
+                ${theme === 'dark'
+                  ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
                   : 'text-[#252525] hover:bg-[#7D7D7D] hover:text-white'
                 }`}
             >
@@ -45,13 +45,13 @@ export default function Sidebar({ open }: { open: boolean }) {
             </Link>
           );
         })}
-        
+
         <div className="mt-auto pt-6 border-t border-[#7D7D7D]">
           <button
             onClick={handleLogout}
             className={`group flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all duration-200
-              ${theme === 'dark' 
-                ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white' 
+              ${theme === 'dark'
+                ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
                 : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
               }`}
           >

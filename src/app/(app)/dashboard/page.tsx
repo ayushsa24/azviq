@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import SummarizeBox from "@/components/SummarizeBox";
+import AskAIGlobalBar from "@/components/dashboard/AskAIGlobalBar";
 
 export default async function Home() {
   const session = await getServerSession();
@@ -20,7 +21,8 @@ export default async function Home() {
         Welcome {session?.user?.email || "Guest"}
       </p>
 
-      <SummarizeBox />
+      <AskAIGlobalBar />
+
     </main>
   );
 }
