@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PUT(req: Request, context: { params: Promise<{ chatId: string }> }) {
     try {
@@ -7,6 +9,27 @@ export async function PUT(req: Request, context: { params: Promise<{ chatId: str
 
         if (!chatId) {
             return Response.json({ error: "Missing chatId" }, { status: 400 });
+        }
+
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { data: dbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        const { data: chatData } = await supabase
+            .from("chats")
+            .select("user_id")
+            .eq("id", chatId)
+            .single();
+
+        if (!chatData || !dbUser || chatData.user_id !== dbUser.id) {
+            return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const updates: any = {};
@@ -36,6 +59,27 @@ export async function DELETE(req: Request, context: { params: Promise<{ chatId: 
 
         if (!chatId) {
             return Response.json({ error: "Missing chatId" }, { status: 400 });
+        }
+
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { data: dbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        const { data: chatData } = await supabase
+            .from("chats")
+            .select("user_id")
+            .eq("id", chatId)
+            .single();
+
+        if (!chatData || !dbUser || chatData.user_id !== dbUser.id) {
+            return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const { error } = await supabase

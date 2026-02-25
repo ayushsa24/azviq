@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Home, FileText, MessageCircle, CheckSquare, Settings } from "lucide-react";
 
 export default function BottomNav() {
   const { theme } = useTheme();
+  const pathname = usePathname();
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },
@@ -21,14 +23,20 @@ export default function BottomNav() {
       <div className="mx-auto flex max-w-xl justify-around p-2">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isActive = pathname.startsWith(item.href);
+
           return (
             <Link
               key={item.href}
               href={item.href}
               className={`group flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 min-w-0
                 ${theme === 'dark'
-                  ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
-                  : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
+                  ? isActive
+                    ? 'bg-[#545454] text-white'
+                    : 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
+                  : isActive
+                    ? 'bg-[#7D7D7D] text-white shadow-sm'
+                    : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
                 }`}
             >
               <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />

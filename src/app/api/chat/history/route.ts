@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
@@ -9,6 +11,21 @@ export async function GET(req: Request) {
     }
 
     try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { data: dbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        if (!dbUser || dbUser.id !== userId) {
+            return Response.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         // Fetch all chats for the user, ordered by pinned first, then newest first
         const { data: chats, error } = await supabase
             .from('chats')
@@ -33,6 +50,21 @@ export async function POST(req: Request) {
 
         if (!userId) {
             return Response.json({ error: "Missing userId" }, { status: 400 });
+        }
+
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { data: authDbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        if (!authDbUser || authDbUser.id !== userId) {
+            return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const { data: userRecord } = await supabase

@@ -4,12 +4,16 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import ReactMarkdown from "react-markdown";
-import { Send, Loader2, Plus, MessageCircle, Bot, User, Menu, X, Image as ImageIcon, MoreHorizontal, Share, Edit2, Pin, Archive, Trash2, ChevronDown, ChevronRight, Ghost, Paperclip, Mic } from "lucide-react";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Send, Loader2, Plus, MessageCircle, Bot, User, Menu, X, Image as ImageIcon, MoreHorizontal, Share, Edit2, Pin, Archive, Trash2, ChevronDown, ChevronRight, Ghost, Paperclip, Mic, Copy, Check, ThumbsUp, ThumbsDown, Square, ArrowDown } from "lucide-react";
 
 type Message = {
   id?: string;
   role: "user" | "model";
   content: string;
+  created_at?: string;
 };
 
 type ChatSession = {
@@ -37,10 +41,20 @@ function AiChatCore() {
   const [isRenamingId, setIsRenamingId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
   const [isDictating, setIsDictating] = useState(false);
+  const [editingMessageIdx, setEditingMessageIdx] = useState<number | null>(null);
+  const [editInput, setEditInput] = useState("");
+  const [copiedMessageIdx, setCopiedMessageIdx] = useState<number | null>(null);
+  const [copiedCodeBlock, setCopiedCodeBlock] = useState<string | null>(null);
+  const [activeMobileMessageIdx, setActiveMobileMessageIdx] = useState<number | null>(null);
+  const [ratings, setRatings] = useState<Record<number, 'good' | 'bad'>>({});
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const isSendingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -127,7 +141,13 @@ function AiChatCore() {
   // Handle URL Query String on completely fresh mounts
   useEffect(() => {
     const query = searchParams.get('q');
-    if (query && activeChatId && messages.length === 0 && !isLoading) {
+    if (query && activeChatId && !isLoading) {
+      // If the current chat is not empty, auto-create a new blank one
+      if (messages.length > 0) {
+        startNewChat();
+        return;
+      }
+
       setInput(query);
       // We use a small timeout to let React set the input state before firing sendMessage automatically
       setTimeout(() => {
@@ -136,6 +156,7 @@ function AiChatCore() {
         router.replace('/ai', { scroll: false });
       }, 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, activeChatId]);
 
 
@@ -198,54 +219,118 @@ function AiChatCore() {
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
-  const handleSend = async (overrideText?: string) => {
+  const handleCopy = (text: string, idx: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageIdx(idx);
+    setTimeout(() => setCopiedMessageIdx(null), 2000);
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCodeBlock(code);
+    setTimeout(() => setCopiedCodeBlock(null), 2000);
+  };
+
+  const handleSend = async (overrideText?: string, cutHistoryAtIndex?: number) => {
+    if (isSendingRef.current) return;
+
     const textToSend = overrideText || input;
     if (!textToSend.trim() || !activeChatId) return;
 
     const userId = localStorage.getItem('userId');
     if (!userId) return;
 
+    isSendingRef.current = true;
     const newMsg: Message = { role: "user", content: textToSend };
 
+    // If an edit occurred, slice the history up to the edited message
+    const previousMessages = cutHistoryAtIndex !== undefined
+      ? messages.slice(0, cutHistoryAtIndex)
+      : messages;
+
     // Optimistic UI Update
-    setMessages(prev => [...prev, newMsg]);
+    setMessages([...previousMessages, newMsg]);
     setInput("");
+    setEditingMessageIdx(null);
     setIsLoading(true);
 
     try {
       const payload = {
         chatId: activeChatId,
         userId: userId,
-        messages: [...messages, newMsg] // send full history context
+        messages: [...previousMessages, newMsg] // send full history context
       };
+
+      abortControllerRef.current = new AbortController();
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: abortControllerRef.current.signal
       });
 
-      const data = await res.json();
-
-      if (data.content) {
-        setMessages(prev => [...prev, { role: "model", content: data.content }]);
-
-        // Update session in sidebar array implicitly (to avoid full re-fetches)
-        setSessions(prev => prev.map(s => {
-          if (s.id === activeChatId) {
-            return {
-              ...s,
-              title: data.topicTitle ? data.topicTitle : s.title,
-              messages: [...(s.messages || []), newMsg, { role: "model", content: data.content as string }]
-            };
-          }
-          return s;
-        }));
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "API stream error");
       }
-    } catch (error) {
-      console.error("Error sending message", error);
+      if (!res.body) throw new Error("No response body");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let aiResponseText = "";
+      let topicTitle: string | null = null;
+
+      // Lock in a blank message that will get updated character-by-character
+      setMessages(prev => [...prev, { role: "model", content: "" }]);
+      // Since typing started, immediately turn off the big thinking spinner
+      setIsLoading(false);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunkStr = decoder.decode(value, { stream: true });
+        const lines = chunkStr.split('\n').filter(Boolean);
+        for (const line of lines) {
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.message?.content) {
+              aiResponseText += parsed.message.content;
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: "model", content: aiResponseText };
+                return updated;
+              });
+            }
+            if (parsed.__generatedTitle) {
+              topicTitle = parsed.__generatedTitle;
+            }
+          } catch (e) { }
+        }
+      }
+
+      // Update sidebar session explicitly at the end
+      setSessions(prev => prev.map(s => {
+        if (s.id === activeChatId) {
+          return {
+            ...s,
+            title: topicTitle ? topicTitle : s.title,
+            messages: [...previousMessages, newMsg, { role: "model", content: aiResponseText }]
+          };
+        }
+        return s;
+      }));
+
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('User aborted the generation');
+      } else {
+        console.error("Error sending message", error);
+      }
     } finally {
       setIsLoading(false);
+      isSendingRef.current = false;
     }
   };
 
@@ -333,13 +418,13 @@ function AiChatCore() {
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* 🚀 SIDEBAR (History) */}
-      <div className={`fixed top-16 md:top-0 md:relative z-40 w-72 h-[calc(100vh-8rem)] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      <div className={`fixed top-16 md:top-0 md:relative z-50 w-72 h-[calc(100dvh-4rem)] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#E8E5E0]'
         }`}>
 
@@ -380,6 +465,10 @@ function AiChatCore() {
           {activeChats.map((session) => (
             <div
               key={session.id}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setActiveMenuId(activeMenuId === session.id ? null : session.id);
+              }}
               className={`group relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 ${activeChatId === session.id
                 ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-gray-200 text-[#252525]')
                 : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2A2A2A]' : 'text-gray-600 hover:bg-gray-100')
@@ -412,7 +501,7 @@ function AiChatCore() {
                   e.stopPropagation();
                   setActiveMenuId(activeMenuId === session.id ? null : session.id);
                 }}
-                className={`p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"} ${theme === 'dark' ? 'hover:bg-[#7D7D7D]' : 'hover:bg-gray-200'
+                className={`hidden md:block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"} ${theme === 'dark' ? 'hover:bg-[#7D7D7D]' : 'hover:bg-gray-200'
                   }`}
               >
                 <MoreHorizontal className="w-4 h-4 opacity-70" />
@@ -528,7 +617,16 @@ function AiChatCore() {
         </div>
 
         {/* Chat Bubbles Container */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4">
+        <div
+          ref={chatContainerRef}
+          onScroll={() => {
+            if (chatContainerRef.current) {
+              const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+              setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
+            }
+          }}
+          className="flex-1 overflow-y-auto p-3 md:p-6 md:space-y-4"
+        >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
               {activeChatId === 'temp-chat' ? (
@@ -547,40 +645,193 @@ function AiChatCore() {
             </div>
           ) : (
             messages.map((msg, idx) => (
-              <div key={idx} className={`flex gap-4 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                key={idx}
+                className={`group flex gap-3 md:gap-4 max-w-4xl mx-auto w-full px-3 md:px-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                onContextMenu={(e) => {
+                  if (msg.role === 'user') {
+                    e.preventDefault();
+                    setActiveMobileMessageIdx(activeMobileMessageIdx === idx ? null : idx);
+                  }
+                }}
+              >
 
                 {/* Avatar Model */}
                 {msg.role === 'model' && (
-                  <div className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === 'dark' ? 'bg-[#252525]' : 'bg-[#252525]'}`}>
+                  <div className={`hidden md:flex w-8 h-8 mt-2 rounded-full shrink-0 items-center justify-center ${theme === 'dark' ? 'bg-[#252525]' : 'bg-[#252525]'}`}>
                     <Bot className="w-5 h-5 text-white" />
                   </div>
                 )}
 
-                {/* Bubble */}
-                <div className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl max-w-[85%] ${msg.role === 'user'
-                  ? (theme === 'dark' ? 'bg-[#545454] text-white rounded-br-none' : 'bg-gray-200 text-gray-900 rounded-br-none')
-                  : (theme === 'dark' ? 'bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none' : 'bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none')
-                  }`}>
-                  {msg.role === 'model' ? (
-                    <ReactMarkdown
-                      components={{
-                        h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
-                        h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
-                        h3: ({ node, ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
-                        p: ({ node, ...props }) => <p className="mb-2 leading-relaxed" {...props} />,
-                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-0.5" {...props} />,
-                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5" {...props} />,
-                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-                        code: ({ node, ...props }) => <code className={`px-1 py-0.5 rounded text-xs ${theme === 'dark' ? 'bg-[#1e1e1e] text-pink-400' : 'bg-gray-100 text-pink-600'}`} {...props} />,
-                        pre: ({ node, ...props }) => <pre className={`p-3 rounded-xl overflow-x-auto mb-3 text-xs ${theme === 'dark' ? 'bg-[#1e1e1e] text-[#CFCFCF]' : 'bg-gray-800 text-[#CFCFCF]'}`} {...props} />,
-                        a: ({ node, ...props }) => <a className="text-[#545454] hover:underline font-semibold" {...props} />,
-                        strong: ({ node, ...props }) => <strong className="font-bold text-inherit" {...props} />
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  ) : (
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                {/* Bubble Container */}
+                <div className={`relative flex flex-col gap-1 ${msg.role === 'user' ? 'items-end max-w-[85%] md:max-w-[75%]' : 'items-start w-full md:w-[calc(100%-48px)] max-w-full'}`}>
+
+                  {/* Timestamp - User Only, Mobile Only, On Long Press */}
+                  {msg.role === 'user' && activeMobileMessageIdx === idx && (
+                    <span className={`md:hidden text-[10px] px-1 mb-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {msg.created_at ? new Date(msg.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Just now'}
+                    </span>
+                  )}
+
+                  {/* Bubble */}
+                  <div className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${msg.role === 'user'
+                    ? (theme === 'dark' ? 'bg-[#545454] text-white rounded-br-none' : 'bg-gray-200 text-gray-900 rounded-br-none')
+                    : (theme === 'dark' ? 'w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none' : 'w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none')
+                    }`}>
+
+                    {editingMessageIdx === idx ? (
+                      <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
+                        <textarea
+                          autoFocus
+                          value={editInput}
+                          onChange={(e) => setEditInput(e.target.value)}
+                          className={`w-full bg-transparent border-0 focus:ring-0 resize-none outline-none custom-scrollbar p-0 m-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                          rows={Math.max(2, editInput.split('\n').length)}
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button
+                            onClick={() => setEditingMessageIdx(null)}
+                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${theme === 'dark' ? 'bg-[#252525] hover:bg-[#333] text-gray-300' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'}`}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSend(editInput, idx)}
+                            disabled={!editInput.trim() || editInput === msg.content}
+                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${theme === 'dark' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
+                          >
+                            Save & Resubmit
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {msg.role === 'model' ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                              h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
+                              h3: ({ node, ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
+                              p: ({ node, ...props }) => <p className="mb-2 leading-relaxed" {...props} />,
+                              ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-0.5" {...props} />,
+                              ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5" {...props} />,
+                              li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                              a: ({ node, ...props }) => <a className="text-[#545454] hover:underline font-semibold" {...props} />,
+                              strong: ({ node, ...props }) => <strong className="font-bold text-inherit" {...props} />,
+                              table: ({ node, ...props }) => (
+                                <div className="w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-gray-300 dark:border-[#545454]">
+                                  <table className="w-full text-sm text-left border-collapse" {...props} />
+                                </div>
+                              ),
+                              thead: ({ node, ...props }) => <thead className={`text-xs uppercase font-medium ${theme === 'dark' ? 'bg-[#2A2A2A] text-gray-300 border-b border-[#545454]' : 'bg-gray-100 text-gray-700 border-b border-gray-300'}`} {...props} />,
+                              tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-[#545454]" {...props} />,
+                              tr: ({ node, ...props }) => <tr className={`transition-colors shadow-sm ${theme === 'dark' ? 'hover:bg-[#252525]/50' : 'hover:bg-gray-50'}`} {...props} />,
+                              th: ({ node, ...props }) => <th className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
+                              td: ({ node, ...props }) => <td className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
+                              pre: ({ node, children, ...props }) => <div className="not-prose">{children}</div>,
+                              code({ node, className, children, ...props }: any) {
+                                const match = /language-(\w+)/.exec(className || '');
+                                const isInline = !match && !className?.includes('language');
+                                const codeString = String(children).replace(/\n$/, '');
+
+                                if (isInline) {
+                                  return <code className={`px-1 py-0.5 rounded text-xs ${theme === 'dark' ? 'bg-[#1e1e1e] text-pink-400' : 'bg-gray-100 text-pink-600'}`} {...props}>{children}</code>;
+                                }
+
+                                return (
+                                  <div className="relative group/code mb-4 mt-3">
+                                    <div className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === 'dark' ? 'bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]' : 'bg-gray-800 text-gray-400 border border-b-0 border-gray-800'}`}>
+                                      <span>{match?.[1] || 'code'}</span>
+                                      <button
+                                        onClick={() => handleCopyCode(codeString)}
+                                        className="flex items-center gap-1.5 hover:text-white transition-colors"
+                                      >
+                                        {copiedCodeBlock === codeString ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                        {copiedCodeBlock === codeString ? <span className="text-green-500">Copied</span> : <span>Copy code</span>}
+                                      </button>
+                                    </div>
+                                    <div className={`overflow-x-auto text-sm rounded-b-xl ${theme === 'dark' ? 'bg-[#161514] border border-[#545454]' : 'bg-[#1e1e1e] border border-gray-800'}`}>
+                                      <SyntaxHighlighter
+                                        style={vscDarkPlus}
+                                        language={match?.[1] || 'text'}
+                                        PreTag="div"
+                                        customStyle={{
+                                          margin: 0,
+                                          padding: '1rem',
+                                          background: 'transparent',
+                                          fontSize: '0.875rem'
+                                        }}
+                                        {...props}
+                                      >
+                                        {codeString}
+                                      </SyntaxHighlighter>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Action Buttons Beneath Bubble */}
+                  {editingMessageIdx !== idx && !isLoading && (
+                    <div className={`transition-opacity flex items-center gap-1 mt-0.5 ${msg.role === 'user' ? 'justify-end mr-1' : 'justify-start ml-1'} ${msg.role === 'user' && activeMobileMessageIdx !== idx ? 'opacity-0' : 'opacity-100'} md:opacity-0 group-hover:opacity-100`}>
+
+                      {/* Copy Button */}
+                      <button
+                        onClick={() => handleCopy(msg.content, idx)}
+                        className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'}`}
+                        title="Copy message"
+                      >
+                        {copiedMessageIdx === idx ? <Check className="w-3 h-3 text-green-500 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                        {copiedMessageIdx === idx ? <span className="text-green-500">Copied</span> : 'Copy'}
+                      </button>
+
+                      {/* AI Ratings (Good / Bad Response) */}
+                      {msg.role === 'model' && (
+                        <>
+                          <div className={`w-px h-3 mx-1 ${theme === 'dark' ? 'bg-[#545454]' : 'bg-gray-300'}`}></div>
+                          <button
+                            onClick={() => setRatings(prev => ({ ...prev, [idx]: 'good' }))}
+                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === 'good' ? 'text-green-500 bg-green-500/10' : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200')}`}
+                            title="Good response"
+                          >
+                            <ThumbsUp className={`w-3 h-3 shrink-0 ${ratings[idx] === 'good' ? 'fill-current' : ''}`} />
+                            <span className="sr-only">Good</span>
+                          </button>
+                          <button
+                            onClick={() => setRatings(prev => ({ ...prev, [idx]: 'bad' }))}
+                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === 'bad' ? 'text-red-500 bg-red-500/10' : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200')}`}
+                            title="Bad response"
+                          >
+                            <ThumbsDown className={`w-3 h-3 shrink-0 ${ratings[idx] === 'bad' ? 'fill-current' : ''}`} />
+                            <span className="sr-only">Bad</span>
+                          </button>
+                        </>
+                      )}
+
+                      {/* Edit Button (Users Only) */}
+                      {msg.role === 'user' && (
+                        <button
+                          onClick={() => {
+                            setEditingMessageIdx(idx);
+                            setEditInput(msg.content);
+                          }}
+                          className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'}`}
+                          title="Edit message"
+                        >
+                          <Edit2 className="w-3 h-3 shrink-0" /> Edit
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -607,11 +858,24 @@ function AiChatCore() {
             </div>
           )}
 
-          <div ref={messagesEndRef} className="h-4" />
+          <div ref={messagesEndRef} className="h-1 md:h-4" />
         </div>
 
         {/* Input Dock */}
-        <div className="px-3 pb-3 md:px-5 md:pb-5 pt-0">
+        <div className="relative px-3 pb-4 md:px-5 md:pb-2 pt-0 mt-2">
+
+          {/* Scroll To Bottom Button */}
+          {showScrollDown && (
+            <div className="absolute bottom-full left-0 right-0 flex justify-center pb-3 z-20">
+              <button
+                onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className={`p-1.5 rounded-full shadow-md border transition-all duration-300 transform scale-100 hover:scale-105 active:scale-95 ${theme === 'dark' ? 'bg-[#545454] border-[#7D7D7D] text-white hover:bg-[#7D7D7D]' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                title="Scroll to bottom"
+              >
+                <ArrowDown className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <div className="max-w-3xl mx-auto flex items-end gap-2">
 
             {/* Separate Attachment Button */}
@@ -628,7 +892,9 @@ function AiChatCore() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSend();
+                    if (!isLoading) {
+                      handleSend();
+                    }
                   }
                 }}
                 placeholder="Ask Ascend AI anything..."
@@ -644,19 +910,35 @@ function AiChatCore() {
                 <Mic className="w-5 h-5" />
               </button>
 
-              <button
-                onClick={() => handleSend()}
-                disabled={isLoading || !input.trim()}
-                className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === 'dark'
-                  ? 'bg-[#7D7D7D] text-white hover:bg-[#545454]'
-                  : 'bg-[#252525] text-white hover:bg-[#545454]'
-                  }`}
-              >
-                <Send className="w-4 h-4" />
-              </button>
+              {isSendingRef.current ? (
+                <button
+                  onClick={() => {
+                    if (abortControllerRef.current) {
+                      abortControllerRef.current.abort();
+                      setIsLoading(false);
+                      isSendingRef.current = false;
+                    }
+                  }}
+                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === 'dark' ? 'bg-[#545454] text-white hover:bg-red-500/80' : 'bg-gray-300 text-gray-700 hover:bg-red-500 hover:text-white'}`}
+                  title="Stop generating"
+                >
+                  <Square className="w-4 h-4 fill-current" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSend()}
+                  disabled={isLoading || !input.trim()}
+                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === 'dark'
+                    ? 'bg-[#7D7D7D] text-white hover:bg-[#545454]'
+                    : 'bg-[#252525] text-white hover:bg-[#545454]'
+                    }`}
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
-          <p className="text-center text-xs opacity-50 mt-3 hidden md:block">
+          <p className="text-center text-xs opacity-50 mt-1.5 hidden md:block">
             Ascend AI can make mistakes. Consider verifying critical information.
           </p>
         </div>

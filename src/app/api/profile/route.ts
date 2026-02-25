@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 
 // GET PROFILE
@@ -8,6 +10,21 @@ export async function GET(req: Request) {
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: authDbUser } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", session.user.email)
+    .single();
+
+  if (!authDbUser || authDbUser.id !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { data, error } = await supabase
@@ -28,6 +45,21 @@ export async function PUT(req: Request) {
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: authDbUser } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", session.user.email)
+    .single();
+
+  if (!authDbUser || authDbUser.id !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await req.json();

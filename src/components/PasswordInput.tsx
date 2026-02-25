@@ -22,20 +22,18 @@ export default function PasswordInput({ placeholder, value, onChange, className 
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full p-3 pr-12 rounded-xl border focus:outline-none focus:ring-2 transition-all duration-200 ${className} ${
-          theme === 'dark' 
-            ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70' 
+        className={`w-full p-3 pr-12 rounded-xl border focus:outline-none focus:ring-2 transition-all duration-200 ${className} ${theme === 'dark'
+            ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70'
             : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
-        }`}
+          }`}
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg transition-all duration-200 hover:scale-110 ${
-          theme === 'dark'
+        className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg transition-all duration-200 hover:scale-110 ${theme === 'dark'
             ? 'text-[#CFCFCF] hover:text-white hover:bg-[#545454]/50'
             : 'text-[#545454] hover:text-white hover:bg-[#7D7D7D]/50'
-        }`}
+          }`}
         title={showPassword ? "Hide password" : "Show password"}
       >
         {showPassword ? (
