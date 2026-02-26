@@ -2,6 +2,48 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { createClient } from "@supabase/supabase-js";
 
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    try {
+        const { id } = await params;
+        const session = await getServerSession();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        const { data: user } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        const { data: note, error } = await supabase
+            .from("notes")
+            .select("*")
+            .eq("id", id)
+            .eq("user_id", user.id)
+            .single();
+
+        if (error) {
+            return NextResponse.json({ error: "Note not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ note });
+    } catch (error: any) {
+        console.error("GET note error:", error);
+        return NextResponse.json({ error: error.message || "Failed to fetch note" }, { status: 500 });
+    }
+}
+
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
@@ -31,6 +73,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (body.title !== undefined) updateData.title = body.title;
         if (body.workspace_id !== undefined) updateData.workspace_id = body.workspace_id;
         if (body.is_favourite !== undefined) updateData.is_favourite = body.is_favourite;
+        if (body.content !== undefined) updateData.content = body.content;
 
         const { data: note, error } = await supabase
             .from("notes")
@@ -85,14 +128,16 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         }
 
         // Try extracting filename from the file URL if it was stored in the "notes" bucket
-        try {
-            const urlParts = noteData.file_url.split('/notes/');
-            if (urlParts.length > 1) {
-                const fileName = urlParts[1];
-                await supabase.storage.from("notes").remove([fileName]);
+        if (noteData.file_url) {
+            try {
+                const urlParts = noteData.file_url.split('/notes/');
+                if (urlParts.length > 1) {
+                    const fileName = urlParts[1];
+                    await supabase.storage.from("notes").remove([fileName]);
+                }
+            } catch (e) {
+                console.error("Failed to delete from storage, proceeding with DB deletion:", e);
             }
-        } catch (e) {
-            console.error("Failed to delete from storage, proceeding with DB deletion:", e);
         }
 
         const { error: deleteError } = await supabase

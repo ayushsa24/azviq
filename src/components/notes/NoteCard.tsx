@@ -5,7 +5,8 @@ import { FileText, File, MoreVertical, Star, Edit2, MoveRight, Trash2 } from "lu
 export interface NoteItem {
     id: string;
     title: string;
-    file_url: string;
+    file_url?: string;
+    content?: string;
     created_at: string;
     user_id: string;
     is_favourite?: boolean;
@@ -31,7 +32,7 @@ export function NoteCard({
     onDelete,
     onToggleFavourite
 }: NoteCardProps) {
-    const isPdf = note.file_url.toLowerCase().endsWith(".pdf");
+    const isPdf = note.file_url?.toLowerCase().endsWith(".pdf");
     const isList = viewMode === "list";
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);

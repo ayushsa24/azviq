@@ -63,6 +63,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    const contentType = req.headers.get("content-type") || "";
+
+    // Handle Native Note Creation (JSON)
+    if (contentType.includes("application/json")) {
+      const { title, workspace_id, content } = await req.json();
+
+      if (!title) {
+        return NextResponse.json({ error: "Missing title" }, { status: 400 });
+      }
+
+      const { data: note, error } = await supabase
+        .from("notes")
+        .insert({
+          user_id: user.id,
+          title,
+          content: content || "",
+          workspace_id: workspace_id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json({ note });
+    }
+
+    // Handle File Upload (FormData)
     const formData = await req.formData();
     const title = formData.get("title") as string;
     const file = formData.get("file") as File;
@@ -74,8 +100,6 @@ export async function POST(req: Request) {
 
     // Upload file to Supabase Storage
     const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}_${file.name}`;
-
-    // In Node.js environment, it's safer to convert the web File to a buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await supabase.storage

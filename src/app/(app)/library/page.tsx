@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Upload, Plus, LayoutGrid, List } from "lucide-react";
 import { NoteItem, NoteCard } from "@/components/notes/NoteCard";
 import { UploadNoteModal } from "@/components/notes/UploadNoteModal";
-import { CreateTextNoteModal } from "@/components/notes/CreateTextNoteModal";
 import { WorkspaceCard } from "@/components/notes/WorkspaceCard";
 import { CreateWorkspaceModal } from "@/components/notes/CreateWorkspaceModal";
 import { RenameWorkspaceModal } from "@/components/notes/RenameWorkspaceModal";
@@ -19,12 +18,24 @@ export default function NotesPage() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
+  const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
 
+  useEffect(() => {
+    // Restore tab from storage on mount
+    const savedTab = sessionStorage.getItem("ascend_library_tab") as any;
+    if (savedTab && ["workspaces", "notes", "pdfs", "all", "favourites"].includes(savedTab)) {
+      setActiveTabState(savedTab);
+    }
+  }, []);
+
+  const setActiveTab = (tab: "workspaces" | "notes" | "pdfs" | "all" | "favourites") => {
+    setActiveTabState(tab);
+    sessionStorage.setItem("ascend_library_tab", tab);
+  };
+
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [isRenameWorkspaceModalOpen, setIsRenameWorkspaceModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -76,9 +87,9 @@ export default function NotesPage() {
 
     // Filter by Tab Type (Note: we assume URLs for PDFs end in .pdf)
     if (activeTab === "notes") {
-      filtered = filtered.filter((n) => !n.file_url.toLowerCase().endsWith(".pdf"));
+      filtered = filtered.filter((n) => !n.file_url?.toLowerCase().endsWith(".pdf"));
     } else if (activeTab === "pdfs") {
-      filtered = filtered.filter((n) => n.file_url.toLowerCase().endsWith(".pdf"));
+      filtered = filtered.filter((n) => n.file_url?.toLowerCase().endsWith(".pdf"));
     } else if (activeTab === "favourites") {
       filtered = filtered.filter((n) => n.is_favourite);
     }
@@ -94,7 +105,11 @@ export default function NotesPage() {
   }, [workspaces, searchQuery]);
 
   const handleOpenNote = (note: NoteItem) => {
-    window.open(note.file_url, "_blank");
+    if (note.file_url && note.file_url.toLowerCase().endsWith(".pdf")) {
+      router.push(`/library/pdf/${note.id}`);
+    } else {
+      router.push(`/library/note/${note.id}`);
+    }
   };
 
   const handleOpenWorkspace = (workspace: Workspace) => {
@@ -164,6 +179,28 @@ export default function NotesPage() {
     } catch (err) {
       console.error(err);
       alert("Could not update the note.");
+    }
+  };
+
+  const handleCreateNativeNote = async () => {
+    try {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Untitled Note",
+          content: "",
+          workspace_id: activeWorkspace?.id || null,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to create note");
+
+      const { note } = await res.json();
+      router.push(`/library/note/${note.id}`);
+    } catch (err) {
+      console.error(err);
+      alert("Could not create the note.");
     }
   };
 
@@ -251,7 +288,7 @@ export default function NotesPage() {
 
               {activeTab !== "pdfs" && activeTab !== "favourites" && (
                 <button
-                  onClick={() => setIsCreateModalOpen(true)}
+                  onClick={handleCreateNativeNote}
                   className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
                   <Plus size={18} />
@@ -403,12 +440,6 @@ export default function NotesPage() {
       <UploadNoteModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onSuccess={fetchNotesAndWorkspaces}
-        workspaceId={activeWorkspace?.id}
-      />
-      <CreateTextNoteModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
         onSuccess={fetchNotesAndWorkspaces}
         workspaceId={activeWorkspace?.id}
       />
