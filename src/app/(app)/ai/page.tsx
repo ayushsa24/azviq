@@ -112,6 +112,8 @@ function AiChatCore() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+
   // 1. Fetch History on Mount
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -125,18 +127,24 @@ function AiChatCore() {
       .then(data => {
         if (data.chats) {
           setSessions(data.chats);
-
-          const activeSession = data.chats[0];
-          if (activeSession) {
-            setActiveChatId(activeSession.id);
-            setMessages(activeSession.messages || []);
-          } else {
-            startNewChat();
-          }
         }
+        setHistoryLoaded(true);
       })
-      .catch(err => console.error("Failed to load history", err));
+      .catch(err => {
+        console.error("Failed to load history", err);
+        setHistoryLoaded(true);
+      });
   }, [router]);
+
+  // 2. Once history is loaded, open a new chat (unless there's a ?q= query)
+  useEffect(() => {
+    if (!historyLoaded) return;
+    const hasQuery = new URLSearchParams(window.location.search).get('q');
+    if (!hasQuery && !activeChatId) {
+      startNewChat();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyLoaded]);
 
   // Handle URL Query String on completely fresh mounts
   useEffect(() => {
@@ -185,7 +193,7 @@ function AiChatCore() {
       const data = await res.json();
 
       if (data.chat) {
-        setSessions([data.chat, ...sessions]);
+        setSessions(prev => [data.chat, ...prev]);
         setActiveChatId(data.chat.id);
         setMessages([]);
         if (window.innerWidth < 768) setIsSidebarOpen(false);

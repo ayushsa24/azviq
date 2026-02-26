@@ -38,7 +38,8 @@ export async function POST(req: Request) {
                 chat_id: chatId,
                 user_id: userId,
                 role: 'user',
-                content: latestUserMessage.content
+                content: latestUserMessage.content,
+                email: session.user.email
             });
             if (insertUserError) throw insertUserError;
         }
@@ -124,7 +125,8 @@ export async function POST(req: Request) {
                         chat_id: chatId,
                         user_id: userId,
                         role: 'model',
-                        content: fullContent
+                        content: fullContent,
+                        email: session.user!.email
                     });
                 }
 

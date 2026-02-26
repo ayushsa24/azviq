@@ -1,37 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
+import { Folder, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, File, MoreVertical, Star, Edit2, MoveRight, Trash2 } from "lucide-react";
+import { Workspace } from "@/types";
 
-export interface NoteItem {
-    id: string;
-    title: string;
-    file_url: string;
-    created_at: string;
-    user_id: string;
-    is_favourite?: boolean;
-    workspace_id?: string;
-}
-
-interface NoteCardProps {
-    note: NoteItem;
-    onClick: (note: NoteItem) => void;
+interface WorkspaceCardProps {
+    workspace: Workspace;
+    onClick: (workspace: Workspace) => void;
     viewMode?: "grid" | "list";
-    onRename?: (note: NoteItem) => void;
-    onMove?: (note: NoteItem) => void;
-    onDelete?: (note: NoteItem) => void;
-    onToggleFavourite?: (note: NoteItem) => void;
+    onRename?: (workspace: Workspace) => void;
+    onDelete?: (workspace: Workspace) => void;
 }
 
-export function NoteCard({
-    note,
+export function WorkspaceCard({
+    workspace,
     onClick,
     viewMode = "grid",
     onRename,
-    onMove,
-    onDelete,
-    onToggleFavourite
-}: NoteCardProps) {
-    const isPdf = note.file_url.toLowerCase().endsWith(".pdf");
+    onDelete
+}: WorkspaceCardProps) {
     const isList = viewMode === "list";
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -81,7 +67,7 @@ export function NoteCard({
             e.preventDefault();
             return;
         }
-        onClick(note);
+        onClick(workspace);
     };
 
     return (
@@ -93,45 +79,30 @@ export function NoteCard({
             className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border border-[#CFCFCF] dark:border-[#7D7D7D]/30 bg-white hover:bg-[#F5F5F5] dark:bg-[#CFCFCF]/10 dark:hover:bg-[#CFCFCF]/20 hover:border-[#7D7D7D] dark:hover:border-[#7D7D7D] relative shadow-sm ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-48"
                 }`}
         >
-            <div className={`flex items-center gap-2 transition-opacity ${isList ? "hidden" : "absolute top-4 right-4"}`}>
-                {note.is_favourite && (
-                    <div className="bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full">
-                        <Star size={12} fill="currentColor" strokeWidth={0} />
-                    </div>
-                )}
-                <div className="bg-[#252525] text-white dark:text-[#CFCFCF] text-xs px-2 py-1 rounded shadow-sm opacity-80 group-hover:opacity-100">
-                    {isPdf ? "PDF" : "NOTE"}
-                </div>
-            </div>
-
             <div className={`flex items-center shrink-0 text-[#545454] dark:text-[#7D7D7D] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] transition-colors ${isList ? "" : "flex-1 justify-center"
                 }`}>
-                {isPdf ? <FileText size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} /> : <File size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} />}
+                <Folder size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} fill="currentColor" className="opacity-20 hidden dark:block" />
+                <Folder size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} className="dark:hidden" />
             </div>
 
             <div className={`border-[#CFCFCF] dark:border-[#7D7D7D]/20 transition-colors ${isList ? "flex-1 min-w-0 flex flex-row items-center justify-between border-none mt-0 pt-0 gap-2" : "mt-4 pt-4 border-t"
                 }`}>
                 <div className={`${isList ? "flex items-center gap-2 min-w-0" : "pr-6"}`}>
-                    {isList && (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            {note.is_favourite && (
-                                <Star size={14} fill="currentColor" className="text-[#252525] dark:text-[#CFCFCF]" strokeWidth={0} />
-                            )}
-                            <div className="bg-[#252525] text-white dark:text-[#CFCFCF] text-[10px] px-1.5 py-0.5 rounded opacity-80 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                {isPdf ? "PDF" : "NOTE"}
-                            </div>
-                        </div>
-                    )}
                     <h3 className={`font-semibold truncate text-[#252525] dark:text-[#CFCFCF] transition-colors ${isList ? "text-sm sm:text-base" : "text-sm mb-1"
                         }`}>
-                        {note.title}
+                        {workspace.name}
                     </h3>
+                    {workspace.description && !isList && (
+                        <p className="text-xs text-[#545454] dark:text-[#7D7D7D] truncate mb-2">
+                            {workspace.description}
+                        </p>
+                    )}
                 </div>
 
                 <div className={`flex items-center text-[#545454] dark:text-[#545454] transition-colors ${isList ? "text-xs sm:text-sm gap-2 shrink-0" : "justify-between text-xs w-full"
                     }`}>
                     <span className="whitespace-nowrap">
-                        {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(workspace.created_at), { addSuffix: true })}
                     </span>
 
                     <div ref={menuRef} className="relative">
@@ -150,32 +121,18 @@ export function NoteCard({
                             <div className={`absolute z-10 w-48 bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-[#CFCFCF] dark:border-[#545454] py-1 ${isList ? "right-0 top-10" : "right-0 bottom-8"
                                 }`}>
                                 <button
-                                    onClick={(e) => handleMenuAction(e, () => onToggleFavourite?.(note))}
-                                    className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors"
-                                >
-                                    <Star size={14} className={note.is_favourite ? "fill-current" : ""} />
-                                    {note.is_favourite ? "Remove Favourite" : "Add to Favourites"}
-                                </button>
-                                <button
-                                    onClick={(e) => handleMenuAction(e, () => onRename?.(note))}
-                                    className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors"
-                                >
-                                    <Edit2 size={14} />
-                                    Rename
-                                </button>
-                                <button
-                                    onClick={(e) => handleMenuAction(e, () => onMove?.(note))}
+                                    onClick={(e) => handleMenuAction(e, () => onRename?.(workspace))}
                                     className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"
                                 >
-                                    <MoveRight size={14} />
-                                    Move to Workspace
+                                    <Edit2 size={14} />
+                                    Rename Workspace
                                 </button>
                                 <button
-                                    onClick={(e) => handleMenuAction(e, () => onDelete?.(note))}
+                                    onClick={(e) => handleMenuAction(e, () => onDelete?.(workspace))}
                                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                                 >
                                     <Trash2 size={14} />
-                                    Delete
+                                    Delete Workspace
                                 </button>
                             </div>
                         )}

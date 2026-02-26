@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { signOut } from "next-auth/react";
-import { Home, FileText, CheckSquare, TrendingUp, MessageCircle, Settings, LogOut } from "lucide-react";
+import { Home, Library, CheckSquare, TrendingUp, MessageCircle, Settings, LogOut } from "lucide-react";
 
 export default function Sidebar({ open }: { open: boolean }) {
   const { theme } = useTheme();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
@@ -14,7 +16,7 @@ export default function Sidebar({ open }: { open: boolean }) {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/notes", label: "Notes", icon: FileText },
+    { href: "/library", label: "Library", icon: Library },
     { href: "/tasks", label: "Tasks", icon: CheckSquare },
     { href: "/progress", label: "Progress", icon: TrendingUp },
     { href: "/ai", label: "AI Chat", icon: MessageCircle },
@@ -30,17 +32,22 @@ export default function Sidebar({ open }: { open: boolean }) {
       <nav className="flex flex-col gap-1 p-3">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/") || (item.href === "/library" && pathname.startsWith("/library"));
           return (
             <Link
               key={item.href}
               href={item.href}
               className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                ${theme === 'dark'
-                  ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
-                  : 'text-[#252525] hover:bg-[#7D7D7D] hover:text-white'
+                ${isActive
+                  ? theme === 'dark'
+                    ? 'bg-[#545454] text-white font-semibold'
+                    : 'bg-[#7D7D7D] text-white font-semibold'
+                  : theme === 'dark'
+                    ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
+                    : 'text-[#252525] hover:bg-[#7D7D7D] hover:text-white'
                 }`}
             >
-              <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
+              <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
               <span className="font-medium">{item.label}</span>
             </Link>
           );

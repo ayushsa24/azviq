@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Home, FileText, MessageCircle, CheckSquare, Settings } from "lucide-react";
+import { Home, Library, MessageCircle, CheckSquare, Settings } from "lucide-react";
 
 export default function BottomNav() {
   const { theme } = useTheme();
@@ -11,7 +11,7 @@ export default function BottomNav() {
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },
-    { href: "/notes", label: "Notes", icon: FileText },
+    { href: "/library", label: "Library", icon: Library },
     { href: "/ai", label: "AI", icon: MessageCircle },
     { href: "/tasks", label: "Tasks", icon: CheckSquare },
     { href: "/settings", label: "Settings", icon: Settings },
