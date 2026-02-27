@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -27,7 +27,6 @@ type ChatSession = {
 
 function AiChatCore() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { theme } = useTheme();
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -136,36 +135,43 @@ function AiChatCore() {
       });
   }, [router]);
 
-  // 2. Once history is loaded, open a new chat (unless there's a ?q= query)
+  const pendingQueryRef = useRef<string | null>(null);
+
+  // 2. Once history is loaded, open a new chat. If there's a ?q= query, store it for later.
   useEffect(() => {
     if (!historyLoaded) return;
-    const hasQuery = new URLSearchParams(window.location.search).get('q');
-    if (!hasQuery && !activeChatId) {
+    const query = new URLSearchParams(window.location.search).get('q');
+    if (query) {
+      pendingQueryRef.current = query;
+    }
+    if (!activeChatId) {
       startNewChat();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyLoaded]);
 
-  // Handle URL Query String on completely fresh mounts
+  // Handle pending query once activeChatId is available
   useEffect(() => {
-    const query = searchParams.get('q');
-    if (query && activeChatId && !isLoading) {
-      // If the current chat is not empty, auto-create a new blank one
-      if (messages.length > 0) {
-        startNewChat();
-        return;
-      }
+    if (!activeChatId || !pendingQueryRef.current || isLoading) return;
+    if (isSendingRef.current) return;
 
-      setInput(query);
-      // We use a small timeout to let React set the input state before firing sendMessage automatically
-      setTimeout(() => {
-        handleSend(query);
-        // Remove 'q' parameter from URL to prevent infinite loops
-        router.replace('/ai', { scroll: false });
-      }, 100);
+    const query = pendingQueryRef.current;
+    pendingQueryRef.current = null; // Clear so it doesn't fire again
+
+    // If the current chat already has messages, create a fresh one 
+    if (messages.length > 0) {
+      startNewChat();
+      pendingQueryRef.current = query; // Re-set so it fires after new chat is created
+      return;
     }
+
+    setInput(query);
+    setTimeout(() => {
+      handleSend(query);
+      router.replace('/ai', { scroll: false });
+    }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, activeChatId]);
+  }, [activeChatId, messages.length]);
 
 
   // Scroll to bottom whenever messages change

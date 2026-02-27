@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 export async function PUT(req: Request, context: { params: Promise<{ chatId: string }> }) {
     try {
