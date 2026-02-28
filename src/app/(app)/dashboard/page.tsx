@@ -7,10 +7,9 @@ import AskAIGlobalBar from "@/components/dashboard/AskAIGlobalBar";
 export default async function Home() {
   const session = await getServerSession(authOptions);
 
-  // Temporarily comment out authentication check for testing
-  // if (!session) {
-  //   redirect("/login");
-  // }
+  if (!session) {
+    redirect("/login");
+  }
 
   return (
     <main className="p-6 max-w-xl mx-auto">

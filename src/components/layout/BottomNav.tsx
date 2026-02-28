@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -8,6 +9,32 @@ import { Home, Library, MessageCircle, CheckSquare, Settings } from "lucide-reac
 export default function BottomNav() {
   const { theme } = useTheme();
   const pathname = usePathname();
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        setIsKeyboardOpen(true);
+      }
+    };
+
+    const handleFocusOut = () => {
+      setIsKeyboardOpen(false);
+    };
+
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
+    };
+  }, []);
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },
@@ -18,9 +45,10 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 border-t transition-all duration-300 ease-in-out shadow-lg md:hidden
+    <nav className={`fixed bottom-0 left-0 right-0 border-t transition-all duration-300 ease-in-out shadow-lg md:hidden pb-[env(safe-area-inset-bottom,0px)]
+      ${isKeyboardOpen ? 'translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}
       ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-[#CFCFCF] border-[#7D7D7D]'}`}>
-      <div className="mx-auto flex max-w-xl justify-around p-2">
+      <div className="mx-auto flex max-w-xl justify-around p-2 pt-3 pb-3">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);

@@ -146,7 +146,9 @@ export default function PdfEditorPage() {
         return (
             <div className="flex flex-col items-center justify-center h-full gap-4 bg-[#F5F5F5] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF]">
                 <p>PDF file not found.</p>
-                <button onClick={() => router.back()} className="text-[#252525] dark:text-[#CFCFCF] hover:underline">Go Back</button>
+                <button onClick={() => router.back()} className="text-[#252525] dark:text-[#CFCFCF] hover:bg-gray-200 dark:hover:bg-[#252525] p-3 rounded-full transition-all" title="Go Back">
+                    <ArrowLeft size={24} />
+                </button>
             </div>
         );
     }
@@ -164,10 +166,9 @@ export default function PdfEditorPage() {
                                 router.push("/library");
                             }
                         }}
-                        className="flex items-center gap-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
+                        className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
                     >
                         <ArrowLeft size={20} />
-                        <span className="text-sm font-medium hidden sm:inline">Back</span>
                     </button>
                     <span className="text-sm font-semibold text-[#252525] dark:text-[#CFCFCF] max-w-[200px] sm:max-w-md truncate">
                         {note.title}
@@ -346,6 +347,6 @@ export default function PdfEditorPage() {
 
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

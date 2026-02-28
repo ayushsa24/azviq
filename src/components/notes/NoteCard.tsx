@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, File, MoreVertical, Star, Edit2, MoveRight, Trash2 } from "lucide-react";
+import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2 } from "lucide-react";
 
 export interface NoteItem {
     id: string;
@@ -10,6 +10,8 @@ export interface NoteItem {
     created_at: string;
     user_id: string;
     is_favourite?: boolean;
+    is_pinned?: boolean;
+    is_pinned_in_favourites?: boolean;
     workspace_id?: string;
 }
 
@@ -21,6 +23,8 @@ interface NoteCardProps {
     onMove?: (note: NoteItem) => void;
     onDelete?: (note: NoteItem) => void;
     onToggleFavourite?: (note: NoteItem) => void;
+    onTogglePin?: (note: NoteItem) => void;
+    isPinnedOverride?: boolean;
 }
 
 export function NoteCard({
@@ -30,10 +34,13 @@ export function NoteCard({
     onRename,
     onMove,
     onDelete,
-    onToggleFavourite
+    onToggleFavourite,
+    onTogglePin,
+    isPinnedOverride
 }: NoteCardProps) {
     const isPdf = note.file_url?.toLowerCase().endsWith(".pdf");
     const isList = viewMode === "list";
+    const isPinned = isPinnedOverride !== undefined ? isPinnedOverride : !!note.is_pinned;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,6 +102,11 @@ export function NoteCard({
                 }`}
         >
             <div className={`flex items-center gap-2 transition-opacity ${isList ? "hidden" : "absolute top-4 right-4"}`}>
+                {isPinned && (
+                    <div className="bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full" title="Pinned">
+                        <Pin size={12} fill="currentColor" strokeWidth={0} />
+                    </div>
+                )}
                 {note.is_favourite && (
                     <div className="bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full">
                         <Star size={12} fill="currentColor" strokeWidth={0} />
@@ -115,6 +127,9 @@ export function NoteCard({
                 <div className={`${isList ? "flex items-center gap-2 min-w-0" : "pr-6"}`}>
                     {isList && (
                         <div className="flex items-center gap-1.5 shrink-0">
+                            {isPinned && (
+                                <Pin size={14} fill="currentColor" className="text-[#252525] dark:text-[#CFCFCF]" strokeWidth={0} />
+                            )}
                             {note.is_favourite && (
                                 <Star size={14} fill="currentColor" className="text-[#252525] dark:text-[#CFCFCF]" strokeWidth={0} />
                             )}
@@ -150,6 +165,13 @@ export function NoteCard({
                         {isMenuOpen && (
                             <div className={`absolute z-10 w-48 bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-[#CFCFCF] dark:border-[#545454] py-1 ${isList ? "right-0 top-10" : "right-0 bottom-8"
                                 }`}>
+                                <button
+                                    onClick={(e) => handleMenuAction(e, () => onTogglePin?.(note))}
+                                    className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors"
+                                >
+                                    <Pin size={14} className={isPinned ? "fill-current" : ""} />
+                                    {isPinned ? "Unpin" : "Pin to Top"}
+                                </button>
                                 <button
                                     onClick={(e) => handleMenuAction(e, () => onToggleFavourite?.(note))}
                                     className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors"

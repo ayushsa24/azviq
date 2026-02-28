@@ -1,4 +1,5 @@
-import { BubbleMenu, Editor } from "@tiptap/react";
+import { Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import {
     Bold,
     Italic,
@@ -6,7 +7,21 @@ import {
     Link as LinkIcon,
     Sparkles,
     MessageSquareQuote,
-    Highlighter
+    Highlighter,
+    Table as TableIcon,
+    Rows,
+    Columns,
+    Plus,
+    Minus,
+    Trash2,
+    ArrowUp,
+    ArrowDown,
+    Copy,
+    ChevronDown,
+    FileText,
+    Wand2,
+    CheckCheck,
+    Minimize2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AiPopover } from "./AiPopover";
@@ -35,97 +50,203 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
     if (!editor) return null;
 
     return (
-        <BubbleMenu
-            editor={editor}
-            tippyOptions={{ duration: 100 }}
-            className={`flex items-center gap-1 ${isAiOpen ? '' : 'bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 backdrop-blur-md'}`}
-        >
-            {isAiOpen ? (
-                <AiPopover editor={editor} onClose={() => setIsAiOpen(false)} />
-            ) : (
-                <>
+        <>
+            <BubbleMenu
+                editor={editor}
+                pluginKey="mainBubbleMenu"
+                updateDelay={100}
+                appendTo={() => document.body}
+                shouldShow={({ editor, state, from, to }) => {
+                    // Always show if AI menu is open (for streaming or commands)
+                    if (isAiOpen) return true;
+
+                    const { doc, selection } = state;
+                    const { empty } = selection;
+                    const isEmptyTextBlock = doc.textBetween(from, to).length === 0;
+
+                    // DEBUG: Force show
+                    console.log('BubbleMenu shouldShow', { empty, isEmptyTextBlock });
+                    return editor.isEditable && !empty && !isEmptyTextBlock;
+                }}
+                className={`z-[1000] flex items-center gap-1 ${isAiOpen ? '' : 'bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 backdrop-blur-md'}`}
+            >
+                {isAiOpen ? (
+                    <AiPopover editor={editor} onClose={() => setIsAiOpen(false)} />
+                ) : (
+                    <>
+                        <button
+                            onClick={() => setIsAiOpen(true)}
+                            className="flex items-center gap-1.5 px-3 py-1 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-xs font-semibold shadow-sm transition-all group"
+                        >
+                            <Sparkles size={14} className="group-hover:animate-pulse" />
+                            Ask AI
+                            <ChevronDown size={14} className={`transition-transform ${isAiOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+
+                        <button
+                            onClick={() => editor.chain().focus().toggleBold().run()}
+                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("bold")
+                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                                }`}
+                        >
+                            <Bold size={16} />
+                        </button>
+                        <button
+                            onClick={() => editor.chain().focus().toggleItalic().run()}
+                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("italic")
+                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                                }`}
+                        >
+                            <Italic size={16} />
+                        </button>
+                        <button
+                            onClick={() => editor.chain().focus().toggleUnderline().run()}
+                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("underline")
+                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                                }`}
+                        >
+                            <Underline size={16} />
+                        </button>
+
+                        <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+
+                        <button
+                            onClick={() => {
+                                if (typeof window === "undefined") return;
+                                const previousUrl = editor.getAttributes('link').href;
+                                const url = window.prompt("URL", previousUrl);
+
+                                if (url === null) return;
+                                if (url === "") {
+                                    editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                                    return;
+                                }
+                                editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                            }}
+                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("link")
+                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                                }`}
+                        >
+                            <LinkIcon size={16} />
+                        </button>
+
+                        <button
+                            onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run()}
+                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("highlight")
+                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                                }`}
+                        >
+                            <Highlighter size={16} />
+                        </button>
+
+                    </>
+                )}
+            </BubbleMenu>
+
+            <BubbleMenu
+                editor={editor}
+                pluginKey="tableBubbleMenu"
+                updateDelay={100}
+                shouldShow={({ editor, state }) => {
+                    const { selection } = state;
+                    const { empty } = selection;
+                    return editor.isEditable && editor.isActive('table') && empty;
+                }}
+                className="flex items-center gap-1 bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-lg rounded-lg px-2 py-1 backdrop-blur-md"
+            >
+                <div className="flex items-center gap-0.5 border-r border-[#E0E0E0] dark:border-[#3A3A3A] pr-1 mr-1">
                     <button
-                        onClick={() => setIsAiOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-xs font-semibold shadow-sm transition-all"
+                        onClick={() => editor.chain().focus().addRowBefore().run()}
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        title="Add Row Above"
                     >
-                        <Sparkles size={14} />
-                        Ask AI
-                    </button>
-
-                    <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
-
-                    <button
-                        onClick={() => editor.chain().focus().toggleBold().run()}
-                        className={`p-1.5 rounded-md transition-colors ${editor.isActive("bold")
-                            ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                            }`}
-                    >
-                        <Bold size={16} />
+                        <div className="relative">
+                            <Rows size={16} />
+                            <Plus size={8} className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full" />
+                        </div>
                     </button>
                     <button
-                        onClick={() => editor.chain().focus().toggleItalic().run()}
-                        className={`p-1.5 rounded-md transition-colors ${editor.isActive("italic")
-                            ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                            }`}
+                        onClick={() => editor.chain().focus().addRowAfter().run()}
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        title="Add Row Below"
                     >
-                        <Italic size={16} />
+                        <div className="relative">
+                            <Rows size={16} />
+                            <Plus size={8} className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full" />
+                        </div>
                     </button>
                     <button
-                        onClick={() => editor.chain().focus().toggleUnderline().run()}
-                        className={`p-1.5 rounded-md transition-colors ${editor.isActive("underline")
-                            ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                            }`}
+                        onClick={() => editor.chain().focus().deleteRow().run()}
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                        title="Delete Row"
                     >
-                        <Underline size={16} />
+                        <div className="relative">
+                            <Rows size={16} />
+                            <Minus size={8} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-500" />
+                        </div>
                     </button>
+                </div>
 
-                    <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
-
+                <div className="flex items-center gap-0.5 border-r border-[#E0E0E0] dark:border-[#3A3A3A] pr-1 mr-1">
                     <button
-                        onClick={() => {
-                            if (typeof window === "undefined") return;
-                            const previousUrl = editor.getAttributes('link').href;
-                            const url = window.prompt("URL", previousUrl);
-
-                            if (url === null) return;
-                            if (url === "") {
-                                editor.chain().focus().extendMarkRange('link').unsetLink().run();
-                                return;
-                            }
-                            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-                        }}
-                        className={`p-1.5 rounded-md transition-colors ${editor.isActive("link")
-                            ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                            }`}
+                        onClick={() => editor.chain().focus().addColumnBefore().run()}
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        title="Add Column Before"
                     >
-                        <LinkIcon size={16} />
+                        <div className="relative">
+                            <Columns size={16} />
+                            <Plus size={8} className="absolute -top-1 -left-1 bg-green-500 text-white rounded-full" />
+                        </div>
                     </button>
-
                     <button
-                        onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run()}
-                        className={`p-1.5 rounded-md transition-colors ${editor.isActive("highlight")
-                            ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                            }`}
+                        onClick={() => editor.chain().focus().addColumnAfter().run()}
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        title="Add Column After"
                     >
-                        <Highlighter size={16} />
+                        <div className="relative">
+                            <Columns size={16} />
+                            <Plus size={8} className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full" />
+                        </div>
                     </button>
-
-                    <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
-
                     <button
-                        onClick={() => setIsAiOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-transparent hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#545454] dark:text-[#CFCFCF] rounded-full text-xs font-semibold transition-all"
+                        onClick={() => editor.chain().focus().deleteColumn().run()}
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                        title="Delete Column"
                     >
-                        <MessageSquareQuote size={14} />
-                        Explain
+                        <div className="relative">
+                            <Columns size={16} />
+                            <Minus size={8} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-500" />
+                        </div>
                     </button>
-                </>
-            )}
-        </BubbleMenu>
+                </div>
+
+                <button
+                    onClick={() => {
+                        const { state } = editor;
+                        const { selection } = state;
+                        editor.chain().focus().insertContentAt(selection.to, editor.getHTML().match(/<table>[\s\S]*?<\/table>/)?.[0] || '').run();
+                    }}
+                    className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                    title="Duplicate Table"
+                >
+                    <Copy size={16} />
+                </button>
+
+                <button
+                    onClick={() => editor.chain().focus().deleteTable().run()}
+                    className="p-1.5 rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-1.5 text-xs font-medium"
+                >
+                    <Trash2 size={16} />
+                    Delete Table
+                </button>
+            </BubbleMenu>
+        </>
     );
 }

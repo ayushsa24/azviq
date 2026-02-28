@@ -10,6 +10,8 @@ export interface Note {
   content: string;
   workspace_id?: string;
   is_favourite?: boolean;
+  is_pinned?: boolean;
+  is_pinned_in_favourites?: boolean;
   createdAt: Date;
 }
 
@@ -18,5 +20,6 @@ export interface Workspace {
   user_id: string;
   name: string;
   description?: string;
+  is_pinned?: boolean;
   created_at: string;
 }

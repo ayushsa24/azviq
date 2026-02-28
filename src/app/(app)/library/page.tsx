@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Upload, Plus, LayoutGrid, List } from "lucide-react";
+import { Search, Upload, Plus, LayoutGrid, List, ArrowLeft } from "lucide-react";
 import { NoteItem, NoteCard } from "@/components/notes/NoteCard";
 import { UploadNoteModal } from "@/components/notes/UploadNoteModal";
 import { WorkspaceCard } from "@/components/notes/WorkspaceCard";
@@ -19,20 +19,37 @@ export default function NotesPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewModeState] = useState<"grid" | "list">("grid");
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
 
   useEffect(() => {
-    // Restore tab from storage on mount
-    const savedTab = sessionStorage.getItem("ascend_library_tab") as any;
-    if (savedTab && ["workspaces", "notes", "pdfs", "all", "favourites"].includes(savedTab)) {
-      setActiveTabState(savedTab);
+    // Clear the search query whenever this component mounts
+    setSearchQuery("");
+
+    const savedTab = sessionStorage.getItem('libraryActiveTab');
+    if (savedTab) {
+      setActiveTabState(savedTab as any);
+    }
+
+    const savedView = localStorage.getItem('libraryViewMode');
+    if (savedView === "grid" || savedView === "list") {
+      setViewModeState(savedView);
     }
   }, []);
 
+  // Clear search whenever the user switches tabs or changes the active workspace
+  useEffect(() => {
+    setSearchQuery("");
+  }, [activeTab, activeWorkspace]);
+
   const setActiveTab = (tab: "workspaces" | "notes" | "pdfs" | "all" | "favourites") => {
     setActiveTabState(tab);
-    sessionStorage.setItem("ascend_library_tab", tab);
+    sessionStorage.setItem('libraryActiveTab', tab);
+  };
+
+  const setViewMode = (mode: "grid" | "list") => {
+    setViewModeState(mode);
+    localStorage.setItem('libraryViewMode', mode);
   };
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -94,14 +111,32 @@ export default function NotesPage() {
       filtered = filtered.filter((n) => n.is_favourite);
     }
 
+    // Sort: pinned first, then by created_at
+    filtered.sort((a, b) => {
+      const pinA = activeTab === "favourites" ? a.is_pinned_in_favourites : a.is_pinned;
+      const pinB = activeTab === "favourites" ? b.is_pinned_in_favourites : b.is_pinned;
+      if (pinA && !pinB) return -1;
+      if (!pinA && pinB) return 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
     return filtered;
   }, [notes, searchQuery, activeTab]);
 
   const filteredWorkspaces = useMemo(() => {
-    if (!searchQuery.trim()) return workspaces;
-    return workspaces.filter((w) =>
-      w.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    let filtered = workspaces;
+    if (searchQuery.trim()) {
+      filtered = filtered.filter((w) =>
+        w.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    // Sort: pinned first, then by created_at
+    filtered = [...filtered].sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    return filtered;
   }, [workspaces, searchQuery]);
 
   const handleOpenNote = (note: NoteItem) => {
@@ -182,6 +217,26 @@ export default function NotesPage() {
     }
   };
 
+  const handleTogglePin = async (note: NoteItem) => {
+    try {
+      const isFavTab = activeTab === "favourites";
+      const body = isFavTab
+        ? { is_pinned_in_favourites: !note.is_pinned_in_favourites }
+        : { is_pinned: !note.is_pinned };
+
+      const res = await fetch(`/api/notes/${note.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("Failed to toggle pin");
+      fetchNotesAndWorkspaces();
+    } catch (err) {
+      console.error(err);
+      alert("Could not update the note.");
+    }
+  };
+
   const handleCreateNativeNote = async () => {
     try {
       const res = await fetch("/api/notes", {
@@ -197,7 +252,7 @@ export default function NotesPage() {
       if (!res.ok) throw new Error("Failed to create note");
 
       const { note } = await res.json();
-      router.push(`/library/note/${note.id}`);
+      router.push(`/library/note/${note.id}?new=true`);
     } catch (err) {
       console.error(err);
       alert("Could not create the note.");
@@ -229,16 +284,32 @@ export default function NotesPage() {
     }
   };
 
+  const handleTogglePinWorkspace = async (workspace: Workspace) => {
+    try {
+      const res = await fetch(`/api/workspaces/${workspace.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: !workspace.is_pinned }),
+      });
+      if (!res.ok) throw new Error("Failed to toggle pin");
+      fetchNotesAndWorkspaces();
+    } catch (err) {
+      console.error(err);
+      alert("Could not update the workspace.");
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#F5F5F5] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] p-4 sm:p-6 lg:p-8 overflow-y-auto transition-colors">
+    <div className="flex flex-col h-full bg-[#F5F5F5] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] p-4 sm:p-6 lg:p-8 overflow-hidden transition-colors">
       <div className="flex flex-col mb-5">
         <div className="flex items-center gap-3">
           {activeWorkspace && (
             <button
               onClick={handleBackToWorkspaces}
-              className="text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors bg-[#E0E0E0] dark:bg-[#545454] px-3 py-1.5 rounded-lg text-sm font-medium mr-2"
+              className="text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors bg-[#E0E0E0] dark:bg-[#545454] p-2 rounded-lg"
+              title="Back to Workspaces"
             >
-              ← Back
+              <ArrowLeft size={18} />
             </button>
           )}
           <h1 className="text-3xl font-extrabold text-[#252525] dark:text-[#CFCFCF] tracking-tight transition-colors">
@@ -366,25 +437,62 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#252525] dark:border-[#CFCFCF] transition-colors"></div>
-        </div>
-      ) : activeTab === "workspaces" && !activeWorkspace ? (
-        filteredWorkspaces.length > 0 ? (
+      {/* SCROLLABLE CONTENT AREA */}
+      <div className="flex-1 overflow-y-auto min-h-0 pr-2 pb-2">
+        {isLoading ? (
+          <div className="flex-1 h-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#252525] dark:border-[#CFCFCF] transition-colors"></div>
+          </div>
+        ) : activeTab === "workspaces" && !activeWorkspace ? (
+          filteredWorkspaces.length > 0 ? (
+            <div className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5"
+                : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+            }>
+              {filteredWorkspaces.map((ws) => (
+                <WorkspaceCard
+                  key={ws.id}
+                  workspace={ws}
+                  onClick={handleOpenWorkspace}
+                  viewMode={viewMode}
+                  onRename={handleRenameWorkspaceClick}
+                  onDelete={handleDeleteWorkspaceClick}
+                  onTogglePin={handleTogglePinWorkspace}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl bg-[#F5F5F5] dark:bg-[#252525]/30 transition-colors">
+              <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
+                <Search size={28} className="text-[#545454] dark:text-[#545454] transition-colors" />
+              </div>
+              <h3 className="text-lg font-medium text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No workspaces found</h3>
+              <p className="text-sm">
+                {searchQuery
+                  ? "Try adjusting your search query."
+                  : "Create a workspace to organize your files."}
+              </p>
+            </div>
+          )
+        ) : filteredNotes.length > 0 ? (
           <div className={
             viewMode === "grid"
               ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5"
-              : "flex flex-col gap-4"
+              : "grid grid-cols-1 lg:grid-cols-2 gap-4"
           }>
-            {filteredWorkspaces.map((ws) => (
-              <WorkspaceCard
-                key={ws.id}
-                workspace={ws}
-                onClick={handleOpenWorkspace}
+            {filteredNotes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                onClick={handleOpenNote}
                 viewMode={viewMode}
-                onRename={handleRenameWorkspaceClick}
-                onDelete={handleDeleteWorkspaceClick}
+                onRename={handleRenameClick}
+                onMove={handleMoveClick}
+                onDelete={handleDeleteClick}
+                onToggleFavourite={handleToggleFavourite}
+                onTogglePin={handleTogglePin}
+                isPinnedOverride={activeTab === "favourites" ? !!note.is_pinned_in_favourites : !!note.is_pinned}
               />
             ))}
           </div>
@@ -393,49 +501,17 @@ export default function NotesPage() {
             <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
               <Search size={28} className="text-[#545454] dark:text-[#545454] transition-colors" />
             </div>
-            <h3 className="text-lg font-medium text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No workspaces found</h3>
+            <h3 className="text-lg font-medium text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No files found</h3>
             <p className="text-sm">
               {searchQuery
                 ? "Try adjusting your search query."
-                : "Create a workspace to organize your files."}
+                : activeWorkspace
+                  ? "Upload a file or create a note in this workspace."
+                  : "Upload a file or create a note to get started."}
             </p>
           </div>
-        )
-      ) : filteredNotes.length > 0 ? (
-        <div className={
-          viewMode === "grid"
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5"
-            : "flex flex-col gap-4"
-        }>
-          {filteredNotes.map((note) => (
-            <NoteCard
-              key={note.id}
-              note={note}
-              onClick={handleOpenNote}
-              viewMode={viewMode}
-              onRename={handleRenameClick}
-              onMove={handleMoveClick}
-              onDelete={handleDeleteClick}
-              onToggleFavourite={handleToggleFavourite}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl bg-[#F5F5F5] dark:bg-[#252525]/30 transition-colors">
-          <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
-            <Search size={28} className="text-[#545454] dark:text-[#545454] transition-colors" />
-          </div>
-          <h3 className="text-lg font-medium text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No files found</h3>
-          <p className="text-sm">
-            {searchQuery
-              ? "Try adjusting your search query."
-              : activeWorkspace
-                ? "Upload a file or create a note in this workspace."
-                : "Upload a file or create a note to get started."}
-          </p>
-        </div>
-      )
-      }
+        )}
+      </div>
 
       <UploadNoteModal
         isOpen={isUploadModalOpen}

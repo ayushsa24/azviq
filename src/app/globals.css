@@ -84,10 +84,11 @@ button {
 /* Tiptap Table Styles */
 .tiptap table {
   border-collapse: collapse;
-  margin: 1rem 0;
-  overflow: hidden;
-  table-layout: auto;
-  min-width: 100%;
+  margin: 1.5rem 0;
+  table-layout: fixed;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #E0E0E0;
 }
 
 .tiptap table td,
@@ -95,24 +96,98 @@ button {
   border: 1px solid #CFCFCF;
   box-sizing: border-box;
   min-width: 1em;
-  padding: 8px 12px;
+  padding: 10px 14px;
   position: relative;
   vertical-align: top;
 }
 
 .tiptap table th {
-  background-color: #F5F5F5;
-  font-weight: 600;
+  background-color: #F1F5F9 !important;
+  /* Professional Slate-100 background for the first row */
+  font-weight: 700;
   text-align: left;
+  color: #1E293B;
+  border-bottom: 2px solid #CBD5E1;
+}
+
+/* If the user uses a regular row as a header, make the first row colored anyway */
+.tiptap table tr:first-child td {
+  background-color: #F8FAFC;
+}
+
+.dark .tiptap table th {
+  background-color: #1E293B !important;
+  /* Deep slate indigo for dark mode */
+  color: #F1F5F9;
+  border-bottom: 2px solid #334155;
+}
+
+.dark .tiptap table tr:first-child td {
+  background-color: #1A1A1A;
 }
 
 .dark .tiptap table td,
 .dark .tiptap table th {
+  border-color: #334155;
+}
+
+/* Dark mode header overrides handled above */
+
+.tiptap table .column-resize-handle {
+  background-color: #7D7D7D;
+  bottom: -2px;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tiptap table:hover .column-resize-handle {
+  opacity: 0.3;
+}
+
+.tiptap table .column-resize-handle:hover {
+  opacity: 1;
+}
+
+.tiptap .tableWrapper {
+  overflow-x: auto !important;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5rem 0;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+}
+
+.dark .tiptap .tableWrapper {
   border-color: #3A3A3A;
 }
 
-.dark .tiptap table th {
-  background-color: #1A1A1A;
+.tiptap table {
+  border-collapse: collapse;
+  table-layout: auto !important;
+  min-width: 100%;
+  margin: 0 !important;
+  /* margin is handled by wrapper */
+  border: none !important;
+  /* border is handled by wrapper */
+}
+
+/* Tiptap Placeholder Style - shows on every empty line */
+.tiptap .is-empty:before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #A3A3A3;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap .is-empty.is-editor-empty:before {
+  height: auto;
 }
 
 .tiptap table .selectedCell:after {
@@ -128,16 +203,123 @@ button {
 }
 
 /* Standard HTML tables from AI-generated content (inside prose/editor) */
-.prose table,
-.tiptap table {
+.prose table {
   border-collapse: collapse;
-  margin: 1rem 0;
-  overflow: hidden;
+  margin: 1.5rem 0;
   table-layout: auto;
   min-width: 100%;
   width: 100%;
   border-radius: 8px;
   border: 1px solid #E0E0E0;
+}
+
+@media (max-width: 768px) {
+
+  /* Tiptap Resizable Table Wrapper */
+  .tiptap .tableWrapper {
+    display: block !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Force AI/Prose tables to scroll if they don't have a wrapper */
+  .prose table {
+    display: block !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prose table,
+  .tiptap table,
+  .ai-response-content table {
+    min-width: 600px !important;
+    /* Force width to be larger than screen to guarantee scrollbar appears */
+    width: max-content !important;
+  }
+
+  .prose td,
+  .prose th,
+  .tiptap td,
+  .tiptap th,
+  .ai-response-content td,
+  .ai-response-content th {
+    white-space: nowrap !important;
+    /* Prevent text wrapping so columns expand horizontally */
+    min-width: 120px !important;
+  }
+
+  /* Extreme Side-Scroll for ALL Code Blocks on Mobile */
+  .prose pre,
+  .tiptap pre,
+  .node-codeBlock pre,
+  .ai-response-content pre,
+  pre {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: relative !important;
+  }
+
+  .prose pre code,
+  .tiptap pre code,
+  .node-codeBlock pre code,
+  .ai-response-content pre code,
+  pre code {
+    white-space: pre !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    display: inline-block !important;
+    /* Forces the code to maintain its width */
+    min-width: 100% !important;
+  }
+}
+
+/* Auto-hide scrollbars for Tables and Code Blocks for a cleaner look */
+.tiptap .tableWrapper,
+pre,
+.prose table,
+.ai-response-content .w-full.overflow-x-auto {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow-y: hidden !important;
+  /* Prevent vertical scroll inside table containers */
+}
+
+/* Chrome, Safari, etc. */
+.tiptap .tableWrapper::-webkit-scrollbar,
+pre::-webkit-scrollbar,
+.prose table::-webkit-scrollbar,
+.ai-response-content .w-full.overflow-x-auto::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Ensure the wrapper itself is the one hiding overflow */
+.tiptap .tableWrapper {
+  overflow-x: auto !important;
+  display: block !important;
+}
+
+/* Show scrollbar on hover for desktop */
+@media (hover: hover) {
+
+  .tableWrapper:hover,
+  pre:hover,
+  .prose table:hover,
+  .tiptap table:hover,
+  .ai-response-content table:hover {
+    scrollbar-width: thin;
+  }
+
+  .tableWrapper:hover::-webkit-scrollbar,
+  pre:hover::-webkit-scrollbar,
+  .prose table:hover::-webkit-scrollbar,
+  .tiptap table:hover::-webkit-scrollbar,
+  .ai-response-content table:hover::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
 }
 
 .prose table td,
@@ -153,12 +335,13 @@ button {
 }
 
 .prose table th {
-  background-color: #F5F5F5;
+  background-color: #F8FAFC;
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
-  color: #545454;
+  color: #475569;
+  border-bottom: 2px solid #E2E8F0;
 }
 
 .prose table tr:hover td {
@@ -175,8 +358,9 @@ button {
 }
 
 .dark .prose table th {
-  background-color: #1A1A1A;
-  color: #7D7D7D;
+  background-color: #1E293B;
+  color: #CBD5E1;
+  border-bottom: 2px solid #334155;
 }
 
 .dark .prose table tr:hover td {

@@ -423,7 +423,86 @@ function AiChatCore() {
   };
 
   const activeChats = sessions.filter(s => !s.is_archived);
+  const pinnedChats = activeChats.filter(s => s.is_pinned);
+  const unpinnedChats = activeChats.filter(s => !s.is_pinned);
   const archivedChats = sessions.filter(s => s.is_archived);
+
+  const renderSessionItem = (session: ChatSession) => (
+    <div
+      key={session.id}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setActiveMenuId(activeMenuId === session.id ? null : session.id);
+      }}
+      className={`group relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 ${activeChatId === session.id
+        ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-gray-200 text-[#252525]')
+        : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2A2A2A]' : 'text-gray-600 hover:bg-gray-100')
+        }`}
+    >
+      <button
+        onClick={() => switchChat(session.id)}
+        className="flex items-center gap-3 flex-1 min-w-0 pr-2"
+      >
+        <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
+        {isRenamingId === session.id ? (
+          <input
+            type="text"
+            value={renameTitle}
+            onChange={(e) => setRenameTitle(e.target.value)}
+            onBlur={() => handleRename(session.id)}
+            onKeyDown={(e) => e.key === 'Enter' && handleRename(session.id)}
+            className={`flex-1 min-w-0 text-sm font-medium bg-transparent border-b outline-none px-1 ${theme === 'dark' ? 'border-gray-500 text-white' : 'border-gray-400 text-gray-900'}`}
+            autoFocus
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="truncate text-sm font-medium flex-1 text-left">{session.title}</span>
+        )}
+        {session.is_pinned && <Pin className="w-3 h-3 ml-1 shrink-0 opacity-50" />}
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setActiveMenuId(activeMenuId === session.id ? null : session.id);
+        }}
+        className={`hidden md:block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"} ${theme === 'dark' ? 'hover:bg-[#7D7D7D]' : 'hover:bg-gray-200'
+          }`}
+      >
+        <MoreHorizontal className="w-4 h-4 opacity-70" />
+      </button>
+
+      {/* DROPDOWN MENU */}
+      {activeMenuId === session.id && (
+        <div
+          ref={menuRef}
+          className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#E8E5E0]'
+            }`}
+        >
+          <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
+            }`}>
+            <Share className="w-4 h-4 opacity-70" /> Share
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setIsRenamingId(session.id); setRenameTitle(session.title); setActiveMenuId(null); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
+            }`}>
+            <Edit2 className="w-4 h-4 opacity-70" /> Rename
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); handleTogglePin(session.id, !!session.is_pinned); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
+            }`}>
+            <Pin className="w-4 h-4 opacity-70" /> {session.is_pinned ? "Unpin chat" : "Pin chat"}
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); handleToggleArchive(session.id, !!session.is_archived); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
+            }`}>
+            <Archive className="w-4 h-4 opacity-70" /> Archive
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); handleDelete(session.id); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'text-red-400 hover:bg-[#545454]' : 'text-red-600 hover:bg-[#F5F3EF]'
+            }`}>
+            <Trash2 className="w-4 h-4 opacity-70" /> Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className={`flex h-full overflow-hidden transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#161514] text-white' : 'bg-[#F5F3EF] text-gray-900'
@@ -476,82 +555,20 @@ function AiChatCore() {
             </p>
           )}
 
-          {activeChats.map((session) => (
-            <div
-              key={session.id}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setActiveMenuId(activeMenuId === session.id ? null : session.id);
-              }}
-              className={`group relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 ${activeChatId === session.id
-                ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-gray-200 text-[#252525]')
-                : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2A2A2A]' : 'text-gray-600 hover:bg-gray-100')
-                }`}
-            >
-              <button
-                onClick={() => switchChat(session.id)}
-                className="flex items-center gap-3 flex-1 min-w-0 pr-2"
-              >
-                <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
-                {isRenamingId === session.id ? (
-                  <input
-                    type="text"
-                    value={renameTitle}
-                    onChange={(e) => setRenameTitle(e.target.value)}
-                    onBlur={() => handleRename(session.id)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleRename(session.id)}
-                    className={`flex-1 min-w-0 text-sm font-medium bg-transparent border-b outline-none px-1 ${theme === 'dark' ? 'border-gray-500 text-white' : 'border-gray-400 text-gray-900'}`}
-                    autoFocus
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <span className="truncate text-sm font-medium flex-1 text-left">{session.title}</span>
-                )}
-                {session.is_pinned && <Pin className="w-3 h-3 ml-1 shrink-0 opacity-50" />}
-              </button>
+          {unpinnedChats.map((session) => renderSessionItem(session))}
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveMenuId(activeMenuId === session.id ? null : session.id);
-                }}
-                className={`hidden md:block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"} ${theme === 'dark' ? 'hover:bg-[#7D7D7D]' : 'hover:bg-gray-200'
-                  }`}
-              >
-                <MoreHorizontal className="w-4 h-4 opacity-70" />
-              </button>
-
-              {/* DROPDOWN MENU */}
-              {activeMenuId === session.id && (
-                <div
-                  ref={menuRef}
-                  className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#E8E5E0]'
-                    }`}
-                >
-                  <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-                    }`}>
-                    <Share className="w-4 h-4 opacity-70" /> Share
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setIsRenamingId(session.id); setRenameTitle(session.title); setActiveMenuId(null); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-                    }`}>
-                    <Edit2 className="w-4 h-4 opacity-70" /> Rename
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleTogglePin(session.id, !!session.is_pinned); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-                    }`}>
-                    <Pin className="w-4 h-4 opacity-70" /> {session.is_pinned ? "Unpin chat" : "Pin chat"}
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleToggleArchive(session.id, !!session.is_archived); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-                    }`}>
-                    <Archive className="w-4 h-4 opacity-70" /> Archive
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleDelete(session.id); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'text-red-400 hover:bg-[#545454]' : 'text-red-600 hover:bg-[#F5F3EF]'
-                    }`}>
-                    <Trash2 className="w-4 h-4 opacity-70" /> Delete
-                  </button>
-                </div>
-              )}
+          {/* Pinned Folder */}
+          {pinnedChats.length > 0 && (
+            <div className="pt-2 mt-2 border-t border-opacity-30 border-gray-400">
+              <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider opacity-50 flex items-center gap-2">
+                <Pin className="w-3.5 h-3.5" />
+                Pinned Chats
+              </div>
+              <div className="space-y-1">
+                {pinnedChats.map((session) => renderSessionItem(session))}
+              </div>
             </div>
-          ))}
+          )}
 
           {/* Archived Folder */}
           <div className="pt-2 mt-2 border-t border-opacity-30 border-gray-400">
@@ -690,7 +707,7 @@ function AiChatCore() {
                   {/* Bubble */}
                   <div className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${msg.role === 'user'
                     ? (theme === 'dark' ? 'bg-[#545454] text-white rounded-br-none' : 'bg-gray-200 text-gray-900 rounded-br-none')
-                    : (theme === 'dark' ? 'w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none' : 'w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none')
+                    : (theme === 'dark' ? 'w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none ai-response-content' : 'w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none ai-response-content')
                     }`}>
 
                     {editingMessageIdx === idx ? (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Folder, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Folder, MoreVertical, Pin, Edit2, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Workspace } from "@/types";
 
@@ -9,6 +9,7 @@ interface WorkspaceCardProps {
     viewMode?: "grid" | "list";
     onRename?: (workspace: Workspace) => void;
     onDelete?: (workspace: Workspace) => void;
+    onTogglePin?: (workspace: Workspace) => void;
 }
 
 export function WorkspaceCard({
@@ -16,7 +17,8 @@ export function WorkspaceCard({
     onClick,
     viewMode = "grid",
     onRename,
-    onDelete
+    onDelete,
+    onTogglePin
 }: WorkspaceCardProps) {
     const isList = viewMode === "list";
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -79,6 +81,13 @@ export function WorkspaceCard({
             className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border border-[#CFCFCF] dark:border-[#7D7D7D]/30 bg-white hover:bg-[#F5F5F5] dark:bg-[#CFCFCF]/10 dark:hover:bg-[#CFCFCF]/20 hover:border-[#7D7D7D] dark:hover:border-[#7D7D7D] relative shadow-sm ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-48"
                 }`}
         >
+            {/* Pin indicator - Grid view */}
+            {!isList && workspace.is_pinned && (
+                <div className="absolute top-4 right-4 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full" title="Pinned">
+                    <Pin size={12} fill="currentColor" strokeWidth={0} />
+                </div>
+            )}
+
             <div className={`flex items-center shrink-0 text-[#545454] dark:text-[#7D7D7D] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] transition-colors ${isList ? "" : "flex-1 justify-center"
                 }`}>
                 <Folder size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} fill="currentColor" className="opacity-20 hidden dark:block" />
@@ -88,6 +97,9 @@ export function WorkspaceCard({
             <div className={`border-[#CFCFCF] dark:border-[#7D7D7D]/20 transition-colors ${isList ? "flex-1 min-w-0 flex flex-row items-center justify-between border-none mt-0 pt-0 gap-2" : "mt-4 pt-4 border-t"
                 }`}>
                 <div className={`${isList ? "flex items-center gap-2 min-w-0" : "pr-6"}`}>
+                    {isList && workspace.is_pinned && (
+                        <Pin size={14} fill="currentColor" className="text-[#252525] dark:text-[#CFCFCF] shrink-0" strokeWidth={0} />
+                    )}
                     <h3 className={`font-semibold truncate text-[#252525] dark:text-[#CFCFCF] transition-colors ${isList ? "text-sm sm:text-base" : "text-sm mb-1"
                         }`}>
                         {workspace.name}
@@ -120,6 +132,13 @@ export function WorkspaceCard({
                         {isMenuOpen && (
                             <div className={`absolute z-10 w-48 bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-[#CFCFCF] dark:border-[#545454] py-1 ${isList ? "right-0 top-10" : "right-0 bottom-8"
                                 }`}>
+                                <button
+                                    onClick={(e) => handleMenuAction(e, () => onTogglePin?.(workspace))}
+                                    className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors"
+                                >
+                                    <Pin size={14} className={workspace.is_pinned ? "fill-current" : ""} />
+                                    {workspace.is_pinned ? "Unpin" : "Pin to Top"}
+                                </button>
                                 <button
                                     onClick={(e) => handleMenuAction(e, () => onRename?.(workspace))}
                                     className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"

@@ -6,6 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import PasswordInput from "@/components/PasswordInput";
 import { Mail, Lock, Eye, EyeOff, UserPlus, Check, X } from "lucide-react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 export default function Signup() {
   const router = useRouter();
@@ -36,8 +37,13 @@ export default function Signup() {
   async function handleSignup() {
     const newErrors: { [key: string]: string } = {};
 
+    // Email Regex Pattern
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!email) {
       newErrors.email = "Email is required";
+    } else if (!emailPattern.test(email)) {
+      newErrors.email = "Please enter a valid email address";
     }
 
     const passwordErrors = validatePassword(password);
@@ -70,9 +76,20 @@ export default function Signup() {
       const data = await res.json();
 
       if (data.success) {
-        // ✅ Store user ID in localStorage and redirect to onboarding
-        localStorage.setItem('userId', data.user.id);
-        router.push("/onboarding");
+        // Automatically log them in so they have a valid session for the /api/profile call
+        const loginRes = await signIn("credentials", {
+          redirect: false,
+          email,
+          password,
+        });
+
+        if (loginRes?.error) {
+          alert("Account created, but failed to log in automatically. Please head to login.");
+        } else {
+          // ✅ Store user ID in localStorage and redirect to onboarding
+          localStorage.setItem('userId', data.user.id);
+          router.push("/onboarding");
+        }
       } else {
         alert(data.error || "Signup failed");
       }
@@ -90,15 +107,15 @@ export default function Signup() {
   return (
     <div
       className={`min-h-screen flex items-center justify-center transition-all duration-300 p-4 ${theme === 'dark'
-          ? 'bg-gradient-to-br from-[#252525] via-[#545454]/20 to-[#252525]'
-          : 'bg-gradient-to-br from-[#CFCFCF] via-[#7D7D7D]/20 to-[#CFCFCF]'
+        ? 'bg-gradient-to-br from-[#252525] via-[#545454]/20 to-[#252525]'
+        : 'bg-gradient-to-br from-[#CFCFCF] via-[#7D7D7D]/20 to-[#CFCFCF]'
         }`}
       onKeyPress={handleKeyPress}
     >
 
       <div className={`w-full max-w-sm p-6 rounded-3xl shadow-2xl backdrop-blur-xl transition-all duration-300 border ${theme === 'dark'
-          ? 'bg-[#252525]/60 border-[#545454]/50'
-          : 'bg-white/90 border-[#7D7D7D]/50'
+        ? 'bg-[#252525]/60 border-[#545454]/50'
+        : 'bg-white/90 border-[#7D7D7D]/50'
         }`}>
 
         {/* Logo and Title */}
@@ -127,6 +144,7 @@ export default function Signup() {
             <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
               }`} />
             <input
+              type="email"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

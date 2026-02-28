@@ -74,6 +74,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (body.title !== undefined) updateData.title = body.title;
         if (body.workspace_id !== undefined) updateData.workspace_id = body.workspace_id;
         if (body.is_favourite !== undefined) updateData.is_favourite = body.is_favourite;
+        if (body.is_pinned !== undefined) updateData.is_pinned = body.is_pinned;
+        if (body.is_pinned_in_favourites !== undefined) updateData.is_pinned_in_favourites = body.is_pinned_in_favourites;
         if (body.content !== undefined) updateData.content = body.content;
 
         const { data: note, error } = await supabase

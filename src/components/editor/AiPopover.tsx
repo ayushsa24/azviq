@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Sparkles, Loader2, ArrowRight } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square } from "lucide-react";
 import { Editor } from "@tiptap/react";
 
 interface AiPopoverProps {
@@ -8,8 +8,11 @@ interface AiPopoverProps {
 }
 
 export function AiPopover({ editor, onClose }: AiPopoverProps) {
-    const [prompt, setPrompt] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isComplete, setIsComplete] = useState(false);
+    const [hasStartedWriting, setHasStartedWriting] = useState(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const fullResponseRef = useRef<string>("");
 
     const selectedText = editor.state.doc.textBetween(
         editor.state.selection.from,
@@ -17,39 +20,78 @@ export function AiPopover({ editor, onClose }: AiPopoverProps) {
         " "
     );
 
-    const handleSubmit = async (overridePrompt?: string) => {
-        const finalPrompt = overridePrompt || prompt;
-        if (!finalPrompt && !selectedText) return;
+    // Listen for spacebar to stop generation
+    useEffect(() => {
+        if (!isLoading) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === "Space") {
+                e.preventDefault();
+                handleStop();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isLoading]);
+
+    const handleStop = async () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        // Even if we stop, we want to finalize the formatting of what we already have
+        if (fullResponseRef.current) {
+            const { marked } = await import("marked");
+            const htmlResult = await marked.parse(fullResponseRef.current);
+
+            // Note: We need to know where we were inserting. 
+            // This is handled in the catch block if we use signal.
+        }
+
+        setIsLoading(false);
+        onClose();
+    };
+
+    const handleSubmit = async (command: string) => {
+        if (!selectedText && !command) return;
 
         setIsLoading(true);
+        setIsComplete(false);
+        setHasStartedWriting(false);
+        fullResponseRef.current = "";
+        abortControllerRef.current = new AbortController();
+        let insertAt = editor.state.selection.from;
+
         try {
             const res = await fetch("/api/ai/editor", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    prompt: finalPrompt,
+                    prompt: command,
                     selectedText,
                     contextText: editor.getText().substring(
                         Math.max(0, editor.state.selection.from - 200),
                         editor.state.selection.to + 200
                     ),
                 }),
+                signal: abortControllerRef.current.signal,
             });
 
             if (!res.ok) throw new Error("Failed to get AI response");
 
             // Determine insertion point
-            const insertAt = overridePrompt === "Answer this"
+            insertAt = command === "Answer this"
                 ? editor.state.selection.to
                 : editor.state.selection.from;
 
             // If replacing selected text (not "Answer this"), delete the selection first
-            if (selectedText && overridePrompt !== "Answer this") {
+            if (selectedText && command !== "Answer this") {
                 editor.chain().focus().deleteSelection().run();
             }
 
             // For "Answer this", add a newline before the answer
-            if (overridePrompt === "Answer this") {
+            if (command === "Answer this") {
                 editor.chain().focus().insertContentAt(insertAt, "<p></p>").run();
             }
 
@@ -60,8 +102,7 @@ export function AiPopover({ editor, onClose }: AiPopoverProps) {
             if (!reader) throw new Error("No response body");
 
             let buffer = "";
-            let fullResponse = ""; // Accumulate the complete response
-            const startPos = overridePrompt === "Answer this"
+            const startPos = command === "Answer this"
                 ? insertAt + 2
                 : editor.state.selection.from;
             let currentInsertPos = startPos;
@@ -82,10 +123,11 @@ export function AiPopover({ editor, onClose }: AiPopoverProps) {
                     try {
                         const { content } = JSON.parse(data);
                         if (content) {
+                            if (!hasStartedWriting) setHasStartedWriting(true);
                             // Insert chunk for live typing effect
                             editor.chain().focus().insertContentAt(currentInsertPos, content).run();
                             currentInsertPos += content.length;
-                            fullResponse += content;
+                            fullResponseRef.current += content;
                         }
                     } catch {
                         // skip malformed
@@ -94,94 +136,159 @@ export function AiPopover({ editor, onClose }: AiPopoverProps) {
             }
 
             // Once streaming is complete, replace the raw text with properly formatted HTML
-            if (fullResponse) {
+            if (fullResponseRef.current) {
                 const { marked } = await import("marked");
-                const htmlResult = await marked.parse(fullResponse);
+                const htmlResult = await marked.parse(fullResponseRef.current);
 
                 // Select the raw streamed text range and replace with formatted HTML
-                const endPos = startPos + fullResponse.length;
+                const endPos = startPos + fullResponseRef.current.length;
                 editor.chain()
                     .focus()
                     .setTextSelection({ from: startPos, to: endPos })
                     .deleteSelection()
                     .insertContentAt(startPos, htmlResult)
                     .run();
+
+                setIsComplete(true);
             }
 
-            onClose();
-        } catch (error) {
-            console.error(error);
-            alert("Sorry, I encountered an error. Please try again.");
+            // Keep popover open so user can see it's done
+        } catch (error: any) {
+            if (error.name === "AbortError") {
+                console.log("AI Generation aborted by user");
+                // Finalize what we have
+                if (fullResponseRef.current) {
+                    const { marked } = await import("marked");
+                    const htmlResult = await marked.parse(fullResponseRef.current);
+                    const startPos = command === "Answer this"
+                        ? insertAt + 2
+                        : editor.state.selection.from;
+                    const endPos = startPos + fullResponseRef.current.length;
+
+                    editor.chain()
+                        .focus()
+                        .setTextSelection({ from: startPos, to: endPos })
+                        .deleteSelection()
+                        .insertContentAt(startPos, htmlResult)
+                        .run();
+                }
+            } else {
+                console.error(error);
+                alert("Sorry, I encountered an error. Please try again.");
+            }
         } finally {
             setIsLoading(false);
+            abortControllerRef.current = null;
         }
     };
 
+    if (isLoading) {
+        return (
+            <div
+                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto"
+                onMouseDown={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center gap-2.5">
+                    <div className="relative">
+                        <Sparkles size={16} className={`text-[#252525] dark:text-[#CFCFCF] ${hasStartedWriting ? 'animate-pulse' : 'animate-spin'}`} />
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+                    </div>
+                    <span className="text-sm font-bold text-[#252525] dark:text-[#CFCFCF] whitespace-nowrap">
+                        AI is writing...
+                    </span>
+                </div>
+                <div className="w-px h-4 bg-[#E0E0E0] dark:bg-[#3A3A3A]" />
+                <button
+                    onClick={handleStop}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525]/5 dark:bg-[#CFCFCF]/5 hover:bg-[#252525]/10 dark:hover:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] text-[10px] font-black uppercase tracking-tighter rounded-full transition-all"
+                >
+                    <Square size={10} className="fill-current" />
+                    Stop
+                </button>
+            </div>
+        );
+    }
+
+    if (isComplete) {
+        return (
+            <div
+                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto"
+                onMouseDown={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-green-500/10 rounded-full flex items-center justify-center">
+                        <CheckCheck size={14} className="text-green-600 dark:text-green-400" />
+                    </div>
+                    <span className="text-sm font-bold text-[#252525] dark:text-[#CFCFCF]">Response Ready</span>
+                </div>
+                <button
+                    onClick={onClose}
+                    className="flex items-center gap-1.5 px-4 py-1.5 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] text-xs font-bold rounded-full hover:opacity-90 transition-all shadow-sm"
+                >
+                    Done
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div
-            className="flex flex-col w-[350px] bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
+            className="flex flex-col md:w-[260px] w-[220px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
             onMouseDown={(e) => e.stopPropagation()}
         >
-            <div className="flex items-center gap-2 p-3 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 border-b border-[#E0E0E0] dark:border-[#3A3A3A]">
-                <Sparkles size={16} className="text-[#252525] dark:text-[#CFCFCF]" />
-                <span className="text-sm font-semibold text-[#252525] dark:text-[#CFCFCF]">Ask AI</span>
+            <div className="flex items-center gap-2 p-2.5 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 border-b border-[#E0E0E0] dark:border-[#3A3A3A]">
+                <Sparkles size={14} className="text-[#252525] dark:text-[#CFCFCF]" />
+                <span className="text-xs font-semibold text-[#252525] dark:text-[#CFCFCF]">AI Commands</span>
             </div>
 
-            <div className="p-3 flex flex-col gap-3">
-                <div className="relative">
-                    <input
-                        type="text"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSubmit();
-                        }}
-                        placeholder="Tell AI what to do..."
-                        className="w-full bg-[#F5F5F5] dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] rounded-lg py-2 pl-3 pr-10 text-sm text-[#252525] dark:text-[#CFCFCF] focus:outline-none focus:border-[#252525] dark:focus:border-[#CFCFCF] transition-colors"
-                        autoFocus
-                        disabled={isLoading}
-                    />
+            <div className="p-1.5 grid grid-cols-2 md:flex md:flex-col gap-1 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                <>
                     <button
-                        onClick={() => handleSubmit()}
-                        disabled={(!prompt && !selectedText) || isLoading}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#252525] dark:text-[#CFCFCF] hover:bg-[#252525]/10 dark:hover:bg-[#CFCFCF]/10 rounded-md disabled:opacity-50 transition-colors"
+                        onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}
+                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
                     >
-                        {isLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                        <FileText size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <span className="truncate">{selectedText ? "Summarize" : "Summarize Note"}</span>
                     </button>
-                </div>
+                    <button
+                        onClick={() => handleSubmit(selectedText ? "Explain this" : "Explain content")}
+                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                    >
+                        <Wand2 size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <span className="truncate">{selectedText ? "Explain" : "Explain Content"}</span>
+                    </button>
+                    <button
+                        onClick={() => handleSubmit("Improve writing")}
+                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                    >
+                        <Sparkles size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <span className="truncate">Improve Writing</span>
+                    </button>
+                    <button
+                        onClick={() => handleSubmit("Make it shorter")}
+                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                    >
+                        <Minimize2 size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <span className="truncate">Make Shorter</span>
+                    </button>
+                    <button
+                        onClick={() => handleSubmit("Fix grammar")}
+                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                    >
+                        <CheckCheck size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <span className="truncate">Fix Grammar</span>
+                    </button>
 
-                {selectedText && (
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            onClick={() => handleSubmit("Improve writing")}
-                            disabled={isLoading}
-                            className="px-2.5 py-1 bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] text-[#545454] dark:text-[#CFCFCF] text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-                        >
-                            Improve writing
-                        </button>
-                        <button
-                            onClick={() => handleSubmit("Make it shorter")}
-                            disabled={isLoading}
-                            className="px-2.5 py-1 bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] text-[#545454] dark:text-[#CFCFCF] text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-                        >
-                            Make shorter
-                        </button>
-                        <button
-                            onClick={() => handleSubmit("Fix grammar")}
-                            disabled={isLoading}
-                            className="px-2.5 py-1 bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] text-[#545454] dark:text-[#CFCFCF] text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-                        >
-                            Fix grammar
-                        </button>
+                    {selectedText && (
                         <button
                             onClick={() => handleSubmit("Answer this")}
-                            disabled={isLoading}
-                            className="px-2.5 py-1 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 hover:bg-[#252525]/20 dark:hover:bg-[#CFCFCF]/20 text-[#252525] dark:text-[#CFCFCF] text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+                            className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#252525]/5 dark:hover:bg-[#CFCFCF]/5 text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-semibold rounded-lg transition-colors group col-span-2 md:col-span-1"
                         >
-                            Answer
+                            <ArrowRight size={16} className="text-[#252525] dark:text-[#CFCFCF] shrink-0" />
+                            <span className="truncate">Answer Selection</span>
                         </button>
-                    </div>
-                )}
+                    )}
+                </>
             </div>
         </div>
     );

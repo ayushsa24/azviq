@@ -18,16 +18,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No prompt or selected text provided" }, { status: 400 });
         }
 
-        let systemInstruction = "You are an AI assistant integrated directly into a Notion-style text editor. Your job is to help the user write, brainstorm, edit, or explain text. Return ONLY the requested text, without conversational filler like 'Here is the response' or markdown formatting unless specifically asked to format it.";
+        let systemInstruction = "You are an AI assistant integrated directly into a Notion-style text editor. Your job is to help the user write, brainstorm, edit, or explain text. Use standard Markdown formatting (like headers, bolding, bullet points, and tables) where appropriate to make your response clear and professional. Return ONLY the requested text, without conversational filler like 'Here is the response'.";
 
-        if (prompt === "explain") {
+        const lowerPrompt = prompt?.toLowerCase() || "";
+        if (lowerPrompt.startsWith("explain")) {
             systemInstruction = "You are an AI assistant. Explain the following text clearly and concisely.";
-        } else if (prompt === "summarize") {
+        } else if (lowerPrompt.startsWith("summarize")) {
             systemInstruction = "You are an AI assistant. Summarize the following text into a few sharp bullet points.";
         }
 
         let fullPrompt = "";
-        if (prompt && prompt !== "explain" && prompt !== "summarize") {
+        if (prompt && !lowerPrompt.startsWith("explain") && !lowerPrompt.startsWith("summarize")) {
             fullPrompt = `User Prompt: ${prompt}\n\n`;
         }
         if (selectedText) {

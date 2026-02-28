@@ -3,10 +3,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown } from "lucide-react";
+import { useZoom } from "@/contexts/ZoomContext";
+import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { theme, toggleTheme } = useTheme();
+  const { zoomLevel, zoomIn, zoomOut, resetZoom } = useZoom();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -40,15 +43,15 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem('userId');
-    window.location.href = '/login';
+    await signOut({ callbackUrl: "/login" });
   };
 
   return (
-    <header className={`h-16 flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm fixed top-0 left-0 right-0 z-50 ${theme === 'dark'
-        ? 'bg-[#252525] border-b border-[#545454]'
-        : 'bg-[#CFCFCF] border-b border-[#7D7D7D]'
+    <header className={`h-[calc(4rem+env(safe-area-inset-top,0px))] md:h-16 pt-[env(safe-area-inset-top,0px)] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out shadow-sm fixed top-0 left-0 right-0 z-50 ${theme === 'dark'
+      ? 'bg-[#252525] border-b border-[#545454]'
+      : 'bg-[#CFCFCF] border-b border-[#7D7D7D]'
       }`}>
 
       {/* LEFT */}
@@ -119,15 +122,15 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           {/* DROPDOWN MENU */}
           {dropdownOpen && (
             <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-lg border transition-all duration-200 z-50 ${theme === 'dark'
-                ? 'bg-[#252525] border-[#545454]'
-                : 'bg-white border-[#7D7D7D]'
+              ? 'bg-[#252525] border-[#545454]'
+              : 'bg-white border-[#7D7D7D]'
               }`}>
               <Link href="/profile">
                 <button
                   onClick={() => setDropdownOpen(false)}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${theme === 'dark'
-                      ? 'text-[#CFCFCF] hover:bg-[#545454]'
-                      : 'text-[#545454] hover:bg-[#CFCFCF]'
+                    ? 'text-[#CFCFCF] hover:bg-[#545454]'
+                    : 'text-[#545454] hover:bg-[#CFCFCF]'
                     }`}>
                   <User className="w-4 h-4" />
                   My Profile
@@ -140,8 +143,8 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                   setDropdownOpen(false);
                 }}
                 className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
-                    ? 'text-[#CFCFCF] hover:bg-[#545454]'
-                    : 'text-[#545454] hover:bg-[#CFCFCF]'
+                  ? 'text-[#CFCFCF] hover:bg-[#545454]'
+                  : 'text-[#545454] hover:bg-[#CFCFCF]'
                   }`}>
                 {theme === 'dark' ? (
                   <>
@@ -156,11 +159,26 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 )}
               </button>
 
+              <div className={`px-4 py-2 border-t border-b flex items-center justify-between ${theme === 'dark' ? 'border-[#545454] text-[#CFCFCF]' : 'border-[#7D7D7D] text-[#545454]'}`}>
+                <span className="text-sm font-medium">Zoom</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={zoomOut} className={`p-1 rounded hover:bg-[#7D7D7D] hover:text-white transition-colors`}>
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <button onClick={resetZoom} className={`p-1 rounded hover:bg-[#7D7D7D] hover:text-white transition-colors`} title="Reset Zoom">
+                    <span className="text-xs font-bold leading-none">{Math.round((zoomLevel / 16) * 100)}%</span>
+                  </button>
+                  <button onClick={zoomIn} className={`p-1 rounded hover:bg-[#7D7D7D] hover:text-white transition-colors`}>
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={handleLogout}
                 className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-b-xl cursor-pointer ${theme === 'dark'
-                    ? 'text-red-400 hover:bg-[#545454]'
-                    : 'text-red-600 hover:bg-[#CFCFCF]'
+                  ? 'text-red-400 hover:bg-[#545454]'
+                  : 'text-red-600 hover:bg-[#CFCFCF]'
                   }`}>
                 <LogOut className="w-4 h-4" />
                 Logout

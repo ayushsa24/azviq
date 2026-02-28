@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEditor, EditorContent, ReactNodeViewRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -9,7 +9,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2 } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { SlashCommands, slashCommandSuggestionOptions } from "@/components/editor/slash-command";
@@ -20,19 +20,37 @@ import { TableHeader } from '@tiptap/extension-table-header'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { CodeBlockComponent } from '@/components/editor/CodeBlockComponent'
 import { all, createLowlight } from 'lowlight'
-import "highlight.js/styles/atom-one-dark.css"; // Note: this gives a nice dark theme for code blocks
+import "highlight.js/styles/atom-one-dark.css";
+import { AiTrigger } from '@/components/editor/AiTrigger';
+import { AiInlineInput } from '@/components/editor/AiInlineInput';
 
 const lowlight = createLowlight(all)
 
 export default function NoteEditorPage() {
     const { id } = useParams() as { id: string };
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const [title, setTitle] = useState("Untitled Note");
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState("");
     const [mounted, setMounted] = useState(false);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const moreMenuRef = React.useRef<HTMLDivElement>(null);
+
+    // Default to locked, unless the 'new' query parameter is present meaning we just created it
+    const [isLocked, setIsLocked] = useState(searchParams.get("new") !== "true");
+
+    const [aiInlinePos, setAiInlinePos] = useState<{ top: number; left: number; from: number } | null>(null);
+
+    // Use a ref to keep track of the latest title for editor closures
+    const titleRef = React.useRef(title);
+    const isFetchingRef = React.useRef(true);
+
+    useEffect(() => {
+        titleRef.current = title;
+    }, [title]);
 
     useEffect(() => {
         setMounted(true);
@@ -56,7 +74,31 @@ export default function NoteEditorPage() {
             Highlight.configure({ multicolor: true }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Link.configure({ openOnClick: false }),
-            Table.configure({ resizable: true }),
+            Table.configure({
+                resizable: true,
+            }).extend({
+                draggable: true,
+                addKeyboardShortcuts() {
+                    return {
+                        'Backspace': () => {
+                            if (this.editor.isActive('table')) {
+                                if (this.editor.state.selection.constructor.name === 'CellSelection') {
+                                    return this.editor.commands.deleteRow() || this.editor.commands.deleteColumn();
+                                }
+                            }
+                            return false;
+                        },
+                        'Delete': () => {
+                            if (this.editor.isActive('table')) {
+                                if (this.editor.state.selection.constructor.name === 'CellSelection') {
+                                    return this.editor.commands.deleteRow() || this.editor.commands.deleteColumn();
+                                }
+                            }
+                            return false;
+                        },
+                    }
+                },
+            }),
             TableRow,
             TableHeader,
             TableCell,
@@ -67,9 +109,23 @@ export default function NoteEditorPage() {
             }).configure({
                 lowlight,
             }),
+            AiTrigger.configure({
+                onTrigger: (pos) => {
+                    setAiInlinePos(pos);
+                }
+            }),
             Placeholder.configure({
-                placeholder: "Press '/' for commands or start typing...",
-                emptyEditorClass: "is-editor-empty before:content-[attr(data-placeholder)] before:float-left before:text-[#A3A3A3] before:pointer-events-none h-full",
+                includeChildren: true,
+                showOnlyCurrent: true,
+                placeholder: ({ node }) => {
+                    if (node.type.name === 'heading') {
+                        return 'Heading'
+                    }
+                    if (node.type.name === 'paragraph') {
+                        return "Press 'space' for AI, '/' for commands"
+                    }
+                    return ""
+                },
             }),
             SlashCommands.configure({
                 suggestion: slashCommandSuggestionOptions,
@@ -79,33 +135,69 @@ export default function NoteEditorPage() {
         content: "",
         editorProps: {
             attributes: {
-                class: "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl prose-p:my-1 prose-headings:my-3 px-2 py-4 focus:outline-none dark:prose-invert max-w-none text-[#252525] dark:text-[#CFCFCF] min-h-[500px] cursor-text",
+                class: "prose prose-sm sm:prose-base lg:prose-base xl:prose-lg prose-p:my-1 prose-headings:my-3 px-2 py-4 focus:outline-none dark:prose-invert max-w-none text-[#252525] dark:text-[#CFCFCF] min-h-[500px] cursor-text",
+            },
+            handleKeyDown: (view, event) => {
+                if ((event.key === 'Backspace' || event.key === 'Delete') && editor) {
+                    // Check if multiple cells are selected. 
+                    // In ProseMirror/Tiptap, this is a CellSelection.
+                    const { selection } = editor.state;
+                    const isCellSelection = selection.constructor.name.includes('CellSelection') || 'anchorCell' in selection;
+
+                    if (isCellSelection) {
+                        // If it's a cell selection, we want backspace/delete to remove the rows/cols
+                        editor.chain().focus().deleteRow().run() || editor.chain().focus().deleteColumn().run();
+                        return true; // Prevent default backspace behavior
+                    }
+                }
+                return false;
             },
         },
         onUpdate: ({ editor }) => {
-            // Using a hack to get the latest title from the input by grabbing its value directly, 
-            // since 'title' state might be stale in this closure
-            const titleInput = document.getElementById('note-title-input') as HTMLInputElement;
-            const currentTitle = titleInput ? titleInput.value : "Untitled Note";
-            debouncedSave(editor.getHTML(), currentTitle);
+            if (isFetchingRef.current) return;
+            debouncedSave(editor.getHTML(), titleRef.current);
         },
     });
 
     useEffect(() => {
+        if (editor) {
+            editor.setEditable(!isLocked);
+        }
+    }, [isLocked, editor]);
+
+    const handleDownload = () => {
+        if (!editor) return;
+        const content = editor.getText();
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title || 'note'}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    useEffect(() => {
         async function fetchNote() {
             try {
+                isFetchingRef.current = true;
                 const res = await fetch(`/api/notes/${id}`);
                 if (!res.ok) throw new Error("Failed to load note");
                 const { note } = await res.json();
 
+                titleRef.current = note.title;
                 setTitle(note.title);
                 if (editor && note.content) {
-                    editor.commands.setContent(note.content);
+                    editor.commands.setContent(note.content, { emitUpdate: false });
                 }
             } catch (err) {
                 console.error(err);
             } finally {
                 setIsLoading(false);
+                // Allow a tiny delay to ensure setEditable or other hooks don't fire rogue onUpdate calls
+                setTimeout(() => {
+                    isFetchingRef.current = false;
+                }, 100);
             }
         }
 
@@ -141,6 +233,40 @@ export default function NoteEditorPage() {
         handleSave(content, titleContent);
     }, 1000);
 
+    const handleShare = () => {
+        if (typeof window === "undefined") return;
+        const url = window.location.href;
+        navigator.clipboard.writeText(url);
+        alert("Note link copied to clipboard!");
+        setShowMoreMenu(false);
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm("Are you sure you want to delete this note?")) return;
+
+        try {
+            const res = await fetch(`/api/notes/${id}`, {
+                method: "DELETE",
+            });
+            if (!res.ok) throw new Error("Failed to delete note");
+            router.push("/library");
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete note. Please try again.");
+        }
+    };
+
+    // Handle clicking outside the menu
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+                setShowMoreMenu(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-screen bg-[#F5F5F5] dark:bg-[#1A1A1A]">
@@ -154,43 +280,110 @@ export default function NoteEditorPage() {
 
             {/* Top Navigation Bar */}
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F5F5]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E0E0E0] dark:border-[#2A2A2A] transition-colors">
-                <button
-                    onClick={() => {
-                        if (window.history.length > 2) {
-                            router.back();
-                        } else {
-                            router.push("/library");
-                        }
-                    }}
-                    className="flex items-center gap-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
-                >
-                    <ArrowLeft size={20} />
-                    <span className="text-sm font-medium">Back</span>
-                </button>
-
-                <div className="flex items-center gap-4">
-                    <span className="text-xs text-[#7D7D7D]">
-                        {isSaving ? "Saving..." : saveError ? saveError : "Saved"}
-                    </span>
+                <div className="flex items-center gap-3">
                     <button
-                        onClick={() => handleSave()}
-                        disabled={isSaving}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                        onClick={() => {
+                            if (window.history.length > 2) {
+                                router.back();
+                            } else {
+                                router.push("/library");
+                            }
+                        }}
+                        className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
+                        title="Back"
                     >
-                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        Save
+                        <ArrowLeft size={20} />
                     </button>
+
+                    <span className="text-xs text-[#7D7D7D] font-medium animate-in fade-in slide-in-from-left-2 duration-300">
+                        {isSaving ? "Saving..." : saveError ? saveError : ""}
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <button
+                        onClick={() => editor?.chain().focus().undo().run()}
+                        disabled={isLocked || !editor?.can().undo()}
+                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-md transition-colors disabled:opacity-30"
+                        title="Undo (Ctrl+Z)"
+                    >
+                        <Undo size={18} />
+                    </button>
+
+                    <button
+                        onClick={() => editor?.chain().focus().redo().run()}
+                        disabled={isLocked || !editor?.can().redo()}
+                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-md transition-colors disabled:opacity-30"
+                        title="Redo (Ctrl+Y)"
+                    >
+                        <Redo size={18} />
+                    </button>
+
+                    <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+
+                    <button
+                        onClick={() => setIsLocked(!isLocked)}
+                        className={`p-1.5 rounded-md transition-colors ${isLocked
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                            }`}
+                        title={isLocked ? "Unlock Note to Edit" : "Lock Note (Read-Only)"}
+                    >
+                        {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
+                    </button>
+
+                    <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] hidden sm:block mx-1" />
+
+                    {/* 3-DOT MENU */}
+                    <div className="relative" ref={moreMenuRef}>
+                        <button
+                            onClick={() => setShowMoreMenu(!showMoreMenu)}
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-md transition-colors"
+                        >
+                            <MoreVertical size={20} />
+                        </button>
+
+                        {showMoreMenu && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden z-[60]">
+                                <button
+                                    onClick={handleShare}
+                                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
+                                >
+                                    <Share2 size={16} />
+                                    Share Note
+                                </button>
+                                <button
+                                    onClick={handleDownload}
+                                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
+                                >
+                                    <FileDown size={16} />
+                                    Download as Text
+                                </button>
+                                <div className="h-px bg-[#E0E0E0] dark:bg-[#3A3A3A]" />
+                                <div className="h-px bg-[#E0E0E0] dark:bg-[#3A3A3A]" />
+                                <button
+                                    onClick={handleDelete}
+                                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                                >
+                                    <Trash2 size={16} />
+                                    Remove Note
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Main Editor Area */}
-            <div className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 flex flex-col">
+            <div className="flex-1 max-w-4xl mx-auto w-full px-6 pt-12 pb-[50vh] flex flex-col">
                 <input
                     id="note-title-input"
                     type="text"
                     value={title}
+                    disabled={isLocked}
                     onChange={(e) => {
                         setTitle(e.target.value);
+                        titleRef.current = e.target.value;
                         if (editor) debouncedSave(editor.getHTML(), e.target.value);
                     }}
                     onKeyDown={(e) => {
@@ -204,14 +397,58 @@ export default function NoteEditorPage() {
                 />
 
                 <div
-                    className="flex-1 min-h-[500px] cursor-text"
-                    onClick={() => {
-                        if (editor && !editor.isFocused) {
-                            editor.commands.focus();
+                    className="flex-1 min-h-[500px] cursor-text relative pb-[250px]"
+                    onClick={(e) => {
+                        // Prevent click if we're clicking inside the actual editor content (tiptap)
+                        // This allows Tiptap to handle its own clicks normally
+                        if (e.target !== e.currentTarget) return;
+
+                        if (editor) {
+                            // Focus at the end of the document
+                            editor.commands.focus('end');
+
+                            // If document is empty or ends with a block-node, insert a paragraph
+                            const lastNode = editor.state.doc.lastChild;
+                            if (lastNode && (lastNode.type.name === 'table' || lastNode.type.name === 'codeBlock')) {
+                                editor.chain().focus().insertContentAt(editor.state.doc.content.size, { type: 'paragraph' }).run();
+                            }
                         }
                     }}
                 >
                     {editor && <EditorToolbar editor={editor} />}
+                    {aiInlinePos && (
+                        <AiInlineInput
+                            initialTop={aiInlinePos.top}
+                            initialLeft={aiInlinePos.left}
+                            contextText={editor ? editor.getText() : ""}
+                            onClose={() => {
+                                setAiInlinePos(null);
+                                editor?.commands.focus();
+                            }}
+                            onInsert={(htmlContent) => {
+                                if (editor && aiInlinePos) {
+                                    // Start position where AI first began typing
+                                    const start = aiInlinePos.from;
+                                    // Current cursor position is the end of the raw streamed text
+                                    const end = editor.state.selection.to;
+
+                                    editor.chain()
+                                        .focus()
+                                        .setTextSelection({ from: start, to: end })
+                                        .deleteSelection()
+                                        .insertContentAt(start, htmlContent)
+                                        .run();
+
+                                    setAiInlinePos(null);
+                                }
+                            }}
+                            onStreamChunk={(chunk) => {
+                                if (editor) {
+                                    editor.chain().focus().insertContent(chunk).run();
+                                }
+                            }}
+                        />
+                    )}
                     {mounted && <EditorContent editor={editor} className="h-full" />}
                 </div>
             </div>

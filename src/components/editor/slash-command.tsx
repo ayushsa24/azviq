@@ -9,7 +9,8 @@ import {
     List,
     ListOrdered,
     Quote,
-    CodeSquare
+    CodeSquare,
+    Table
 } from 'lucide-react';
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
@@ -70,6 +71,14 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             icon: <CodeSquare size={18} />,
             command: ({ editor, range }: any) => {
                 editor.chain().focus().deleteRange(range).setNode('codeBlock').run();
+            },
+        },
+        {
+            title: 'Table',
+            description: 'Insert a 3x3 table',
+            icon: <Table size={18} />,
+            command: ({ editor, range }: any) => {
+                editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
             },
         },
     ].filter(item => item.title.toLowerCase().startsWith(query.toLowerCase())).slice(0, 10);
