@@ -5,9 +5,36 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Send, Loader2, Plus, MessageCircle, Bot, User, Menu, X, Image as ImageIcon, MoreHorizontal, Share, Edit2, Pin, Archive, Trash2, ChevronDown, ChevronRight, Ghost, Paperclip, Mic, Copy, Check, ThumbsUp, ThumbsDown, Square, ArrowDown } from "lucide-react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  Send,
+  Loader2,
+  Plus,
+  MessageCircle,
+  Bot,
+  User,
+  Menu,
+  X,
+  Image as ImageIcon,
+  MoreHorizontal,
+  Share,
+  Edit2,
+  Pin,
+  Archive,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Ghost,
+  Paperclip,
+  Mic,
+  Copy,
+  Check,
+  ThumbsUp,
+  ThumbsDown,
+  Square,
+  ArrowDown,
+} from "lucide-react";
 
 type Message = {
   id?: string;
@@ -40,13 +67,18 @@ function AiChatCore() {
   const [isRenamingId, setIsRenamingId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
   const [isDictating, setIsDictating] = useState(false);
-  const [editingMessageIdx, setEditingMessageIdx] = useState<number | null>(null);
+  const [editingMessageIdx, setEditingMessageIdx] = useState<number | null>(
+    null,
+  );
   const [editInput, setEditInput] = useState("");
   const [copiedMessageIdx, setCopiedMessageIdx] = useState<number | null>(null);
   const [copiedCodeBlock, setCopiedCodeBlock] = useState<string | null>(null);
-  const [activeMobileMessageIdx, setActiveMobileMessageIdx] = useState<number | null>(null);
-  const [ratings, setRatings] = useState<Record<number, 'good' | 'bad'>>({});
+  const [activeMobileMessageIdx, setActiveMobileMessageIdx] = useState<
+    number | null
+  >(null);
+  const [ratings, setRatings] = useState<Record<number, "good" | "bad">>({});
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [isActuallySending, setIsActuallySending] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -54,29 +86,50 @@ function AiChatCore() {
   const recognitionRef = useRef<any>(null);
   const isSendingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [isMobileApp, setIsMobileApp] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const checkIsPWA =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        ("standalone" in window.navigator &&
+          (window.navigator as any).standalone);
+      setIsMobileApp(!!checkIsPWA);
+    }
+  }, []);
 
   // Initialize Speech Recognition
   useEffect(() => {
-    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (
+      typeof window !== "undefined" &&
+      ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+    ) {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
 
       recognitionRef.current.onresult = (event: any) => {
-        let finalTranscript = '';
+        let finalTranscript = "";
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript;
           }
         }
         if (finalTranscript) {
-          setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + finalTranscript);
+          setInput(
+            (prev) =>
+              prev +
+              (prev.endsWith(" ") || prev.length === 0 ? "" : " ") +
+              finalTranscript,
+          );
         }
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
+        console.error("Speech recognition error", event.error);
         setIsDictating(false);
       };
 
@@ -115,21 +168,21 @@ function AiChatCore() {
 
   // 1. Fetch History on Mount
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
+    const userId = localStorage.getItem("userId");
     if (!userId) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     fetch(`/api/chat/history?userId=${userId}`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.chats) {
           setSessions(data.chats);
         }
         setHistoryLoaded(true);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Failed to load history", err);
         setHistoryLoaded(true);
       });
@@ -140,7 +193,7 @@ function AiChatCore() {
   // 2. Once history is loaded, open a new chat. If there's a ?q= query, store it for later.
   useEffect(() => {
     if (!historyLoaded) return;
-    const query = new URLSearchParams(window.location.search).get('q');
+    const query = new URLSearchParams(window.location.search).get("q");
     if (query) {
       pendingQueryRef.current = query;
     }
@@ -158,7 +211,7 @@ function AiChatCore() {
     const query = pendingQueryRef.current;
     pendingQueryRef.current = null; // Clear so it doesn't fire again
 
-    // If the current chat already has messages, create a fresh one 
+    // If the current chat already has messages, create a fresh one
     if (messages.length > 0) {
       startNewChat();
       pendingQueryRef.current = query; // Re-set so it fires after new chat is created
@@ -168,38 +221,44 @@ function AiChatCore() {
     setInput(query);
     setTimeout(() => {
       handleSend(query);
-      router.replace('/ai', { scroll: false });
+      router.replace("/ai", { scroll: false });
     }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId, messages.length]);
 
-
   // Scroll to bottom whenever messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: isSendingRef.current ? "auto" : "smooth",
+      });
+    }
   }, [messages, isLoading]);
 
   const startNewChat = async () => {
     // Prevent creating multiple empty chats if one already exists
-    const existingEmptyChat = sessions.find(s => !s.is_archived && (!s.messages || s.messages.length === 0));
+    const existingEmptyChat = sessions.find(
+      (s) => !s.is_archived && (!s.messages || s.messages.length === 0),
+    );
     if (existingEmptyChat) {
       switchChat(existingEmptyChat.id);
       return;
     }
 
-    const userId = localStorage.getItem('userId');
+    const userId = localStorage.getItem("userId");
     if (!userId) return;
 
     try {
-      const res = await fetch('/api/chat/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, title: 'New Chat' })
+      const res = await fetch("/api/chat/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, title: "New Chat" }),
       });
       const data = await res.json();
 
       if (data.chat) {
-        setSessions(prev => [data.chat, ...prev]);
+        setSessions((prev) => [data.chat, ...prev]);
         setActiveChatId(data.chat.id);
         setMessages([]);
         if (window.innerWidth < 768) setIsSidebarOpen(false);
@@ -210,15 +269,10 @@ function AiChatCore() {
   };
 
   const toggleTemporaryChat = () => {
-    if (activeChatId === 'temp-chat') {
-      const topChat = sessions.find(s => !s.is_archived);
-      if (topChat) {
-        switchChat(topChat.id);
-      } else {
-        startNewChat();
-      }
+    if (activeChatId === "temp-chat") {
+      startNewChat();
     } else {
-      setActiveChatId('temp-chat');
+      setActiveChatId("temp-chat");
       setMessages([]);
     }
     if (window.innerWidth < 768) setIsSidebarOpen(false);
@@ -226,7 +280,7 @@ function AiChatCore() {
 
   const switchChat = (chatId: string) => {
     setActiveChatId(chatId);
-    const session = sessions.find(s => s.id === chatId);
+    const session = sessions.find((s) => s.id === chatId);
     if (session) {
       setMessages(session.messages || []);
     }
@@ -245,34 +299,50 @@ function AiChatCore() {
     setTimeout(() => setCopiedCodeBlock(null), 2000);
   };
 
-  const handleSend = async (overrideText?: string, cutHistoryAtIndex?: number) => {
+  const handleSend = async (
+    overrideText?: string,
+    cutHistoryAtIndex?: number,
+  ) => {
     if (isSendingRef.current) return;
 
     const textToSend = overrideText || input;
     if (!textToSend.trim() || !activeChatId) return;
 
-    const userId = localStorage.getItem('userId');
+    const userId = localStorage.getItem("userId");
     if (!userId) return;
 
     isSendingRef.current = true;
     const newMsg: Message = { role: "user", content: textToSend };
 
     // If an edit occurred, slice the history up to the edited message
-    const previousMessages = cutHistoryAtIndex !== undefined
-      ? messages.slice(0, cutHistoryAtIndex)
-      : messages;
+    const previousMessages =
+      cutHistoryAtIndex !== undefined
+        ? messages.slice(0, cutHistoryAtIndex)
+        : messages;
 
     // Optimistic UI Update
     setMessages([...previousMessages, newMsg]);
     setInput("");
     setEditingMessageIdx(null);
     setIsLoading(true);
+    setIsActuallySending(true);
+
+    // Immediately move this chat to the top of the sidebar list
+    setSessions((prev) => {
+      const current = prev.find((s) => s.id === activeChatId);
+      if (!current) return prev;
+      const others = prev.filter((s) => s.id !== activeChatId);
+      return [current, ...others];
+    });
+
+    let aiResponseText = "";
+    let topicTitle: string | null = null;
 
     try {
       const payload = {
         chatId: activeChatId,
         userId: userId,
-        messages: [...previousMessages, newMsg] // send full history context
+        messages: [...previousMessages, newMsg], // send full history context
       };
 
       abortControllerRef.current = new AbortController();
@@ -281,7 +351,7 @@ function AiChatCore() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        signal: abortControllerRef.current.signal
+        signal: abortControllerRef.current.signal,
       });
 
       if (!res.ok) {
@@ -292,11 +362,9 @@ function AiChatCore() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
-      let aiResponseText = "";
-      let topicTitle: string | null = null;
 
       // Lock in a blank message that will get updated character-by-character
-      setMessages(prev => [...prev, { role: "model", content: "" }]);
+      setMessages((prev) => [...prev, { role: "model", content: "" }]);
       // Since typing started, immediately turn off the big thinking spinner
       setIsLoading(false);
 
@@ -305,15 +373,18 @@ function AiChatCore() {
         if (done) break;
 
         const chunkStr = decoder.decode(value, { stream: true });
-        const lines = chunkStr.split('\n').filter(Boolean);
+        const lines = chunkStr.split("\n").filter(Boolean);
         for (const line of lines) {
           try {
             const parsed = JSON.parse(line);
             if (parsed.message?.content) {
               aiResponseText += parsed.message.content;
-              setMessages(prev => {
+              setMessages((prev) => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: "model", content: aiResponseText };
+                updated[updated.length - 1] = {
+                  role: "model",
+                  content: aiResponseText,
+                };
                 return updated;
               });
             }
@@ -324,26 +395,46 @@ function AiChatCore() {
         }
       }
 
-      // Update sidebar session explicitly at the end
-      setSessions(prev => prev.map(s => {
-        if (s.id === activeChatId) {
-          return {
-            ...s,
-            title: topicTitle ? topicTitle : s.title,
-            messages: [...previousMessages, newMsg, { role: "model", content: aiResponseText }]
-          };
-        }
-        return s;
-      }));
+      // Update sidebar session explicitly at the end and move it to the top
+      setSessions((prev) => {
+        const updatedChat = prev.find((s) => s.id === activeChatId);
+        if (!updatedChat) return prev;
 
+        const updated: ChatSession = {
+          ...updatedChat,
+          title: topicTitle ? topicTitle : updatedChat.title,
+          messages: [
+            ...previousMessages,
+            newMsg,
+            { role: "model" as const, content: aiResponseText },
+          ],
+        };
+
+        const others = prev.filter((s) => s.id !== activeChatId);
+        return [updated, ...others];
+      });
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log('User aborted the generation');
+      if (error.name === "AbortError") {
+        console.log("User aborted the generation");
+        // Save the partial message to DB
+        if (activeChatId !== "temp-chat" && aiResponseText.trim().length > 0) {
+          fetch("/api/chat/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chatId: activeChatId,
+              userId: userId,
+              role: "model",
+              content: aiResponseText,
+            }),
+          }).catch((e) => console.error("Failed to save partial message", e));
+        }
       } else {
         console.error("Error sending message", error);
       }
     } finally {
       setIsLoading(false);
+      setIsActuallySending(false);
       isSendingRef.current = false;
     }
   };
@@ -354,78 +445,103 @@ function AiChatCore() {
       return;
     }
     try {
-      setSessions(prev => prev.map(s => s.id === chatId ? { ...s, title: renameTitle } : s));
+      setSessions((prev) =>
+        prev.map((s) => (s.id === chatId ? { ...s, title: renameTitle } : s)),
+      );
       setIsRenamingId(null);
       setActiveMenuId(null);
       await fetch(`/api/chat/history/${chatId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: renameTitle })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: renameTitle }),
       });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleTogglePin = async (chatId: string, currentPinStatus: boolean) => {
     try {
       const newStatus = !currentPinStatus;
-      setSessions(prev => {
-        const updated = prev.map(s => s.id === chatId ? { ...s, is_pinned: newStatus } : s);
+      setSessions((prev) => {
+        const updated = prev.map((s) =>
+          s.id === chatId ? { ...s, is_pinned: newStatus } : s,
+        );
         return updated.sort((a, b) => {
           if (a.is_pinned && !b.is_pinned) return -1;
           if (!a.is_pinned && b.is_pinned) return 1;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         });
       });
       setActiveMenuId(null);
       await fetch(`/api/chat/history/${chatId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_pinned: newStatus })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: newStatus }),
       });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleToggleArchive = async (chatId: string, currentArchiveStatus: boolean) => {
+  const handleToggleArchive = async (
+    chatId: string,
+    currentArchiveStatus: boolean,
+  ) => {
     try {
       const newStatus = !currentArchiveStatus;
-      setSessions(prev => prev.map(s => s.id === chatId ? { ...s, is_archived: newStatus } : s));
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === chatId ? { ...s, is_archived: newStatus } : s,
+        ),
+      );
       setActiveMenuId(null);
 
       if (activeChatId === chatId && newStatus) {
-        const nextChat = sessions.find(s => s.id !== chatId && !s.is_archived);
+        const nextChat = sessions.find(
+          (s) => s.id !== chatId && !s.is_archived,
+        );
         if (nextChat) switchChat(nextChat.id);
         else startNewChat();
       }
 
       await fetch(`/api/chat/history/${chatId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_archived: newStatus })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_archived: newStatus }),
       });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDelete = async (chatId: string) => {
     try {
-      setSessions(prev => prev.filter(s => s.id !== chatId));
+      setSessions((prev) => prev.filter((s) => s.id !== chatId));
       setActiveMenuId(null);
 
       if (activeChatId === chatId) {
-        const nextChat = sessions.find(s => s.id !== chatId && !s.is_archived);
+        const nextChat = sessions.find(
+          (s) => s.id !== chatId && !s.is_archived,
+        );
         if (nextChat) switchChat(nextChat.id);
         else startNewChat();
       }
 
       await fetch(`/api/chat/history/${chatId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const activeChats = sessions.filter(s => !s.is_archived);
-  const pinnedChats = activeChats.filter(s => s.is_pinned);
-  const unpinnedChats = activeChats.filter(s => !s.is_pinned);
-  const archivedChats = sessions.filter(s => s.is_archived);
+  const activeChats = sessions.filter((s) => !s.is_archived);
+  const pinnedChats = activeChats.filter((s) => s.is_pinned);
+  const unpinnedChats = activeChats.filter((s) => !s.is_pinned);
+  const archivedChats = sessions.filter((s) => s.is_archived);
 
   const renderSessionItem = (session: ChatSession) => (
     <div
@@ -435,8 +551,12 @@ function AiChatCore() {
         setActiveMenuId(activeMenuId === session.id ? null : session.id);
       }}
       className={`group relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 ${activeChatId === session.id
-        ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-gray-200 text-[#252525]')
-        : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2A2A2A]' : 'text-gray-600 hover:bg-gray-100')
+        ? theme === "dark"
+          ? "bg-[#545454] text-white"
+          : "bg-gray-200 text-[#252525]"
+        : theme === "dark"
+          ? "text-gray-300 hover:bg-[#2A2A2A]"
+          : "text-gray-600 hover:bg-gray-100"
         }`}
     >
       <button
@@ -450,15 +570,19 @@ function AiChatCore() {
             value={renameTitle}
             onChange={(e) => setRenameTitle(e.target.value)}
             onBlur={() => handleRename(session.id)}
-            onKeyDown={(e) => e.key === 'Enter' && handleRename(session.id)}
-            className={`flex-1 min-w-0 text-sm font-medium bg-transparent border-b outline-none px-1 ${theme === 'dark' ? 'border-gray-500 text-white' : 'border-gray-400 text-gray-900'}`}
+            onKeyDown={(e) => e.key === "Enter" && handleRename(session.id)}
+            className={`flex-1 min-w-0 text-sm font-medium bg-transparent border-b outline-none px-1 ${theme === "dark" ? "border-gray-500 text-white" : "border-gray-400 text-gray-900"}`}
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className="truncate text-sm font-medium flex-1 text-left">{session.title}</span>
+          <span className="truncate text-sm font-medium flex-1 text-left">
+            {session.title}
+          </span>
         )}
-        {session.is_pinned && <Pin className="w-3 h-3 ml-1 shrink-0 opacity-50" />}
+        {session.is_pinned && (
+          <Pin className="w-3 h-3 ml-1 shrink-0 opacity-50" />
+        )}
       </button>
 
       <button
@@ -466,7 +590,7 @@ function AiChatCore() {
           e.stopPropagation();
           setActiveMenuId(activeMenuId === session.id ? null : session.id);
         }}
-        className={`hidden md:block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"} ${theme === 'dark' ? 'hover:bg-[#7D7D7D]' : 'hover:bg-gray-200'
+        className={`block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-gray-200"
           }`}
       >
         <MoreHorizontal className="w-4 h-4 opacity-70" />
@@ -476,27 +600,64 @@ function AiChatCore() {
       {activeMenuId === session.id && (
         <div
           ref={menuRef}
-          className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#E8E5E0]'
+          className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === "dark"
+            ? "bg-[#252525] border-[#545454]"
+            : "bg-white border-[#E8E5E0]"
             }`}
         >
-          <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-            }`}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveMenuId(null);
+            }}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
+          >
             <Share className="w-4 h-4 opacity-70" /> Share
           </button>
-          <button onClick={(e) => { e.stopPropagation(); setIsRenamingId(session.id); setRenameTitle(session.title); setActiveMenuId(null); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-            }`}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsRenamingId(session.id);
+              setRenameTitle(session.title);
+              setActiveMenuId(null);
+            }}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
+          >
             <Edit2 className="w-4 h-4 opacity-70" /> Rename
           </button>
-          <button onClick={(e) => { e.stopPropagation(); handleTogglePin(session.id, !!session.is_pinned); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-            }`}>
-            <Pin className="w-4 h-4 opacity-70" /> {session.is_pinned ? "Unpin chat" : "Pin chat"}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTogglePin(session.id, !!session.is_pinned);
+            }}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
+          >
+            <Pin className="w-4 h-4 opacity-70" />{" "}
+            {session.is_pinned ? "Unpin chat" : "Pin chat"}
           </button>
-          <button onClick={(e) => { e.stopPropagation(); handleToggleArchive(session.id, !!session.is_archived); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'hover:bg-[#545454]' : 'hover:bg-[#F5F3EF]'
-            }`}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleArchive(session.id, !!session.is_archived);
+            }}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
+          >
             <Archive className="w-4 h-4 opacity-70" /> Archive
           </button>
-          <button onClick={(e) => { e.stopPropagation(); handleDelete(session.id); }} className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === 'dark' ? 'text-red-400 hover:bg-[#545454]' : 'text-red-600 hover:bg-[#F5F3EF]'
-            }`}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete(session.id);
+            }}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark"
+              ? "text-red-400 hover:bg-[#545454]"
+              : "text-red-600 hover:bg-[#F5F3EF]"
+              }`}
+          >
             <Trash2 className="w-4 h-4 opacity-70" /> Delete
           </button>
         </div>
@@ -505,9 +666,12 @@ function AiChatCore() {
   );
 
   return (
-    <div className={`flex h-full overflow-hidden transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#161514] text-white' : 'bg-[#F5F3EF] text-gray-900'
-      }`}>
-
+    <div
+      className={`flex h-full overflow-hidden transition-colors duration-300 ease-in-out ${theme === "dark"
+        ? "bg-[#161514] text-white"
+        : "bg-[#F5F3EF] text-gray-900"
+        }`}
+    >
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
@@ -517,18 +681,20 @@ function AiChatCore() {
       )}
 
       {/* 🚀 SIDEBAR (History) */}
-      <div className={`fixed top-16 md:top-0 md:relative z-50 w-72 h-[calc(100dvh-4rem)] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#E8E5E0]'
-        }`}>
-
-
+      <div
+        className={`fixed top-16 md:top-0 md:relative z-50 w-72 h-[calc(100dvh-4rem)] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          } ${theme === "dark"
+            ? "bg-[#252525] border-[#545454]"
+            : "bg-white border-[#E8E5E0]"
+          }`}
+      >
         {/* New Chat Button */}
         <div className="p-3 border-b border-opacity-30 border-gray-400 space-y-2">
           <button
             onClick={startNewChat}
-            className={`w-full py-2.5 px-3 rounded-xl font-medium flex items-center gap-3 transition-colors duration-200 text-sm ${theme === 'dark'
-              ? 'bg-[#545454] hover:bg-[#7D7D7D] text-white'
-              : 'bg-[#252525] hover:bg-[#545454] text-[#CFCFCF] hover:text-white'
+            className={`w-full py-2.5 px-3 rounded-xl font-medium flex items-center gap-3 transition-colors duration-200 text-sm ${theme === "dark"
+              ? "bg-[#545454] hover:bg-[#7D7D7D] text-white"
+              : "bg-[#252525] hover:bg-[#545454] text-[#CFCFCF] hover:text-white"
               }`}
           >
             <Plus className="w-4 h-4" />
@@ -536,21 +702,27 @@ function AiChatCore() {
           </button>
           <button
             onClick={toggleTemporaryChat}
-            className={`w-full py-2.5 px-3 rounded-xl font-medium flex items-center gap-3 transition-colors duration-200 border border-dashed text-sm ${activeChatId === 'temp-chat'
-              ? (theme === 'dark' ? 'border-red-500/50 bg-red-900/20 hover:bg-red-900/40 text-red-400' : 'border-red-300 bg-red-50 hover:bg-red-100 text-red-600')
-              : (theme === 'dark' ? 'border-gray-500 hover:bg-[#2A2A2A] text-gray-300' : 'border-gray-300 hover:bg-gray-100 text-[#545454]')
+            className={`w-full py-2.5 px-3 rounded-xl font-medium flex items-center gap-3 transition-colors duration-200 border border-dashed text-sm ${activeChatId === "temp-chat"
+              ? theme === "dark"
+                ? "border-red-500/50 bg-red-900/20 hover:bg-red-900/40 text-red-400"
+                : "border-red-300 bg-red-50 hover:bg-red-100 text-red-600"
+              : theme === "dark"
+                ? "border-gray-500 hover:bg-[#2A2A2A] text-gray-300"
+                : "border-gray-300 hover:bg-gray-100 text-[#545454]"
               }`}
             title="Toggle Temporary Chat"
           >
             <Ghost className="w-4 h-4" />
-            {activeChatId === 'temp-chat' ? 'Exit Temp Chat' : 'Temporary Chat'}
+            {activeChatId === "temp-chat" ? "Exit Temp Chat" : "Temporary Chat"}
           </button>
         </div>
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
           {activeChats.length === 0 && (
-            <p className={`text-center mt-6 text-sm ${theme === 'dark' ? 'text-[#7D7D7D]' : 'text-gray-400'}`}>
+            <p
+              className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#7D7D7D]" : "text-gray-400"}`}
+            >
               No previous chats found.
             </p>
           )}
@@ -574,33 +746,45 @@ function AiChatCore() {
           <div className="pt-2 mt-2 border-t border-opacity-30 border-gray-400">
             <button
               onClick={() => setIsArchivedExpanded(!isArchivedExpanded)}
-              className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-[#2A2A2A]' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === "dark" ? "text-gray-300 hover:bg-[#2A2A2A]" : "text-gray-600 hover:bg-gray-100"}`}
             >
               <div className="flex items-center gap-3">
                 <Archive className="w-4 h-4 opacity-70" />
                 <span className="text-sm font-medium">Archived Chats</span>
               </div>
-              {isArchivedExpanded ? <ChevronDown className="w-4 h-4 opacity-70" /> : <ChevronRight className="w-4 h-4 opacity-70" />}
+              {isArchivedExpanded ? (
+                <ChevronDown className="w-4 h-4 opacity-70" />
+              ) : (
+                <ChevronRight className="w-4 h-4 opacity-70" />
+              )}
             </button>
 
             {isArchivedExpanded && (
               <div className="mt-1 pl-2 space-y-1">
                 {archivedChats.length === 0 ? (
-                  <p className={`text-xs py-2 px-3 opacity-60`}>No archived chats</p>
+                  <p className={`text-xs py-2 px-3 opacity-60`}>
+                    No archived chats
+                  </p>
                 ) : (
                   archivedChats.map((session) => (
                     <div
                       key={session.id}
                       className={`group relative w-full flex items-center justify-between p-2 rounded-lg transition-all duration-200 ${activeChatId === session.id
-                        ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-gray-200 text-[#252525]')
-                        : (theme === 'dark' ? 'text-gray-400 hover:bg-[#2A2A2A]' : 'text-gray-500 hover:bg-gray-100')
+                        ? theme === "dark"
+                          ? "bg-[#545454] text-white"
+                          : "bg-gray-200 text-[#252525]"
+                        : theme === "dark"
+                          ? "text-gray-400 hover:bg-[#2A2A2A]"
+                          : "text-gray-500 hover:bg-gray-100"
                         }`}
                     >
                       <button
                         onClick={() => switchChat(session.id)}
                         className="flex items-center gap-3 flex-1 min-w-0 pr-2"
                       >
-                        <span className="truncate text-sm opacity-80">{session.title}</span>
+                        <span className="truncate text-sm opacity-80">
+                          {session.title}
+                        </span>
                       </button>
                       <button
                         title="Unarchive"
@@ -608,7 +792,7 @@ function AiChatCore() {
                           e.stopPropagation();
                           handleToggleArchive(session.id, true);
                         }}
-                        className={`p-1.5 rounded-md transition-opacity shrink-0 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 ${theme === 'dark' ? 'hover:bg-[#7D7D7D]' : 'hover:bg-gray-200'}`}
+                        className={`p-1.5 rounded-md transition-opacity shrink-0 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-gray-200"}`}
                       >
                         <Pin className="w-3.5 h-3.5 opacity-70 rotate-180" />
                       </button>
@@ -623,23 +807,36 @@ function AiChatCore() {
 
       {/* 🚀 MAIN CHAT AREA */}
       <div className="flex-1 flex flex-col h-full min-w-0">
-
         {/* Mobile Header Toggle */}
-        <div className={`md:hidden shrink-0 sticky top-0 z-10 p-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#161514] border-[#545454]' : 'bg-[#F5F3EF] border-[#E8E5E0]'
-          }`}>
+        <div
+          className={`md:hidden shrink-0 sticky top-0 z-10 p-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
+            ? "bg-[#161514] border-[#545454]"
+            : "bg-[#F5F3EF] border-[#E8E5E0]"
+            }`}
+        >
           <div className="flex items-center">
-            <button onClick={() => setIsSidebarOpen(true)} className={`p-2 rounded-lg pr-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
+            >
               <Menu className="w-5 h-5" />
             </button>
             <span className="font-semibold text-sm truncate max-w-[150px]">
-              {activeChatId === 'temp-chat' ? 'Temporary Chat' : (sessions.find(s => s.id === activeChatId)?.title || "Chat History")}
+              {activeChatId === "temp-chat"
+                ? "Temporary Chat"
+                : sessions.find((s) => s.id === activeChatId)?.title ||
+                "Chat History"}
             </span>
           </div>
           <button
             onClick={toggleTemporaryChat}
-            className={`p-2 rounded-lg transition-colors ${activeChatId === 'temp-chat'
-              ? (theme === 'dark' ? 'bg-red-900/40 text-red-400 hover:bg-red-900/60' : 'bg-red-100 text-red-600 hover:bg-red-200')
-              : (theme === 'dark' ? 'text-gray-300 hover:bg-[#252525]' : 'text-[#545454] hover:bg-gray-200')
+            className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
+              ? theme === "dark"
+                ? "bg-red-900/40 text-red-400 hover:bg-red-900/60"
+                : "bg-red-100 text-red-600 hover:bg-red-200"
+              : theme === "dark"
+                ? "text-gray-300 hover:bg-[#252525]"
+                : "text-[#545454] hover:bg-gray-200"
               }`}
             title="Toggle Temporary Chat"
           >
@@ -652,25 +849,35 @@ function AiChatCore() {
           ref={chatContainerRef}
           onScroll={() => {
             if (chatContainerRef.current) {
-              const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+              const { scrollTop, scrollHeight, clientHeight } =
+                chatContainerRef.current;
               setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
             }
           }}
-          className="flex-1 overflow-y-auto p-3 md:p-6 md:space-y-4"
+          className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6"
         >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-              {activeChatId === 'temp-chat' ? (
+              {activeChatId === "temp-chat" ? (
                 <>
                   <Ghost className="w-16 h-16 mb-4 text-red-500 opacity-80" />
-                  <h2 className="text-2xl font-bold mb-2">You are in Temporary Chat</h2>
-                  <p className="max-w-md text-sm">Messages here will not be saved to your history. How can I help?</p>
+                  <h2 className="text-2xl font-bold mb-2">
+                    You are in Temporary Chat
+                  </h2>
+                  <p className="max-w-md text-sm">
+                    Messages here will not be saved to your history. How can I
+                    help?
+                  </p>
                 </>
               ) : (
                 <>
                   <Bot className="w-16 h-16 mb-4" />
-                  <h2 className="text-2xl font-bold mb-2">How can I help you study?</h2>
-                  <p className="max-w-md text-sm">Send a message or upload an image to start learning.</p>
+                  <h2 className="text-2xl font-bold mb-2">
+                    How can I help you study?
+                  </h2>
+                  <p className="max-w-md text-sm">
+                    Send a message or upload an image to start learning.
+                  </p>
                 </>
               )}
             </div>
@@ -678,58 +885,74 @@ function AiChatCore() {
             messages.map((msg, idx) => (
               <div
                 key={idx}
-                className={`group flex gap-3 md:gap-4 max-w-4xl mx-auto w-full px-3 md:px-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`group flex gap-3 md:gap-4 max-w-4xl mx-auto w-full px-3 md:px-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 onContextMenu={(e) => {
-                  if (msg.role === 'user') {
-                    e.preventDefault();
-                    setActiveMobileMessageIdx(activeMobileMessageIdx === idx ? null : idx);
-                  }
+                  e.preventDefault();
+                  setActiveMobileMessageIdx(
+                    activeMobileMessageIdx === idx ? null : idx,
+                  );
                 }}
               >
-
                 {/* Avatar Model */}
-                {msg.role === 'model' && (
-                  <div className={`hidden md:flex w-8 h-8 mt-2 rounded-full shrink-0 items-center justify-center ${theme === 'dark' ? 'bg-[#252525]' : 'bg-[#252525]'}`}>
+                {msg.role === "model" && (
+                  <div
+                    className={`hidden md:flex w-8 h-8 mt-2 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#252525]" : "bg-[#252525]"}`}
+                  >
                     <Bot className="w-5 h-5 text-white" />
                   </div>
                 )}
 
                 {/* Bubble Container */}
-                <div className={`relative flex flex-col gap-1 ${msg.role === 'user' ? 'items-end max-w-[85%] md:max-w-[75%]' : 'items-start w-full md:w-[calc(100%-48px)] max-w-full'}`}>
-
+                <div
+                  className={`relative flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-[85%] md:max-w-[75%]" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}
+                >
                   {/* Timestamp - User Only, Mobile Only, On Long Press */}
-                  {msg.role === 'user' && activeMobileMessageIdx === idx && (
-                    <span className={`md:hidden text-[10px] px-1 mb-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {msg.created_at ? new Date(msg.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Just now'}
+                  {msg.role === "user" && activeMobileMessageIdx === idx && (
+                    <span
+                      className={`md:hidden text-[10px] px-1 mb-0.5 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      {msg.created_at
+                        ? new Date(msg.created_at).toLocaleString([], {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
+                        : "Just now"}
                     </span>
                   )}
 
                   {/* Bubble */}
-                  <div className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${msg.role === 'user'
-                    ? (theme === 'dark' ? 'bg-[#545454] text-white rounded-br-none' : 'bg-gray-200 text-gray-900 rounded-br-none')
-                    : (theme === 'dark' ? 'w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none ai-response-content' : 'w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none ai-response-content')
-                    }`}>
-
+                  <div
+                    className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${msg.role === "user"
+                      ? theme === "dark"
+                        ? "bg-[#545454] text-white rounded-br-none"
+                        : "bg-gray-200 text-gray-900 rounded-br-none"
+                      : theme === "dark"
+                        ? "w-fit max-w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none ai-response-content"
+                        : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none ai-response-content"
+                      }`}
+                  >
                     {editingMessageIdx === idx ? (
                       <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
                         <textarea
                           autoFocus
                           value={editInput}
                           onChange={(e) => setEditInput(e.target.value)}
-                          className={`w-full bg-transparent border-0 focus:ring-0 resize-none outline-none custom-scrollbar p-0 m-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
-                          rows={Math.max(2, editInput.split('\n').length)}
+                          className={`w-full bg-transparent border-0 focus:ring-0 resize-none outline-none custom-scrollbar p-0 m-0 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+                          rows={Math.max(2, editInput.split("\n").length)}
                         />
                         <div className="flex justify-end gap-2 mt-2">
                           <button
                             onClick={() => setEditingMessageIdx(null)}
-                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${theme === 'dark' ? 'bg-[#252525] hover:bg-[#333] text-gray-300' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'}`}
+                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${theme === "dark" ? "bg-[#252525] hover:bg-[#333] text-gray-300" : "bg-gray-300 hover:bg-gray-400 text-gray-700"}`}
                           >
                             Cancel
                           </button>
                           <button
                             onClick={() => handleSend(editInput, idx)}
-                            disabled={!editInput.trim() || editInput === msg.content}
-                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${theme === 'dark' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
+                            disabled={
+                              !editInput.trim() || editInput === msg.content
+                            }
+                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${theme === "dark" ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-indigo-500 hover:bg-indigo-600 text-white"}`}
                           >
                             Save & Resubmit
                           </button>
@@ -737,61 +960,167 @@ function AiChatCore() {
                       </div>
                     ) : (
                       <>
-                        {msg.role === 'model' ? (
+                        {msg.role === "model" ? (
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
-                              h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
-                              h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
-                              h3: ({ node, ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
-                              p: ({ node, ...props }) => <p className="mb-2 leading-relaxed" {...props} />,
-                              ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-0.5" {...props} />,
-                              ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5" {...props} />,
-                              li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-                              a: ({ node, ...props }) => <a className="text-[#545454] hover:underline font-semibold" {...props} />,
-                              strong: ({ node, ...props }) => <strong className="font-bold text-inherit" {...props} />,
+                              h1: ({ node, ...props }) => (
+                                <h1
+                                  className="text-xl font-bold mt-4 mb-2"
+                                  {...props}
+                                />
+                              ),
+                              h2: ({ node, ...props }) => (
+                                <h2
+                                  className="text-lg font-bold mt-3 mb-2"
+                                  {...props}
+                                />
+                              ),
+                              h3: ({ node, ...props }) => (
+                                <h3
+                                  className="text-md font-bold mt-2 mb-1"
+                                  {...props}
+                                />
+                              ),
+                              p: ({ node, ...props }) => (
+                                <p
+                                  className="mb-2 leading-relaxed"
+                                  {...props}
+                                />
+                              ),
+                              ul: ({ node, ...props }) => (
+                                <ul
+                                  className="list-disc pl-5 mb-2 space-y-0.5"
+                                  {...props}
+                                />
+                              ),
+                              ol: ({ node, ...props }) => (
+                                <ol
+                                  className="list-decimal pl-5 mb-2 space-y-0.5"
+                                  {...props}
+                                />
+                              ),
+                              li: ({ node, ...props }) => (
+                                <li className="pl-1" {...props} />
+                              ),
+                              a: ({ node, ...props }) => (
+                                <a
+                                  className="text-[#545454] hover:underline font-semibold"
+                                  {...props}
+                                />
+                              ),
+                              strong: ({ node, ...props }) => (
+                                <strong
+                                  className="font-bold text-inherit"
+                                  {...props}
+                                />
+                              ),
                               table: ({ node, ...props }) => (
                                 <div className="w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-gray-300 dark:border-[#545454]">
-                                  <table className="w-full text-sm text-left border-collapse" {...props} />
+                                  <table
+                                    className="w-full text-sm text-left border-collapse"
+                                    {...props}
+                                  />
                                 </div>
                               ),
-                              thead: ({ node, ...props }) => <thead className={`text-xs uppercase font-medium ${theme === 'dark' ? 'bg-[#2A2A2A] text-gray-300 border-b border-[#545454]' : 'bg-gray-100 text-gray-700 border-b border-gray-300'}`} {...props} />,
-                              tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-[#545454]" {...props} />,
-                              tr: ({ node, ...props }) => <tr className={`transition-colors shadow-sm ${theme === 'dark' ? 'hover:bg-[#252525]/50' : 'hover:bg-gray-50'}`} {...props} />,
-                              th: ({ node, ...props }) => <th className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
-                              td: ({ node, ...props }) => <td className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
-                              pre: ({ node, children, ...props }) => <div className="not-prose">{children}</div>,
-                              code({ node, className, children, ...props }: any) {
-                                const match = /language-(\w+)/.exec(className || '');
-                                const isInline = !match && !className?.includes('language');
-                                const codeString = String(children).replace(/\n$/, '');
+                              thead: ({ node, ...props }) => (
+                                <thead
+                                  className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-gray-100 text-gray-700 border-b border-gray-300"}`}
+                                  {...props}
+                                />
+                              ),
+                              tbody: ({ node, ...props }) => (
+                                <tbody
+                                  className="divide-y divide-gray-200 dark:divide-[#545454]"
+                                  {...props}
+                                />
+                              ),
+                              tr: ({ node, ...props }) => (
+                                <tr
+                                  className={`transition-colors shadow-sm ${theme === "dark" ? "hover:bg-[#252525]/50" : "hover:bg-gray-50"}`}
+                                  {...props}
+                                />
+                              ),
+                              th: ({ node, ...props }) => (
+                                <th
+                                  className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]"
+                                  {...props}
+                                />
+                              ),
+                              td: ({ node, ...props }) => (
+                                <td
+                                  className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]"
+                                  {...props}
+                                />
+                              ),
+                              pre: ({ node, children, ...props }) => (
+                                <div className="not-prose">{children}</div>
+                              ),
+                              code({
+                                node,
+                                className,
+                                children,
+                                ...props
+                              }: any) {
+                                const match = /language-(\w+)/.exec(
+                                  className || "",
+                                );
+                                const isInline =
+                                  !match && !className?.includes("language");
+                                const codeString = String(children).replace(
+                                  /\n$/,
+                                  "",
+                                );
 
                                 if (isInline) {
-                                  return <code className={`px-1 py-0.5 rounded text-xs ${theme === 'dark' ? 'bg-[#1e1e1e] text-pink-400' : 'bg-gray-100 text-pink-600'}`} {...props}>{children}</code>;
+                                  return (
+                                    <code
+                                      className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-gray-100 text-pink-600"}`}
+                                      {...props}
+                                    >
+                                      {children}
+                                    </code>
+                                  );
                                 }
 
                                 return (
                                   <div className="relative group/code mb-4 mt-3">
-                                    <div className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === 'dark' ? 'bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]' : 'bg-gray-800 text-gray-400 border border-b-0 border-gray-800'}`}>
-                                      <span>{match?.[1] || 'code'}</span>
+                                    <div
+                                      className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}
+                                    >
+                                      <span>{match?.[1] || "code"}</span>
                                       <button
-                                        onClick={() => handleCopyCode(codeString)}
+                                        onClick={() =>
+                                          handleCopyCode(codeString)
+                                        }
                                         className="flex items-center gap-1.5 hover:text-white transition-colors"
                                       >
-                                        {copiedCodeBlock === codeString ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                                        {copiedCodeBlock === codeString ? <span className="text-green-500">Copied</span> : <span>Copy code</span>}
+                                        {copiedCodeBlock === codeString ? (
+                                          <Check className="w-3.5 h-3.5 text-green-500" />
+                                        ) : (
+                                          <Copy className="w-3.5 h-3.5" />
+                                        )}
+                                        {copiedCodeBlock === codeString ? (
+                                          <span className="text-green-500">
+                                            Copied
+                                          </span>
+                                        ) : (
+                                          <span>Copy code</span>
+                                        )}
                                       </button>
                                     </div>
-                                    <div className={`overflow-x-auto text-sm rounded-b-xl ${theme === 'dark' ? 'bg-[#161514] border border-[#545454]' : 'bg-[#1e1e1e] border border-gray-800'}`}>
+                                    <div
+                                      className={`overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}
+                                    >
                                       <SyntaxHighlighter
                                         style={vscDarkPlus}
-                                        language={match?.[1] || 'text'}
+                                        language={match?.[1] || "text"}
                                         PreTag="div"
                                         customStyle={{
                                           margin: 0,
-                                          padding: '1rem',
-                                          background: 'transparent',
-                                          fontSize: '0.875rem'
+                                          padding: "1rem",
+                                          background: "transparent",
+                                          fontSize: "0.875rem",
                                         }}
                                         {...props}
                                       >
@@ -800,7 +1129,7 @@ function AiChatCore() {
                                     </div>
                                   </div>
                                 );
-                              }
+                              },
                             }}
                           >
                             {msg.content}
@@ -814,49 +1143,68 @@ function AiChatCore() {
 
                   {/* Action Buttons Beneath Bubble */}
                   {editingMessageIdx !== idx && !isLoading && (
-                    <div className={`transition-opacity flex items-center gap-1 mt-0.5 ${msg.role === 'user' ? 'justify-end mr-1' : 'justify-start ml-1'} ${msg.role === 'user' && activeMobileMessageIdx !== idx ? 'opacity-0' : 'opacity-100'} md:opacity-0 group-hover:opacity-100`}>
-
+                    <div
+                      className={`transition-opacity flex items-center gap-1 mt-0.5 ${msg.role === "user" ? "justify-end mr-1" : "justify-start ml-1"} ${(msg.role === "model" && !isMobileApp) || activeMobileMessageIdx === idx ? "opacity-100" : "opacity-0"} ${msg.role === "model" ? "md:opacity-100" : "md:opacity-0 group-hover:opacity-100"}`}
+                    >
                       {/* Copy Button */}
                       <button
                         onClick={() => handleCopy(msg.content, idx)}
-                        className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'}`}
+                        className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
                         title="Copy message"
                       >
-                        {copiedMessageIdx === idx ? <Check className="w-3 h-3 text-green-500 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
-                        {copiedMessageIdx === idx ? <span className="text-green-500">Copied</span> : 'Copy'}
+                        {copiedMessageIdx === idx ? (
+                          <Check className="w-3 h-3 text-green-500 shrink-0" />
+                        ) : (
+                          <Copy className="w-3 h-3 shrink-0" />
+                        )}
+                        {copiedMessageIdx === idx ? (
+                          <span className="text-green-500">Copied</span>
+                        ) : (
+                          "Copy"
+                        )}
                       </button>
 
                       {/* AI Ratings (Good / Bad Response) */}
-                      {msg.role === 'model' && (
+                      {msg.role === "model" && (
                         <>
-                          <div className={`w-px h-3 mx-1 ${theme === 'dark' ? 'bg-[#545454]' : 'bg-gray-300'}`}></div>
+                          <div
+                            className={`w-px h-3 mx-1 ${theme === "dark" ? "bg-[#545454]" : "bg-gray-300"}`}
+                          ></div>
                           <button
-                            onClick={() => setRatings(prev => ({ ...prev, [idx]: 'good' }))}
-                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === 'good' ? 'text-green-500 bg-green-500/10' : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200')}`}
+                            onClick={() =>
+                              setRatings((prev) => ({ ...prev, [idx]: "good" }))
+                            }
+                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "good" ? "text-green-500 bg-green-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
                             title="Good response"
                           >
-                            <ThumbsUp className={`w-3 h-3 shrink-0 ${ratings[idx] === 'good' ? 'fill-current' : ''}`} />
+                            <ThumbsUp
+                              className={`w-3 h-3 shrink-0 ${ratings[idx] === "good" ? "fill-current" : ""}`}
+                            />
                             <span className="sr-only">Good</span>
                           </button>
                           <button
-                            onClick={() => setRatings(prev => ({ ...prev, [idx]: 'bad' }))}
-                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === 'bad' ? 'text-red-500 bg-red-500/10' : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200')}`}
+                            onClick={() =>
+                              setRatings((prev) => ({ ...prev, [idx]: "bad" }))
+                            }
+                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "bad" ? "text-red-500 bg-red-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
                             title="Bad response"
                           >
-                            <ThumbsDown className={`w-3 h-3 shrink-0 ${ratings[idx] === 'bad' ? 'fill-current' : ''}`} />
+                            <ThumbsDown
+                              className={`w-3 h-3 shrink-0 ${ratings[idx] === "bad" ? "fill-current" : ""}`}
+                            />
                             <span className="sr-only">Bad</span>
                           </button>
                         </>
                       )}
 
                       {/* Edit Button (Users Only) */}
-                      {msg.role === 'user' && (
+                      {msg.role === "user" && (
                         <button
                           onClick={() => {
                             setEditingMessageIdx(idx);
                             setEditInput(msg.content);
                           }}
-                          className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'}`}
+                          className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
                           title="Edit message"
                         >
                           <Edit2 className="w-3 h-3 shrink-0" /> Edit
@@ -867,8 +1215,10 @@ function AiChatCore() {
                 </div>
 
                 {/* Avatar User */}
-                {msg.role === 'user' && (
-                  <div className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === 'dark' ? 'bg-[#7D7D7D]' : 'bg-gray-800'}`}>
+                {msg.role === "user" && (
+                  <div
+                    className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#7D7D7D]" : "bg-gray-800"}`}
+                  >
                     <User className="w-5 h-5 text-white" />
                   </div>
                 )}
@@ -878,13 +1228,21 @@ function AiChatCore() {
 
           {isLoading && (
             <div className="flex gap-3 max-w-3xl mx-auto justify-start">
-              <div className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === 'dark' ? 'bg-[#252525]' : 'bg-[#252525]'}`}>
+              <div
+                className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#252525]" : "bg-[#252525]"}`}
+              >
                 <Bot className="w-5 h-5 text-white" />
               </div>
-              <div className={`px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2 ${theme === 'dark' ? 'bg-[#252525] border border-[#545454]' : 'bg-white shadow-sm border border-gray-200'
-                }`}>
+              <div
+                className={`px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2 ${theme === "dark"
+                  ? "bg-[#252525] border border-[#545454]"
+                  : "bg-white shadow-sm border border-gray-200"
+                  }`}
+              >
                 <Loader2 className="w-4 h-4 animate-spin opacity-70" />
-                <span className="opacity-70 text-sm">Ascend AI is thinking...</span>
+                <span className="opacity-70 text-sm">
+                  Ascend AI is thinking...
+                </span>
               </div>
             </div>
           )}
@@ -894,13 +1252,19 @@ function AiChatCore() {
 
         {/* Input Dock */}
         <div className="relative px-3 pb-4 md:px-5 md:pb-2 pt-0 mt-2">
-
           {/* Scroll To Bottom Button */}
           {showScrollDown && (
             <div className="absolute bottom-full left-0 right-0 flex justify-center pb-3 z-20">
               <button
-                onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                className={`p-1.5 rounded-full shadow-md border transition-all duration-300 transform scale-100 hover:scale-105 active:scale-95 ${theme === 'dark' ? 'bg-[#545454] border-[#7D7D7D] text-white hover:bg-[#7D7D7D]' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                onClick={() => {
+                  if (chatContainerRef.current) {
+                    chatContainerRef.current.scrollTo({
+                      top: chatContainerRef.current.scrollHeight,
+                      behavior: "smooth",
+                    });
+                  }
+                }}
+                className={`p-1.5 rounded-full shadow-md border transition-all duration-300 transform scale-100 hover:scale-105 active:scale-95 ${theme === "dark" ? "bg-[#545454] border-[#7D7D7D] text-white hover:bg-[#7D7D7D]" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"}`}
                 title="Scroll to bottom"
               >
                 <ArrowDown className="w-4 h-4" />
@@ -908,22 +1272,28 @@ function AiChatCore() {
             </div>
           )}
           <div className="max-w-3xl mx-auto flex items-end gap-2">
-
             {/* Separate Attachment Button */}
-            <button className={`h-[52px] w-[52px] rounded-xl flex items-center justify-center shrink-0 transition-colors border ${theme === 'dark' ? 'bg-[#252525] border-[#545454] text-gray-300 hover:bg-[#545454] hover:text-white' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
+            <button
+              className={`h-[52px] w-[52px] rounded-xl flex items-center justify-center shrink-0 transition-colors border ${theme === "dark" ? "bg-[#252525] border-[#545454] text-gray-300 hover:bg-[#545454] hover:text-white" : "bg-white border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
+            >
               <Paperclip className="w-5 h-5 shrink-0" />
             </button>
 
             {/* Input Wrapper */}
-            <div className={`flex-1 relative rounded-xl flex items-end p-1.5 border transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#252525] border-[#545454] focus-within:border-[#7D7D7D]' : 'bg-white border-gray-300 focus-within:border-[#7D7D7D] focus-within:shadow-sm'
-              }`}>
+            <div
+              className={`flex-1 relative rounded-xl flex items-end p-1.5 border transition-colors duration-300 ease-in-out ${theme === "dark"
+                ? "bg-[#252525] border-[#545454] focus-within:border-[#7D7D7D]"
+                : "bg-white border-gray-300 focus-within:border-[#7D7D7D] focus-within:shadow-sm"
+                }`}
+            >
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     if (!isLoading) {
+                      e.currentTarget.blur();
                       handleSend();
                     }
                   }
@@ -936,21 +1306,22 @@ function AiChatCore() {
               <button
                 onClick={toggleDictation}
                 title="Dictate"
-                className={`p-2.5 rounded-lg mb-0.5 transition-colors ${isDictating ? 'text-red-500 animate-pulse' : (theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-[#545454]' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100')}`}
+                className={`p-2.5 rounded-lg mb-0.5 transition-colors ${isDictating ? "text-red-500 animate-pulse" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"}`}
               >
                 <Mic className="w-5 h-5" />
               </button>
 
-              {isSendingRef.current ? (
+              {isActuallySending ? (
                 <button
                   onClick={() => {
                     if (abortControllerRef.current) {
                       abortControllerRef.current.abort();
                       setIsLoading(false);
+                      setIsActuallySending(false);
                       isSendingRef.current = false;
                     }
                   }}
-                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === 'dark' ? 'bg-[#545454] text-white hover:bg-red-500/80' : 'bg-gray-300 text-gray-700 hover:bg-red-500 hover:text-white'}`}
+                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === "dark" ? "bg-[#545454] text-white hover:bg-[#7D7D7D]" : "bg-gray-300 text-gray-700 hover:bg-gray-400"}`}
                   title="Stop generating"
                 >
                   <Square className="w-4 h-4 fill-current" />
@@ -959,9 +1330,9 @@ function AiChatCore() {
                 <button
                   onClick={() => handleSend()}
                   disabled={isLoading || !input.trim()}
-                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === 'dark'
-                    ? 'bg-[#7D7D7D] text-white hover:bg-[#545454]'
-                    : 'bg-[#252525] text-white hover:bg-[#545454]'
+                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === "dark"
+                    ? "bg-[#7D7D7D] text-white hover:bg-[#545454]"
+                    : "bg-[#252525] text-white hover:bg-[#545454]"
                     }`}
                 >
                   <Send className="w-4 h-4" />
@@ -970,20 +1341,25 @@ function AiChatCore() {
             </div>
           </div>
           <p className="text-center text-xs opacity-50 mt-1.5 hidden md:block">
-            Ascend AI can make mistakes. Consider verifying critical information.
+            Ascend AI can make mistakes. Consider verifying critical
+            information.
           </p>
         </div>
-
       </div>
-
     </div>
   );
 }
 
 export default function AiPage() {
   return (
-    <Suspense fallback={<div className="h-screen w-full flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className="h-screen w-full flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      }
+    >
       <AiChatCore />
     </Suspense>
-  )
+  );
 }

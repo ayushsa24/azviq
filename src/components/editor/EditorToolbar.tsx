@@ -23,7 +23,7 @@ import {
     CheckCheck,
     Minimize2
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AiPopover } from "./AiPopover";
 
 interface EditorToolbarProps {
@@ -32,11 +32,36 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ editor }: EditorToolbarProps) {
     const [isAiOpen, setIsAiOpen] = useState(false);
+    const [aiCoords, setAiCoords] = useState<{ top: number, left: number } | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const isGeneratingRef = useRef(false);
+
+    const handleOpenAi = () => {
+        if (!editor) return;
+        const { from } = editor.state.selection;
+        const coords = editor.view.coordsAtPos(from);
+
+        // Find nearest relative parent to calculate absolute position
+        const editorEl = editor.view.dom;
+        const container = editorEl.closest('.relative');
+        let absoluteTop = coords.top;
+        let absoluteLeft = coords.left;
+
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            absoluteTop = coords.top - rect.top;
+            absoluteLeft = coords.left - rect.left;
+        }
+
+        setAiCoords({ top: absoluteTop, left: absoluteLeft });
+        setIsAiOpen(true);
+    };
 
     useEffect(() => {
         if (!editor) return;
 
         const handleSelectionUpdate = () => {
+            if (isGeneratingRef.current) return;
             setIsAiOpen(false);
         };
 
@@ -57,98 +82,108 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 updateDelay={100}
                 appendTo={() => document.body}
                 shouldShow={({ editor, state, from, to }) => {
-                    // Always show if AI menu is open (for streaming or commands)
-                    if (isAiOpen) return true;
+                    // Hide the standard bubble toolbar if AI menu is open
+                    if (isAiOpen) return false;
 
                     const { doc, selection } = state;
                     const { empty } = selection;
                     const isEmptyTextBlock = doc.textBetween(from, to).length === 0;
 
-                    // DEBUG: Force show
-                    console.log('BubbleMenu shouldShow', { empty, isEmptyTextBlock });
                     return editor.isEditable && !empty && !isEmptyTextBlock;
                 }}
-                className={`z-[1000] flex items-center gap-1 ${isAiOpen ? '' : 'bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 backdrop-blur-md'}`}
+                className="z-[1000] flex items-center gap-1 bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 backdrop-blur-md"
             >
-                {isAiOpen ? (
-                    <AiPopover editor={editor} onClose={() => setIsAiOpen(false)} />
-                ) : (
-                    <>
-                        <button
-                            onClick={() => setIsAiOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-1 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-xs font-semibold shadow-sm transition-all group"
-                        >
-                            <Sparkles size={14} className="group-hover:animate-pulse" />
-                            Ask AI
-                            <ChevronDown size={14} className={`transition-transform ${isAiOpen ? 'rotate-180' : ''}`} />
-                        </button>
+                <button
+                    onClick={handleOpenAi}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-xs font-semibold shadow-sm transition-all group"
+                >
+                    <Sparkles size={14} className="group-hover:animate-pulse" />
+                    Ask AI
+                    <ChevronDown size={14} className={`transition-transform ${isAiOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-                        <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+                <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
 
-                        <button
-                            onClick={() => editor.chain().focus().toggleBold().run()}
-                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("bold")
-                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                                }`}
-                        >
-                            <Bold size={16} />
-                        </button>
-                        <button
-                            onClick={() => editor.chain().focus().toggleItalic().run()}
-                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("italic")
-                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                                }`}
-                        >
-                            <Italic size={16} />
-                        </button>
-                        <button
-                            onClick={() => editor.chain().focus().toggleUnderline().run()}
-                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("underline")
-                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                                }`}
-                        >
-                            <Underline size={16} />
-                        </button>
+                <button
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("bold")
+                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        }`}
+                >
+                    <Bold size={16} />
+                </button>
+                <button
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("italic")
+                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        }`}
+                >
+                    <Italic size={16} />
+                </button>
+                <button
+                    onClick={() => editor.chain().focus().toggleUnderline().run()}
+                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("underline")
+                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        }`}
+                >
+                    <Underline size={16} />
+                </button>
 
-                        <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+                <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
 
-                        <button
-                            onClick={() => {
-                                if (typeof window === "undefined") return;
-                                const previousUrl = editor.getAttributes('link').href;
-                                const url = window.prompt("URL", previousUrl);
+                <button
+                    onClick={() => {
+                        if (typeof window === "undefined") return;
+                        const previousUrl = editor.getAttributes('link').href;
+                        const url = window.prompt("URL", previousUrl);
 
-                                if (url === null) return;
-                                if (url === "") {
-                                    editor.chain().focus().extendMarkRange('link').unsetLink().run();
-                                    return;
-                                }
-                                editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-                            }}
-                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("link")
-                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                                }`}
-                        >
-                            <LinkIcon size={16} />
-                        </button>
+                        if (url === null) return;
+                        if (url === "") {
+                            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                            return;
+                        }
+                        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                    }}
+                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("link")
+                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        }`}
+                >
+                    <LinkIcon size={16} />
+                </button>
 
-                        <button
-                            onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run()}
-                            className={`p-1.5 rounded-md transition-colors ${editor.isActive("highlight")
-                                ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                                : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-                                }`}
-                        >
-                            <Highlighter size={16} />
-                        </button>
-
-                    </>
-                )}
+                <button
+                    onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run()}
+                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("highlight")
+                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        }`}
+                >
+                    <Highlighter size={16} />
+                </button>
             </BubbleMenu>
+
+            {isAiOpen && aiCoords && (
+                <div
+                    className={`z-[2000] drop-shadow-2xl ${isGenerating
+                        ? 'fixed bottom-8 left-1/2 -translate-x-1/2'
+                        : 'absolute shadow-2xl'
+                        }`}
+                    style={isGenerating ? {} : {
+                        top: `${Math.max(0, aiCoords.top - 80)}px`,
+                        left: `${Math.max(0, aiCoords.left - 50)}px`
+                    }}
+                >
+                    <AiPopover
+                        editor={editor}
+                        onClose={() => setIsAiOpen(false)}
+                        onGenerating={(gen) => { setIsGenerating(gen); isGeneratingRef.current = gen; }}
+                    />
+                </div>
+            )}
 
             <BubbleMenu
                 editor={editor}
@@ -246,7 +281,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     <Trash2 size={16} />
                     Delete Table
                 </button>
-            </BubbleMenu>
+            </BubbleMenu >
         </>
     );
 }

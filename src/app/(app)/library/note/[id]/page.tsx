@@ -9,8 +9,9 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2, SmilePlus } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
+import dynamic from 'next/dynamic';
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { SlashCommands, slashCommandSuggestionOptions } from "@/components/editor/slash-command";
 import { Table } from '@tiptap/extension-table'
@@ -25,9 +26,11 @@ import { AiTrigger } from '@/components/editor/AiTrigger';
 import { AiInlineInput } from '@/components/editor/AiInlineInput';
 
 const lowlight = createLowlight(all)
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 export default function NoteEditorPage() {
     const { id } = useParams() as { id: string };
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -111,7 +114,19 @@ export default function NoteEditorPage() {
             }),
             AiTrigger.configure({
                 onTrigger: (pos) => {
-                    setAiInlinePos(pos);
+                    let top = pos.top;
+                    let left = pos.left;
+
+                    if (typeof document !== 'undefined') {
+                        const container = document.getElementById('editor-container-wrapper');
+                        if (container) {
+                            const rect = container.getBoundingClientRect();
+                            top = pos.top - rect.top;
+                            left = pos.left - rect.left;
+                        }
+                    }
+
+                    setAiInlinePos({ ...pos, top, left });
                 }
             }),
             Placeholder.configure({
@@ -376,27 +391,62 @@ export default function NoteEditorPage() {
 
             {/* Main Editor Area */}
             <div className="flex-1 max-w-4xl mx-auto w-full px-6 pt-12 pb-[50vh] flex flex-col">
-                <input
-                    id="note-title-input"
-                    type="text"
-                    value={title}
-                    disabled={isLocked}
-                    onChange={(e) => {
-                        setTitle(e.target.value);
-                        titleRef.current = e.target.value;
-                        if (editor) debouncedSave(editor.getHTML(), e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                            e.preventDefault();
-                            editor?.commands.focus();
-                        }
-                    }}
-                    placeholder="Note Title"
-                    className="w-full text-4xl sm:text-5xl font-bold bg-transparent border-none outline-none text-[#252525] dark:text-[#CFCFCF] placeholder-[#CFCFCF] dark:placeholder-[#545454] mb-8"
-                />
+                <div className="flex items-center gap-4 mb-8">
+                    <input
+                        id="note-title-input"
+                        type="text"
+                        value={title}
+                        disabled={isLocked}
+                        onChange={(e) => {
+                            setTitle(e.target.value);
+                            titleRef.current = e.target.value;
+                            if (editor) debouncedSave(editor.getHTML(), e.target.value);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                editor?.commands.focus();
+                            }
+                        }}
+                        placeholder="Note Title"
+                        className="flex-1 w-full text-4xl sm:text-5xl font-bold bg-transparent border-none outline-none text-[#252525] dark:text-[#CFCFCF] placeholder-[#CFCFCF] dark:placeholder-[#545454]"
+                    />
+
+                    <div className="relative">
+                        <button
+                            disabled={isLocked}
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            className="p-3 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-full transition-colors disabled:opacity-30"
+                            title="Add Emoji"
+                        >
+                            <SmilePlus size={28} />
+                        </button>
+
+                        {showEmojiPicker && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowEmojiPicker(false)}
+                                />
+                                <div className="absolute top-14 right-0 z-50 shadow-2xl rounded-lg">
+                                    <EmojiPicker
+                                        theme={typeof document !== 'undefined' && document.documentElement.className.includes('dark') ? 'dark' as any : 'light' as any}
+                                        onEmojiClick={(emojiData) => {
+                                            const newTitle = title ? `${title} ${emojiData.emoji}` : emojiData.emoji;
+                                            setTitle(newTitle);
+                                            titleRef.current = newTitle;
+                                            if (editor) debouncedSave(editor.getHTML(), newTitle);
+                                            setShowEmojiPicker(false);
+                                        }}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
 
                 <div
+                    id="editor-container-wrapper"
                     className="flex-1 min-h-[500px] cursor-text relative pb-[250px]"
                     onClick={(e) => {
                         // Prevent click if we're clicking inside the actual editor content (tiptap)
@@ -432,19 +482,28 @@ export default function NoteEditorPage() {
                                     // Current cursor position is the end of the raw streamed text
                                     const end = editor.state.selection.to;
 
-                                    editor.chain()
-                                        .focus()
-                                        .setTextSelection({ from: start, to: end })
-                                        .deleteSelection()
-                                        .insertContentAt(start, htmlContent)
-                                        .run();
+                                    editor.chain().focus().run(); // bring focus back gracefully
+
+                                    try {
+                                        // By appending the new HTML first and then deleting the old text,
+                                        // we never temporarily leave the table cell completely empty,
+                                        // which avoids Prosemirror's strict schema validation crash.
+                                        editor.chain()
+                                            .insertContentAt(end, htmlContent || "<p></p>")
+                                            .deleteRange({ from: start, to: end })
+                                            .run();
+                                    } catch (err) {
+                                        console.warn("AI rich text insertion violated schema (e.g. nested tables). Keeping the raw text instead.", err);
+                                        // We swallow the error and leave the raw markdown streamed text in the editor
+                                        // to prevent the entire page setup from crashing.
+                                    }
 
                                     setAiInlinePos(null);
                                 }
                             }}
                             onStreamChunk={(chunk) => {
                                 if (editor) {
-                                    editor.chain().focus().insertContent(chunk).run();
+                                    editor.chain().insertContent(chunk).scrollIntoView().run();
                                 }
                             }}
                         />

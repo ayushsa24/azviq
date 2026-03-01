@@ -5,14 +5,19 @@ import { Editor } from "@tiptap/react";
 interface AiPopoverProps {
     editor: Editor;
     onClose: () => void;
+    onGenerating?: (generating: boolean) => void;
 }
 
-export function AiPopover({ editor, onClose }: AiPopoverProps) {
+export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [hasStartedWriting, setHasStartedWriting] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const fullResponseRef = useRef<string>("");
+
+    useEffect(() => {
+        onGenerating?.(isLoading || isComplete);
+    }, [isLoading, isComplete, onGenerating]);
 
     const selectedText = editor.state.doc.textBetween(
         editor.state.selection.from,

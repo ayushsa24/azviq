@@ -178,7 +178,7 @@ button {
 }
 
 /* Tiptap Placeholder Style - shows on every empty line */
-.tiptap .is-empty:before {
+.tiptap .is-empty::before {
   content: attr(data-placeholder);
   float: left;
   color: #A3A3A3;
@@ -186,7 +186,16 @@ button {
   height: 0;
 }
 
-.tiptap .is-empty.is-editor-empty:before {
+.tiptap table .is-empty::before,
+.tiptap td .is-empty::before,
+.tiptap th .is-empty::before,
+.tiptap .tableWrapper .is-empty::before {
+  content: "" !important;
+  display: none !important;
+  color: transparent !important;
+}
+
+.tiptap .is-empty.is-editor-empty::before {
   height: auto;
 }
 

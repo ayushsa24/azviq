@@ -155,10 +155,13 @@ export function AiInlineInput({
     return (
         <div
             ref={containerRef}
-            className="fixed z-[100] flex flex-col w-[90vw] max-w-[450px] bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
-            style={{
+            className={`flex flex-col w-[90vw] max-w-[450px] bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden pointer-events-auto z-[100] ${isLoading
+                    ? 'fixed bottom-8 left-1/2 -translate-x-1/2'
+                    : 'absolute'
+                }`}
+            style={isLoading ? {} : {
                 top: `${initialTop - 70}px`,
-                left: `${Math.max(20, Math.min(initialLeft, typeof window !== 'undefined' ? window.innerWidth - 370 : initialLeft))}px`
+                left: `${Math.max(0, initialLeft)}px`
             }}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}

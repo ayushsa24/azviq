@@ -18,15 +18,31 @@ export default function NotesPage() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
-  const [viewMode, setViewModeState] = useState<"grid" | "list">("grid");
+  const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">(
+    () => {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem('libraryActiveTab');
+        if (saved) return saved as "workspaces" | "notes" | "pdfs" | "all" | "favourites";
+      }
+      return "workspaces";
+    }
+  );
+  const [viewMode, setViewModeState] = useState<"grid" | "list">(
+    () => {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem('libraryViewMode');
+        if (saved === "grid" || saved === "list") return saved;
+      }
+      return "grid";
+    }
+  );
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
 
   useEffect(() => {
     // Clear the search query whenever this component mounts
     setSearchQuery("");
 
-    const savedTab = sessionStorage.getItem('libraryActiveTab');
+    const savedTab = localStorage.getItem('libraryActiveTab');
     if (savedTab) {
       setActiveTabState(savedTab as any);
     }
@@ -44,7 +60,7 @@ export default function NotesPage() {
 
   const setActiveTab = (tab: "workspaces" | "notes" | "pdfs" | "all" | "favourites") => {
     setActiveTabState(tab);
-    sessionStorage.setItem('libraryActiveTab', tab);
+    localStorage.setItem('libraryActiveTab', tab);
   };
 
   const setViewMode = (mode: "grid" | "list") => {
@@ -371,49 +387,58 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="flex border-b border-[#CFCFCF] dark:border-[#545454] mb-4 transition-colors justify-between items-end">
-        <div className="flex">
-          {!activeWorkspace && (
+      <div className="flex border-b border-[#CFCFCF] dark:border-[#545454] mb-4 transition-colors justify-between items-end gap-2 w-full relative">
+        <div className="relative flex-1 overflow-hidden">
+          <div
+            className="flex overflow-x-auto flex-nowrap pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x w-full pr-10"
+          >
+            {!activeWorkspace && (
+              <button
+                onClick={() => setActiveTab("workspaces")}
+                className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "workspaces"
+                  ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
+                  : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                  }`}
+              >
+                Workspaces
+              </button>
+            )}
             <button
-              onClick={() => setActiveTab("workspaces")}
-              className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 transition-colors ${activeTab === "workspaces"
+              onClick={() => setActiveTab("notes")}
+              className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "notes"
                 ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
                 : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
                 }`}
             >
-              Workspaces
+              Notes
             </button>
-          )}
-          <button
-            onClick={() => setActiveTab("notes")}
-            className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 transition-colors ${activeTab === "notes"
-              ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-              : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-              }`}
-          >
-            Notes
-          </button>
-          <button
-            onClick={() => setActiveTab("pdfs")}
-            className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 transition-colors ${activeTab === "pdfs"
-              ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-              : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-              }`}
-          >
-            PDFs
-          </button>
-          <button
-            onClick={() => setActiveTab("favourites")}
-            className={`px-1 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === "favourites"
-              ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-              : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
-              }`}
-          >
-            Favourites
-          </button>
+            <button
+              onClick={() => setActiveTab("pdfs")}
+              className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "pdfs"
+                ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
+                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                }`}
+            >
+              PDFs
+            </button>
+            <button
+              onClick={() => setActiveTab("favourites")}
+              className={`px-1 py-2 border-b-2 font-medium text-sm mr-2 whitespace-nowrap snap-start transition-colors ${activeTab === "favourites"
+                ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
+                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                }`}
+            >
+              Favourites
+            </button>
+          </div>
+
+          {/* Right Scroll Indicator for Mobile */}
+          <div className="absolute right-0 top-0 bottom-1 w-12 bg-gradient-to-l from-[#F5F5F5] dark:from-[#1A1A1A] to-transparent pointer-events-none flex justify-end items-center pr-0 sm:hidden">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7D7D7D] dark:text-[#545454] animate-pulse"><path d="m9 18 6-6-6-6" /></svg>
+          </div>
         </div>
 
-        <div className="flex gap-2 pb-2">
+        <div className="flex gap-2 pb-2 shrink-0">
           <button
             onClick={() => setViewMode("grid")}
             className={`p-1.5 rounded transition-colors ${viewMode === "grid"
