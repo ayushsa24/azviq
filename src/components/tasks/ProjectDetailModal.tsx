@@ -45,7 +45,8 @@ export function ProjectDetailModal({
 
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+            const target = e.target as HTMLElement;
+            if (!target.closest('.context-menu') && !target.closest('.context-menu-button')) {
                 setOpenMenuId(null);
                 setMoveMenuId(null);
             }
@@ -351,7 +352,7 @@ export function ProjectDetailModal({
                         <h2 className="text-xl font-bold text-gray-900 border-b-[3px] border-black pb-1 inline-block">Tasks</h2>
                     </div>
 
-                    <div className="bg-white dark:bg-[#1A1A1A] min-h-[300px] overflow-x-auto pb-4 scrollbar-hide" ref={menuRef}>
+                    <div className="bg-white dark:bg-[#1A1A1A] min-h-[300px] overflow-x-auto pb-4 scrollbar-hide">
                         <div className="flex gap-4 min-w-max px-1">
                             {/* Kanban Columns */}
                             {[
@@ -402,7 +403,7 @@ export function ProjectDetailModal({
                                             >
                                                 {/* Dropdown */}
                                                 {openMenuId === t.id && (
-                                                    <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[180px] context-menu" onClick={(e) => e.stopPropagation()}>
                                                         <button onClick={() => handleToggleTaskPin(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
                                                             <Pin className="w-4 h-4" />
                                                             {t.is_pinned ? "Unpin" : "Pin"}
@@ -452,7 +453,7 @@ export function ProjectDetailModal({
                                                         </p>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === t.id ? null : t.id); setMoveMenuId(null); }}
-                                                            className="p-0.5 rounded text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#444] opacity-0 group-hover/card:opacity-100 transition-all flex-shrink-0"
+                                                            className="p-0.5 rounded text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#444] opacity-0 group-hover/card:opacity-100 transition-all flex-shrink-0 context-menu-button"
                                                         >
                                                             <MoreHorizontal className="w-3.5 h-3.5" />
                                                         </button>
