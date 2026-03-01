@@ -58,7 +58,7 @@ export function CodeBlockComponent({ node: { attrs }, updateAttributes, extensio
                 </button>
             </div>
             <pre className="!m-0 !mt-0 !bg-transparent p-4 overflow-x-auto text-[#D4D4D4] text-[13px] leading-relaxed">
-                <NodeViewContent as="code" className="!bg-transparent font-mono" />
+                <NodeViewContent as={"code" as any} className="!bg-transparent font-mono" />
             </pre>
         </NodeViewWrapper>
     )

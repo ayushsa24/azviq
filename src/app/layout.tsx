@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ZoomProvider } from "@/contexts/ZoomContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import AppShell from "@/components/layout/AppShell";
 
 const geistSans = Geist({
@@ -55,7 +56,9 @@ export default function RootLayout({
       >
         <ZoomProvider>
           <ThemeProvider>
-            {children}
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
           </ThemeProvider>
         </ZoomProvider>
       </body>

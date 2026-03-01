@@ -4,12 +4,14 @@ import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, zoomIn, zoomOut, resetZoom } = useZoom();
+  const { unreadCount } = useNotifications();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -94,7 +96,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
             : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
           }`}>
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-[#7D7D7D] rounded-full"></span>
+          {unreadCount > 0 && (
+            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-[#252525]">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* PROFILE DROPDOWN */}
