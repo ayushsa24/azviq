@@ -390,7 +390,7 @@ export default function TasksPage() {
                               }
                               setMoveMenuId(null);
                             }}
-                            className="p-0.5 rounded text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#333] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 context-menu-button"
+                            className="p-0.5 rounded text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#333] sm:opacity-0 sm:group-hover:opacity-100 transition-all flex-shrink-0 context-menu-button"
                           >
                             <MoreHorizontal className="w-3.5 h-3.5" />
                           </button>
@@ -461,11 +461,11 @@ export default function TasksPage() {
               {/* ── Kanban View ── */}
               {taskView === "kanban" && (
                 <div className="bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#E8E5E0] dark:border-[#333] p-4 min-h-[300px] overflow-x-auto">
-                  <div className="grid grid-cols-5 gap-4 min-w-[720px]">
+                  <div className="flex gap-4">
                     {["not_started", "in_progress", "in_review", "done", "archived"].map((status) => (
                       <div
                         key={status}
-                        className="flex flex-col gap-2 min-h-[150px] bg-[#f0ede8] dark:bg-[#252525] rounded-xl p-2 border border-transparent hover:border-[#E8E5E0] dark:hover:border-[#444] transition-colors"
+                        className="flex flex-col gap-2 min-h-[200px] min-w-[260px] flex-1 bg-[#f0ede8] dark:bg-[#252525] rounded-xl p-3 border border-transparent hover:border-[#E8E5E0] dark:hover:border-[#444] transition-colors"
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, status)}
                       >
@@ -527,7 +527,7 @@ export default function TasksPage() {
                                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{t.title}</p>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === t.id ? null : t.id); setMoveMenuId(null); }}
-                                    className="p-0.5 rounded text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#444] opacity-0 group-hover/card:opacity-100 transition-all flex-shrink-0 context-menu-button"
+                                    className="p-0.5 rounded text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#444] sm:opacity-0 sm:group-hover/card:opacity-100 transition-all flex-shrink-0 context-menu-button"
                                   >
                                     <MoreHorizontal className="w-3.5 h-3.5" />
                                   </button>
