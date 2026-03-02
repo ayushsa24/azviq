@@ -84,7 +84,7 @@ export function AITaskModal({
                 </button>
 
                 <h2 className="text-xl flex items-center gap-2 font-bold text-[#252525] dark:text-[#CFCFCF] mb-6">
-                    <Sparkles className="w-5 h-5 text-purple-500" />
+                    <Sparkles className="w-5 h-5 text-[#545454] dark:text-[#CFCFCF]" />
                     Generate with AI
                 </h2>
 
@@ -130,7 +130,7 @@ export function AITaskModal({
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full mt-2 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 rounded-lg font-medium text-white transition-colors flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full mt-2 py-2.5 bg-[#252525] dark:bg-[#CFCFCF] hover:bg-[#1A1A1A] dark:hover:bg-white text-white dark:text-[#252525] rounded-lg font-medium transition-colors flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
                             <>

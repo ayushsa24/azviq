@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Layers,
   LayoutGrid,
+  ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -36,14 +37,49 @@ export default function TasksPage() {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedProjectTask, setSelectedProjectTask] = useState<any>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [dateFilter, setDateFilter] = useState("");            // yyyy-mm-dd
+  const [projectDropdownFilter, setProjectDropdownFilter] = useState("all"); // project id or 'all'
+  const [showTaskFavorites, setShowTaskFavorites] = useState(false);
+  const [showProjectFavorites, setShowProjectFavorites] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // ── Phone back button: single centralized handler for all modal levels ──
+  // Push a history entry whenever the top-most modal changes
+  useEffect(() => {
+    if (selectedProjectTask) {
+      // Deepest level: task inside a project
+      window.history.pushState({ modal: 'project-task' }, "");
+    } else if (selectedProject) {
+      // Middle level: project modal
+      window.history.pushState({ modal: 'project' }, "");
+    } else if (selectedTask) {
+      // Task opened directly from task list
+      window.history.pushState({ modal: 'task' }, "");
+    }
+  }, [selectedProject, selectedTask, selectedProjectTask]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // Close the innermost open modal first
+      if (selectedProjectTask) {
+        setSelectedProjectTask(null);   // go back to project view
+      } else if (selectedProject) {
+        setSelectedProject(null);       // go back to tasks page from project
+      } else if (selectedTask) {
+        setSelectedTask(null);          // go back to tasks page from standalone task
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [selectedProjectTask, selectedProject, selectedTask]);
 
   // Close menus on outside click
   useEffect(() => {
@@ -253,15 +289,18 @@ export default function TasksPage() {
     e.preventDefault();
   };
 
-  const filteredTasks = tasks.filter((t) =>
-    t.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredTasks = tasks.filter((t) => {
+    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFav = !showTaskFavorites || t.is_favorite;
+    return matchesSearch && matchesFav;
+  });
 
   const filteredProjects = [...projects]
     .filter((p: any) => {
       const matchesSearch = p.title.toLowerCase().includes(projectSearch.toLowerCase());
       const matchesFilter = projectFilter === "all" || p.status === projectFilter;
-      return matchesSearch && matchesFilter;
+      const matchesFav = !showProjectFavorites || p.is_favorite;
+      return matchesSearch && matchesFilter && matchesFav;
     })
     .sort((a: any, b: any) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
 
@@ -296,23 +335,24 @@ export default function TasksPage() {
     }`;
 
   return (
-    <div className="flex h-full flex-col bg-[#F5F3EF] dark:bg-[#111111]">
-      {/* ── Page Title + AI button ── */}
-      <div className="flex items-center justify-between px-6 pt-6 pb-2">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#161514] dark:text-[#CFCFCF]">Project Management</h1>
-        <button
-          onClick={() => setIsAIModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-xl text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-800/40 transition-colors"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span className="hidden sm:inline">Generate with AI</span>
-        </button>
-      </div>
-
+    <div className="flex h-full flex-col bg-[#F5F3EF] dark:bg-[#1A1A1A]">
       {/* ── Scrollable main area ── */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 scrollbar-hide">
+
+        {/* ── Page Title + AI button ── */}
+        <div className="flex items-center justify-between pt-6 sm:pt-8 pb-4">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#161514] dark:text-[#CFCFCF]">Project Management</h1>
+          <button
+            onClick={() => setIsAIModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#CFCFCF]/10 text-[#545454] dark:text-[#CFCFCF] border border-[#E8E5E0] dark:border-[#545454] rounded-xl text-sm font-medium hover:bg-[#E8E5E0] dark:hover:bg-[#CFCFCF]/20 hover:border-[#252525] dark:hover:border-[#CFCFCF] hover:text-[#252525] transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">Generate with AI</span>
+          </button>
+        </div>
+
         {isLoading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-40 sm:h-full">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
           </div>
         ) : (
@@ -322,21 +362,37 @@ export default function TasksPage() {
                 PROJECTS SECTION
             ══════════════════════════════ */}
             <div>
-              {/* Row 1: Search + New Project */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={projectSearch}
-                    onChange={(e) => setProjectSearch(e.target.value)}
-                    className="w-full bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#333] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#C2A27A] dark:focus:border-[#C2A27A] transition-all text-[#252525] dark:text-[#CFCFCF] placeholder-[#9E9E9E]"
-                  />
+              {/* Row 1: [Search + ⭐]  ................  [New Project →] */}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                {/* Left group: search bar + star */}
+                <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                  <div className="relative flex-1 sm:w-80">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search projects..."
+                      value={projectSearch}
+                      onChange={(e) => setProjectSearch(e.target.value)}
+                      className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#7D7D7D] transition-all text-[#252525] dark:text-[#CFCFCF] placeholder-[#9E9E9E]"
+                    />
+                  </div>
+                  {/* Favorites star — right of search bar */}
+                  <button
+                    type="button"
+                    onClick={() => setShowProjectFavorites((v) => !v)}
+                    title={showProjectFavorites ? "Showing favorites only" : "Show favorites only"}
+                    className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all active:scale-95 ${showProjectFavorites
+                      ? "bg-[#252525] dark:bg-[#CFCFCF] border-[#252525] dark:border-[#CFCFCF] text-white dark:text-[#252525] shadow-sm"
+                      : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-[#CFCFCF] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                      }`}
+                  >
+                    <Star size={15} className={showProjectFavorites ? "fill-current" : ""} />
+                  </button>
                 </div>
+                {/* Right: New Project button pushed to far right */}
                 <button
                   onClick={handleQuickCreateProject}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-sm font-medium transition-all shadow-sm shrink-0"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
                 >
                   <Plus size={16} />
                   <span className="hidden sm:inline">New Project</span>
@@ -365,12 +421,12 @@ export default function TasksPage() {
                     return (
                       <div
                         key={p.id}
-                        className="relative min-w-[200px] h-32 rounded-xl bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#333] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col justify-between cursor-pointer hover:border-[#C2A27A] dark:hover:border-[#C2A27A] transition-all group"
+                        className="relative min-w-[200px] h-32 rounded-xl bg-white dark:bg-[#CFCFCF]/10 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col justify-between cursor-pointer hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 transition-all group"
                       >
                         {/* Title row */}
                         <div className="flex items-center gap-1.5">
-                          {p.is_pinned && <Pin className="w-3 h-3 text-[#C2A27A] flex-shrink-0" />}
-                          {p.is_favorite && <Star className="w-3 h-3 text-[#C2A27A] fill-[#C2A27A] flex-shrink-0" />}
+                          {p.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
+                          {p.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
                           <h3
                             onClick={() => setSelectedProject(p)}
                             className="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1 group-hover:text-black dark:group-hover:text-white text-sm"
@@ -422,29 +478,45 @@ export default function TasksPage() {
             <div>
               <h2 className="text-2xl font-extrabold tracking-tight text-[#161514] dark:text-[#CFCFCF] mb-3">Tasks</h2>
 
-              {/* Row 1: Search + New Task */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#333] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#C2A27A] dark:focus:border-[#C2A27A] transition-all text-[#252525] dark:text-[#CFCFCF] placeholder-[#9E9E9E]"
-                  />
+              {/* Row 1: [Search + ⭐]  ................  [New Task →] */}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                {/* Left group: search bar + star */}
+                <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                  <div className="relative flex-1 sm:w-80">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#7D7D7D] transition-all text-[#252525] dark:text-[#CFCFCF] placeholder-[#9E9E9E]"
+                    />
+                  </div>
+                  {/* Favorites star — right of search bar */}
+                  <button
+                    type="button"
+                    onClick={() => setShowTaskFavorites((v) => !v)}
+                    title={showTaskFavorites ? "Showing favorites only" : "Show favorites only"}
+                    className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all active:scale-95 ${showTaskFavorites
+                      ? "bg-[#252525] dark:bg-[#CFCFCF] border-[#252525] dark:border-[#CFCFCF] text-white dark:text-[#252525] shadow-sm"
+                      : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-[#CFCFCF] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                      }`}
+                  >
+                    <Star size={15} className={showTaskFavorites ? "fill-current" : ""} />
+                  </button>
                 </div>
+                {/* Right: New Task button pushed to far right */}
                 <button
                   onClick={() => handleQuickCreateTask("not_started")}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-sm font-medium transition-all shadow-sm shrink-0"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
                 >
                   <Plus size={16} />
                   <span className="hidden sm:inline">New Task</span>
                 </button>
               </div>
 
-              {/* Row 2: View Toggle Tabs */}
-              <div className="relative flex border-b border-[#E8E5E0] dark:border-[#333] mb-4">
+              {/* Row 2: View Toggle Tabs — clean, no extra buttons */}
+              <div className="flex border-b border-[#E8E5E0] dark:border-[#333] mb-4">
                 <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
                   <button onClick={() => setTaskView("kanban")} className={tabCls(taskView === "kanban")}>
                     <LayoutGrid size={14} className="inline mr-1.5" />Kanban
@@ -460,16 +532,16 @@ export default function TasksPage() {
 
               {/* ── Kanban View ── */}
               {taskView === "kanban" && (
-                <div className="bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#E8E5E0] dark:border-[#333] p-4 min-h-[300px] overflow-x-auto">
+                <div className="bg-white dark:bg-[#CFCFCF]/5 rounded-xl border border-[#E8E5E0] dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto">
                   <div className="flex gap-4">
                     {["not_started", "in_progress", "in_review", "done", "archived"].map((status) => (
                       <div
                         key={status}
-                        className="flex flex-col gap-2 min-h-[200px] min-w-[260px] flex-1 bg-[#f0ede8] dark:bg-[#252525] rounded-xl p-3 border border-transparent hover:border-[#E8E5E0] dark:hover:border-[#444] transition-colors"
+                        className="flex flex-col gap-2 min-h-[200px] min-w-[260px] flex-1 bg-[#f0ede8] dark:bg-[#CFCFCF]/5 rounded-xl p-3 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#CFCFCF]/10"
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, status)}
                       >
-                        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 capitalize flex items-center justify-between mb-2 px-1">
+                        <h3 className="text-sm font-semibold text-gray-600 dark:text-[#CFCFCF] capitalize flex items-center justify-between mb-2 px-1">
                           <div className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${status === "done" ? "bg-green-500" :
                               status === "in_progress" ? "bg-blue-500" :
@@ -490,10 +562,10 @@ export default function TasksPage() {
                               key={t.id}
                               draggable
                               onDragStart={(e) => handleDragStart(e, t.id)}
-                              className="relative p-3 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#3A3A3A] rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-[#C2A27A] dark:hover:border-[#C2A27A] transition-colors group/card"
+                              className="relative p-3 bg-white dark:bg-[#CFCFCF]/10 border border-gray-200 dark:border-[#7D7D7D]/30 rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 transition-all group/card"
                             >
                               {openMenuId === t.id && (
-                                <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[180px] context-menu" onClick={(e) => e.stopPropagation()}>
+                                <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[180px] context-menu" onClick={(e) => e.stopPropagation()}>
                                   <button onClick={() => handleToggleTaskPin(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
                                     <Pin className="w-4 h-4" />{t.is_pinned ? "Unpin" : "Pin"}
                                   </button>
@@ -505,7 +577,7 @@ export default function TasksPage() {
                                       <MoveRight className="w-4 h-4" />Move to<span className="ml-auto text-gray-400">›</span>
                                     </button>
                                     {moveMenuId === t.id && (
-                                      <div className="absolute left-full top-0 ml-1 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[150px]">
+                                      <div className="absolute left-full top-0 ml-1 bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[150px]">
                                         {["not_started", "in_progress", "in_review", "done", "archived"].filter(s => s !== status).map(s => (
                                           <button key={s} onClick={() => handleMoveTaskStatus(t.id, s)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors capitalize">
                                             {s.replace("_", " ")}
@@ -522,8 +594,8 @@ export default function TasksPage() {
                               )}
                               <div onClick={() => setSelectedTask(t)} className="cursor-pointer">
                                 <div className="flex items-center gap-1.5">
-                                  {t.is_pinned && <Pin className="w-3 h-3 text-[#C2A27A] flex-shrink-0" />}
-                                  {t.is_favorite && <Star className="w-3 h-3 text-[#C2A27A] fill-[#C2A27A] flex-shrink-0" />}
+                                  {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
+                                  {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
                                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{t.title}</p>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === t.id ? null : t.id); setMoveMenuId(null); }}
@@ -553,35 +625,80 @@ export default function TasksPage() {
               {/* ── By Date View ── */}
               {taskView === "by_date" && (
                 <div className="space-y-4">
+                  {/* Date filter header */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-[#545454] dark:text-[#7D7D7D] uppercase tracking-widest">Filter by date</span>
+                    <div className="flex items-center gap-2">
+                      {/* 
+                        Transparent-overlay pattern: visually show our styled button, 
+                        but the transparent native <input type="date"> sits on top and
+                        receives all touch/click events directly — the only reliable 
+                        method for mobile browsers (iOS/Android block programmatic open).
+                      */}
+                      <div className="relative">
+                        {/* Visual styled button (behind) */}
+                        <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0EDE8] dark:bg-[#CFCFCF]/10 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-[#CFCFCF] pointer-events-none select-none">
+                          <CalendarDays size={13} />
+                          <span>{dateFilter ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All dates"}</span>
+                          <ChevronDown size={12} />
+                        </div>
+                        {/* Transparent native input (on top) — user touches this directly */}
+                        <input
+                          type="date"
+                          value={dateFilter}
+                          onChange={(e) => setDateFilter(e.target.value)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          style={{ colorScheme: 'normal' }}
+                        />
+                      </div>
+                      {/* Clear button — 36px min for mobile tap */}
+                      {dateFilter && (
+                        <button
+                          type="button"
+                          onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setDateFilter(""); }}
+                          className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-[#E8E5E0] dark:bg-[#444] text-[#545454] dark:text-[#CFCFCF] hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 active:scale-95 transition-all font-bold text-sm"
+                          aria-label="Clear date filter"
+                        >✕</button>
+                      )}
+                    </div>
+                  </div>
+
                   {Object.keys(tasksByDate).length === 0 ? (
                     <p className="text-sm text-[#545454] dark:text-[#7D7D7D] py-6">No tasks found.</p>
                   ) : (
-                    Object.entries(tasksByDate)
-                      .sort(([a], [b]) => {
-                        if (a === "No due date") return 1;
-                        if (b === "No due date") return -1;
-                        return new Date(a).getTime() - new Date(b).getTime();
-                      })
-                      .map(([dateLabel, dateTasks]) => (
-                        <div key={dateLabel}>
-                          <h3 className="text-xs font-bold text-[#545454] dark:text-[#7D7D7D] uppercase tracking-widest mb-2">{dateLabel}</h3>
-                          <div className="space-y-2">
+                    (() => {
+                      const fp = dateFilter
+                        ? { y: +dateFilter.slice(0, 4), m: +dateFilter.slice(5, 7) - 1, d: +dateFilter.slice(8, 10) }
+                        : null;
+                      return Object.entries(tasksByDate)
+                        .sort(([a], [b]) => {
+                          if (a === "No due date") return 1;
+                          if (b === "No due date") return -1;
+                          return new Date(a).getTime() - new Date(b).getTime();
+                        })
+                        .filter(([, dateTasks]) => {
+                          if (!fp) return true;
+                          return (dateTasks as any[]).some((t: any) => {
+                            if (!t.due_date) return false;
+                            const d = new Date(t.due_date);
+                            return d.getFullYear() === fp.y && d.getMonth() === fp.m && d.getDate() === fp.d;
+                          });
+                        })
+                        .map(([dateLabel, dateTasks]) => (
+                          <div key={dateLabel} className="space-y-2">
+                            <span className="text-[11px] font-bold text-[#545454] dark:text-[#CFCFCF] uppercase tracking-wider bg-[#f0ede8] dark:bg-[#CFCFCF]/10 px-2 py-0.5 rounded-md inline-block mb-1">{dateLabel}</span>
                             {(dateTasks as any[]).map((t: any) => (
-                              <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#E8E5E0] dark:border-[#333] hover:border-[#C2A27A] dark:hover:border-[#C2A27A] cursor-pointer transition-colors">
-                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === "done" ? "bg-green-500" :
-                                  t.status === "in_progress" ? "bg-blue-500" :
-                                    t.status === "in_review" ? "bg-purple-500" :
-                                      t.status === "archived" ? "bg-gray-400" : "bg-orange-500"
-                                  }`} />
-                                {t.is_pinned && <Pin className="w-3 h-3 text-[#C2A27A] flex-shrink-0" />}
-                                {t.is_favorite && <Star className="w-3 h-3 text-[#C2A27A] fill-[#C2A27A] flex-shrink-0" />}
+                              <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white dark:bg-[#CFCFCF]/10 rounded-xl border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 cursor-pointer transition-all shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === "done" ? "bg-green-500" : t.status === "in_progress" ? "bg-blue-500" : t.status === "in_review" ? "bg-purple-500" : t.status === "archived" ? "bg-gray-400" : "bg-orange-500"}`} />
+                                {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
+                                {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
                                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{t.title}</p>
                                 <span className="text-xs text-[#545454] dark:text-[#7D7D7D] capitalize">{t.status?.replace("_", " ")}</span>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      ))
+                        ));
+                    })()
                   )}
                 </div>
               )}
@@ -589,29 +706,55 @@ export default function TasksPage() {
               {/* ── By Projects View ── */}
               {taskView === "by_projects" && (
                 <div className="space-y-4">
+                  {/* Project filter header */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-[#545454] dark:text-[#7D7D7D] uppercase tracking-widest">Filter by project</span>
+                    <div className="relative">
+                      <select
+                        value={projectDropdownFilter}
+                        onChange={(e) => setProjectDropdownFilter(e.target.value)}
+                        className="appearance-none pl-3 pr-7 py-1 rounded-lg bg-[#F0EDE8] dark:bg-[#CFCFCF]/10 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-[#CFCFCF] cursor-pointer hover:bg-[#E8E5E0] dark:hover:bg-[#CFCFCF]/20 focus:outline-none transition-colors"
+                      >
+                        <option value="all">All projects</option>
+                        {projects.map((p: any) => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                        <option value="none">No project</option>
+                      </select>
+                      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#7D7D7D] pointer-events-none" />
+                    </div>
+                  </div>
+
                   {Object.keys(tasksByProject).length === 0 ? (
-                    <p className="text-sm text-[#545454] dark:text-[#7D7D7D] py-6">No tasks found.</p>
+                    <p className="text-sm text-[#545454] dark:text-[#CFCFCF] py-6">No tasks found.</p>
                   ) : (
-                    Object.entries(tasksByProject).map(([projLabel, projTasks]) => (
-                      <div key={projLabel}>
-                        <h3 className="text-xs font-bold text-[#545454] dark:text-[#7D7D7D] uppercase tracking-widest mb-2">{projLabel}</h3>
-                        <div className="space-y-2">
-                          {(projTasks as any[]).map((t: any) => (
-                            <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#E8E5E0] dark:border-[#333] hover:border-[#C2A27A] dark:hover:border-[#C2A27A] cursor-pointer transition-colors">
-                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === "done" ? "bg-green-500" :
-                                t.status === "in_progress" ? "bg-blue-500" :
-                                  t.status === "in_review" ? "bg-purple-500" :
-                                    t.status === "archived" ? "bg-gray-400" : "bg-orange-500"
-                                }`} />
-                              {t.is_pinned && <Pin className="w-3 h-3 text-[#C2A27A] flex-shrink-0" />}
-                              {t.is_favorite && <Star className="w-3 h-3 text-[#C2A27A] fill-[#C2A27A] flex-shrink-0" />}
-                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{t.title}</p>
-                              <span className="text-xs text-[#545454] dark:text-[#7D7D7D] capitalize">{t.status?.replace("_", " ")}</span>
-                            </div>
-                          ))}
+                    Object.entries(tasksByProject)
+                      .filter(([projLabel]) => {
+                        if (projectDropdownFilter === "all") return true;
+                        if (projectDropdownFilter === "none") return projLabel === "No Project";
+                        const proj = projects.find((p: any) => p.id === projectDropdownFilter);
+                        return proj ? projLabel === proj.title : false;
+                      })
+                      .map(([projLabel, projTasks]) => (
+                        <div key={projLabel}>
+                          <h3 className="text-xs font-bold text-[#545454] dark:text-[#CFCFCF] uppercase tracking-widest mb-2">{projLabel}</h3>
+                          <div className="space-y-2">
+                            {(projTasks as any[]).map((t: any) => (
+                              <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white dark:bg-[#CFCFCF]/10 rounded-xl border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 cursor-pointer transition-all shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === "done" ? "bg-green-500" :
+                                  t.status === "in_progress" ? "bg-blue-500" :
+                                    t.status === "in_review" ? "bg-purple-500" :
+                                      t.status === "archived" ? "bg-gray-400" : "bg-orange-500"
+                                  }`} />
+                                {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
+                                {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{t.title}</p>
+                                <span className="text-xs text-[#545454] dark:text-[#7D7D7D] capitalize">{t.status?.replace("_", " ")}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))
                   )}
                 </div>
               )}
@@ -645,39 +788,43 @@ export default function TasksPage() {
 
       <ProjectDetailModal
         project={selectedProject}
-        onClose={() => setSelectedProject(null)}
+        onClose={() => { setSelectedProject(null); setSelectedProjectTask(null); }}
         tasks={tasks}
         notes={notes}
         onProjectUpdated={handleProjectUpdated}
-        onTaskUpdated={fetchData} // Trigger a root fetch to sync any inline task edits
+        onTaskUpdated={fetchData}
+        selectedTask={selectedProjectTask}
+        onSelectTask={setSelectedProjectTask}
       />
 
       {/* Project 3-dot dropdown — fixed so it escapes overflow scroll */}
-      {openMenuId && menuPosition && (() => {
-        const p = filteredProjects.find((proj: any) => proj.id === openMenuId);
-        if (!p) return null;
-        return (
-          <div
-            className="fixed z-[9999] bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[160px] context-menu"
-            style={{ top: menuPosition.top, right: menuPosition.right }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={() => handleToggleProjectPin(p)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
-              <Pin className="w-4 h-4" />
-              {p.is_pinned ? "Unpin" : "Pin"}
-            </button>
-            <button onClick={() => handleToggleProjectFavorite(p)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
-              <Star className="w-4 h-4" />
-              {p.is_favorite ? "Unfavorite" : "Favorite"}
-            </button>
-            <div className="border-t border-gray-100 dark:border-[#444] my-1" />
-            <button onClick={() => handleDeleteProject(p.id)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          </div>
-        );
-      })()}
-    </div>
+      {
+        openMenuId && menuPosition && (() => {
+          const p = filteredProjects.find((proj: any) => proj.id === openMenuId);
+          if (!p) return null;
+          return (
+            <div
+              className="fixed z-[9999] bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[160px] context-menu"
+              style={{ top: menuPosition.top, right: menuPosition.right }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button onClick={() => handleToggleProjectPin(p)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
+                <Pin className="w-4 h-4" />
+                {p.is_pinned ? "Unpin" : "Pin"}
+              </button>
+              <button onClick={() => handleToggleProjectFavorite(p)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
+                <Star className="w-4 h-4" />
+                {p.is_favorite ? "Unfavorite" : "Favorite"}
+              </button>
+              <div className="border-t border-gray-100 dark:border-[#444] my-1" />
+              <button onClick={() => handleDeleteProject(p.id)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          );
+        })()
+      }
+    </div >
   );
 }

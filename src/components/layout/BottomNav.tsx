@@ -11,6 +11,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
+  /* ── Hide when mobile keyboard is visible ── */
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
@@ -22,19 +23,17 @@ export default function BottomNav() {
         setIsKeyboardOpen(true);
       }
     };
-
-    const handleFocusOut = () => {
-      setIsKeyboardOpen(false);
-    };
+    const handleFocusOut = () => setIsKeyboardOpen(false);
 
     document.addEventListener("focusin", handleFocusIn);
     document.addEventListener("focusout", handleFocusOut);
-
     return () => {
       document.removeEventListener("focusin", handleFocusIn);
       document.removeEventListener("focusout", handleFocusOut);
     };
   }, []);
+
+  const hidden = isKeyboardOpen;
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },
@@ -45,10 +44,10 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 border-t transition-all duration-300 ease-in-out shadow-lg md:hidden pb-[env(safe-area-inset-bottom,0px)]
-      ${isKeyboardOpen ? 'translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}
+    <nav className={`fixed bottom-0 left-0 right-0 z-[100] border-t transition-all duration-300 ease-in-out shadow-lg md:hidden pb-[env(safe-area-inset-bottom,0px)]
+      ${hidden ? 'translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}
       ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-[#CFCFCF] border-[#7D7D7D]'}`}>
-      <div className="mx-auto flex max-w-xl justify-around p-2 pt-3 pb-3">
+      <div className="mx-auto flex max-w-xl justify-around px-2 py-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
@@ -57,7 +56,7 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`group flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 min-w-0
+              className={`group flex flex-col items-center justify-center gap-[3px] px-2.5 py-1.5 min-w-[64px] rounded-xl transition-all duration-200
                 ${theme === 'dark'
                   ? isActive
                     ? 'bg-[#545454] text-white'
@@ -68,7 +67,7 @@ export default function BottomNav() {
                 }`}
             >
               <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <span className="text-[11px] font-semibold leading-tight">{item.label}</span>
             </Link>
           );
         })}

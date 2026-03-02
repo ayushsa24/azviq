@@ -405,7 +405,7 @@ function AiChatCore() {
             if (parsed.__generatedTitle) {
               topicTitle = parsed.__generatedTitle;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
 
@@ -569,19 +569,18 @@ function AiChatCore() {
         e.preventDefault();
         setActiveMenuId(activeMenuId === session.id ? null : session.id);
       }}
-      className={`group relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 ${
-        activeChatId === session.id
-          ? theme === "dark"
-            ? "bg-[#545454] text-white"
-            : "bg-gray-200 text-[#252525]"
-          : theme === "dark"
-            ? "text-gray-300 hover:bg-[#2A2A2A]"
-            : "text-gray-600 hover:bg-gray-100"
-      }`}
+      className={`group relative w-full flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 ${activeChatId === session.id
+        ? theme === "dark"
+          ? "bg-[#545454] text-white"
+          : "bg-gray-200 text-[#252525]"
+        : theme === "dark"
+          ? "text-gray-300 hover:bg-[#2A2A2A]"
+          : "text-gray-600 hover:bg-gray-100"
+        }`}
     >
       <button
         onClick={() => switchChat(session.id)}
-        className="flex items-center gap-3 flex-1 min-w-0 pr-2"
+        className="flex items-center gap-2.5 flex-1 min-w-0 pr-2"
       >
         <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
         {isRenamingId === session.id ? (
@@ -610,9 +609,8 @@ function AiChatCore() {
           e.stopPropagation();
           setActiveMenuId(activeMenuId === session.id ? null : session.id);
         }}
-        className={`block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${
-          theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-gray-200"
-        }`}
+        className={`block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-gray-200"
+          }`}
       >
         <MoreHorizontal className="w-4 h-4 opacity-70" />
       </button>
@@ -621,20 +619,18 @@ function AiChatCore() {
       {activeMenuId === session.id && (
         <div
           ref={menuRef}
-          className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${
-            theme === "dark"
-              ? "bg-[#252525] border-[#545454]"
-              : "bg-white border-[#E8E5E0]"
-          }`}
+          className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === "dark"
+            ? "bg-[#252525] border-[#545454]"
+            : "bg-white border-[#E8E5E0]"
+            }`}
         >
           <button
             onClick={(e) => {
               e.stopPropagation();
               setActiveMenuId(null);
             }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${
-              theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-            }`}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
           >
             <Share className="w-4 h-4 opacity-70" /> Share
           </button>
@@ -645,9 +641,8 @@ function AiChatCore() {
               setRenameTitle(session.title);
               setActiveMenuId(null);
             }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${
-              theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-            }`}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
           >
             <Edit2 className="w-4 h-4 opacity-70" /> Rename
           </button>
@@ -656,9 +651,8 @@ function AiChatCore() {
               e.stopPropagation();
               handleTogglePin(session.id, !!session.is_pinned);
             }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${
-              theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-            }`}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
           >
             <Pin className="w-4 h-4 opacity-70" />{" "}
             {session.is_pinned ? "Unpin chat" : "Pin chat"}
@@ -668,9 +662,8 @@ function AiChatCore() {
               e.stopPropagation();
               handleToggleArchive(session.id, !!session.is_archived);
             }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${
-              theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-            }`}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              }`}
           >
             <Archive className="w-4 h-4 opacity-70" /> Archive
           </button>
@@ -679,11 +672,10 @@ function AiChatCore() {
               e.stopPropagation();
               handleDelete(session.id);
             }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${
-              theme === "dark"
-                ? "text-red-400 hover:bg-[#545454]"
-                : "text-red-600 hover:bg-[#F5F3EF]"
-            }`}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark"
+              ? "text-red-400 hover:bg-[#545454]"
+              : "text-red-600 hover:bg-[#F5F3EF]"
+              }`}
           >
             <Trash2 className="w-4 h-4 opacity-70" /> Delete
           </button>
@@ -694,11 +686,10 @@ function AiChatCore() {
 
   return (
     <div
-      className={`flex h-full overflow-hidden transition-colors duration-300 ease-in-out ${
-        theme === "dark"
-          ? "bg-[#161514] text-white"
-          : "bg-[#F5F3EF] text-gray-900"
-      }`}
+      className={`flex h-full overflow-hidden transition-colors duration-300 ease-in-out ${theme === "dark"
+        ? "bg-[#161514] text-white"
+        : "bg-[#F5F3EF] text-gray-900"
+        }`}
     >
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -710,38 +701,34 @@ function AiChatCore() {
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed top-16 md:top-0 md:relative z-50 w-72 h-[calc(100dvh-4rem)] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        } ${
-          theme === "dark"
+        className={`fixed top-[calc(5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:top-0 md:bottom-auto md:relative z-50 w-[260px] md:w-72 md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          } ${theme === "dark"
             ? "bg-[#252525] border-[#545454]"
             : "bg-white border-[#E8E5E0]"
-        }`}
+          }`}
       >
         {/* New Chat Button */}
-        <div className="p-3 border-b border-opacity-30 border-gray-400 space-y-2">
+        <div className="p-3 border-b border-opacity-30 border-gray-400 space-y-1.5">
           <button
             onClick={startNewChat}
-            className={`w-full py-2.5 px-3 rounded-xl font-medium flex items-center gap-3 transition-colors duration-200 text-sm ${
-              theme === "dark"
-                ? "bg-[#545454] hover:bg-[#7D7D7D] text-white"
-                : "bg-[#252525] hover:bg-[#545454] text-[#CFCFCF] hover:text-white"
-            }`}
+            className={`w-full py-1.5 px-3 rounded-lg font-medium flex items-center gap-2.5 transition-colors duration-200 text-sm ${theme === "dark"
+              ? "bg-[#545454] hover:bg-[#7D7D7D] text-white"
+              : "bg-[#252525] hover:bg-[#545454] text-[#CFCFCF] hover:text-white"
+              }`}
           >
             <Plus className="w-4 h-4" />
             New Chat
           </button>
           <button
             onClick={toggleTemporaryChat}
-            className={`w-full py-2.5 px-3 rounded-xl font-medium flex items-center gap-3 transition-colors duration-200 border border-dashed text-sm ${
-              activeChatId === "temp-chat"
-                ? theme === "dark"
-                  ? "border-red-500/50 bg-red-900/20 hover:bg-red-900/40 text-red-400"
-                  : "border-red-300 bg-red-50 hover:bg-red-100 text-red-600"
-                : theme === "dark"
-                  ? "border-gray-500 hover:bg-[#2A2A2A] text-gray-300"
-                  : "border-gray-300 hover:bg-gray-100 text-[#545454]"
-            }`}
+            className={`w-full py-1.5 px-3 rounded-lg font-medium flex items-center gap-2.5 transition-colors duration-200 border border-dashed text-sm ${activeChatId === "temp-chat"
+              ? theme === "dark"
+                ? "border-red-500/50 bg-red-900/20 hover:bg-red-900/40 text-red-400"
+                : "border-red-300 bg-red-50 hover:bg-red-100 text-red-600"
+              : theme === "dark"
+                ? "border-gray-500 hover:bg-[#2A2A2A] text-gray-300"
+                : "border-gray-300 hover:bg-gray-100 text-[#545454]"
+              }`}
             title="Toggle Temporary Chat"
           >
             <Ghost className="w-4 h-4" />
@@ -790,19 +777,18 @@ function AiChatCore() {
                 archivedChats.map((session) => (
                   <div
                     key={session.id}
-                    className={`group relative w-full flex items-center justify-between p-2 rounded-lg transition-all duration-200 ${
-                      activeChatId === session.id
-                        ? theme === "dark"
-                          ? "bg-[#545454] text-white"
-                          : "bg-gray-200 text-[#252525]"
-                        : theme === "dark"
-                          ? "text-gray-400 hover:bg-[#2A2A2A]"
-                          : "text-gray-500 hover:bg-gray-100"
-                    }`}
+                    className={`group relative w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-all duration-200 ${activeChatId === session.id
+                      ? theme === "dark"
+                        ? "bg-[#545454] text-white"
+                        : "bg-gray-200 text-[#252525]"
+                      : theme === "dark"
+                        ? "text-gray-400 hover:bg-[#2A2A2A]"
+                        : "text-gray-500 hover:bg-gray-100"
+                      }`}
                   >
                     <button
                       onClick={() => switchChat(session.id)}
-                      className="flex items-center gap-3 flex-1 min-w-0 pr-2"
+                      className="flex items-center gap-2.5 flex-1 min-w-0 pr-2"
                     >
                       <span className="truncate text-sm opacity-80">
                         {session.title}
@@ -830,11 +816,10 @@ function AiChatCore() {
       <div className="flex-1 flex flex-col h-full min-w-0">
         {/* Mobile Header Toggle */}
         <div
-          className={`md:hidden shrink-0 sticky top-0 z-10 p-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${
-            theme === "dark"
-              ? "bg-[#161514] border-[#545454]"
-              : "bg-[#F5F3EF] border-[#E8E5E0]"
-          }`}
+          className={`md:hidden shrink-0 sticky top-0 z-10 p-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
+            ? "bg-[#161514] border-[#545454]"
+            : "bg-[#F5F3EF] border-[#E8E5E0]"
+            }`}
         >
           <div className="flex items-center">
             <button
@@ -847,20 +832,19 @@ function AiChatCore() {
               {activeChatId === "temp-chat"
                 ? "Temporary Chat"
                 : sessions.find((s) => s.id === activeChatId)?.title ||
-                  "Chat History"}
+                "Chat History"}
             </span>
           </div>
           <button
             onClick={toggleTemporaryChat}
-            className={`p-2 rounded-lg transition-colors ${
-              activeChatId === "temp-chat"
-                ? theme === "dark"
-                  ? "bg-red-900/40 text-red-400 hover:bg-red-900/60"
-                  : "bg-red-100 text-red-600 hover:bg-red-200"
-                : theme === "dark"
-                  ? "text-gray-300 hover:bg-[#252525]"
-                  : "text-[#545454] hover:bg-gray-200"
-            }`}
+            className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
+              ? theme === "dark"
+                ? "bg-red-900/40 text-red-400 hover:bg-red-900/60"
+                : "bg-red-100 text-red-600 hover:bg-red-200"
+              : theme === "dark"
+                ? "text-gray-300 hover:bg-[#252525]"
+                : "text-[#545454] hover:bg-gray-200"
+              }`}
             title="Toggle Temporary Chat"
           >
             <Ghost className="w-5 h-5" />
@@ -936,24 +920,23 @@ function AiChatCore() {
                     >
                       {msg.created_at
                         ? new Date(msg.created_at).toLocaleString([], {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
                         : "Just now"}
                     </span>
                   )}
 
                   {/* Bubble */}
                   <div
-                    className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${
-                      msg.role === "user"
-                        ? theme === "dark"
-                          ? "bg-[#545454] text-white rounded-br-none"
-                          : "bg-gray-200 text-gray-900 rounded-br-none"
-                        : theme === "dark"
-                          ? "w-fit max-w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none ai-response-content"
-                          : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none ai-response-content"
-                    }`}
+                    className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${msg.role === "user"
+                      ? theme === "dark"
+                        ? "bg-[#545454] text-white rounded-br-none"
+                        : "bg-gray-200 text-gray-900 rounded-br-none"
+                      : theme === "dark"
+                        ? "w-fit max-w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none ai-response-content"
+                        : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none ai-response-content"
+                      }`}
                   >
                     {editingMessageIdx === idx ? (
                       <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
@@ -1258,11 +1241,10 @@ function AiChatCore() {
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div
-                className={`px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2 ${
-                  theme === "dark"
-                    ? "bg-[#252525] border border-[#545454]"
-                    : "bg-white shadow-sm border border-gray-200"
-                }`}
+                className={`px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2 ${theme === "dark"
+                  ? "bg-[#252525] border border-[#545454]"
+                  : "bg-white shadow-sm border border-gray-200"
+                  }`}
               >
                 <Loader2 className="w-4 h-4 animate-spin opacity-70" />
                 <span className="opacity-70 text-sm">
@@ -1306,11 +1288,10 @@ function AiChatCore() {
 
             {/* Input Wrapper */}
             <div
-              className={`flex-1 relative rounded-xl flex items-end p-1.5 border transition-colors duration-300 ease-in-out ${
-                theme === "dark"
-                  ? "bg-[#252525] border-[#545454] focus-within:border-[#7D7D7D]"
-                  : "bg-white border-gray-300 focus-within:border-[#7D7D7D] focus-within:shadow-sm"
-              }`}
+              className={`flex-1 relative rounded-xl flex items-end p-1.5 border transition-colors duration-300 ease-in-out ${theme === "dark"
+                ? "bg-[#252525] border-[#545454] focus-within:border-[#7D7D7D]"
+                : "bg-white border-gray-300 focus-within:border-[#7D7D7D] focus-within:shadow-sm"
+                }`}
             >
               <textarea
                 ref={inputRef}
@@ -1357,11 +1338,10 @@ function AiChatCore() {
                 <button
                   onClick={() => handleSend()}
                   disabled={isLoading || !input.trim()}
-                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-[#7D7D7D] text-white hover:bg-[#545454]"
-                      : "bg-[#252525] text-white hover:bg-[#545454]"
-                  }`}
+                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === "dark"
+                    ? "bg-[#7D7D7D] text-white hover:bg-[#545454]"
+                    : "bg-[#252525] text-white hover:bg-[#545454]"
+                    }`}
                 >
                   <Send className="w-4 h-4" />
                 </button>

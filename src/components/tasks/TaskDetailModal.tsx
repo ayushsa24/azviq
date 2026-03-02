@@ -38,6 +38,8 @@ export function TaskDetailModal({
         }
     }, [task]);
 
+
+
     const hasChanged = localTask && task && (
         localTask.title !== task.title ||
         localTask.description !== task.description ||
@@ -92,7 +94,7 @@ export function TaskDetailModal({
 
     return (
         <div
-            className="fixed top-[calc(4rem+env(safe-area-inset-top,0px))] md:top-16 bottom-0 left-0 right-0 z-[45] flex justify-center sm:items-center bg-black/40 backdrop-blur-sm sm:px-4 sm:py-6"
+            className="fixed top-[calc(5rem+env(safe-area-inset-top,0px))] md:top-16 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 z-[45] flex justify-center sm:items-center bg-black/40 backdrop-blur-sm sm:px-4 sm:py-6"
             onClick={onClose}
         >
             {/* Notion-style Page Container */}

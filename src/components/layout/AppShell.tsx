@@ -29,8 +29,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <Sidebar open={open} />
 
-      <main className={`pt-[calc(4rem+env(safe-area-inset-top,0px))] md:pt-16 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${open ? 'md:pl-56' : 'md:pl-0'
-        } pb-[calc(4rem+env(safe-area-inset-bottom,1rem))] md:pb-0 h-screen ${theme === 'dark' ? 'bg-[#161514]' : 'bg-gray-50'
+      <main className={`pt-[calc(5rem+env(safe-area-inset-top,0px))] md:pt-16 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${open ? 'md:pl-56' : 'md:pl-0'
+        } pb-[calc(3.5rem+env(safe-area-inset-bottom,1rem))] md:pb-0 h-screen ${theme === 'dark' ? 'bg-[#161514]' : 'bg-gray-50'
         }`}>
         {children}
       </main>

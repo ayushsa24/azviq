@@ -98,7 +98,7 @@ export function NoteCard({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchMove}
-            className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border border-[#CFCFCF] dark:border-[#7D7D7D]/30 bg-white hover:bg-[#F5F5F5] dark:bg-[#CFCFCF]/10 dark:hover:bg-[#CFCFCF]/20 hover:border-[#7D7D7D] dark:hover:border-[#7D7D7D] relative shadow-sm ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-48"
+            className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 hover:border-[#D1D1D1] dark:hover:border-[#444] relative shadow-[0_2px_8_rgba(0,0,0,0.04)] hover:shadow-md ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-48"
                 }`}
         >
             <div className={`flex items-center gap-2 transition-opacity ${isList ? "hidden" : "absolute top-4 right-4"}`}>

@@ -316,7 +316,7 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F5F5] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] p-4 sm:p-6 lg:p-8 overflow-hidden transition-colors">
+    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] p-4 sm:p-6 lg:p-8 overflow-hidden transition-colors">
       <div className="flex flex-col mb-5">
         <div className="flex items-center gap-3">
           {activeWorkspace && (
@@ -433,7 +433,7 @@ export default function NotesPage() {
           </div>
 
           {/* Right Scroll Indicator for Mobile */}
-          <div className="absolute right-0 top-0 bottom-1 w-12 bg-gradient-to-l from-[#F5F5F5] dark:from-[#1A1A1A] to-transparent pointer-events-none flex justify-end items-center pr-0 sm:hidden">
+          <div className="absolute right-0 top-0 bottom-1 w-12 bg-gradient-to-l from-[#F5F3EF] dark:from-[#1A1A1A] to-transparent pointer-events-none flex justify-end items-center pr-0 sm:hidden">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7D7D7D] dark:text-[#545454] animate-pulse"><path d="m9 18 6-6-6-6" /></svg>
           </div>
         </div>
@@ -463,7 +463,7 @@ export default function NotesPage() {
       </div>
 
       {/* SCROLLABLE CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto min-h-0 pr-2 pb-2">
+      <div className="flex-1 flex flex-col overflow-y-auto min-h-0 pr-2 pb-2">
         {isLoading ? (
           <div className="flex-1 h-full flex items-center justify-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#252525] dark:border-[#CFCFCF] transition-colors"></div>
@@ -522,7 +522,7 @@ export default function NotesPage() {
             ))}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl bg-[#F5F5F5] dark:bg-[#252525]/30 transition-colors">
+          <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl bg-[#F5F3EF] dark:bg-[#252525]/30 transition-colors">
             <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
               <Search size={28} className="text-[#545454] dark:text-[#545454] transition-colors" />
             </div>

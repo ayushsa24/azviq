@@ -24,8 +24,11 @@ interface ProjectDetailModalProps {
     onClose: () => void;
     tasks: any[];
     onProjectUpdated: (updatedProject?: any) => void;
-    onTaskUpdated: () => void; // Trigger root refetch
+    onTaskUpdated: () => void;
     notes: any[];
+    breadcrumb?: string;
+    selectedTask: any | null;       // lifted from parent
+    onSelectTask: (t: any | null) => void; // lifted from parent
 }
 
 export function ProjectDetailModal({
@@ -35,12 +38,15 @@ export function ProjectDetailModal({
     onProjectUpdated,
     onTaskUpdated,
     notes,
+    breadcrumb = "Projects",
+    selectedTask,
+    onSelectTask,
 }: ProjectDetailModalProps) {
     const [localProject, setLocalProject] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [selectedTask, setSelectedTask] = useState<any>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
+    const [showFavorites, setShowFavorites] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -54,6 +60,7 @@ export function ProjectDetailModal({
         document.addEventListener("mousedown", handleClick);
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
+
 
     useEffect(() => {
         if (project) {
@@ -103,7 +110,7 @@ export function ProjectDetailModal({
         setLocalProject((prev: any) => ({ ...prev, [field]: value }));
     };
 
-    const projectTasks = tasks.filter(t => t.project_id === project.id);
+    const projectTasks = tasks.filter(t => t.project_id === project.id && (!showFavorites || t.is_favorite));
 
     const updateTaskStatus = async (taskId: string, newStatus: string) => {
         // Optimistic UI for drag n drop locally inside project
@@ -137,8 +144,8 @@ export function ProjectDetailModal({
 
             if (res.ok) {
                 const { task } = await res.json();
-                onTaskUpdated(); // trigger root refresh to get the new task
-                setSelectedTask(task); // Open it immediately
+                onTaskUpdated();
+                onSelectTask(task); // Open it immediately
             }
         } catch (e) {
             console.error("Failed to create task", e);
@@ -201,19 +208,17 @@ export function ProjectDetailModal({
         return (
             <TaskDetailModal
                 task={selectedTask}
-                onClose={() => setSelectedTask(null)}
-                projects={[]} // Passed as empty as we are already within a project context
+                onClose={() => onSelectTask(null)}
+                projects={[]}
                 notes={notes}
-                onTaskUpdated={() => {
-                    onTaskUpdated();
-                }}
+                onTaskUpdated={() => { onTaskUpdated(); }}
             />
         );
     }
 
     return (
         <div
-            className="fixed top-[calc(4rem+env(safe-area-inset-top,0px))] md:top-16 bottom-0 left-0 right-0 z-40 flex justify-center sm:items-center bg-black/40 backdrop-blur-sm sm:px-4 sm:py-6"
+            className="fixed top-[calc(5rem+env(safe-area-inset-top,0px))] md:top-16 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 z-40 flex justify-center sm:items-center bg-black/40 backdrop-blur-sm sm:px-4 sm:py-6"
             onClick={onClose}
         >
             <div
@@ -226,12 +231,23 @@ export function ProjectDetailModal({
                         <button
                             onClick={onClose}
                             className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-[#3A3A3A] transition-colors"
+                            title={`Back to ${breadcrumb}`}
                         >
                             <ArrowLeft size={16} />
                         </button>
-                        <span className="text-xs text-gray-400 font-medium ml-1">
-                            {hasChanged ? "Unsaved changes" : "All changes saved"}
-                        </span>
+                        {/* Breadcrumb */}
+                        <div className="flex items-center gap-1 text-xs text-gray-400 font-medium">
+                            <span
+                                onClick={onClose}
+                                className="cursor-pointer hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                            >
+                                {breadcrumb}
+                            </span>
+                            <span className="text-gray-300 dark:text-gray-600">›</span>
+                            <span className="text-gray-700 dark:text-gray-200 truncate max-w-[180px]">
+                                {localProject?.title || "Project"}
+                            </span>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         {hasChanged && (
@@ -349,7 +365,19 @@ export function ProjectDetailModal({
 
                     {/* Embedded Kanban Board */}
                     <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900 border-b-[3px] border-black pb-1 inline-block">Tasks</h2>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b-[3px] border-black dark:border-white pb-1 inline-block">Tasks</h2>
+                        {/* Favorites Filter */}
+                        <button
+                            type="button"
+                            onClick={() => setShowFavorites((v) => !v)}
+                            title={showFavorites ? "Showing favorites only" : "Show favorites only"}
+                            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 ${showFavorites
+                                ? "bg-[#252525] dark:bg-[#CFCFCF] border-[#252525] dark:border-[#CFCFCF] text-white dark:text-[#252525] shadow-sm"
+                                : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-[#CFCFCF] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                                }`}
+                        >
+                            <Star size={14} className={showFavorites ? "fill-current" : ""} />
+                        </button>
                     </div>
 
                     <div className="bg-white dark:bg-[#1A1A1A] min-h-[300px] overflow-x-auto pb-4 scrollbar-hide">
@@ -364,11 +392,11 @@ export function ProjectDetailModal({
                             ].map((status) => (
                                 <div
                                     key={status}
-                                    className="flex flex-col gap-2 min-h-[120px] w-[260px] bg-[#f7f5f2] dark:bg-[#252525] rounded-[16px] p-2 border border-transparent transition-colors"
+                                    className="flex flex-col gap-2 min-h-[120px] w-[260px] bg-[#f7f5f2] dark:bg-[#CFCFCF]/5 rounded-[16px] p-2 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#CFCFCF]/10"
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, status)}
                                 >
-                                    <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 capitalize flex items-center justify-between mb-1 px-2">
+                                    <h3 className="text-sm font-semibold text-gray-600 dark:text-[#CFCFCF] capitalize flex items-center justify-between mb-1 px-2">
                                         <div className="flex items-center gap-2">
                                             <span
                                                 className={`w-2 h-2 rounded-full ${status === "done"
@@ -399,7 +427,7 @@ export function ProjectDetailModal({
                                                 key={t.id}
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, t.id)}
-                                                className="relative p-3 bg-white dark:bg-[#2A2A2A] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] cursor-grab active:cursor-grabbing hover:shadow-md transition-all border border-gray-100 dark:border-[#3A3A3A] group/card"
+                                                className="relative p-3 bg-white dark:bg-[#CFCFCF]/10 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] cursor-grab active:cursor-grabbing hover:shadow-md transition-all border border-gray-100 dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 group/card"
                                             >
                                                 {/* Dropdown */}
                                                 {openMenuId === t.id && (
@@ -444,16 +472,16 @@ export function ProjectDetailModal({
                                                 )}
 
                                                 {/* Title row: pin/star + title + 3-dot */}
-                                                <div onClick={() => setSelectedTask(t)} className="cursor-pointer">
+                                                <div onClick={() => onSelectTask(t)} className="cursor-pointer">
                                                     <div className="flex items-center gap-1.5">
-                                                        {t.is_pinned && <Pin className="w-3 h-3 text-[#C2A27A] flex-shrink-0" />}
-                                                        {t.is_favorite && <Star className="w-3 h-3 text-[#C2A27A] fill-[#C2A27A] flex-shrink-0" />}
-                                                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex-1 truncate">
+                                                        {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
+                                                        {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
+                                                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex-1 truncate">
                                                             {t.title}
                                                         </p>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === t.id ? null : t.id); setMoveMenuId(null); }}
-                                                            className="p-0.5 rounded text-gray-300 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#444] opacity-0 group-hover/card:opacity-100 transition-all flex-shrink-0 context-menu-button"
+                                                            className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#444] sm:opacity-0 sm:group-hover/card:opacity-100 opacity-100 transition-all flex-shrink-0 context-menu-button"
                                                         >
                                                             <MoreHorizontal className="w-3.5 h-3.5" />
                                                         </button>
