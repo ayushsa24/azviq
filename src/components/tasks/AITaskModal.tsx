@@ -75,48 +75,48 @@ export function AITaskModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="bg-white dark:bg-[#252525] border border-[#CFCFCF] dark:border-[#7D7D7D] w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
+            <div className="bg-white dark:bg-[#252525] border border-[#CFCFCF] dark:border-[#545454] w-full max-w-md rounded-xl p-5 relative shadow-xl transition-colors">
                 <button
                     onClick={onClose}
                     className="absolute right-4 top-4 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
                 >
-                    <X size={20} />
+                    <X size={18} />
                 </button>
 
-                <h2 className="text-xl flex items-center gap-2 font-bold text-[#252525] dark:text-[#CFCFCF] mb-6">
+                <h2 className="text-lg flex items-center gap-2 font-bold text-[#252525] dark:text-[#CFCFCF] mb-4">
                     <Sparkles className="w-5 h-5 text-[#545454] dark:text-[#CFCFCF]" />
                     Generate with AI
                 </h2>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-200 text-sm rounded-lg">
+                    <div className="mb-4 p-2.5 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-200 text-xs rounded-lg">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleGenerate} className="space-y-4">
+                <form onSubmit={handleGenerate} className="space-y-3.5">
                     <div>
-                        <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-1">
+                        <label className="block text-xs font-semibold text-[#545454] dark:text-[#7D7D7D] mb-1.5 uppercase tracking-wider">
                             What do you need to do?
                         </label>
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="e.g. Help me write a 5-page history essay by Friday"
-                            rows={4}
-                            className="w-full bg-[#F5F5F5] dark:bg-[#1A1A1A] border border-[#CFCFCF] dark:border-[#545454] rounded-lg px-4 py-3 text-[#252525] dark:text-[#CFCFCF] focus:outline-none focus:border-[#7D7D7D] transition-colors resize-none"
+                            placeholder="e.g. create a task for me to complete my assignment"
+                            rows={3}
+                            className="w-full bg-[#F5F5F5] dark:bg-[#1A1A1A] border border-[#CFCFCF] dark:border-[#545454] rounded-lg px-3 py-2.5 text-sm text-[#252525] dark:text-[#CFCFCF] focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#7D7D7D] transition-colors resize-none"
                             autoFocus
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-1">
+                        <label className="block text-xs font-semibold text-[#545454] dark:text-[#7D7D7D] mb-1.5 uppercase tracking-wider">
                             Add to Project (Optional)
                         </label>
                         <select
                             value={projectId}
                             onChange={(e) => setProjectId(e.target.value)}
-                            className="w-full bg-[#F5F5F5] dark:bg-[#1A1A1A] border border-[#CFCFCF] dark:border-[#545454] rounded-lg px-4 py-2 text-[#252525] dark:text-[#CFCFCF] focus:outline-none focus:border-[#7D7D7D] transition-colors"
+                            className="w-full bg-[#F5F5F5] dark:bg-[#1A1A1A] border border-[#CFCFCF] dark:border-[#545454] rounded-lg px-3 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] focus:outline-none focus:border-[#7D7D7D] transition-colors cursor-pointer"
                         >
                             <option value="">No Project</option>
                             {projects.map((p) => (
@@ -130,11 +130,11 @@ export function AITaskModal({
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full mt-2 py-2.5 bg-[#252525] dark:bg-[#CFCFCF] hover:bg-[#1A1A1A] dark:hover:bg-white text-white dark:text-[#252525] rounded-lg font-medium transition-colors flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full mt-1 py-2.5 bg-[#252525] dark:bg-[#CFCFCF] hover:bg-black dark:hover:bg-white text-white dark:text-[#252525] rounded-lg text-sm font-semibold transition-all flex justify-center items-center shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="animate-spin mr-2" size={18} />
+                                <div className="spinner-elegant !w-3.5 !h-3.5 text-white dark:text-[#252525] mr-2"></div>
                                 Generating...
                             </>
                         ) : (

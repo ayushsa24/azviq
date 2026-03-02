@@ -344,16 +344,58 @@ export default function TasksPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#161514] dark:text-[#CFCFCF]">Project Management</h1>
           <button
             onClick={() => setIsAIModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#CFCFCF]/10 text-[#545454] dark:text-[#CFCFCF] border border-[#E8E5E0] dark:border-[#545454] rounded-xl text-sm font-medium hover:bg-[#E8E5E0] dark:hover:bg-[#CFCFCF]/20 hover:border-[#252525] dark:hover:border-[#CFCFCF] hover:text-[#252525] transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#252525] text-[#545454] dark:text-[#EDEAE6] border border-[#DEDBD6] dark:border-[#545454] rounded-xl text-sm font-semibold hover:bg-white dark:hover:bg-[#333333] hover:border-[#252525] dark:hover:border-[#7D7D7D] active:scale-[0.98] transition-all shadow-sm"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 text-[#252525] dark:text-[#CFCFCF]" />
             <span className="hidden sm:inline">Generate with AI</span>
           </button>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-40 sm:h-full">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          <div className="space-y-8 pt-6 animate-pulse">
+            <div className="flex justify-center py-4">
+              <div className="spinner-elegant text-gray-400"></div>
+            </div>
+            {/* Project Section Skeleton */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="h-10 bg-white dark:bg-[#CFCFCF]/10 rounded-full w-full max-w-xs"></div>
+                  <div className="w-10 h-10 bg-white dark:bg-[#CFCFCF]/10 rounded-full"></div>
+                </div>
+                <div className="w-24 h-5 bg-white dark:bg-[#CFCFCF]/10 rounded-md"></div>
+              </div>
+              <div className="flex gap-4 overflow-hidden">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="min-w-[280px] h-[160px] bg-white dark:bg-[#CFCFCF]/5 rounded-2xl border border-gray-100 dark:border-[#545454]/30"></div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tasks Section Skeleton */}
+            <div className="space-y-6 pt-4">
+              <div className="flex items-center justify-between">
+                <div className="h-8 bg-white dark:bg-[#CFCFCF]/10 rounded-md w-32"></div>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="h-10 bg-white dark:bg-[#CFCFCF]/10 rounded-full w-full max-w-sm"></div>
+                  <div className="w-10 h-10 bg-white dark:bg-[#CFCFCF]/10 rounded-full"></div>
+                </div>
+                <div className="w-28 h-10 bg-white dark:bg-[#CFCFCF]/10 rounded-xl"></div>
+              </div>
+              <div className="flex gap-6 overflow-hidden">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="flex-1 min-w-[300px] h-[500px] bg-white dark:bg-[#CFCFCF]/5 rounded-[24px] border border-gray-100 dark:border-[#545454]/20 p-4">
+                    <div className="h-6 bg-white dark:bg-[#CFCFCF]/10 rounded w-1/3 mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-20 bg-white dark:bg-[#CFCFCF]/10 rounded-xl"></div>
+                      <div className="h-20 bg-white dark:bg-[#CFCFCF]/10 rounded-xl"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-8 pt-4">
@@ -421,6 +463,7 @@ export default function TasksPage() {
                     return (
                       <div
                         key={p.id}
+                        onClick={() => setSelectedProject(p)}
                         className="relative min-w-[200px] h-32 rounded-xl bg-white dark:bg-[#CFCFCF]/10 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col justify-between cursor-pointer hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 transition-all group"
                       >
                         {/* Title row */}
@@ -428,7 +471,6 @@ export default function TasksPage() {
                           {p.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
                           {p.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
                           <h3
-                            onClick={() => setSelectedProject(p)}
                             className="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1 group-hover:text-black dark:group-hover:text-white text-sm"
                           >
                             {p.title}
@@ -451,12 +493,12 @@ export default function TasksPage() {
                             <MoreHorizontal className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div onClick={() => setSelectedProject(p)}>
+                        <div>
                           <p className="text-xs text-gray-400 mt-1">
                             {projTasks.length > 0 ? `${doneTasks}/${projTasks.length} Tasks done` : "No tasks"}
                           </p>
                         </div>
-                        <div className="flex items-center justify-between" onClick={() => setSelectedProject(p)}>
+                        <div className="flex items-center justify-between">
                           <span className={`text-xs px-2 py-1 rounded w-fit font-medium capitalize ${p.status === "in_progress" ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" :
                             p.status === "done" ? "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400" :
                               p.status === "archived" ? "bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400" :

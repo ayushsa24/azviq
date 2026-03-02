@@ -335,7 +335,7 @@ export default function NotesPage() {
         <p className="text-[#545454] dark:text-[#7D7D7D] mt-1 transition-colors">
           {activeWorkspace
             ? activeWorkspace.description || "Manage notes in this workspace"
-            : "Manage and organize your study materials"
+            : "Manage and organize your important data"
           }
         </p>
       </div>
@@ -465,14 +465,25 @@ export default function NotesPage() {
       {/* SCROLLABLE CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-y-auto min-h-0 pr-2 pb-2">
         {isLoading ? (
-          <div className="flex-1 h-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#252525] dark:border-[#CFCFCF] transition-colors"></div>
+          <div className="flex-1 min-h-0 pt-4 animate-pulse">
+            <div className="flex justify-center mb-8">
+              <div className="spinner-elegant text-[#252525] dark:text-[#CFCFCF]"></div>
+            </div>
+            <div className={
+              viewMode === "grid"
+                ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
+                : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+            }>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                <div key={n} className={`h-40 rounded-2xl bg-white dark:bg-[#CFCFCF]/5 border border-[#E8E5E0] dark:border-[#545454]/30 ${viewMode === 'list' ? 'h-24' : 'h-40'}`}></div>
+              ))}
+            </div>
           </div>
         ) : activeTab === "workspaces" && !activeWorkspace ? (
           filteredWorkspaces.length > 0 ? (
             <div className={
               viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5"
+                ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
                 : "grid grid-cols-1 lg:grid-cols-2 gap-4"
             }>
               {filteredWorkspaces.map((ws) => (
@@ -503,7 +514,7 @@ export default function NotesPage() {
         ) : filteredNotes.length > 0 ? (
           <div className={
             viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5"
+              ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
               : "grid grid-cols-1 lg:grid-cols-2 gap-4"
           }>
             {filteredNotes.map((note) => (

@@ -1233,27 +1233,6 @@ function AiChatCore() {
             ))
           )}
 
-          {isLoading && (
-            <div className="flex gap-3 max-w-3xl mx-auto justify-start">
-              <div
-                className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#252525]" : "bg-[#252525]"}`}
-              >
-                <Bot className="w-5 h-5 text-white" />
-              </div>
-              <div
-                className={`px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2 ${theme === "dark"
-                  ? "bg-[#252525] border border-[#545454]"
-                  : "bg-white shadow-sm border border-gray-200"
-                  }`}
-              >
-                <Loader2 className="w-4 h-4 animate-spin opacity-70" />
-                <span className="opacity-70 text-sm">
-                  Ascend AI is thinking...
-                </span>
-              </div>
-            </div>
-          )}
-
           <div ref={messagesEndRef} className="h-1 md:h-4" />
         </div>
 
@@ -1362,8 +1341,8 @@ export default function AiPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen w-full flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F5F3EF] dark:bg-[#161514]">
+          <div className="spinner-elegant text-gray-400"></div>
         </div>
       }
     >

@@ -98,28 +98,28 @@ export function NoteCard({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchMove}
-            className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 hover:border-[#D1D1D1] dark:hover:border-[#444] relative shadow-[0_2px_8_rgba(0,0,0,0.04)] hover:shadow-md ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-48"
+            className={`group p-3.5 rounded-xl cursor-pointer transition-all duration-200 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 hover:border-[#D1D1D1] dark:hover:border-[#444] relative shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-40"
                 }`}
         >
-            <div className={`flex items-center gap-2 transition-opacity ${isList ? "hidden" : "absolute top-4 right-4"}`}>
+            <div className={`flex items-center gap-1.5 transition-opacity ${isList ? "hidden" : "absolute top-3 right-3"}`}>
                 {isPinned && (
                     <div className="bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full" title="Pinned">
-                        <Pin size={12} fill="currentColor" strokeWidth={0} />
+                        <Pin size={10} fill="currentColor" strokeWidth={0} />
                     </div>
                 )}
                 {note.is_favourite && (
                     <div className="bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full">
-                        <Star size={12} fill="currentColor" strokeWidth={0} />
+                        <Star size={10} fill="currentColor" strokeWidth={0} />
                     </div>
                 )}
-                <div className="bg-[#252525] text-white dark:text-[#CFCFCF] text-xs px-2 py-1 rounded shadow-sm opacity-80 group-hover:opacity-100">
+                <div className="bg-[#252525] text-white dark:text-[#CFCFCF] text-[10px] px-1.5 py-0.5 rounded shadow-sm opacity-80 group-hover:opacity-100">
                     {isPdf ? "PDF" : "NOTE"}
                 </div>
             </div>
 
             <div className={`flex items-center shrink-0 text-[#545454] dark:text-[#7D7D7D] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] transition-colors ${isList ? "" : "flex-1 justify-center"
                 }`}>
-                {isPdf ? <FileText size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} /> : <File size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} />}
+                {isPdf ? <FileText size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} /> : <File size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} />}
             </div>
 
             <div className={`border-[#CFCFCF] dark:border-[#7D7D7D]/20 transition-colors ${isList ? "flex-1 min-w-0 flex flex-row items-center justify-between border-none mt-0 pt-0 gap-2" : "mt-4 pt-4 border-t"

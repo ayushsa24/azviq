@@ -78,40 +78,40 @@ export function WorkspaceCard({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchMove}
-            className={`group p-4 rounded-xl cursor-pointer transition-all duration-200 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 hover:border-[#D1D1D1] dark:hover:border-[#444] relative shadow-[0_2px_8_rgba(0,0,0,0.04)] hover:shadow-md ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-48"
+            className={`group p-3.5 rounded-xl cursor-pointer transition-all duration-200 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 hover:border-[#D1D1D1] dark:hover:border-[#444] relative shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md ${isList ? "flex flex-row items-center gap-3 h-auto py-3 px-4" : "flex flex-col justify-between h-40"
                 }`}
         >
             {/* Pin indicator - Grid view */}
             {!isList && workspace.is_pinned && (
-                <div className="absolute top-4 right-4 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full" title="Pinned">
-                    <Pin size={12} fill="currentColor" strokeWidth={0} />
+                <div className="absolute top-3 right-3 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full" title="Pinned">
+                    <Pin size={10} fill="currentColor" strokeWidth={0} />
                 </div>
             )}
 
             <div className={`flex items-center shrink-0 text-[#545454] dark:text-[#7D7D7D] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] transition-colors ${isList ? "" : "flex-1 justify-center"
                 }`}>
-                <Folder size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} fill="currentColor" className="opacity-20 hidden dark:block" />
-                <Folder size={isList ? 24 : 48} strokeWidth={isList ? 2 : 1} className="dark:hidden" />
+                <Folder size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} fill="currentColor" className="opacity-20 hidden dark:block" />
+                <Folder size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} className="dark:hidden" />
             </div>
 
-            <div className={`border-[#CFCFCF] dark:border-[#7D7D7D]/20 transition-colors ${isList ? "flex-1 min-w-0 flex flex-row items-center justify-between border-none mt-0 pt-0 gap-2" : "mt-4 pt-4 border-t"
+            <div className={`border-[#CFCFCF] dark:border-[#7D7D7D]/20 transition-colors ${isList ? "flex-1 min-w-0 flex flex-row items-center justify-between border-none mt-0 pt-0 gap-2" : "mt-2.5 pt-2.5 border-t"
                 }`}>
                 <div className={`${isList ? "flex items-center gap-2 min-w-0" : "pr-6"}`}>
                     {isList && workspace.is_pinned && (
                         <Pin size={14} fill="currentColor" className="text-[#252525] dark:text-[#CFCFCF] shrink-0" strokeWidth={0} />
                     )}
-                    <h3 className={`font-semibold truncate text-[#252525] dark:text-[#CFCFCF] transition-colors ${isList ? "text-sm sm:text-base" : "text-sm mb-1"
+                    <h3 className={`font-semibold truncate text-[#252525] dark:text-[#CFCFCF] transition-colors ${isList ? "text-sm sm:text-base" : "text-[13px] mb-0.5"
                         }`}>
                         {workspace.name}
                     </h3>
                     {workspace.description && !isList && (
-                        <p className="text-xs text-[#545454] dark:text-[#7D7D7D] truncate mb-2">
+                        <p className="text-[11px] text-[#545454] dark:text-[#7D7D7D] truncate mb-1 leading-tight">
                             {workspace.description}
                         </p>
                     )}
                 </div>
 
-                <div className={`flex items-center text-[#545454] dark:text-[#545454] transition-colors ${isList ? "text-xs sm:text-sm gap-2 shrink-0" : "justify-between text-xs w-full"
+                <div className={`flex items-center text-[#545454] dark:text-[#545454] transition-colors ${isList ? "text-xs sm:text-sm gap-2 shrink-0" : "justify-between text-[10px] w-full"
                     }`}>
                     <span className="whitespace-nowrap">
                         {formatDistanceToNow(new Date(workspace.created_at), { addSuffix: true })}
