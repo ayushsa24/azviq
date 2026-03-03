@@ -74,7 +74,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
 
 
             {/* Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {isLoading ? (
                     <div className="col-span-full py-16 flex justify-center text-sm text-[#7D7D7D]">Loading exercises…</div>
                 ) : filtered.length === 0 ? (
