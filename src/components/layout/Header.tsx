@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose } from "lucide-react";
 import { signOut } from "next-auth/react";
 
-export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
+export default function Header({ onMenuClick, open }: { onMenuClick: () => void; open: boolean }) {
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, zoomIn, zoomOut, resetZoom } = useZoom();
   const { unreadCount } = useNotifications();
@@ -51,29 +51,34 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   };
 
   return (
-    <header className={`h-[calc(5rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out shadow-sm fixed top-0 left-0 right-0 z-50 ${theme === 'dark'
-      ? 'bg-[#252525] border-b border-[#545454]'
-      : 'bg-[#CFCFCF] border-b border-[#7D7D7D]'
+    <header className={`h-[calc(5rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out fixed z-50 ${theme === 'dark'
+      ? 'bg-[#252525] border-[#545454]'
+      : 'bg-[#CFCFCF] border-[#7D7D7D]'
+      } ${open
+        ? 'top-0 left-0 right-0 border-b shadow-sm'
+        : 'md:top-0 md:left-[8px] md:right-[8px] md:rounded-b-2xl md:shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:border md:border-t-0 top-0 left-0 right-0 border-b shadow-sm'
       }`}>
 
       {/* LEFT */}
       <div className="flex items-center gap-4">
-        <button
-          onClick={onMenuClick}
-          className={`hidden md:block p-2 rounded-xl transition-all duration-200 hover:scale-105 cursor-pointer
-            ${theme === 'dark'
-              ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
-              : 'text-[#252525] hover:bg-[#7D7D7D] hover:text-white'
-            }`}
-        >
-          <Menu className="w-5 h-5" />
-        </button>
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-200
-            ${theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#545454] text-white'}`}>
-            A
+          {/* LOGO BUTTON */}
+          <div
+            onClick={onMenuClick}
+            className={`cursor-pointer group flex items-center justify-center w-8 h-8 rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden hover:shadow-[0_0_15px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.15)]
+              ${theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#545454] text-white'}`}
+          >
+            <span className="transition-opacity duration-200 group-hover:opacity-0">A</span>
+
+            {open ? (
+              <PanelLeftClose className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            ) : (
+              <PanelLeft className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            )}
           </div>
-          <span className={`font-semibold text-xl transition-colors
+
+          {/* TITLE */}
+          <span className={`font-semibold text-xl transition-colors pl-1 cursor-default
             ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
             Ascend
           </span>

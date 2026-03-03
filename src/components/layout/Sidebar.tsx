@@ -6,7 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { signOut } from "next-auth/react";
 import { Home, Library, CheckSquare, TrendingUp, MessageCircle, Settings, LogOut } from "lucide-react";
 
-export default function Sidebar({ open }: { open: boolean }) {
+export default function Sidebar({ open, isHovered = false, onMouseLeave }: { open: boolean; isHovered?: boolean; onMouseLeave?: () => void }) {
   const { theme } = useTheme();
   const pathname = usePathname();
 
@@ -25,11 +25,18 @@ export default function Sidebar({ open }: { open: boolean }) {
 
   return (
     <aside
-      className={`fixed top-16 left-0 h-[calc(100vh-4rem)] w-56 transition-all duration-300 ease-in-out z-40 hidden md:block
-        ${open ? "translate-x-0" : "-translate-x-full"}
-        ${theme === 'dark' ? 'bg-[#252525] border-r border-[#545454]' : 'bg-[#CFCFCF] border-r border-[#7D7D7D]'}`}
+      onMouseLeave={onMouseLeave}
+      className={`fixed left-0 transition-all duration-300 ease-in-out hidden md:block
+        ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-[#CFCFCF] border-[#7D7D7D]'}
+        ${open
+          ? "top-16 h-[calc(100vh-4rem)] w-56 left-0 translate-x-0 border-r rounded-none z-[40]"
+          : `z-[60] w-56 top-[69px] h-[calc(100vh-74px)] rounded-r-2xl border ${isHovered
+            ? "left-0 translate-x-0 shadow-[4px_4px_24px_rgba(0,0,0,0.15)]"
+            : "left-0 -translate-x-full"
+          }`
+        }`}
     >
-      <nav className="flex flex-col gap-1 p-3">
+      <nav className={`flex flex-col gap-1 p-3`}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/") || (item.href === "/library" && pathname.startsWith("/library"));
