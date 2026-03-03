@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { X } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function Modal({
   open,
@@ -13,15 +15,33 @@ export default function Modal({
   title?: string;
   children: React.ReactNode;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-xl bg-white p-4 shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="rounded px-2 py-1">
-            Close
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all"
+      onClick={onClose}
+    >
+      <div
+        className={`w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all scale-100 ${isDark ? 'bg-[#1A1A1A] border border-[#333]' : 'bg-white'
+          }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className={`text-xl font-extrabold tracking-tight ${isDark ? 'text-[#CFCFCF]' : 'text-[#252525]'}`}>
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            className={`p-1.5 rounded-lg transition-colors ${isDark
+                ? 'text-[#7D7D7D] hover:bg-[#252525] hover:text-[#CFCFCF]'
+                : 'text-[#9E9E9E] hover:bg-[#F5F3EF] hover:text-[#252525]'
+              }`}
+          >
+            <X size={20} />
           </button>
         </div>
         {children}

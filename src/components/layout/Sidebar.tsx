@@ -4,9 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { signOut } from "next-auth/react";
-import { Home, Library, CheckSquare, TrendingUp, MessageCircle, Settings, LogOut } from "lucide-react";
+import { Home, Library, CheckSquare, TrendingUp, MessageCircle, Settings, LogOut, Sparkles } from "lucide-react";
 
-export default function Sidebar({ open, isHovered = false, onMouseLeave }: { open: boolean; isHovered?: boolean; onMouseLeave?: () => void }) {
+export default function Sidebar({
+  open,
+  isHovered = false,
+  onMouseLeave
+}: {
+  open: boolean;
+  isHovered?: boolean;
+  onMouseLeave?: () => void;
+}) {
   const { theme } = useTheme();
   const pathname = usePathname();
 
@@ -20,6 +28,7 @@ export default function Sidebar({ open, isHovered = false, onMouseLeave }: { ope
     { href: "/tasks", label: "Tasks", icon: CheckSquare },
     { href: "/progress", label: "Progress", icon: TrendingUp },
     { href: "/ai", label: "AI Chat", icon: MessageCircle },
+    { href: "/preparation", label: "Preparation", icon: Sparkles },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
@@ -40,6 +49,7 @@ export default function Sidebar({ open, isHovered = false, onMouseLeave }: { ope
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/") || (item.href === "/library" && pathname.startsWith("/library"));
+
           return (
             <Link
               key={item.href}

@@ -78,6 +78,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (body.is_pinned_in_favourites !== undefined) updateData.is_pinned_in_favourites = body.is_pinned_in_favourites;
         if (body.content !== undefined) updateData.content = body.content;
 
+        // Spaced repetition fields
+        if (body.retention_score !== undefined) updateData.retention_score = body.retention_score;
+        if (body.last_reviewed_at !== undefined) updateData.last_reviewed_at = body.last_reviewed_at;
+        if (body.next_review_at !== undefined) updateData.next_review_at = body.next_review_at;
+
         const { data: note, error } = await supabase
             .from("notes")
             .update(updateData)
