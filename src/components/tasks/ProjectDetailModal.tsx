@@ -218,15 +218,15 @@ export function ProjectDetailModal({
 
     return (
         <div
-            className="fixed top-[calc(5rem+env(safe-area-inset-top,0px))] md:top-16 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 z-40 flex justify-center sm:items-center bg-black/40 backdrop-blur-sm sm:px-4 sm:py-6"
+            className="fixed inset-0 z-[60] flex flex-col sm:justify-center sm:items-center bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-black/40 sm:dark:bg-black/40 sm:backdrop-blur-sm pt-[calc(env(safe-area-inset-top,0px)+28px)] sm:pt-0 sm:px-4 sm:py-6"
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl overflow-y-auto flex flex-col shadow-2xl relative custom-scrollbar border border-transparent dark:border-[#545454]"
+                className="bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-white sm:dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl overflow-y-auto flex flex-col shadow-none sm:shadow-2xl relative custom-scrollbar border-none sm:border sm:border-transparent sm:dark:border-[#545454]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Top Control Bar */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/90 dark:bg-[#1A1A1A]/90 backdrop-blur-md border-b border-gray-100 dark:border-[#3A3A3A]">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 sm:bg-white/95 sm:dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] sm:border-gray-100 dark:border-[#3A3A3A]">
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onClose}
@@ -268,7 +268,7 @@ export function ProjectDetailModal({
                     </div>
                 </div>
 
-                <div className="px-6 sm:px-10 py-6 flex-1 w-full">
+                <div className="px-4 sm:px-10 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:pb-6 flex-1 w-full">
                     {/* Title Area */}
                     <input
                         type="text"

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import SummarizeBox from "@/components/SummarizeBox";
 import AskAIGlobalBar from "@/components/dashboard/AskAIGlobalBar";
+import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -12,14 +13,19 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] p-4 sm:p-6 lg:p-8 overflow-hidden transition-colors">
+    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white p-4 sm:p-6 lg:p-8 overflow-hidden transition-colors">
       <div className="flex flex-col mb-5">
-        <h1 className="text-3xl font-extrabold text-[#252525] dark:text-[#CFCFCF] tracking-tight transition-colors">
-          Dashboard
-        </h1>
-        <p className="text-[#545454] dark:text-[#7D7D7D] mt-1 transition-colors">
-          Welcome back, {session?.user?.email || "Guest"}
-        </p>
+        <div className="flex items-center gap-3">
+          <SidebarToggleButton />
+          <div>
+            <h1 className="text-3xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
+              Dashboard
+            </h1>
+            <p className="text-[#545454] dark:text-[#BABABA] mt-1 transition-colors">
+              Welcome back, {session?.user?.email || "Guest"}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 max-w-4xl w-full mx-auto flex flex-col gap-6 overflow-y-auto min-h-0 pt-4">

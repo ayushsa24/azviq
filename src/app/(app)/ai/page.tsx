@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSidebar } from "@/contexts/SidebarContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -16,6 +17,8 @@ import {
   User,
   Menu,
   X,
+  PanelLeft,
+  History,
   Image as ImageIcon,
   MoreHorizontal,
   Share,
@@ -55,6 +58,7 @@ type ChatSession = {
 function AiChatCore() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { toggle: toggleAppSidebar, open: isAppSidebarOpen } = useSidebar();
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -686,25 +690,22 @@ function AiChatCore() {
 
   return (
     <div
-      className={`flex h-full overflow-hidden transition-colors duration-300 ease-in-out ${theme === "dark"
-        ? "bg-[#161514] text-white"
-        : "bg-[#F5F3EF] text-gray-900"
-        }`}
+      className="flex h-full overflow-hidden transition-colors duration-300 ease-in-out bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white"
     >
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-[55] md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed top-[calc(5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:top-0 md:bottom-auto md:relative z-50 w-[260px] md:w-72 md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`fixed inset-y-0 left-0 z-[60] pt-[calc(env(safe-area-inset-top,0px)+44px)] pb-[calc(env(safe-area-inset-bottom,0px)+16px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:w-72 md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           } ${theme === "dark"
-            ? "bg-[#252525] border-[#545454]"
-            : "bg-white border-[#E8E5E0]"
+            ? "bg-[#1A1A1A] border-[#545454]"
+            : "bg-[#F5F3EF] border-[#E8E5E0]"
           }`}
       >
         {/* New Chat Button */}
@@ -736,22 +737,8 @@ function AiChatCore() {
           </button>
         </div>
 
-        {/* Chat List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
-          {activeChats.length === 0 && (
-            <p
-              className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#7D7D7D]" : "text-gray-400"}`}
-            >
-              No previous chats found.
-            </p>
-          )}
-
-          {pinnedChats.map((session) => renderSessionItem(session))}
-          {unpinnedChats.map((session) => renderSessionItem(session))}
-        </div>
-
-        {/* Archived Folder (Sticky at bottom) */}
-        <div className="p-3 border-t border-opacity-30 border-gray-400 shrink-0">
+        {/* Archived Folder (Moved to top area) */}
+        <div className="p-3 border-b border-opacity-30 border-gray-400 shrink-0">
           <button
             onClick={() => setIsArchivedExpanded(!isArchivedExpanded)}
             className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === "dark" ? "text-gray-300 hover:bg-[#2A2A2A]" : "text-gray-600 hover:bg-gray-100"}`}
@@ -810,44 +797,44 @@ function AiChatCore() {
             </div>
           )}
         </div>
+
+        {/* Chat List */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
+          {activeChats.length === 0 && (
+            <p
+              className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#BABABA]" : "text-gray-400"}`}
+            >
+              No previous chats found.
+            </p>
+          )}
+
+          {pinnedChats.map((session) => renderSessionItem(session))}
+          {unpinnedChats.map((session) => renderSessionItem(session))}
+        </div>
       </div>
 
       {/* 🚀 MAIN CHAT AREA */}
       <div className="flex-1 flex flex-col h-full min-w-0">
-        {/* Mobile Header Toggle */}
-        <div
-          className={`md:hidden shrink-0 sticky top-0 z-10 p-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
-            ? "bg-[#161514] border-[#545454]"
-            : "bg-[#F5F3EF] border-[#E8E5E0]"
-            }`}
-        >
-          <div className="flex items-center">
+        {/* Floating Top-Left Toggles */}
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+          {/* App Sidebar Toggle - Show only if closed */}
+          {!isAppSidebarOpen && (
             <button
-              onClick={() => setIsSidebarOpen(true)}
-              className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
+              onClick={toggleAppSidebar}
+              className={`p-2 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${theme === "dark" ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:text-white" : "bg-white border-[#E8E5E0] text-[#545454] hover:text-[#252525]"}`}
+              title="Open app sidebar"
             >
-              <Menu className="w-5 h-5" />
+              <PanelLeft className="w-4 h-4" />
             </button>
-            <span className="font-semibold text-sm truncate max-w-[150px]">
-              {activeChatId === "temp-chat"
-                ? "Temporary Chat"
-                : sessions.find((s) => s.id === activeChatId)?.title ||
-                "Chat History"}
-            </span>
-          </div>
+          )}
+
+          {/* AI History Sidebar Toggle */}
           <button
-            onClick={toggleTemporaryChat}
-            className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
-              ? theme === "dark"
-                ? "bg-red-900/40 text-red-400 hover:bg-red-900/60"
-                : "bg-red-100 text-red-600 hover:bg-red-200"
-              : theme === "dark"
-                ? "text-gray-300 hover:bg-[#252525]"
-                : "text-[#545454] hover:bg-gray-200"
-              }`}
-            title="Toggle Temporary Chat"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`p-2 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:hidden ${theme === "dark" ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:text-white" : "bg-white border-[#E8E5E0] text-[#545454] hover:text-[#252525]"}`}
+            title="Toggle chat history"
           >
-            <Ghost className="w-5 h-5" />
+            <History className="w-4 h-4" />
           </button>
         </div>
 
@@ -864,10 +851,10 @@ function AiChatCore() {
           className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6"
         >
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+            <div className="h-full flex flex-col items-center justify-center text-center">
               {activeChatId === "temp-chat" ? (
-                <>
-                  <Ghost className="w-16 h-16 mb-4 text-red-500 opacity-80" />
+                <div className="opacity-70">
+                  <Ghost className="w-16 h-16 mb-4 text-red-500 mx-auto" />
                   <h2 className="text-2xl font-bold mb-2">
                     You are in Temporary Chat
                   </h2>
@@ -875,17 +862,16 @@ function AiChatCore() {
                     Messages here will not be saved to your history. How can I
                     help?
                   </p>
-                </>
+                </div>
               ) : (
-                <>
-                  <Bot className="w-16 h-16 mb-4" />
-                  <h2 className="text-2xl font-bold mb-2">
-                    How can I help you study?
+                <div className="flex flex-col items-center">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 ${theme === "dark" ? "bg-[#e5e5e5] text-[#252525]" : "bg-[#252525] text-white"}`}>
+                    <Bot className="w-7 h-7" />
+                  </div>
+                  <h2 className={`text-[28px] font-bold mb-2 ${theme === "dark" ? "text-white" : "text-[#252525]"}`}>
+                    How can I help you today?
                   </h2>
-                  <p className="max-w-md text-sm">
-                    Send a message or upload an image to start learning.
-                  </p>
-                </>
+                </div>
               )}
             </div>
           ) : (
@@ -934,7 +920,7 @@ function AiChatCore() {
                         ? "bg-[#545454] text-white rounded-br-none"
                         : "bg-gray-200 text-gray-900 rounded-br-none"
                       : theme === "dark"
-                        ? "w-fit max-w-full bg-[#252525] text-[#EDEAE6] border border-[#545454] rounded-bl-none ai-response-content"
+                        ? "w-fit max-w-full bg-[#252525] text-white border border-[#545454] rounded-bl-none ai-response-content"
                         : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none ai-response-content"
                       }`}
                   >
@@ -1341,7 +1327,7 @@ export default function AiPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F5F3EF] dark:bg-[#161514]">
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F5F3EF] dark:bg-[#1A1A1A]">
           <div className="spinner-elegant text-gray-400"></div>
         </div>
       }

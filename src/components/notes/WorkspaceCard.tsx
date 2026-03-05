@@ -22,6 +22,8 @@ export function WorkspaceCard({
 }: WorkspaceCardProps) {
     const isList = viewMode === "list";
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [menuSide, setMenuSide] = useState<"top" | "bottom">("bottom");
+    const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isLongPress = useRef(false);
@@ -35,11 +37,39 @@ export function WorkspaceCard({
 
         if (isMenuOpen) {
             document.addEventListener('mousedown', handleClickOutside);
+
+            // Smart flip and position logic
+            if (menuRef.current) {
+                const rect = menuRef.current.getBoundingClientRect();
+                const menuHeight = 160;
+                const isMobile = window.innerWidth < 768;
+                const bottomThreshold = isMobile ? 80 : 20;
+
+                // Determine side (top or bottom) and absolute screen position
+                if (isList) {
+                    if (rect.bottom + menuHeight > window.innerHeight - bottomThreshold) {
+                        setMenuSide("top");
+                        setMenuPosition({ top: rect.top - menuHeight - 4, right: window.innerWidth - rect.right });
+                    } else {
+                        setMenuSide("bottom");
+                        setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                    }
+                } else {
+                    // Grid opens up by default, but flip if it hits the top header (approx 120px)
+                    if (rect.top - menuHeight < 120 && rect.bottom + menuHeight < window.innerHeight - bottomThreshold) {
+                        setMenuSide("bottom");
+                        setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                    } else {
+                        setMenuSide("top");
+                        setMenuPosition({ top: rect.top - menuHeight - 4, right: window.innerWidth - rect.right });
+                    }
+                }
+            }
         }
         return () => {
-            document.addEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isMenuOpen]);
+    }, [isMenuOpen, isList]);
 
     const handleMenuAction = (e: React.MouseEvent, action: () => void | undefined) => {
         e.stopPropagation();
@@ -83,7 +113,7 @@ export function WorkspaceCard({
         >
             {/* Pin indicator - Grid view */}
             {!isList && workspace.is_pinned && (
-                <div className="absolute top-3 right-3 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full" title="Pinned">
+                <div className="absolute top-3 left-3 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] p-1 rounded-full" title="Pinned">
                     <Pin size={10} fill="currentColor" strokeWidth={0} />
                 </div>
             )}
@@ -100,18 +130,18 @@ export function WorkspaceCard({
                     {isList && workspace.is_pinned && (
                         <Pin size={14} fill="currentColor" className="text-[#252525] dark:text-[#CFCFCF] shrink-0" strokeWidth={0} />
                     )}
-                    <h3 className={`font-semibold truncate text-[#252525] dark:text-[#CFCFCF] transition-colors ${isList ? "text-sm sm:text-base" : "text-[13px] mb-0.5"
+                    <h3 className={`font-semibold truncate text-[#252525] dark:text-white transition-colors ${isList ? "text-sm sm:text-base" : "text-[13px] mb-0.5"
                         }`}>
                         {workspace.name}
                     </h3>
                     {workspace.description && !isList && (
-                        <p className="text-[11px] text-[#545454] dark:text-[#7D7D7D] truncate mb-1 leading-tight">
+                        <p className="text-[11px] text-[#545454] dark:text-[#BABABA] truncate mb-1 leading-tight">
                             {workspace.description}
                         </p>
                     )}
                 </div>
 
-                <div className={`flex items-center text-[#545454] dark:text-[#545454] transition-colors ${isList ? "text-xs sm:text-sm gap-2 shrink-0" : "justify-between text-[10px] w-full"
+                <div className={`flex items-center text-[#545454] dark:text-[#BABABA] transition-colors ${isList ? "text-xs sm:text-sm gap-2 shrink-0" : "justify-between text-[10px] w-full"
                     }`}>
                     <span className="whitespace-nowrap">
                         {formatDistanceToNow(new Date(workspace.created_at), { addSuffix: true })}
@@ -129,9 +159,12 @@ export function WorkspaceCard({
                             <MoreVertical size={16} className="text-[#545454] dark:text-[#CFCFCF]" />
                         </button>
 
-                        {isMenuOpen && (
-                            <div className={`absolute z-10 w-48 bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-[#CFCFCF] dark:border-[#545454] py-1 ${isList ? "right-0 top-10" : "right-0 bottom-8"
-                                }`}>
+                        {isMenuOpen && menuPosition && (
+                            <div
+                                className="fixed z-[9999] w-48 bg-white dark:bg-[#252525] rounded-lg shadow-xl border border-[#CFCFCF] dark:border-[#545454] py-1 transition-all animate-in fade-in zoom-in-95 duration-150"
+                                style={{ top: menuPosition.top, right: menuPosition.right }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 <button
                                     onClick={(e) => handleMenuAction(e, () => onTogglePin?.(workspace))}
                                     className="w-full text-left px-4 py-2 text-sm text-[#252525] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] flex items-center gap-2 transition-colors"

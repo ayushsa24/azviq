@@ -42,8 +42,8 @@ export default function PersonalAITab() {
                 {/* File Selector */}
                 <div className="relative flex-1 sm:max-w-xs">
                     <select
-                        className={`w-full appearance-none px-4 py-2.5 pr-10 rounded-full border outline-none font-medium text-sm transition-all focus:border-[#7D7D7D] ${isDark
-                            ? 'bg-[#252525] border-[#545454] text-[#CFCFCF]'
+                        className={`w-full appearance-none px-4 py-2.5 pr-10 rounded-full border outline-none font-medium text-sm transition-all focus:border-[#7D7D7D] dark:focus:border-[#BABABA] ${isDark
+                            ? 'bg-[#252525] border-[#545454] text-white'
                             : 'bg-white border-[#E8E5E0] text-[#252525]'
                             }`}
                         value={selectedFile || ""}
@@ -56,7 +56,7 @@ export default function PersonalAITab() {
                         ))}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <FileText size={15} className="text-[#7D7D7D]" />
+                        <FileText size={15} className="text-[#BABABA]" />
                     </div>
                 </div>
 
@@ -70,8 +70,8 @@ export default function PersonalAITab() {
                             key={id}
                             onClick={() => setMode(id)}
                             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${mode === id
-                                    ? isDark ? 'bg-[#CFCFCF] text-[#252525] shadow-sm' : 'bg-[#252525] text-white shadow-sm'
-                                    : isDark ? 'text-[#7D7D7D] hover:text-[#CFCFCF]' : 'text-[#545454] hover:text-[#252525]'
+                                ? isDark ? 'bg-white text-[#252525] shadow-sm' : 'bg-[#252525] text-white shadow-sm'
+                                : isDark ? 'text-[#BABABA] hover:text-white' : 'text-[#545454] hover:text-[#252525]'
                                 }`}
                         >
                             <Icon size={14} />
@@ -83,19 +83,16 @@ export default function PersonalAITab() {
 
             {/* Main Panel */}
             <div
-                className={`flex flex-col rounded-xl border transition-all overflow-hidden ${isDark
-                    ? 'bg-[#CFCFCF]/10 border-[#7D7D7D]/30'
-                    : 'bg-white border-[#E8E5E0] shadow-[0_2px_8px_rgba(0,0,0,0.04)]'
-                    }`}
+                className={`flex flex-col rounded-xl border transition-all duration-200 overflow-hidden border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 shadow-[0_1px_4px_rgba(0,0,0,0.04)]`}
                 style={{ minHeight: '420px' }}
             >
                 {!selectedFile ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${isDark ? 'bg-[#252525]' : 'bg-[#F0EDE8]'}`}>
-                            <FileText size={26} className="text-[#7D7D7D]" />
+                            <FileText size={26} className="text-[#BABABA]" />
                         </div>
-                        <h3 className="text-base font-semibold text-[#252525] dark:text-[#CFCFCF] mb-1">Select a Context</h3>
-                        <p className="text-sm text-[#545454] dark:text-[#7D7D7D] max-w-xs leading-relaxed">
+                        <h3 className="text-base font-semibold text-[#252525] dark:text-white mb-1">Select a Context</h3>
+                        <p className="text-sm text-[#545454] dark:text-[#BABABA] max-w-xs leading-relaxed">
                             Choose a Note or PDF above — your AI will analyse it and be ready to answer questions or quiz you.
                         </p>
                     </div>
@@ -105,14 +102,14 @@ export default function PersonalAITab() {
                         <div className="flex-1 overflow-y-auto p-5 space-y-4">
                             <div className="flex gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isDark ? 'bg-[#252525] border border-[#545454]' : 'bg-[#F0EDE8] border border-[#E8E5E0]'}`}>
-                                    <Sparkles className="w-4 h-4 text-[#545454] dark:text-[#7D7D7D]" />
+                                    <Sparkles className="w-4 h-4 text-[#BABABA]" />
                                 </div>
-                                <div className={`px-4 py-3 rounded-2xl rounded-tl-sm text-sm max-w-[80%] leading-relaxed ${isDark ? 'bg-[#252525] text-[#CFCFCF] border border-[#545454]' : 'bg-[#F0EDE8] text-[#252525]'}`}>
+                                <div className={`px-4 py-3 rounded-2xl rounded-tl-sm text-sm max-w-[80%] leading-relaxed ${isDark ? 'bg-[#252525] text-white border border-[#545454]' : 'bg-[#F0EDE8] text-[#252525]'}`}>
                                     I've analysed <strong>{selectedNoteName}</strong>. Ask me anything about it, or I can quiz you on key concepts.
                                 </div>
                             </div>
                             <div className="flex gap-3 justify-end">
-                                <div className={`px-4 py-3 rounded-2xl rounded-tr-sm text-sm max-w-[80%] leading-relaxed ${isDark ? 'bg-[#CFCFCF] text-[#252525]' : 'bg-[#252525] text-white'}`}>
+                                <div className={`px-4 py-3 rounded-2xl rounded-tr-sm text-sm max-w-[80%] leading-relaxed ${isDark ? 'bg-white text-[#252525]' : 'bg-[#252525] text-white'}`}>
                                     Can you summarise the key concepts?
                                 </div>
                             </div>
@@ -122,10 +119,10 @@ export default function PersonalAITab() {
                             <div className={`flex items-end gap-2 p-2 rounded-xl border ${isDark ? 'bg-[#1A1A1A] border-[#333]' : 'bg-[#F5F3EF] border-[#E8E5E0]'}`}>
                                 <textarea
                                     placeholder="Ask a question or request a summary…"
-                                    className="flex-1 bg-transparent px-2 py-1.5 outline-none resize-none max-h-32 text-sm text-[#252525] dark:text-[#CFCFCF] placeholder-[#9E9E9E]"
+                                    className="flex-1 bg-transparent px-2 py-1.5 outline-none resize-none max-h-32 text-sm text-[#252525] dark:text-white placeholder-[#9E9E9E]"
                                     rows={1}
                                 />
-                                <button className={`p-2.5 rounded-lg transition-colors shrink-0 ${isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}>
+                                <button className={`p-2.5 rounded-lg transition-colors shrink-0 ${isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}>
                                     <Send size={15} />
                                 </button>
                             </div>
@@ -134,16 +131,16 @@ export default function PersonalAITab() {
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-10 text-center gap-7">
                         <div>
-                            <h3 className="text-base font-semibold text-[#252525] dark:text-[#CFCFCF] mb-1">Voice Mode</h3>
-                            <p className="text-sm text-[#545454] dark:text-[#7D7D7D]">Discussing: <span className="font-semibold text-[#252525] dark:text-[#CFCFCF]">{selectedNoteName}</span></p>
+                            <h3 className="text-base font-semibold text-[#252525] dark:text-white mb-1">Voice Mode</h3>
+                            <p className="text-sm text-[#545454] dark:text-[#BABABA]">Discussing: <span className="font-semibold text-[#252525] dark:text-white">{selectedNoteName}</span></p>
                         </div>
                         <button className="group relative">
-                            <div className={`absolute -inset-4 rounded-full opacity-0 group-hover:opacity-100 transition-all blur-lg ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-[#252525]/10'}`} />
-                            <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all transform group-hover:scale-105 group-active:scale-95 relative z-10 ${isDark ? 'bg-[#CFCFCF] text-[#252525]' : 'bg-[#252525] text-white'} shadow-lg`}>
+                            <div className={`absolute -inset-4 rounded-full opacity-0 group-hover:opacity-100 transition-all blur-lg ${isDark ? 'bg-white/10' : 'bg-[#252525]/10'}`} />
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all transform group-hover:scale-105 group-active:scale-95 relative z-10 ${isDark ? 'bg-white text-[#252525]' : 'bg-[#252525] text-white'} shadow-lg`}>
                                 <Mic className="w-8 h-8" />
                             </div>
                         </button>
-                        <p className="text-sm font-medium text-[#545454] dark:text-[#7D7D7D]">Tap to Start Speaking</p>
+                        <p className="text-sm font-medium text-[#545454] dark:text-[#BABABA]">Tap to Start Speaking</p>
                     </div>
                 )}
             </div>

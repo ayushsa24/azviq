@@ -67,22 +67,22 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                 {/* Info card */}
                 <div className={`flex items-center gap-3 p-4 rounded-xl border ${isDark ? "bg-[#252525] border-[#545454]" : "bg-[#F0EDE8] border-[#DEDBD6]"}`}>
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDark ? "bg-[#333] border border-[#545454]" : "bg-white border border-[#DEDBD6]"}`}>
-                        <Sparkles className="w-5 h-5 text-[#252525] dark:text-[#CFCFCF]" />
+                        <Sparkles className="w-5 h-5 text-[#252525] dark:text-white" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-sm text-[#252525] dark:text-[#CFCFCF]">AI-Powered Revision</h3>
-                        <p className="text-xs text-[#545454] dark:text-[#7D7D7D]">Generates a summary, key terms & Q&A practice from your note.</p>
+                        <h3 className="font-semibold text-sm text-[#252525] dark:text-white">AI-Powered Revision</h3>
+                        <p className="text-xs text-[#545454] dark:text-[#BABABA]">Generates a summary, key terms & Q&A practice from your note.</p>
                     </div>
                 </div>
 
                 {/* Note selector */}
                 <div>
-                    <label className="block text-xs font-semibold mb-2 uppercase tracking-widest text-[#545454] dark:text-[#7D7D7D]">Source Note or PDF</label>
+                    <label className="block text-xs font-semibold mb-2 uppercase tracking-widest text-[#545454] dark:text-[#BABABA]">Source Note or PDF</label>
                     <div className="relative">
                         <select
                             value={selectedNoteId}
                             onChange={(e) => setSelectedNoteId(e.target.value)}
-                            className={`w-full appearance-none px-4 py-3 pr-10 rounded-xl border outline-none font-medium text-sm transition-all focus:border-[#7D7D7D] ${isDark ? "bg-[#1A1A1A] border-[#545454] text-[#CFCFCF]" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"}`}
+                            className={`w-full appearance-none px-4 py-3 pr-10 rounded-xl border outline-none font-medium text-sm transition-all focus:border-white ${isDark ? "bg-[#1A1A1A] border-[#545454] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"}`}
                         >
                             <option value="" disabled>
                                 {isFetchingNotes ? "Loading…" : "Choose a Note or PDF"}
@@ -97,10 +97,10 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                             })}
                         </select>
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <FileText size={16} className="text-[#7D7D7D]" />
+                            <FileText size={16} className="text-[#BABABA]" />
                         </div>
                     </div>
-                    <p className="text-xs text-[#7D7D7D] mt-2">Supports both text notes (📝) and PDF files (📄).</p>
+                    <p className="text-xs text-[#BABABA] mt-2">Supports both text notes (📝) and PDF files (📄).</p>
                 </div>
 
                 {/* Error */}
@@ -111,7 +111,7 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                     onClick={handleGenerate}
                     disabled={!selectedNoteId || isGenerating || isFetchingNotes}
                     className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${selectedNoteId && !isGenerating && !isFetchingNotes
-                        ? isDark ? "bg-[#CFCFCF] text-[#252525] hover:bg-white" : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
+                        ? isDark ? "bg-white text-[#252525] hover:bg-white/90" : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
                         : isDark ? "bg-[#252525] text-[#545454] cursor-not-allowed" : "bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed"
                         }`}
                 >

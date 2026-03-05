@@ -221,7 +221,7 @@ export default function ProfilePage() {
             }`}>
             {form.name || 'Your Name'}
           </h2>
-          <p className={`transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-600'}`}>
+          <p className={`transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
             @{form.username || 'username'}
           </p>
         </div>
@@ -230,7 +230,7 @@ export default function ProfilePage() {
         <div className="space-y-3">
           {/* BIO */}
           <div>
-            <label className={`block text-sm font-medium mb-1 transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-700'
+            <label className={`block text-sm font-medium mb-1 transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-white' : 'text-gray-700'
               }`}>
               Bio
             </label>
@@ -246,7 +246,7 @@ export default function ProfilePage() {
                   } focus:outline-none focus:ring-2 focus:ring-blue-500`}
               />
             ) : (
-              <p className={`p-3 rounded-lg transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-600'
+              <p className={`p-3 rounded-lg transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-[#BABABA]' : 'text-gray-600'
                 }`}>
                 {form.bio || 'No bio'}
               </p>
@@ -257,7 +257,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-3">
             {/* NAME */}
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-700'
+              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                 }`}>
                 Name
               </label>
@@ -272,7 +272,7 @@ export default function ProfilePage() {
                     } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 />
               ) : (
-                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-600'
+                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#BABABA]' : 'text-gray-600'
                   }`}>
                   {form.name || 'Not set'}
                 </p>
@@ -281,7 +281,7 @@ export default function ProfilePage() {
 
             {/* CITY */}
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-700'
+              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                 }`}>
                 City
               </label>
@@ -296,7 +296,7 @@ export default function ProfilePage() {
                     } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 />
               ) : (
-                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-600'
+                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#BABABA]' : 'text-gray-600'
                   }`}>
                   {form.city || 'Not set'}
                 </p>
@@ -305,7 +305,7 @@ export default function ProfilePage() {
 
             {/* MOBILE */}
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-700'
+              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                 }`}>
                 Mobile
               </label>
@@ -320,7 +320,7 @@ export default function ProfilePage() {
                     } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 />
               ) : (
-                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-600'
+                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#BABABA]' : 'text-gray-600'
                   }`}>
                   {form.mobile_no || 'Not set'}
                 </p>
@@ -329,7 +329,7 @@ export default function ProfilePage() {
 
             {/* PRONOUNS */}
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-700'
+              <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                 }`}>
                 Pronouns
               </label>
@@ -349,7 +349,7 @@ export default function ProfilePage() {
                   <option value="they/them">they/them</option>
                 </select>
               ) : (
-                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-gray-600'
+                <p className={`p-2 rounded-lg ${theme === 'dark' ? 'text-[#BABABA]' : 'text-gray-600'
                   }`}>
                   {form.pronouns || 'Not set'}
                 </p>

@@ -129,7 +129,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
             if (!res.ok) throw new Error();
             setIsSubmitted(true);
             setShowResults(true);   // go to results screen
-            onComplete();
+            // onComplete(); // removed so user can see score first
         } catch {
             startTimer(); // resume timer if failed
             alert("Failed to submit exercise results.");
@@ -139,10 +139,10 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
     };
 
     const scoreColor = (s: number | null) => {
-        if (s === null) return 'text-[#252525] dark:text-[#CFCFCF]';
+        if (s === null) return 'text-[#252525] dark:text-white';
         if (s >= 80) return 'text-green-500';
         if (s < 50) return 'text-red-500';
-        return 'text-[#252525] dark:text-[#CFCFCF]';
+        return 'text-[#252525] dark:text-white';
     };
 
     const scoreBg = (s: number | null) => {
@@ -159,9 +159,9 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
         const isWrong = isSubmitted && isAnswered && answers[i] !== questions[i]?.correctAnswerIndex;
         if (isCorrect) return 'bg-green-500 text-white border-green-500';
         if (isWrong) return 'bg-red-500 text-white border-red-500';
-        if (isActive) return isDark ? 'bg-[#CFCFCF] text-[#252525] border-[#CFCFCF]' : 'bg-[#252525] text-white border-[#252525]';
-        if (isAnswered) return isDark ? 'bg-[#3A3A3A] text-[#CFCFCF] border-[#545454]' : 'bg-[#E8E5E0] text-[#252525] border-[#D1D1D1]';
-        return isDark ? 'bg-transparent text-[#7D7D7D] border-[#545454] hover:bg-[#252525]' : 'bg-white text-[#545454] border-[#DEDBD6] hover:bg-[#F0EDE8]';
+        if (isActive) return isDark ? 'bg-white text-[#252525] border-white' : 'bg-[#252525] text-white border-[#252525]';
+        if (isAnswered) return isDark ? 'bg-[#3A3A3A] text-white border-[#545454]' : 'bg-[#E8E5E0] text-[#252525] border-[#D1D1D1]';
+        return isDark ? 'bg-transparent text-[#BABABA] border-[#545454] hover:bg-[#252525]' : 'bg-white text-[#545454] border-[#DEDBD6] hover:bg-[#F0EDE8]';
     };
 
     // ══════════════════════════════════════
@@ -170,14 +170,14 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
     if (showResults || (isSubmitted && exercise.status === 'Completed' && !currentQuestion)) {
         return (
             <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-y-auto scrollbar-hide">
-                <div className="max-w-xl mx-auto w-full px-4 sm:px-6 py-8 flex flex-col gap-6">
+                <div className="max-w-xl mx-auto w-full px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-8 flex flex-col gap-6">
 
                     {/* Back + title */}
                     <div className="flex items-center gap-3">
                         <button onClick={onBack} title="Back" className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-[#CFCFCF] hover:text-[#252525] hover:border-[#CFCFCF]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#252525] hover:text-white hover:border-[#252525]'}`}>
                             <ArrowLeft size={14} />
                         </button>
-                        <h1 className="text-base font-bold text-[#252525] dark:text-[#CFCFCF] truncate flex-1">{exercise.title}</h1>
+                        <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1">{exercise.title}</h1>
                     </div>
 
                     {/* Big score card */}
@@ -210,7 +210,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                 </>
                             )}
                             <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#E8E5E0]'}`}>
-                                <p className="text-xl font-black text-[#252525] dark:text-[#CFCFCF]">{formatTime(timeTakenRef.current || displayTimeTaken)}</p>
+                                <p className="text-xl font-black text-[#252525] dark:text-white">{formatTime(timeTakenRef.current || displayTimeTaken)}</p>
                                 <p className="text-xs text-[#7D7D7D] font-medium mt-0.5 flex items-center justify-center gap-1">
                                     <Clock size={11} /> Time taken
                                 </p>
@@ -222,13 +222,13 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     <div className="flex gap-3">
                         <button
                             onClick={() => { setShowResults(false); setCurrentIndex(0); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all ${isDark ? 'border-[#545454] text-[#CFCFCF] hover:bg-[#252525]' : 'border-[#E8E5E0] text-[#252525] hover:bg-[#F0EDE8]'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all ${isDark ? 'border-[#545454] text-white hover:bg-[#252525]' : 'border-[#E8E5E0] text-[#252525] hover:bg-[#F0EDE8]'}`}
                         >
                             <RotateCcw size={15} /> Review Answers
                         </button>
                         <button
                             onClick={onBack}
-                            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}
+                            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}
                         >
                             Back to Exercises
                         </button>
@@ -245,7 +245,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
         <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
 
             {/* ── Top bar ── */}
-            <div className={`flex items-center gap-3 px-4 sm:px-6 py-3 border-b shrink-0 ${isDark ? 'border-[#2E2E2E] bg-[#161616]' : 'border-[#E8E5E0] bg-white'}`}>
+            <div className={`flex items-center gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? 'border-[#333] bg-[#1A1A1A]' : 'border-[#E8E5E0] bg-[#F5F3EF]'}`}>
                 <button
                     onClick={onBack}
                     title="Back"
@@ -255,11 +255,11 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 </button>
 
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[#252525] dark:text-[#CFCFCF] truncate">{exercise.title}</p>
+                    <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{exercise.title}</p>
                 </div>
 
                 {/* Timer */}
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono font-semibold shrink-0 ${isDark ? 'bg-[#252525] text-[#CFCFCF]' : 'bg-[#F0EDE8] text-[#252525]'}`}>
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono font-semibold shrink-0 ${isDark ? 'bg-[#252525] text-white' : 'bg-[#F0EDE8] text-[#252525]'}`}>
                     <Clock size={13} className="text-[#7D7D7D]" />
                     {formatTime(elapsed)}
                 </div>
@@ -289,7 +289,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                         </div>
 
                         {/* Question text */}
-                        <p className="text-base sm:text-[17px] font-semibold leading-relaxed text-[#252525] dark:text-[#CFCFCF]">
+                        <p className="text-base sm:text-[17px] font-semibold leading-relaxed text-[#252525] dark:text-white">
                             {currentQuestion.question}
                         </p>
 
@@ -320,7 +320,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                         {/* Radio */}
                                         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${showCorrect ? 'border-green-500 bg-green-500' :
                                             showIncorrect ? 'border-red-500 bg-red-500' :
-                                                isSelected ? isDark ? 'border-[#CFCFCF] bg-[#CFCFCF]' : 'border-[#252525] bg-[#252525]' :
+                                                isSelected ? isDark ? 'border-white bg-white' : 'border-[#252525] bg-[#252525]' :
                                                     isDark ? 'border-[#545454]' : 'border-[#CFCFCF]'
                                             }`}>
                                             {(isSelected || showCorrect) && <span className="w-2 h-2 rounded-full bg-white" />}
@@ -333,8 +333,8 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
 
                                         <span className={`flex-1 text-sm sm:text-base font-medium ${showCorrect ? 'text-green-800 dark:text-green-300' :
                                             showIncorrect ? 'text-red-800 dark:text-red-300' :
-                                                isSelected ? 'text-[#252525] dark:text-[#CFCFCF] font-semibold' :
-                                                    'text-[#545454] dark:text-[#7D7D7D]'
+                                                isSelected ? 'text-[#252525] dark:text-white font-semibold' :
+                                                    'text-[#545454] dark:text-[#BABABA]'
                                             }`}>{opt}</span>
 
                                         {showCorrect && <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />}
@@ -459,7 +459,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                             </>
                         ) : (
                             <>
-                                <span className="flex items-center gap-1 text-[10px] text-[#7D7D7D]"><span className={`w-2.5 h-2.5 rounded-full inline-block ${isDark ? 'bg-[#CFCFCF]' : 'bg-[#252525]'}`} /> Current</span>
+                                <span className="flex items-center gap-1 text-[10px] text-[#BABABA]"><span className={`w-2.5 h-2.5 rounded-full inline-block ${isDark ? 'bg-white' : 'bg-[#252525]'}`} /> Current</span>
                                 <span className="flex items-center gap-1 text-[10px] text-[#7D7D7D]"><span className={`w-2.5 h-2.5 rounded-full inline-block ${isDark ? 'bg-[#3A3A3A]' : 'bg-[#E8E5E0]'}`} /> Answered</span>
                                 <span className="flex items-center gap-1 text-[10px] text-[#7D7D7D]"><span className={`w-2.5 h-2.5 rounded-full border inline-block ${isDark ? 'border-[#545454]' : 'border-[#DEDBD6]'}`} /> Not visited</span>
                             </>
@@ -488,7 +488,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                 onClick={handleSubmit}
                                 disabled={answeredCount < totalQs || isSubmitting}
                                 className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 ${answeredCount === totalQs
-                                    ? isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                                    ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
                                     : 'opacity-40 cursor-not-allowed ' + (isDark ? 'bg-[#333] text-[#545454]' : 'bg-[#E8E5E0] text-[#9E9E9E]')
                                     }`}
                             >
@@ -511,7 +511,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     onClick={isSubmitted ? () => setShowResults(true) : handleSubmit}
                     disabled={!isSubmitted && (answeredCount < totalQs || isSubmitting)}
                     className={`ml-auto shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${isSubmitted || answeredCount === totalQs
-                        ? isDark ? 'bg-[#CFCFCF] text-[#252525]' : 'bg-[#252525] text-white'
+                        ? isDark ? 'bg-white text-[#252525]' : 'bg-[#252525] text-white'
                         : 'opacity-40 cursor-not-allowed ' + (isDark ? 'bg-[#333] text-[#545454]' : 'bg-[#E8E5E0] text-[#9E9E9E]')
                         }`}
                 >

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Upload, Plus, LayoutGrid, List, ArrowLeft } from "lucide-react";
+import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 import { NoteItem, NoteCard } from "@/components/notes/NoteCard";
 import { UploadNoteModal } from "@/components/notes/UploadNoteModal";
 import { WorkspaceCard } from "@/components/notes/WorkspaceCard";
@@ -316,39 +317,39 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] p-4 sm:p-6 lg:p-8 overflow-hidden transition-colors">
-      <div className="flex flex-col mb-5">
-        <div className="flex items-center gap-3">
-          {activeWorkspace && (
-            <button
-              onClick={handleBackToWorkspaces}
-              className="text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors bg-[#E0E0E0] dark:bg-[#545454] p-2 rounded-lg"
-              title="Back to Workspaces"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <h1 className="text-3xl font-extrabold text-[#252525] dark:text-[#CFCFCF] tracking-tight transition-colors">
+    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] px-4 sm:px-6 lg:px-8 overflow-hidden transition-colors">
+      <div className="flex items-center gap-3 pt-3 sm:pt-6 pb-2">
+        <SidebarToggleButton />
+        {activeWorkspace && (
+          <button
+            onClick={handleBackToWorkspaces}
+            className="text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors bg-[#E0E0E0] dark:bg-[#545454] p-2 rounded-lg"
+            title="Back to Workspaces"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
+        <div>
+          <h1 className="text-[23px] sm:text-2xl font-extrabold text-[#252525] dark:text-[#CFCFCF] tracking-tight transition-colors">
             {activeWorkspace ? activeWorkspace.name : "My Library"}
           </h1>
+          <p className="text-xs text-[#7D7D7D] mt-0.5">
+            {activeWorkspace
+              ? activeWorkspace.description || "Manage notes in this workspace"
+              : "Manage and organize your data"}
+          </p>
         </div>
-        <p className="text-[#545454] dark:text-[#7D7D7D] mt-1 transition-colors">
-          {activeWorkspace
-            ? activeWorkspace.description || "Manage notes in this workspace"
-            : "Manage and organize your important data"
-          }
-        </p>
       </div>
 
-      <div className="flex flex-row justify-between items-center gap-3 mb-5 w-full">
-        <div className="relative flex-1 sm:w-96 sm:flex-none text-[#252525] dark:text-[#CFCFCF]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D] transition-colors" size={18} />
+      <div className="flex flex-row justify-between items-center gap-3 mb-3 w-full">
+        <div className="relative flex-1 sm:w-80 sm:flex-none">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
           <input
             type="text"
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white dark:bg-[#252525] border border-[#CFCFCF] dark:border-[#545454] rounded-full py-2 sm:py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#7D7D7D] focus:ring-1 focus:ring-[#7D7D7D] dark:focus:ring-[#7D7D7D] transition-all"
+            className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
           />
         </div>
 
@@ -356,7 +357,7 @@ export default function NotesPage() {
           {!activeWorkspace && activeTab === "workspaces" ? (
             <button
               onClick={() => setIsWorkspaceModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">Create Workspace</span>
@@ -366,7 +367,7 @@ export default function NotesPage() {
               {activeTab !== "notes" && activeTab !== "favourites" && (
                 <button
                   onClick={() => setIsUploadModalOpen(true)}
-                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
                   <Upload size={18} />
                   <span className="hidden sm:inline">Upload File</span>
@@ -376,7 +377,7 @@ export default function NotesPage() {
               {activeTab !== "pdfs" && activeTab !== "favourites" && (
                 <button
                   onClick={handleCreateNativeNote}
-                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
                   <Plus size={18} />
                   <span className="hidden sm:inline">Create Note</span>
@@ -396,8 +397,8 @@ export default function NotesPage() {
               <button
                 onClick={() => setActiveTab("workspaces")}
                 className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "workspaces"
-                  ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-                  : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                  ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
+                  : "border-transparent text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
                   }`}
               >
                 Workspaces
@@ -434,7 +435,7 @@ export default function NotesPage() {
 
           {/* Right Scroll Indicator for Mobile */}
           <div className="absolute right-0 top-0 bottom-1 w-12 bg-gradient-to-l from-[#F5F3EF] dark:from-[#1A1A1A] to-transparent pointer-events-none flex justify-end items-center pr-0 sm:hidden">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7D7D7D] dark:text-[#545454] animate-pulse"><path d="m9 18 6-6-6-6" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7D7D7D] dark:text-[#545454]"><path d="m9 18 6-6-6-6" /></svg>
           </div>
         </div>
 
@@ -465,19 +466,37 @@ export default function NotesPage() {
       {/* SCROLLABLE CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-y-auto min-h-0 pr-2 pb-2">
         {isLoading ? (
-          <div className="flex-1 min-h-0 pt-4 animate-pulse">
-            <div className="flex justify-center mb-8">
-              <div className="spinner-elegant text-[#252525] dark:text-[#CFCFCF]"></div>
-            </div>
-            <div className={
-              viewMode === "grid"
-                ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
-                : "grid grid-cols-1 lg:grid-cols-2 gap-4"
-            }>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                <div key={n} className={`h-40 rounded-2xl bg-white dark:bg-[#CFCFCF]/5 border border-[#E8E5E0] dark:border-[#545454]/30 ${viewMode === 'list' ? 'h-24' : 'h-40'}`}></div>
-              ))}
-            </div>
+          <div className={
+            viewMode === "grid"
+              ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 pt-1 animate-pulse"
+              : "grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1 animate-pulse"
+          }>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className={`rounded-2xl bg-white dark:bg-[#CFCFCF]/5 border border-[#E8E5E0] dark:border-[#545454]/20 p-4 sm:p-5 flex flex-col justify-between ${viewMode === 'list' ? 'h-24 flex-row items-center' : 'h-40 sm:h-[180px]'}`}>
+                {viewMode === 'grid' ? (
+                  <>
+                    <div className="flex items-center justify-between pointer-events-none">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#CFCFCF]/10"></div>
+                      <div className="w-4 h-4 rounded bg-gray-200 dark:bg-[#CFCFCF]/10"></div>
+                    </div>
+                    <div className="space-y-2 pointer-events-none">
+                      <div className="h-5 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-1/2"></div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4 w-full cursor-default select-none pointer-events-none">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#CFCFCF]/10 shrink-0"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-1/3"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-1/4"></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         ) : activeTab === "workspaces" && !activeWorkspace ? (
           filteredWorkspaces.length > 0 ? (
@@ -499,11 +518,11 @@ export default function NotesPage() {
               ))}
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl bg-[#F5F5F5] dark:bg-[#252525]/30 transition-colors">
+            <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl transition-colors">
               <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
-                <Search size={28} className="text-[#545454] dark:text-[#545454] transition-colors" />
+                <Search size={28} className="text-[#252525] dark:text-[#CFCFCF] transition-colors" />
               </div>
-              <h3 className="text-lg font-medium text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No workspaces found</h3>
+              <h3 className="text-lg font-bold text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No workspaces found</h3>
               <p className="text-sm">
                 {searchQuery
                   ? "Try adjusting your search query."
@@ -533,11 +552,11 @@ export default function NotesPage() {
             ))}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl bg-[#F5F3EF] dark:bg-[#252525]/30 transition-colors">
+          <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#DEDBD6] dark:border-[#545454] rounded-2xl transition-colors">
             <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
-              <Search size={28} className="text-[#545454] dark:text-[#545454] transition-colors" />
+              <Search size={28} className="text-[#252525] dark:text-[#CFCFCF] transition-colors" />
             </div>
-            <h3 className="text-lg font-medium text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No files found</h3>
+            <h3 className="text-lg font-bold text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No files found</h3>
             <p className="text-sm">
               {searchQuery
                 ? "Try adjusting your search query."
