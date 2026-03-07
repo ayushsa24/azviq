@@ -155,7 +155,7 @@ export function AiInlineInput({
     return (
         <div
             ref={containerRef}
-            className={`flex flex-col w-[90vw] max-w-[450px] bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden pointer-events-auto z-[100] ${isLoading
+            className={`flex flex-col w-[90vw] max-w-[450px] bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden pointer-events-auto z-[100] ${isLoading
                     ? 'fixed bottom-8 left-1/2 -translate-x-1/2'
                     : 'absolute'
                 }`}

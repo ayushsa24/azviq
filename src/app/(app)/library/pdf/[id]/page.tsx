@@ -8,6 +8,7 @@ import { PDFDocument, rgb } from "pdf-lib";
 import { PdfDrawingOverlay, Stroke } from "@/components/pdf/PdfDrawingOverlay";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import { logRecentActivity } from "@/lib/logRecentActivity";
 
 // Set up the PDF.js worker using an unpkg CDN for reliability
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -38,6 +39,14 @@ export default function PdfEditorPage() {
                 if (!res.ok) throw new Error("Failed to fetch note");
                 const data = await res.json();
                 setNote(data.note);
+
+                // Log this PDF open to recent activity
+                logRecentActivity({
+                    item_id: id,
+                    item_type: "pdf",
+                    title: data.note.title || "Untitled PDF",
+                    href: `/library/pdf/${id}`,
+                });
             } catch (error) {
                 console.error("Error fetching note:", error);
                 alert("Could not load PDF file.");
@@ -136,7 +145,7 @@ export default function PdfEditorPage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-full bg-[#F5F5F5] dark:bg-[#1A1A1A]">
+            <div className="flex items-center justify-center h-full bg-[#F5F3EF] dark:bg-[#1A1A1A]">
                 <Loader2 className="animate-spin text-[#545454] dark:text-[#7D7D7D]" size={32} />
             </div>
         );
@@ -144,9 +153,9 @@ export default function PdfEditorPage() {
 
     if (!note || !note.file_url) {
         return (
-            <div className="flex flex-col items-center justify-center h-full gap-4 bg-[#F5F5F5] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF]">
+            <div className="flex flex-col items-center justify-center h-full gap-4 bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white">
                 <p>PDF file not found.</p>
-                <button onClick={() => router.back()} className="text-[#252525] dark:text-[#CFCFCF] hover:bg-gray-200 dark:hover:bg-[#252525] p-3 rounded-full transition-all" title="Go Back">
+                <button onClick={() => router.back()} className="text-[#252525] dark:text-white hover:bg-gray-200 dark:hover:bg-[#252525] p-3 rounded-full transition-all" title="Go Back">
                     <ArrowLeft size={24} />
                 </button>
             </div>
@@ -154,9 +163,9 @@ export default function PdfEditorPage() {
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#F5F5F5] dark:bg-[#161514] overflow-hidden">
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
             {/* Top Navigation Bar */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-[#FFFFFF] dark:bg-[#24221F] border-b border-[#E0E0E0] dark:border-[#2A2A2A] shadow-sm z-10 transition-colors">
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-10 transition-colors">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => {
@@ -166,11 +175,11 @@ export default function PdfEditorPage() {
                                 router.push("/library");
                             }
                         }}
-                        className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <span className="text-sm font-semibold text-[#252525] dark:text-[#CFCFCF] max-w-[200px] sm:max-w-md truncate">
+                    <span className="text-sm font-semibold text-[#252525] dark:text-white max-w-[200px] sm:max-w-md truncate">
                         {note.title}
                     </span>
                 </div>
@@ -182,10 +191,10 @@ export default function PdfEditorPage() {
                     <button className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md transition-colors" title="Redo">
                         <Redo2 size={18} />
                     </button>
-                    <div className="w-px h-6 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1"></div>
+                    <div className="w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1"></div>
                     <button
                         onClick={() => window.open(note.file_url, '_blank')}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-transparent border border-[#E0E0E0] dark:border-[#3A3A3A] text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-transparent border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-white hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] rounded-md text-sm font-medium transition-colors"
                     >
                         <Download size={16} />
                         <span className="hidden sm:inline">Download</span>
@@ -193,7 +202,7 @@ export default function PdfEditorPage() {
                     <button
                         onClick={handleSavePdf}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-4 py-1.5 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                        className="flex items-center gap-2 px-4 py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white/90 rounded-md text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
                     >
                         {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                         Save PDF
@@ -204,12 +213,12 @@ export default function PdfEditorPage() {
             {/* Main Content Area */}
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Sidebar - Thumbnails */}
-                <div className="hidden lg:flex w-64 flex-col bg-[#FFFFFF] dark:bg-[#24221F] border-r border-[#E0E0E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors">
+                <div className="hidden lg:flex w-64 flex-col bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors">
                     <Document file={note.file_url} className="flex flex-col gap-4">
                         {Array.from(new Array(numPages), (el, index) => (
                             <div
                                 key={`thumb_${index + 1}`}
-                                className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${pageNumber === index + 1 ? 'border-[#252525] dark:border-[#CFCFCF] shadow-md ring-2 ring-[#252525]/20 dark:ring-[#CFCFCF]/20' : 'border-transparent hover:border-[#E0E0E0] dark:hover:border-[#545454]'}`}
+                                className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${pageNumber === index + 1 ? 'border-[#252525] dark:border-white shadow-md ring-2 ring-[#252525]/20 dark:ring-white/20' : 'border-transparent hover:border-[#E8E5E0] dark:hover:border-[#545454]'}`}
                                 onClick={() => {
                                     setPageNumber(index + 1);
                                     document.getElementById(`pdf-page-${index + 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -222,7 +231,7 @@ export default function PdfEditorPage() {
                                     renderTextLayer={false}
                                     className="shadow-sm bg-white m-auto"
                                 />
-                                <div className="text-center py-1 text-xs text-[#545454] dark:text-[#7D7D7D] bg-[#F5F5F5] dark:bg-[#1A1A1A]">
+                                <div className="text-center py-1 text-xs text-[#545454] dark:text-[#7D7D7D] bg-[#F5F3EF] dark:bg-[#1A1A1A]">
                                     {index + 1}
                                 </div>
                             </div>
@@ -282,27 +291,27 @@ export default function PdfEditorPage() {
                 </div>
 
                 {/* Right Sidebar - Tools */}
-                <div className="w-16 sm:w-64 flex-shrink-0 bg-[#FFFFFF] dark:bg-[#24221F] border-l border-[#E0E0E0] dark:border-[#2A2A2A] p-4 flex flex-col items-center sm:items-stretch gap-6 transition-colors overflow-y-auto custom-scrollbar">
+                <div className="w-16 sm:w-64 flex-shrink-0 bg-white dark:bg-[#24221F] border-l border-[#E8E5E0] dark:border-[#2A2A2A] p-4 flex flex-col items-center sm:items-stretch gap-6 transition-colors overflow-y-auto custom-scrollbar">
 
                     {/* Tool Selection */}
                     <div className="flex sm:flex-row flex-col gap-2 w-full">
                         <button
                             onClick={() => setActiveTool('pen')}
-                            className={`flex-1 flex justify-center items-center py-2 sm:py-3 rounded-xl transition-all ${activeTool === 'pen' ? 'bg-[#252525]/10 dark:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] ring-1 ring-[#252525] dark:ring-[#CFCFCF]' : 'bg-[#F5F5F5] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A]'}`}
+                            className={`flex-1 flex justify-center items-center py-2 sm:py-3 rounded-xl transition-all ${activeTool === 'pen' ? 'bg-[#252525]/10 dark:bg-white/10 text-[#252525] dark:text-white ring-1 ring-[#252525] dark:ring-white' : 'bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A]'}`}
                             title="Pen Tool"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
                         </button>
                         <button
                             onClick={() => setActiveTool('eraser')}
-                            className={`flex-1 flex justify-center items-center py-2 sm:py-3 rounded-xl transition-all ${activeTool === 'eraser' ? 'bg-red-500/10 text-red-600 dark:text-red-400 ring-1 ring-red-500' : 'bg-[#F5F5F5] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A]'}`}
+                            className={`flex-1 flex justify-center items-center py-2 sm:py-3 rounded-xl transition-all ${activeTool === 'eraser' ? 'bg-red-500/10 text-red-600 dark:text-red-400 ring-1 ring-red-500' : 'bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A]'}`}
                             title="Eraser Tool"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
                         </button>
                     </div>
 
-                    <div className="w-full h-px bg-[#E0E0E0] dark:bg-[#3A3A3A]"></div>
+                    <div className="w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]"></div>
 
                     {/* Size Selector */}
                     <div className="flex flex-col gap-3 w-full opacity-100 transition-opacity" style={{ opacity: activeTool === 'pen' ? 1 : 0.5 }}>
@@ -312,7 +321,7 @@ export default function PdfEditorPage() {
                                 <button
                                     key={size}
                                     onClick={() => setStrokeWidth(size)}
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${strokeWidth === size ? 'bg-[#E0E0E0] dark:bg-[#3A3A3A]' : 'hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A]'}`}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${strokeWidth === size ? 'bg-[#F0EDE8] dark:bg-[#3A3A3A]' : 'hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A]'}`}
                                 >
                                     <div className="bg-[#252525] dark:bg-white rounded-full" style={{ width: size, height: size }}></div>
                                 </button>
@@ -320,7 +329,7 @@ export default function PdfEditorPage() {
                         </div>
                     </div>
 
-                    <div className="w-full h-px bg-[#E0E0E0] dark:bg-[#3A3A3A]"></div>
+                    <div className="w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]"></div>
 
                     {/* Color Swatches */}
                     <div className="flex flex-col gap-3 w-full opacity-100 transition-opacity" style={{ opacity: activeTool === 'pen' ? 1 : 0.5 }}>
@@ -337,7 +346,7 @@ export default function PdfEditorPage() {
                                         setCurrentColor(color);
                                         setActiveTool('pen');
                                     }}
-                                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${currentColor === color && activeTool === 'pen' ? 'border-[#252525] dark:border-[#CFCFCF] shadow-md ring-2 ring-[#252525]/20 dark:ring-[#CFCFCF]/20' : 'border-[#E0E0E0] dark:border-[#3A3A3A]'}`}
+                                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${currentColor === color && activeTool === 'pen' ? 'border-[#252525] dark:border-white shadow-md ring-2 ring-[#252525]/20 dark:ring-white/20' : 'border-[#E8E5E0] dark:border-[#3A3A3A]'}`}
                                     style={{ backgroundColor: color }}
                                     title={color}
                                 />

@@ -75,7 +75,7 @@ export default function ProfileModal({ open, onClose }: Props) {
         if (res.ok) { setEditing(false); setAvatarFile(null); setAvatarPreview(""); }
     };
 
-    const inputCls = `w-full p-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? "bg-[#2E2E2E] border-[#3A3A3A] text-[#CFCFCF]" : "bg-white border-[#E8E5E0] text-[#252525]"
+    const inputCls = `w-full p-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? "bg-[#2E2E2E] border-[#3A3A3A] text-[#CFCFCF]" : "bg-white border-[#7D7D7D]/40 text-[#252525]"
         }`;
     const labelCls = `block text-xs font-semibold mb-1 ${isDark ? "text-[#7D7D7D]" : "text-[#9E9E9E]"}`;
     const valueCls = `p-2 text-sm rounded-lg ${isDark ? "text-[#CFCFCF]" : "text-[#252525]"}`;
@@ -91,7 +91,7 @@ export default function ProfileModal({ open, onClose }: Props) {
             {/* Modal card */}
             <div
                 className={`relative z-10 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden
-          ${isDark ? "bg-[#1A1A1A] border border-[#2E2E2E]" : "bg-white border border-[#E8E5E0]"}`}
+          ${isDark ? "bg-[#1A1A1A] border border-[#2E2E2E]" : "bg-white border border-[#7D7D7D]/40"}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -111,7 +111,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                                 <Edit3 className="w-3 h-3" /> Edit
                             </button>
                         )}
-                        <button onClick={onClose} className={`p-1.5 rounded-xl transition-colors ${isDark ? "hover:bg-[#2E2E2E] text-[#7D7D7D]" : "hover:bg-[#F5F3EF] text-[#9E9E9E]"}`}>
+                        <button onClick={onClose} className={`p-1.5 rounded-xl transition-colors ${isDark ? "hover:bg-[#2E2E2E] text-[#7D7D7D]" : "hover:bg-[#CFCFCF] text-[#9E9E9E]"}`}>
                             <X className="w-4 h-4" />
                         </button>
                     </div>

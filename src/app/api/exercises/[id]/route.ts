@@ -3,6 +3,37 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/db";
 
+export async function GET(
+    _req: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email)
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const { data: user } = await supabase
+            .from("users").select("id").eq("email", session.user.email).single();
+        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+        const { data: exercise, error } = await supabase
+            .from("exercises")
+            .select("*")
+            .eq("id", id)
+            .eq("user_id", user.id)
+            .single();
+
+        if (error || !exercise)
+            return NextResponse.json({ error: "Exercise not found" }, { status: 404 });
+
+        return NextResponse.json({ exercise });
+    } catch (error) {
+        console.error("GET exercise error:", error);
+        return NextResponse.json({ error: "Failed to fetch exercise" }, { status: 500 });
+    }
+}
+
 export async function PATCH(
     req: Request,
     { params }: { params: Promise<{ id: string }> }

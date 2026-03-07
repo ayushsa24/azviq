@@ -99,11 +99,11 @@ export function TaskDetailModal({
         >
             {/* Notion-style Page Container */}
             <div
-                className="bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-white sm:dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl overflow-y-auto flex flex-col shadow-none sm:shadow-2xl relative custom-scrollbar border-none sm:border sm:border-transparent sm:dark:border-[#545454]"
+                className="bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-[#F5F3EF] sm:dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl overflow-y-auto flex flex-col shadow-none sm:shadow-2xl relative scrollbar-hide border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Top Control Bar */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 sm:bg-white/95 sm:dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] sm:border-gray-100 dark:border-[#3A3A3A]">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 sm:bg-[#F5F3EF]/95 sm:dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] sm:border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onClose}

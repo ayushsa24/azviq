@@ -52,8 +52,8 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
 
   return (
     <header className={`h-[calc(5rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out fixed z-50 ${theme === 'dark'
-      ? 'bg-[#252525] border-[#545454]'
-      : 'bg-[#CFCFCF] border-[#7D7D7D]'
+      ? 'bg-[#1A1A1A] border-[#545454]'
+      : 'bg-[#F5F3EF] border-[#E8E5E0]'
       } ${open
         ? 'top-0 left-0 right-0 border-b shadow-sm'
         : 'md:top-0 md:left-[8px] md:right-[8px] md:rounded-b-2xl md:shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:border md:border-t-0 top-0 left-0 right-0 border-b shadow-sm'
@@ -66,7 +66,7 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
           <div
             onClick={onMenuClick}
             className={`cursor-pointer group flex items-center justify-center w-8 h-8 rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden hover:shadow-[0_0_15px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.15)]
-              ${theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#545454] text-white'}`}
+              ${theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#252525] text-white'}`}
           >
             <span className="transition-opacity duration-200 group-hover:opacity-0">A</span>
 
@@ -115,7 +115,7 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
             className={`p-1 rounded-xl transition-all duration-200 hover:scale-105 overflow-hidden flex items-center gap-1 cursor-pointer
               ${theme === 'dark'
                 ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
-                : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
+                : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'
               }`}>
             {avatarUrl ? (
               <img
@@ -134,14 +134,14 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
           {dropdownOpen && (
             <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-lg border transition-all duration-200 z-50 ${theme === 'dark'
               ? 'bg-[#252525] border-[#545454]'
-              : 'bg-white border-[#7D7D7D]'
+              : 'bg-white border-[#E8E5E0]'
               }`}>
               <Link href="/profile">
                 <button
                   onClick={() => setDropdownOpen(false)}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${theme === 'dark'
                     ? 'text-[#CFCFCF] hover:bg-[#545454]'
-                    : 'text-[#545454] hover:bg-[#CFCFCF]'
+                    : 'text-[#545454] hover:bg-[#F0EDE8]'
                     }`}>
                   <User className="w-4 h-4" />
                   My Profile
@@ -170,7 +170,7 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
                 )}
               </button>
 
-              <div className={`px-4 py-2 border-t border-b flex items-center justify-between ${theme === 'dark' ? 'border-[#545454] text-[#CFCFCF]' : 'border-[#7D7D7D] text-[#545454]'}`}>
+              <div className={`px-4 py-2 border-t border-b flex items-center justify-between ${theme === 'dark' ? 'border-[#545454] text-[#CFCFCF]' : 'border-[#E8E5E0] text-[#545454]'}`}>
                 <span className="text-sm font-medium">Zoom</span>
                 <div className="flex items-center gap-2">
                   <button onClick={zoomOut} className={`p-1 rounded hover:bg-[#7D7D7D] hover:text-white transition-colors`}>
@@ -189,7 +189,7 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
                 onClick={handleLogout}
                 className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-b-xl cursor-pointer ${theme === 'dark'
                   ? 'text-red-400 hover:bg-[#545454]'
-                  : 'text-red-600 hover:bg-[#CFCFCF]'
+                  : 'text-red-600 hover:bg-[#F0EDE8]'
                   }`}>
                 <LogOut className="w-4 h-4" />
                 Logout

@@ -94,7 +94,7 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                 {/* Score Banner (shown when reviewing at Q1) */}
                 {isSubmitted && currentIndex === 0 && (
                     <div className={`mb-6 p-5 rounded-xl flex flex-col sm:flex-row items-center gap-4 border ${isDark ? 'bg-[#252525] border-[#545454]' : 'bg-[#F5F3EF] border-[#E8E5E0]'}`}>
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-[#1A1A1A] border border-[#545454]' : 'bg-white border border-[#E8E5E0]'}`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-[#1A1A1A] border border-[#545454]' : 'bg-white border border-[#7D7D7D]/40'}`}>
                             <Trophy className="w-7 h-7 text-[#545454] dark:text-[#7D7D7D]" />
                         </div>
                         <div className="text-center sm:text-left">
@@ -141,7 +141,7 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                     </div>
                     <div className={`w-full h-1.5 rounded-full ${isDark ? 'bg-[#333]' : 'bg-[#E8E5E0]'} overflow-hidden`}>
                         <div
-                            className={`h-full transition-all duration-300 rounded-full ${isDark ? 'bg-[#CFCFCF]' : 'bg-[#252525]'}`}
+                            className={`h-full transition-all duration-300 rounded-full ${isDark ? 'bg-white' : 'bg-[#252525]'}`}
                             style={{ width: `${((currentIndex + 1) / totalQs) * 100}%` }}
                         />
                     </div>
@@ -171,19 +171,19 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                                             ? 'bg-red-50 dark:bg-red-900/15 border-red-400 text-red-800 dark:text-red-300 font-medium'
                                             : isSelected
                                                 ? isDark
-                                                    ? 'bg-[#333] border-[#CFCFCF] text-[#CFCFCF] font-semibold'
+                                                    ? 'bg-[#333] border-white text-white font-semibold'
                                                     : 'bg-[#F0EDE8] border-[#252525] text-[#252525] font-semibold'
                                                 : isDark
                                                     ? 'bg-[#1A1A1A] border-[#333] hover:bg-[#252525] hover:border-[#545454] text-[#7D7D7D]'
-                                                    : 'bg-white border-[#E8E5E0] hover:bg-[#F9F8F6] hover:border-[#D1D1D1] text-[#545454]'
+                                                    : 'bg-white border-[#7D7D7D]/40 hover:bg-[#F9F8F6] hover:border-[#D1D1D1] text-[#545454]'
                                     }`}
                             >
                                 {/* Letter indicator */}
                                 <span className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border ${showCorrect ? 'bg-green-500 text-white border-green-500' :
-                                        showIncorrect ? 'bg-red-500 text-white border-red-500' :
-                                            isSelected
-                                                ? isDark ? 'bg-[#CFCFCF] text-[#252525] border-[#CFCFCF]' : 'bg-[#252525] text-white border-[#252525]'
-                                                : isDark ? 'border-[#545454] text-[#545454]' : 'border-[#DEDBD6] text-[#9E9E9E]'
+                                    showIncorrect ? 'bg-red-500 text-white border-red-500' :
+                                        isSelected
+                                            ? isDark ? 'bg-white text-[#252525] border-white' : 'bg-[#252525] text-white border-[#252525]'
+                                            : isDark ? 'border-[#545454] text-[#545454]' : 'border-[#DEDBD6] text-[#9E9E9E]'
                                     }`}>
                                     {String.fromCharCode(65 + idx)}
                                 </span>
@@ -198,8 +198,8 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                 {/* Explanation */}
                 {isSubmitted && (
                     <div className={`mb-5 p-4 rounded-xl text-sm leading-relaxed border-l-4 ${answers[currentIndex] === currentQuestion.correctAnswerIndex
-                            ? isDark ? 'bg-green-900/15 border-green-500 text-green-300' : 'bg-green-50 border-green-400 text-green-800'
-                            : isDark ? 'bg-red-900/15 border-red-500 text-red-300' : 'bg-red-50 border-red-400 text-red-800'
+                        ? isDark ? 'bg-green-900/15 border-green-500 text-green-300' : 'bg-green-50 border-green-400 text-green-800'
+                        : isDark ? 'bg-red-900/15 border-red-500 text-red-300' : 'bg-red-50 border-red-400 text-red-800'
                         }`}>
                         <span className="font-semibold block mb-1">Explanation</span>
                         {currentQuestion.explanation}
@@ -207,11 +207,11 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                 )}
 
                 {/* Navigation Footer */}
-                <div className={`flex items-center pt-4 border-t ${isDark ? 'border-[#333]' : 'border-[#E8E5E0]'} ${currentIndex > 0 ? 'justify-between' : 'justify-end'}`}>
+                <div className={`flex items-center pt-4 border-t ${isDark ? 'border-[#333]' : 'border-[#7D7D7D]/40'} ${currentIndex > 0 ? 'justify-between' : 'justify-end'}`}>
                     {currentIndex > 0 && (
                         <button
                             onClick={() => setCurrentIndex(prev => prev - 1)}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border ${isDark ? 'border-[#333] text-[#7D7D7D] hover:bg-[#252525] hover:text-[#CFCFCF] hover:border-[#545454]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:border-[#D1D1D1] hover:text-[#252525]'}`}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border ${isDark ? 'border-[#333] text-[#7D7D7D] hover:bg-[#252525] hover:text-[#CFCFCF] hover:border-[#545454]' : 'border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:border-[#D1D1D1] hover:text-[#252525]'}`}
                         >
                             <ArrowLeft size={15} />
                             Previous
@@ -223,8 +223,8 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                             onClick={() => setCurrentIndex(prev => prev + 1)}
                             disabled={!hasAnsweredCurrent && !isSubmitted}
                             className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-medium transition-all ${(hasAnsweredCurrent || isSubmitted)
-                                    ? isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
-                                    : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
+                                ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                                : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
                                 }`}
                         >
                             Next <ArrowRight size={15} />
@@ -235,8 +235,8 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                                 onClick={handleSubmit}
                                 disabled={!hasAnsweredCurrent || isSubmitting}
                                 className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-medium transition-all ${hasAnsweredCurrent
-                                        ? isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
-                                        : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
+                                    ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                                    : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
                                     }`}
                             >
                                 {isSubmitting ? "Saving…" : "Submit Exercise"}
@@ -244,7 +244,7 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
                         ) : (
                             <button
                                 onClick={onClose}
-                                className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-medium transition-all ${isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}
+                                className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-medium transition-all ${isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}
                             >
                                 Finish Review
                             </button>

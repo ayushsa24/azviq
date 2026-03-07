@@ -55,10 +55,10 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
         return (
             <div className={isList ? "flex flex-col gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-[#CFCFCF]/5 border-[#7D7D7D]/20' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-5 gap-3'}`}>
+                    <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-5 gap-3'}`}>
                         {isList ? (
                             <>
-                                <div className={`w-8 h-8 rounded-lg shrink-0 ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-gray-200'}`}></div>
+                                <div className={`w-8 h-8 rounded-lg shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
                                 <div className="flex-1">
                                     <div className={`h-4 w-3/4 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
                                     <div className={`h-3 w-1/4 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
@@ -67,7 +67,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                         ) : (
                             <>
                                 <div className="flex items-start gap-3">
-                                    <div className={`w-9 h-9 rounded-xl shrink-0 ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-gray-200'}`}></div>
+                                    <div className={`w-9 h-9 rounded-xl shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
                                     <div className="flex-1">
                                         <div className={`h-5 w-3/4 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
                                         <div className={`h-3 w-1/2 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
@@ -107,7 +107,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                 <div
                     key={rev.id}
                     onClick={() => onOpenRevision?.(rev)}
-                    className={`group relative transition-all duration-200 cursor-pointer border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
+                    className={`group relative transition-all duration-200 cursor-pointer bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#3C3C3C] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] hover:border-[#D1CEC8] dark:hover:border-[#545454] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
                         ${isList
                             ? "flex flex-row items-center gap-4 p-3 rounded-xl h-auto"
                             : "flex flex-col justify-between p-3.5 rounded-xl h-44"
@@ -169,7 +169,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                             </div>
 
                             {/* Footer Section */}
-                            <div className={`mt-3 pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-[#7D7D7D]/20' : 'border-[#E8E5E0]'}`}>
+                            <div className={`mt-3 pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-[#7D7D7D]/20' : 'border-[#7D7D7D]/40'}`}>
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                         <span className={`text-[10px] font-bold ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>

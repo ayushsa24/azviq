@@ -17,8 +17,6 @@ import {
   User,
   Menu,
   X,
-  PanelLeft,
-  History,
   Image as ImageIcon,
   MoreHorizontal,
   Share,
@@ -37,6 +35,10 @@ import {
   ThumbsDown,
   Square,
   ArrowDown,
+  PanelLeft,
+  History,
+  ChevronsLeft,
+  Search,
 } from "lucide-react";
 
 type Message = {
@@ -58,7 +60,7 @@ type ChatSession = {
 function AiChatCore() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { toggle: toggleAppSidebar, open: isAppSidebarOpen } = useSidebar();
+  const { open: isMainSidebarOpen, toggle: toggleMainSidebar } = useSidebar();
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -66,6 +68,8 @@ function AiChatCore() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [isArchivedExpanded, setIsArchivedExpanded] = useState(false);
   const [isRenamingId, setIsRenamingId] = useState<string | null>(null);
@@ -83,6 +87,7 @@ function AiChatCore() {
   const [ratings, setRatings] = useState<Record<number, "good" | "bad">>({});
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [isActuallySending, setIsActuallySending] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -101,6 +106,27 @@ function AiChatCore() {
           (window.navigator as any).standalone);
       setIsMobileApp(!!checkIsPWA);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        setIsKeyboardOpen(true);
+      }
+    };
+    const handleFocusOut = () => setIsKeyboardOpen(false);
+
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
+    return () => {
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
+    };
   }, []);
 
   // Auto-focus input when chat changes or on load
@@ -240,15 +266,27 @@ function AiChatCore() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId, messages.length]);
 
-  // Scroll to bottom whenever messages change
+  const prevChatIdRef = useRef(activeChatId);
+
+  // Scroll to bottom whenever messages change or chat is switched
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTo({
-        top: chatContainerRef.current.scrollHeight,
-        behavior: isSendingRef.current ? "auto" : "smooth",
-      });
+      const isSwitchingChat = prevChatIdRef.current !== activeChatId;
+      if (isSwitchingChat) {
+        prevChatIdRef.current = activeChatId;
+      }
+
+      // Delay slightly to allow DOM to render new messages before calculating scrollHeight
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTo({
+            top: chatContainerRef.current.scrollHeight,
+            behavior: isSwitchingChat ? "auto" : (isSendingRef.current ? "smooth" : "auto"),
+          });
+        }
+      }, 50);
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, activeChatId]);
 
   const startNewChat = async () => {
     // Prevent creating multiple empty chats if one already exists
@@ -556,7 +594,12 @@ function AiChatCore() {
     }
   };
 
-  const activeChats = sessions.filter((s) => !s.is_archived);
+  // Organize chats based on search query
+  const filteredSessions = sessions.filter(session =>
+    session.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const activeChats = filteredSessions.filter((s) => !s.is_archived);
   const pinnedChats = activeChats.filter((s) => s.is_pinned);
   const unpinnedChats = activeChats
     .filter((s) => !s.is_pinned)
@@ -576,10 +619,10 @@ function AiChatCore() {
       className={`group relative w-full flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 ${activeChatId === session.id
         ? theme === "dark"
           ? "bg-[#545454] text-white"
-          : "bg-gray-200 text-[#252525]"
+          : "bg-[#F0EDE8] text-[#252525]"
         : theme === "dark"
           ? "text-gray-300 hover:bg-[#2A2A2A]"
-          : "text-gray-600 hover:bg-gray-100"
+          : "text-gray-600 hover:bg-[#F0EDE8]/50"
         }`}
     >
       <button
@@ -594,7 +637,7 @@ function AiChatCore() {
             onChange={(e) => setRenameTitle(e.target.value)}
             onBlur={() => handleRename(session.id)}
             onKeyDown={(e) => e.key === "Enter" && handleRename(session.id)}
-            className={`flex-1 min-w-0 text-sm font-medium bg-transparent border-b outline-none px-1 ${theme === "dark" ? "border-gray-500 text-white" : "border-gray-400 text-gray-900"}`}
+            className={`flex-1 min-w-0 text-sm font-medium bg-transparent border-b outline-none px-1 ${theme === "dark" ? "border-gray-500 text-white" : "border-[#E8E5E0] text-gray-900"}`}
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
@@ -613,7 +656,7 @@ function AiChatCore() {
           e.stopPropagation();
           setActiveMenuId(activeMenuId === session.id ? null : session.id);
         }}
-        className={`block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-gray-200"
+        className={`block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-[#F0EDE8]"
           }`}
       >
         <MoreHorizontal className="w-4 h-4 opacity-70" />
@@ -625,7 +668,7 @@ function AiChatCore() {
           ref={menuRef}
           className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === "dark"
             ? "bg-[#252525] border-[#545454]"
-            : "bg-white border-[#E8E5E0]"
+            : "bg-white/80 backdrop-blur-md border-[#E8E5E0]"
             }`}
         >
           <button
@@ -690,7 +733,7 @@ function AiChatCore() {
 
   return (
     <div
-      className="flex h-full overflow-hidden transition-colors duration-300 ease-in-out bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white"
+      className="flex h-full overflow-hidden transition-colors duration-300 ease-in-out bg-transparent dark:bg-[#1A1A1A] text-[#252525] dark:text-white"
     >
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -702,46 +745,115 @@ function AiChatCore() {
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed inset-y-0 left-0 z-[60] pt-[calc(env(safe-area-inset-top,0px)+44px)] pb-[calc(env(safe-area-inset-bottom,0px)+16px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:w-72 md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-          } ${theme === "dark"
-            ? "bg-[#1A1A1A] border-[#545454]"
-            : "bg-[#F5F3EF] border-[#E8E5E0]"
+        className={`fixed inset-y-0 left-0 z-[60] pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-[calc(env(safe-area-inset-bottom,0px)+16px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-72 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
+          ? "bg-[#1A1A1A] border-[#545454]"
+          : "bg-[#F5F3EF] border-[#E8E5E0]"
           }`}
       >
+        {/* ── Desktop History Sidebar Header ── */}
+        <div className={`hidden md:flex items-center justify-between px-4 h-14 shrink-0 border-b ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
+          <div className="flex items-center gap-3">
+            {!isMainSidebarOpen && (
+              <button
+                onClick={toggleMainSidebar}
+                className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${theme === "dark"
+                  ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
+                  : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
+                  }`}
+                title="Toggle main menu"
+              >
+                <PanelLeft className="w-5 h-5" />
+              </button>
+            )}
+            <span className="font-semibold text-sm">Chat history</span>
+          </div>
+          <button
+            onClick={() => setIsHistoryOpen(false)}
+            className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${theme === "dark"
+              ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
+              : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
+              }`}
+            title="Close chat history"
+          >
+            <ChevronsLeft className="w-5 h-5" />
+          </button>
+        </div>
+
         {/* New Chat Button */}
-        <div className="p-3 border-b border-opacity-30 border-gray-400 space-y-1.5">
+        <div className="p-3 pb-1.5 flex items-center gap-2">
           <button
             onClick={startNewChat}
-            className={`w-full py-1.5 px-3 rounded-lg font-medium flex items-center gap-2.5 transition-colors duration-200 text-sm ${theme === "dark"
+            className={`flex-1 py-1.5 px-2 rounded-lg font-medium flex items-center justify-center gap-1.5 transition-colors duration-200 text-sm ${theme === "dark"
               ? "bg-[#545454] hover:bg-[#7D7D7D] text-white"
-              : "bg-[#252525] hover:bg-[#545454] text-[#CFCFCF] hover:text-white"
+              : "bg-[#252525] hover:bg-[#545454] text-white hover:text-white"
               }`}
           >
-            <Plus className="w-4 h-4" />
-            New Chat
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="truncate">New Chat</span>
           </button>
           <button
             onClick={toggleTemporaryChat}
-            className={`w-full py-1.5 px-3 rounded-lg font-medium flex items-center gap-2.5 transition-colors duration-200 border border-dashed text-sm ${activeChatId === "temp-chat"
+            className={`flex-1 py-1.5 px-2 rounded-lg font-medium flex items-center justify-center gap-1.5 transition-colors duration-200 border border-dashed text-sm ${activeChatId === "temp-chat"
               ? theme === "dark"
                 ? "border-red-500/50 bg-red-900/20 hover:bg-red-900/40 text-red-400"
                 : "border-red-300 bg-red-50 hover:bg-red-100 text-red-600"
               : theme === "dark"
                 ? "border-gray-500 hover:bg-[#2A2A2A] text-gray-300"
-                : "border-gray-300 hover:bg-gray-100 text-[#545454]"
+                : "border-[#E8E5E0] hover:bg-[#F0EDE8] text-[#545454]"
               }`}
             title="Toggle Temporary Chat"
           >
-            <Ghost className="w-4 h-4" />
-            {activeChatId === "temp-chat" ? "Exit Temp Chat" : "Temporary Chat"}
+            <Ghost className="w-4 h-4 shrink-0" />
+            <span className="truncate">{activeChatId === "temp-chat" ? "Exit Temp" : "Temp Chat"}</span>
           </button>
         </div>
 
-        {/* Archived Folder (Moved to top area) */}
-        <div className="p-3 border-b border-opacity-30 border-gray-400 shrink-0">
+        {/* Search Bar */}
+        <div className={`p-3 pt-1.5 border-b shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
+          <div className={`relative flex items-center w-full rounded-lg border transition-all duration-200 ${theme === "dark"
+            ? "bg-[#1A1A1A] border-[#545454] focus-within:border-[#7D7D7D] focus-within:ring-1 focus-within:ring-[#7D7D7D]"
+            : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D] focus-within:ring-1 focus-within:ring-[#7D7D7D]"
+            }`}>
+            <Search className={`absolute left-2.5 w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+            <input
+              type="text"
+              placeholder="Search history..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full py-1.5 pl-9 pr-8 bg-transparent border-none outline-none text-sm ${theme === "dark" ? "text-white placeholder:text-gray-500" : "text-gray-900 placeholder:text-gray-400"
+                }`}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className={`absolute right-2 p-0.5 rounded-full transition-colors ${theme === "dark" ? "hover:bg-[#545454] text-gray-400 hover:text-white" : "hover:bg-[#F0EDE8] text-gray-500 hover:text-[#252525]"
+                  }`}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Chat List */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
+          {activeChats.length === 0 && (
+            <p
+              className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#BABABA]" : "text-gray-400"}`}
+            >
+              No previous chats found.
+            </p>
+          )}
+
+          {pinnedChats.map((session) => renderSessionItem(session))}
+          {unpinnedChats.map((session) => renderSessionItem(session))}
+        </div>
+
+        {/* Archived Folder (Moved to bottom area) */}
+        <div className={`p-3 pb-16 md:pb-3 border-t shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
           <button
             onClick={() => setIsArchivedExpanded(!isArchivedExpanded)}
-            className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === "dark" ? "text-gray-300 hover:bg-[#2A2A2A]" : "text-gray-600 hover:bg-gray-100"}`}
+            className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === "dark" ? "text-gray-300 hover:bg-[#2A2A2A]" : "text-gray-600 hover:bg-[#F0EDE8]"}`}
           >
             <div className="flex items-center gap-3">
               <Archive className="w-4 h-4 opacity-70" />
@@ -767,10 +879,10 @@ function AiChatCore() {
                     className={`group relative w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-all duration-200 ${activeChatId === session.id
                       ? theme === "dark"
                         ? "bg-[#545454] text-white"
-                        : "bg-gray-200 text-[#252525]"
+                        : "bg-[#F0EDE8] text-[#252525]"
                       : theme === "dark"
                         ? "text-gray-400 hover:bg-[#2A2A2A]"
-                        : "text-gray-500 hover:bg-gray-100"
+                        : "text-gray-500 hover:bg-[#F0EDE8]/50"
                       }`}
                   >
                     <button
@@ -787,7 +899,7 @@ function AiChatCore() {
                         e.stopPropagation();
                         handleToggleArchive(session.id, true);
                       }}
-                      className={`p-1.5 rounded-md transition-opacity shrink-0 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-gray-200"}`}
+                      className={`p-1.5 rounded-md transition-opacity shrink-0 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-[#F0EDE8]"}`}
                     >
                       <Pin className="w-3.5 h-3.5 opacity-70 rotate-180" />
                     </button>
@@ -797,44 +909,69 @@ function AiChatCore() {
             </div>
           )}
         </div>
-
-        {/* Chat List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
-          {activeChats.length === 0 && (
-            <p
-              className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#BABABA]" : "text-gray-400"}`}
-            >
-              No previous chats found.
-            </p>
-          )}
-
-          {pinnedChats.map((session) => renderSessionItem(session))}
-          {unpinnedChats.map((session) => renderSessionItem(session))}
-        </div>
       </div>
 
       {/* 🚀 MAIN CHAT AREA */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
-        {/* Floating Top-Left Toggles */}
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
-          {/* App Sidebar Toggle - Show only if closed */}
-          {!isAppSidebarOpen && (
+      <div className="flex-1 flex flex-col h-full min-w-0 relative">
+        {/* Desktop History Toggle */}
+        {!isHistoryOpen && (
+          <div className="hidden md:flex absolute top-4 left-4 z-20 items-center gap-1">
+            {!isMainSidebarOpen && (
+              <button
+                onClick={toggleMainSidebar}
+                className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${theme === "dark"
+                  ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
+                  : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
+                  }`}
+                title="Open main menu"
+              >
+                <PanelLeft className="w-5 h-5" />
+              </button>
+            )}
             <button
-              onClick={toggleAppSidebar}
-              className={`p-2 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${theme === "dark" ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:text-white" : "bg-white border-[#E8E5E0] text-[#545454] hover:text-[#252525]"}`}
-              title="Open app sidebar"
+              onClick={() => setIsHistoryOpen(true)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border duration-200 font-medium text-sm ${theme === "dark" ? "border-transparent text-gray-300 hover:text-white hover:bg-[#252525]" : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"}`}
+              title="Open history"
             >
-              <PanelLeft className="w-4 h-4" />
+              <History className="w-4 h-4" />
+              <span>History</span>
             </button>
-          )}
-
-          {/* AI History Sidebar Toggle */}
+          </div>
+        )}
+        {/* Mobile Header Toggle */}
+        <div
+          className={`md:hidden shrink-0 sticky top-0 z-10 p-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
+            ? "bg-[#1A1A1A] border-[#545454]"
+            : "bg-[#F5F3EF] border-[#E8E5E0]"
+            }`}
+        >
+          <div className="flex items-center">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="font-semibold text-sm truncate max-w-[150px]">
+              {activeChatId === "temp-chat"
+                ? "Temporary Chat"
+                : sessions.find((s) => s.id === activeChatId)?.title ||
+                "Chat History"}
+            </span>
+          </div>
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`p-2 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:hidden ${theme === "dark" ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:text-white" : "bg-white border-[#E8E5E0] text-[#545454] hover:text-[#252525]"}`}
-            title="Toggle chat history"
+            onClick={toggleTemporaryChat}
+            className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
+              ? theme === "dark"
+                ? "bg-red-900/40 text-red-400 hover:bg-red-900/60"
+                : "bg-red-100 text-red-600 hover:bg-red-200"
+              : theme === "dark"
+                ? "text-gray-300 hover:bg-[#252525]"
+                : "text-[#545454] hover:bg-[#F0EDE8]"
+              }`}
+            title="Toggle Temporary Chat"
           >
-            <History className="w-4 h-4" />
+            <Ghost className="w-5 h-5" />
           </button>
         </div>
 
@@ -851,10 +988,10 @@ function AiChatCore() {
           className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6"
         >
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center">
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
               {activeChatId === "temp-chat" ? (
-                <div className="opacity-70">
-                  <Ghost className="w-16 h-16 mb-4 text-red-500 mx-auto" />
+                <>
+                  <Ghost className="w-16 h-16 mb-4 text-red-500 opacity-80" />
                   <h2 className="text-2xl font-bold mb-2">
                     You are in Temporary Chat
                   </h2>
@@ -862,16 +999,17 @@ function AiChatCore() {
                     Messages here will not be saved to your history. How can I
                     help?
                   </p>
-                </div>
+                </>
               ) : (
-                <div className="flex flex-col items-center">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 ${theme === "dark" ? "bg-[#e5e5e5] text-[#252525]" : "bg-[#252525] text-white"}`}>
-                    <Bot className="w-7 h-7" />
-                  </div>
-                  <h2 className={`text-[28px] font-bold mb-2 ${theme === "dark" ? "text-white" : "text-[#252525]"}`}>
-                    How can I help you today?
+                <>
+                  <Bot className="w-16 h-16 mb-4" />
+                  <h2 className="text-2xl font-bold mb-2">
+                    How can I help you study?
                   </h2>
-                </div>
+                  <p className="max-w-md text-sm">
+                    Send a message or upload an image to start learning.
+                  </p>
+                </>
               )}
             </div>
           ) : (
@@ -918,10 +1056,10 @@ function AiChatCore() {
                     className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${msg.role === "user"
                       ? theme === "dark"
                         ? "bg-[#545454] text-white rounded-br-none"
-                        : "bg-gray-200 text-gray-900 rounded-br-none"
+                        : "bg-[#F0EDE8] text-gray-900 rounded-br-none"
                       : theme === "dark"
                         ? "w-fit max-w-full bg-[#252525] text-white border border-[#545454] rounded-bl-none ai-response-content"
-                        : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-gray-200 rounded-bl-none ai-response-content"
+                        : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-[#E8E5E0] rounded-bl-none ai-response-content"
                       }`}
                   >
                     {editingMessageIdx === idx ? (
@@ -936,7 +1074,7 @@ function AiChatCore() {
                         <div className="flex justify-end gap-2 mt-2">
                           <button
                             onClick={() => setEditingMessageIdx(null)}
-                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${theme === "dark" ? "bg-[#252525] hover:bg-[#333] text-gray-300" : "bg-gray-300 hover:bg-gray-400 text-gray-700"}`}
+                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${theme === "dark" ? "bg-[#252525] hover:bg-[#333] text-gray-300" : "bg-[#F0EDE8] hover:bg-[#D1D1D1] text-gray-700"}`}
                           >
                             Cancel
                           </button>
@@ -998,7 +1136,7 @@ function AiChatCore() {
                               ),
                               a: ({ node, ...props }) => (
                                 <a
-                                  className="text-[#545454] hover:underline font-semibold"
+                                  className="text-[#545454] dark:text-white hover:underline font-semibold"
                                   {...props}
                                 />
                               ),
@@ -1009,7 +1147,7 @@ function AiChatCore() {
                                 />
                               ),
                               table: ({ node, ...props }) => (
-                                <div className="w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-gray-300 dark:border-[#545454]">
+                                <div className="w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
                                   <table
                                     className="w-full text-sm text-left border-collapse"
                                     {...props}
@@ -1018,7 +1156,7 @@ function AiChatCore() {
                               ),
                               thead: ({ node, ...props }) => (
                                 <thead
-                                  className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-gray-100 text-gray-700 border-b border-gray-300"}`}
+                                  className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-[#F5F3EF] text-gray-700 border-b border-[#E8E5E0]"}`}
                                   {...props}
                                 />
                               ),
@@ -1068,7 +1206,7 @@ function AiChatCore() {
                                 if (isInline) {
                                   return (
                                     <code
-                                      className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-gray-100 text-pink-600"}`}
+                                      className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-[#F5F3EF] text-pink-600"}`}
                                       {...props}
                                     >
                                       {children}
@@ -1142,7 +1280,7 @@ function AiChatCore() {
                       {/* Copy Button */}
                       <button
                         onClick={() => handleCopy(msg.content, idx)}
-                        className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
+                        className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                         title="Copy message"
                       >
                         {copiedMessageIdx === idx ? (
@@ -1161,13 +1299,13 @@ function AiChatCore() {
                       {msg.role === "model" && (
                         <>
                           <div
-                            className={`w-px h-3 mx-1 ${theme === "dark" ? "bg-[#545454]" : "bg-gray-300"}`}
+                            className={`w-px h-3 mx-1 ${theme === "dark" ? "bg-[#545454]" : "bg-[#E8E5E0]"}`}
                           ></div>
                           <button
                             onClick={() =>
                               setRatings((prev) => ({ ...prev, [idx]: "good" }))
                             }
-                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "good" ? "text-green-500 bg-green-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
+                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "good" ? "text-green-500 bg-green-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                             title="Good response"
                           >
                             <ThumbsUp
@@ -1179,7 +1317,7 @@ function AiChatCore() {
                             onClick={() =>
                               setRatings((prev) => ({ ...prev, [idx]: "bad" }))
                             }
-                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "bad" ? "text-red-500 bg-red-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
+                            className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "bad" ? "text-red-500 bg-red-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                             title="Bad response"
                           >
                             <ThumbsDown
@@ -1197,7 +1335,7 @@ function AiChatCore() {
                             setEditingMessageIdx(idx);
                             setEditInput(msg.content);
                           }}
-                          className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}
+                          className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                           title="Edit message"
                         >
                           <Edit2 className="w-3 h-3 shrink-0" /> Edit
@@ -1210,7 +1348,7 @@ function AiChatCore() {
                 {/* Avatar User */}
                 {msg.role === "user" && (
                   <div
-                    className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#7D7D7D]" : "bg-gray-800"}`}
+                    className={`hidden md:flex w-8 h-8 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#7D7D7D]" : "bg-[#252525]"}`}
                   >
                     <User className="w-5 h-5 text-white" />
                   </div>
@@ -1223,7 +1361,7 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className="relative px-3 pb-4 md:px-5 md:pb-2 pt-0 mt-2">
+        <div className={`relative px-3 md:px-5 md:pb-2 pt-0 mt-2 ${isKeyboardOpen ? 'pb-2' : 'pb-4'}`}>
           {/* Scroll To Bottom Button */}
           {showScrollDown && (
             <div className="absolute bottom-full left-0 right-0 flex justify-center pb-3 z-20">
@@ -1236,7 +1374,7 @@ function AiChatCore() {
                     });
                   }
                 }}
-                className={`p-1.5 rounded-full shadow-md border transition-all duration-300 transform scale-100 hover:scale-105 active:scale-95 ${theme === "dark" ? "bg-[#545454] border-[#7D7D7D] text-white hover:bg-[#7D7D7D]" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"}`}
+                className={`p-1.5 rounded-full shadow-md border transition-all duration-300 transform scale-100 hover:scale-105 active:scale-95 ${theme === "dark" ? "bg-[#545454] border-[#7D7D7D] text-white hover:bg-[#7D7D7D]" : "bg-white border-[#E8E5E0] text-gray-700 hover:bg-[#F0EDE8]"}`}
                 title="Scroll to bottom"
               >
                 <ArrowDown className="w-4 h-4" />
@@ -1246,7 +1384,7 @@ function AiChatCore() {
           <div className="max-w-3xl mx-auto flex items-end gap-2">
             {/* Separate Attachment Button */}
             <button
-              className={`h-[52px] w-[52px] rounded-xl flex items-center justify-center shrink-0 transition-colors border ${theme === "dark" ? "bg-[#252525] border-[#545454] text-gray-300 hover:bg-[#545454] hover:text-white" : "bg-white border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900"}`}
+              className={`h-[52px] w-[52px] rounded-xl flex items-center justify-center shrink-0 transition-colors border ${theme === "dark" ? "bg-[#252525] border-[#545454] text-gray-300 hover:bg-[#545454] hover:text-white" : "bg-white border-[#E8E5E0] text-gray-600 hover:bg-[#F0EDE8] hover:text-gray-900"}`}
             >
               <Paperclip className="w-5 h-5 shrink-0" />
             </button>
@@ -1255,7 +1393,7 @@ function AiChatCore() {
             <div
               className={`flex-1 relative rounded-xl flex items-end p-1.5 border transition-colors duration-300 ease-in-out ${theme === "dark"
                 ? "bg-[#252525] border-[#545454] focus-within:border-[#7D7D7D]"
-                : "bg-white border-gray-300 focus-within:border-[#7D7D7D] focus-within:shadow-sm"
+                : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D] focus-within:shadow-sm"
                 }`}
             >
               <textarea
@@ -1279,7 +1417,7 @@ function AiChatCore() {
               <button
                 onClick={toggleDictation}
                 title="Dictate"
-                className={`p-2.5 rounded-lg mb-0.5 transition-colors ${isDictating ? "text-red-500 animate-pulse" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"}`}
+                className={`p-2.5 rounded-lg mb-0.5 transition-colors ${isDictating ? "text-red-500 animate-pulse" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-800 hover:bg-[#F0EDE8]"}`}
               >
                 <Mic className="w-5 h-5" />
               </button>
@@ -1294,7 +1432,7 @@ function AiChatCore() {
                       isSendingRef.current = false;
                     }
                   }}
-                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === "dark" ? "bg-[#545454] text-white hover:bg-[#7D7D7D]" : "bg-gray-300 text-gray-700 hover:bg-gray-400"}`}
+                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === "dark" ? "bg-[#545454] text-white hover:bg-[#7D7D7D]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
                   title="Stop generating"
                 >
                   <Square className="w-4 h-4 fill-current" />
@@ -1304,7 +1442,7 @@ function AiChatCore() {
                   onClick={() => handleSend()}
                   disabled={isLoading || !input.trim()}
                   className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === "dark"
-                    ? "bg-[#7D7D7D] text-white hover:bg-[#545454]"
+                    ? "bg-white text-[#252525] hover:bg-white/90"
                     : "bg-[#252525] text-white hover:bg-[#545454]"
                     }`}
                 >
@@ -1327,7 +1465,7 @@ export default function AiPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F5F3EF] dark:bg-[#1A1A1A]">
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-transparent dark:bg-[#1A1A1A]">
           <div className="spinner-elegant text-gray-400"></div>
         </div>
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 
@@ -11,6 +12,7 @@ import GenerateExerciseModal from "@/components/preparation/GenerateExerciseModa
 import CreateRevisionModal from "@/components/preparation/CreateRevisionModal";
 import TakeExercisePage from "@/components/preparation/TakeExercisePage";
 import TakeRevisionPage from "@/components/preparation/TakeRevisionPage";
+import { logRecentActivity } from "@/lib/logRecentActivity";
 
 type TabType = "exercise" | "revision" | "personal_ai";
 
@@ -51,6 +53,42 @@ export default function PreparationPage() {
     const [activeRevision, setActiveRevision] = useState<any | null>(null);
 
     const scrollContentRef = useRef<HTMLDivElement>(null);
+    const searchParams = useSearchParams();
+
+    // Deep-link: auto-open exercise or revision from URL params (e.g. from Recent Activity)
+    useEffect(() => {
+        const tabParam = searchParams.get("tab") as TabType | null;
+        const idParam = searchParams.get("id");
+
+        if (tabParam && ["exercise", "revision", "personal_ai"].includes(tabParam)) {
+            setActiveTab(tabParam);
+        }
+
+        if (!idParam) return;
+
+        async function autoOpen() {
+            if (tabParam === "exercise") {
+                try {
+                    const res = await fetch(`/api/exercises/${idParam}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.exercise) setActiveExercise(data.exercise);
+                    }
+                } catch (e) { console.error("Failed to load exercise", e); }
+            } else if (tabParam === "revision") {
+                try {
+                    const res = await fetch(`/api/revision/${idParam}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.revision) setActiveRevision(data.revision);
+                    }
+                } catch (e) { console.error("Failed to load revision", e); }
+            }
+        }
+
+        autoOpen();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Reset scroll to top when tab changes
     useEffect(() => {
@@ -118,9 +156,9 @@ export default function PreparationPage() {
     const isRevisionTab = activeTab === "revision";
 
     return (
-        <div className="flex h-full flex-col bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
+        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden">
             {/* Fixed Header Section (Title + Search + Tabs) */}
-            <div className="sticky top-0 z-20 px-4 sm:px-6 bg-[#F5F3EF] dark:bg-[#1A1A1A] border-b border-transparent">
+            <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
                 {/* Title Section */}
                 <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] sm:pt-6 pb-2">
                     <SidebarToggleButton />
@@ -141,7 +179,7 @@ export default function PreparationPage() {
                             placeholder="Search..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
+                            className="w-full bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
                         />
                     </div>
 
@@ -191,7 +229,7 @@ export default function PreparationPage() {
                 </div>
 
                 {/* Tab nav */}
-                <div className="relative flex border-b border-[#E8E5E0] dark:border-[#333] mb-2 justify-between items-end">
+                <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-2 justify-between items-end">
                     <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
                         {TABS.map((tab) => (
                             <button
@@ -243,7 +281,15 @@ export default function PreparationPage() {
                         search={search}
                         onNeedGenerate={() => setIsGenerateOpen(true)}
                         refreshKey={refreshKey}
-                        onStartExercise={(ex) => setActiveExercise(ex)}
+                        onStartExercise={(ex) => {
+                            setActiveExercise(ex);
+                            logRecentActivity({
+                                item_id: ex.id,
+                                item_type: "exercise",
+                                title: ex.title || "Untitled Exercise",
+                                href: `/preparation?tab=exercise&id=${ex.id}`,
+                            });
+                        }}
                         viewMode={viewMode}
                     />
                 )}
@@ -251,7 +297,15 @@ export default function PreparationPage() {
                     <RevisionTab
                         search={search}
                         refreshKey={refreshKey}
-                        onOpenRevision={(rev) => setActiveRevision(rev)}
+                        onOpenRevision={(rev) => {
+                            setActiveRevision(rev);
+                            logRecentActivity({
+                                item_id: rev.id,
+                                item_type: "revision",
+                                title: rev.title || "Untitled Revision",
+                                href: `/preparation?tab=revision&id=${rev.id}`,
+                            });
+                        }}
                         viewMode={viewMode}
                     />
                 )}

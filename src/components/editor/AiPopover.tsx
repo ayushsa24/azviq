@@ -238,7 +238,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
     return (
         <div
-            className="flex flex-col md:w-[260px] w-[220px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
+            className="flex flex-col md:w-[260px] w-[220px] max-w-[calc(100vw-32px)] bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
             onMouseDown={(e) => e.stopPropagation()}
         >
             <div className="flex items-center gap-2 p-2.5 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 border-b border-[#E0E0E0] dark:border-[#3A3A3A]">

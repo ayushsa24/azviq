@@ -21,20 +21,20 @@ export default function AskAIGlobalBar() {
     return (
         <div className={`w-full max-w-2xl mx-auto mb-8 p-1 rounded-2xl shadow-sm transition-all duration-300 ${theme === 'dark'
             ? 'bg-gradient-to-r from-[#545454]/40 via-[#7D7D7D]/20 to-[#545454]/40 border border-[#545454]'
-            : 'bg-gradient-to-r from-[#EDEAE6] via-white to-[#EDEAE6] border border-[#E8E5E0]'
+            : 'bg-gradient-to-r from-[#F5F3EF] via-white to-[#F5F3EF] border border-[#E8E5E0]'
             }`}>
             <form onSubmit={handleSearch} className="relative flex items-center">
-                <Sparkles className={`absolute left-4 w-5 h-5 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#7D7D7D]'
+                <Sparkles className={`absolute left-4 w-5 h-5 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#C2A27A]'
                     }`} />
 
                 <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Ask Ascend AI anything..."
+                    placeholder="Ask your AI study assistant..."
                     className={`w-full py-4 pl-12 pr-16 rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 text-lg ${theme === 'dark'
                         ? 'bg-[#252525] text-white placeholder-[#7D7D7D] focus:ring-[#7D7D7D]'
-                        : 'bg-white text-[#252525] placeholder-[#7D7D7D] focus:ring-[#CFCFCF]'
+                        : 'bg-white text-[#252525] placeholder-[#7D7D7D] focus:ring-[#F0EDE8]'
                         }`}
                 />
 

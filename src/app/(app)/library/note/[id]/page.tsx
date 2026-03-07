@@ -24,6 +24,7 @@ import { all, createLowlight } from 'lowlight'
 import "highlight.js/styles/atom-one-dark.css";
 import { AiTrigger } from '@/components/editor/AiTrigger';
 import { AiInlineInput } from '@/components/editor/AiInlineInput';
+import { logRecentActivity } from '@/lib/logRecentActivity';
 
 const lowlight = createLowlight(all)
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -150,7 +151,7 @@ export default function NoteEditorPage() {
         content: "",
         editorProps: {
             attributes: {
-                class: "prose prose-sm sm:prose-base lg:prose-base xl:prose-lg prose-p:my-1 prose-headings:my-3 px-2 py-4 focus:outline-none dark:prose-invert max-w-none text-[#252525] dark:text-[#CFCFCF] min-h-[500px] cursor-text",
+                class: "prose prose-sm sm:prose-base lg:prose-base xl:prose-lg prose-p:my-1 prose-headings:my-3 px-2 py-4 focus:outline-none dark:prose-invert max-w-none text-[#252525] dark:text-white min-h-[500px] cursor-text",
             },
             handleKeyDown: (view, event) => {
                 if ((event.key === 'Backspace' || event.key === 'Delete') && editor) {
@@ -205,11 +206,18 @@ export default function NoteEditorPage() {
                 if (editor && note.content) {
                     editor.commands.setContent(note.content, { emitUpdate: false });
                 }
+
+                // Log this note open to recent activity
+                logRecentActivity({
+                    item_id: id,
+                    item_type: "note",
+                    title: note.title || "Untitled Note",
+                    href: `/library/note/${id}`,
+                });
             } catch (err) {
                 console.error(err);
             } finally {
                 setIsLoading(false);
-                // Allow a tiny delay to ensure setEditable or other hooks don't fire rogue onUpdate calls
                 setTimeout(() => {
                     isFetchingRef.current = false;
                 }, 100);
@@ -284,17 +292,17 @@ export default function NoteEditorPage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-[#F5F5F5] dark:bg-[#1A1A1A]">
+            <div className="flex items-center justify-center h-screen bg-[#F5F3EF] dark:bg-[#1A1A1A]">
                 <Loader2 className="animate-spin text-[#545454] dark:text-[#7D7D7D]" size={32} />
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto bg-[#F5F5F5] dark:bg-[#1A1A1A] transition-colors relative">
+        <div className="flex flex-col h-full overflow-y-auto bg-[#F5F3EF] dark:bg-[#1A1A1A] transition-colors relative">
 
             {/* Top Navigation Bar */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F5F5]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E0E0E0] dark:border-[#2A2A2A] transition-colors">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A] transition-colors">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => {
@@ -304,7 +312,7 @@ export default function NoteEditorPage() {
                                 router.push("/library");
                             }
                         }}
-                        className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
+                        className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
                         title="Back"
                     >
                         <ArrowLeft size={20} />
@@ -319,7 +327,7 @@ export default function NoteEditorPage() {
                     <button
                         onClick={() => editor?.chain().focus().undo().run()}
                         disabled={isLocked || !editor?.can().undo()}
-                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-md transition-colors disabled:opacity-30"
+                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors disabled:opacity-30"
                         title="Undo (Ctrl+Z)"
                     >
                         <Undo size={18} />
@@ -328,38 +336,38 @@ export default function NoteEditorPage() {
                     <button
                         onClick={() => editor?.chain().focus().redo().run()}
                         disabled={isLocked || !editor?.can().redo()}
-                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-md transition-colors disabled:opacity-30"
+                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors disabled:opacity-30"
                         title="Redo (Ctrl+Y)"
                     >
                         <Redo size={18} />
                     </button>
 
-                    <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+                    <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
 
                     <button
                         onClick={() => setIsLocked(!isLocked)}
                         className={`p-1.5 rounded-md transition-colors ${isLocked
                             ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white"
                             }`}
                         title={isLocked ? "Unlock Note to Edit" : "Lock Note (Read-Only)"}
                     >
                         {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
                     </button>
 
-                    <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] hidden sm:block mx-1" />
+                    <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] hidden sm:block mx-1" />
 
                     {/* 3-DOT MENU */}
                     <div className="relative" ref={moreMenuRef}>
                         <button
                             onClick={() => setShowMoreMenu(!showMoreMenu)}
-                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-md transition-colors"
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors"
                         >
                             <MoreVertical size={20} />
                         </button>
 
                         {showMoreMenu && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden z-[60]">
+                            <div className="absolute right-0 mt-2 w-56 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden z-[60]">
                                 <button
                                     onClick={handleShare}
                                     className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
@@ -374,8 +382,8 @@ export default function NoteEditorPage() {
                                     <FileDown size={16} />
                                     Download as Text
                                 </button>
-                                <div className="h-px bg-[#E0E0E0] dark:bg-[#3A3A3A]" />
-                                <div className="h-px bg-[#E0E0E0] dark:bg-[#3A3A3A]" />
+                                <div className="h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
+                                <div className="h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
                                 <button
                                     onClick={handleDelete}
                                     className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
@@ -409,14 +417,14 @@ export default function NoteEditorPage() {
                             }
                         }}
                         placeholder="Note Title"
-                        className="flex-1 w-full text-4xl sm:text-5xl font-bold bg-transparent border-none outline-none text-[#252525] dark:text-[#CFCFCF] placeholder-[#CFCFCF] dark:placeholder-[#545454]"
+                        className="flex-1 w-full text-4xl sm:text-5xl font-bold bg-transparent border-none outline-none text-[#252525] dark:text-white placeholder-[#CFCFCF] dark:placeholder-[#545454]"
                     />
 
                     <div className="relative">
                         <button
                             disabled={isLocked}
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            className="p-3 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E0E0E0] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-[#CFCFCF] rounded-full transition-colors disabled:opacity-30"
+                            className="p-3 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-full transition-colors disabled:opacity-30"
                             title="Add Emoji"
                         >
                             <SmilePlus size={28} />

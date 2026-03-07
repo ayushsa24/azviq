@@ -66,16 +66,16 @@ export function MoveNoteModal({ isOpen, onClose, onSuccess, note, workspaces }: 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="bg-white dark:bg-[#252525] border border-[#CFCFCF] dark:border-[#7D7D7D] w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
+            <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#7D7D7D] w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
                 <button
                     onClick={onClose}
-                    className="absolute right-4 top-4 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
+                    className="absolute right-4 top-4 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
                 >
                     <X size={20} />
                 </button>
 
-                <h2 className="text-xl font-bold text-[#252525] dark:text-[#CFCFCF] mb-6 flex items-center gap-2 transition-colors">
-                    <MoveRight size={24} className="text-[#545454] dark:text-[#545454]" />
+                <h2 className="text-xl font-bold text-[#252525] dark:text-white mb-6 flex items-center gap-2 transition-colors">
+                    <MoveRight size={24} className="text-[#545454] dark:text-white" />
                     Move Note
                 </h2>
 
@@ -93,8 +93,8 @@ export function MoveNoteModal({ isOpen, onClose, onSuccess, note, workspaces }: 
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                             {/* Root Option */}
                             <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${selectedWorkspaceId === "root"
-                                ? "bg-[#E0E0E0] dark:bg-[#545454] border-[#7D7D7D]"
-                                : "bg-white dark:bg-[#1A1A1A] border-[#CFCFCF] dark:border-[#545454] hover:bg-[#F5F5F5] dark:hover:bg-[#2A2A2A]"
+                                ? "bg-[#F0EDE8] dark:bg-[#545454] border-[#7D7D7D]"
+                                : "bg-white dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#545454] hover:bg-[#F5F3EF] dark:hover:bg-[#2A2A2A]"
                                 }`}>
                                 <input
                                     type="radio"
@@ -104,15 +104,15 @@ export function MoveNoteModal({ isOpen, onClose, onSuccess, note, workspaces }: 
                                     onChange={(e) => setSelectedWorkspaceId(e.target.value)}
                                     className="hidden"
                                 />
-                                <Folder className="mr-3 text-[#545454] dark:text-[#CFCFCF]" size={20} />
-                                <span className="font-medium text-[#252525] dark:text-[#CFCFCF]">Main Library (No Workspace)</span>
+                                <Folder className="mr-3 text-[#545454] dark:text-white" size={20} />
+                                <span className="font-medium text-[#252525] dark:text-white">Main Library (No Workspace)</span>
                             </label>
 
                             {/* Workspaces list */}
                             {workspaces.map((ws) => (
                                 <label key={ws.id} className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${selectedWorkspaceId === ws.id
-                                    ? "bg-[#E0E0E0] dark:bg-[#545454] border-[#7D7D7D]"
-                                    : "bg-white dark:bg-[#1A1A1A] border-[#CFCFCF] dark:border-[#545454] hover:bg-[#F5F5F5] dark:hover:bg-[#2A2A2A]"
+                                    ? "bg-[#F0EDE8] dark:bg-[#545454] border-[#7D7D7D]"
+                                    : "bg-white dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#545454] hover:bg-[#F5F3EF] dark:hover:bg-[#2A2A2A]"
                                     }`}>
                                     <input
                                         type="radio"
@@ -124,7 +124,7 @@ export function MoveNoteModal({ isOpen, onClose, onSuccess, note, workspaces }: 
                                     />
                                     <Folder fill="currentColor" className="mr-3 text-[#7D7D7D] dark:text-[#7D7D7D] opacity-20" size={20} />
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-[#252525] dark:text-[#CFCFCF]">{ws.name}</span>
+                                        <span className="font-medium text-[#252525] dark:text-white">{ws.name}</span>
                                         {ws.description && <span className="text-xs text-[#545454] dark:text-[#7D7D7D] truncate max-w-[200px]">{ws.description}</span>}
                                     </div>
                                 </label>
@@ -132,19 +132,19 @@ export function MoveNoteModal({ isOpen, onClose, onSuccess, note, workspaces }: 
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-[#CFCFCF] dark:border-[#545454]">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-[#E8E5E0] dark:border-[#545454]">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isLoading}
-                            className="px-6 py-2.5 rounded-lg font-medium text-[#545454] dark:text-[#CFCFCF] bg-transparent border border-[#CFCFCF] dark:border-[#545454] hover:bg-[#F5F5F5] dark:hover:bg-[#545454]/30 transition-colors disabled:opacity-50"
+                            className="px-6 py-2.5 rounded-lg font-medium text-[#545454] dark:text-white bg-transparent border border-[#E8E5E0] dark:border-[#545454] hover:bg-[#F5F3EF] dark:hover:bg-[#545454]/30 transition-colors disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading || selectedWorkspaceId === initialWorkspace}
-                            className="px-6 py-2.5 rounded-lg font-medium text-white dark:text-[#252525] bg-[#252525] dark:bg-[#CFCFCF] hover:bg-[#1A1A1A] dark:hover:bg-[#FFFFFF] transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="px-6 py-2.5 rounded-lg font-medium text-white dark:text-[#252525] bg-[#252525] dark:bg-white hover:bg-[#1A1A1A] dark:hover:bg-white/90 transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isLoading ? (
                                 <>

@@ -1,9 +1,13 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import SummarizeBox from "@/components/SummarizeBox";
 import AskAIGlobalBar from "@/components/dashboard/AskAIGlobalBar";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
+import GreetingHeader from "@/components/dashboard/GreetingHeader";
+import RecentItemsScroll from "@/components/dashboard/RecentItemsScroll";
+import DashboardTasks from "@/components/dashboard/DashboardTasks";
+import DashboardChecklist from "@/components/dashboard/DashboardChecklist";
+import DashboardStats from "@/components/dashboard/DashboardStats";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -12,38 +16,44 @@ export default async function Home() {
     redirect("/login");
   }
 
+  // Extract the first name from user session
+  const userFullName = session?.user?.name || "";
+  const email = session?.user?.email || "";
+  let userName = "Guest";
+
+  if (userFullName) {
+    userName = userFullName.split(' ')[0];
+  } else if (email) {
+    userName = email.split('@')[0];
+  }
+
   return (
-    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white p-4 sm:p-6 lg:p-8 overflow-hidden transition-colors">
-      <div className="flex flex-col mb-5">
-        <div className="flex items-center gap-3">
-          <SidebarToggleButton />
-          <div>
-            <h1 className="text-3xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
-              Dashboard
-            </h1>
-            <p className="text-[#545454] dark:text-[#BABABA] mt-1 transition-colors">
-              Welcome back, {session?.user?.email || "Guest"}
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full bg-transparent dark:bg-[#1A1A1A] text-[#252525] dark:text-white overflow-hidden transition-colors">
+      <div className="flex-1 w-full overflow-y-auto min-h-0 pb-16">
+        <div className="w-full 2xl:max-w-[1600px] mx-auto flex flex-col pt-3 sm:pt-4 lg:pt-6 px-4 sm:px-6 lg:px-8">
 
-      <div className="flex-1 max-w-4xl w-full mx-auto flex flex-col gap-6 overflow-y-auto min-h-0 pt-4">
-        <div className="bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-6 shadow-sm transition-colors">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            Ascend AI 🚀
-          </h2>
-          <AskAIGlobalBar />
-        </div>
+          {/* 1. Greeting, Motivation, Date */}
+          <GreetingHeader userName={userName}>
+            <SidebarToggleButton />
+          </GreetingHeader>
 
-        {/* Placeholder for more dashboard widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="h-32 rounded-3xl border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] bg-[#F5F5F5] dark:bg-[#252525]/30 flex items-center justify-center">
-            <p className="text-sm opacity-50">Activity Stats Coming Soon</p>
+          {/* 2. Ask AI Prompt Bar */}
+          <div className="mb-1 mt-1">
+            <AskAIGlobalBar />
           </div>
-          <div className="h-32 rounded-3xl border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] bg-[#F5F5F5] dark:bg-[#252525]/30 flex items-center justify-center">
-            <p className="text-sm opacity-50">Recent Files Coming Soon</p>
+
+          {/* New Stats Row */}
+          <DashboardStats />
+
+          {/* 3. Recent Items (Horizontal Scroll) */}
+          <RecentItemsScroll />
+
+          {/* 4. To-Do List & Tasks (2 Column Grid on Laptop) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            <DashboardChecklist />
+            <DashboardTasks />
           </div>
+
         </div>
       </div>
     </div>

@@ -93,7 +93,7 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                                 <select
                                     className={`w-full appearance-none px-4 py-3 pr-10 rounded-xl border outline-none font-medium text-sm transition-all focus:border-white ${isDark
                                         ? 'bg-[#1A1A1A] border-[#545454] text-white'
-                                        : 'bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]'
+                                        : 'bg-[#F0EDE8] border-[#E8E5E0] text-[#252525]'
                                         }`}
                                     value={selectedFile || ""}
                                     onChange={(e) => setSelectedFile(e.target.value)}
@@ -126,7 +126,7 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                                         onClick={() => setQuestionCount(num)}
                                         className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all active:scale-95 ${questionCount === num
                                             ? isDark ? 'bg-white text-[#252525] border-white' : 'bg-[#252525] text-white border-[#252525]'
-                                            : isDark ? 'bg-transparent border-[#333] text-[#BABABA] hover:bg-[#252525]' : 'bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8]'
+                                            : isDark ? 'bg-transparent border-[#333] text-[#BABABA] hover:bg-[#252525]' : 'bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8]'
                                             }`}
                                     >
                                         {num}
@@ -153,7 +153,7 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                 {step === "generating" && (
                     <div className="flex flex-col items-center justify-center py-14 text-center space-y-5">
                         <div className="relative w-20 h-20">
-                            <div className={`absolute inset-0 rounded-full border-4 ${isDark ? 'border-[#333]' : 'border-[#E8E5E0]'}`} />
+                            <div className={`absolute inset-0 rounded-full border-4 ${isDark ? 'border-[#333]' : 'border-[#7D7D7D]/40'}`} />
                             <div className={`absolute inset-0 rounded-full border-4 border-t-transparent animate-spin ${isDark ? 'border-white' : 'border-[#252525]'}`} />
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <Sparkles className="w-7 h-7 text-[#BABABA] animate-pulse" />

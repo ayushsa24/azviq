@@ -9,7 +9,7 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, PanelLeftClose
+  Sun, Moon, ChevronsLeft
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 
@@ -81,11 +81,11 @@ export default function Sidebar({
             : `left-0 top-[45px] bottom-[45px] w-56 rounded-r-2xl border border-l-0 shadow-xl
                ${isHovered ? "translate-x-0" : "-translate-x-full"}`
           }
-          ${isDark ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}
+          ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}
         `}
       >
         {/* ── TOP BRAND HEADER ── */}
-        <div className={`flex items-center gap-3 px-4 h-14 shrink-0 border-b ${isDark ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
+        <div className={`flex items-center gap-3 px-4 h-14 shrink-0 border-b ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0
             ${isDark ? "bg-white text-[#252525]" : "bg-[#252525] text-white"}`}>
             A
@@ -100,10 +100,10 @@ export default function Sidebar({
               className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0
                       ${isDark
                   ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
-                  : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#252525] hover:text-white hover:border-[#252525]"
+                  : "bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#252525] hover:text-white hover:border-[#252525]"
                 }`}
             >
-              <PanelLeftClose className="w-4 h-4" />
+              <ChevronsLeft className="w-5 h-5" />
             </button>
           )}
         </div>
@@ -124,7 +124,7 @@ export default function Sidebar({
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium
                   ${isActive
                     ? isDark ? "bg-[#2E2E2E] text-white" : "bg-[#F0EDE8] text-[#252525]"
-                    : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#F5F3EF] hover:text-[#252525]"
+                    : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#CFCFCF] hover:text-[#252525]"
                   }`}
               >
                 <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`} />
@@ -138,18 +138,18 @@ export default function Sidebar({
         {/* ── BOTTOM PROFILE + POPUP ── */}
         <div
           ref={menuRef}
-          className={`shrink-0 border-t px-3 py-3 relative ${isDark ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}
+          className={`shrink-0 border-t px-3 py-2 relative ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}
         >
           {/* Popup — opens upward */}
           {menuOpen && (
             <div className={`absolute bottom-[calc(100%+4px)] left-2 right-2 rounded-2xl border shadow-2xl overflow-hidden z-20
-              ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-white border-[#E8E5E0]"}`}>
+              ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-white border-[#7D7D7D]/40"}`}>
 
               {/* Profile header — click to open profile modal */}
               <button
                 onClick={() => { setMenuOpen(false); setProfileModalOpen(true); }}
                 className={`w-full text-left px-4 py-3 border-b transition-colors
-                  ${isDark ? "border-[#3A3A3A] hover:bg-[#2E2E2E]" : "border-[#F0EDE8] hover:bg-[#F5F3EF]"}`}
+                  ${isDark ? "border-[#3A3A3A] hover:bg-[#2E2E2E]" : "border-[#F0EDE8] hover:bg-[#CFCFCF]"}`}
               >
                 <p className={`text-sm font-semibold truncate ${isDark ? "text-white" : "text-[#252525]"}`}>
                   {profile?.name || "My Account"}
@@ -161,7 +161,7 @@ export default function Sidebar({
               <button
                 onClick={toggleTheme}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
-                  ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#F5F3EF]"}`}
+                  ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >
                 {isDark ? <><Sun className="w-4 h-4" /> Light Mode</> : <><Moon className="w-4 h-4" /> Dark Mode</>}
               </button>
@@ -182,10 +182,10 @@ export default function Sidebar({
           {/* Profile trigger button */}
           <button
             onClick={() => setMenuOpen(o => !o)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left
+            className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all duration-200 text-left
               ${menuOpen
                 ? isDark ? "bg-[#2E2E2E]" : "bg-[#F0EDE8]"
-                : isDark ? "hover:bg-[#252525]" : "hover:bg-[#F5F3EF]"
+                : isDark ? "hover:bg-[#252525]" : "hover:bg-[#CFCFCF]"
               }`}
           >
             {profile?.avatar_url ? (

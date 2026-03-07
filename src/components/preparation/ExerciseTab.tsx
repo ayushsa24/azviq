@@ -78,14 +78,14 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
             <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"}>
                 {isLoading ? (
                     Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className={`p-5 rounded-xl border flex flex-col gap-3 animate-pulse ${isDark ? 'bg-[#CFCFCF]/5 border-[#7D7D7D]/20' : 'bg-white border-[#E8E5E0]'}`}>
+                        <div key={i} className={`p-5 rounded-xl border flex flex-col gap-3 animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'}`}>
                             <div className="flex items-start justify-between gap-2">
-                                <div className={`h-5 w-16 rounded ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-gray-200'}`}></div>
-                                <div className={`h-6 w-6 rounded-lg ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-gray-200'}`}></div>
+                                <div className={`h-5 w-16 rounded ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
+                                <div className={`h-6 w-6 rounded-lg ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
                             </div>
-                            <div className={`w-9 h-9 rounded-xl mt-2 ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-gray-200'}`}></div>
-                            <div className={`h-5 w-3/4 rounded mt-1 ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-gray-200'}`}></div>
-                            <div className={`h-3 w-1/2 rounded mt-1 ${isDark ? 'bg-[#CFCFCF]/10' : 'bg-gray-200'}`}></div>
+                            <div className={`w-9 h-9 rounded-xl mt-2 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
+                            <div className={`h-5 w-3/4 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
+                            <div className={`h-3 w-1/2 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
 
                             <div className="mt-4 pt-4 border-t flex items-center justify-between border-gray-100 dark:border-[#545454]/30">
                                 <div className={`h-4 w-20 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
@@ -105,8 +105,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                 ) : filtered.map((ex: any) => (
                     <div
                         key={ex.id}
-                        onClick={() => isList && onStartExercise?.(ex)}
-                        className={`group relative transition-all duration-200 border-[#E8E5E0] dark:border-[#7D7D7D]/30 bg-white dark:bg-[#CFCFCF]/10 hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer
+                        className={`group relative transition-all duration-200 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#3C3C3C] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] hover:border-[#D1CEC8] dark:hover:border-[#545454] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer
                             ${isList
                                 ? "flex flex-row items-center gap-4 p-3 rounded-xl h-auto"
                                 : "flex flex-col justify-between p-3.5 rounded-xl h-44"
@@ -168,7 +167,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                 </div>
 
                                 {/* Footer Section */}
-                                <div className={`mt-3 pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-[#7D7D7D]/20' : 'border-[#E8E5E0]'}`}>
+                                <div className={`mt-3 pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-[#7D7D7D]/20' : 'border-[#7D7D7D]/40'}`}>
                                     <div className="flex flex-col">
                                         <p className={`text-[11px] font-bold flex items-center gap-1 ${getStatusStyle(ex.status)}`}>
                                             {ex.status}

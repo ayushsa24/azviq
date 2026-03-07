@@ -334,18 +334,18 @@ export default function TasksPage() {
   // Tab style helper (matches library page)
   const tabCls = (active: boolean) =>
     `px-1 py-2.5 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${active
-      ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-      : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+      ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
+      : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
     }`;
 
   const viewBtnCls = (active: boolean) =>
     `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${active
-      ? "bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525]"
+      ? "bg-[#252525] dark:bg-white text-white dark:text-[#252525]"
       : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#E8E5E0] dark:hover:bg-[#252525]"
     }`;
 
   return (
-    <div className="flex h-full flex-col bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
+    <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden">
       {/* ── Scrollable main area ── */}
       <div
         ref={scrollContainerRef}
@@ -357,7 +357,7 @@ export default function TasksPage() {
             <div className="flex items-center gap-3">
               <SidebarToggleButton />
               <div>
-                <h1 className="text-[23px] sm:text-2xl font-extrabold tracking-tight text-[#161514] dark:text-[#CFCFCF]">Project Management</h1>
+                <h1 className="text-[23px] sm:text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white">Project Management</h1>
                 <p className="text-xs text-[#7D7D7D] mt-0.5">Manage your projects &amp; tasks</p>
               </div>
             </div>
@@ -365,7 +365,7 @@ export default function TasksPage() {
               onClick={() => setIsAIModalOpen(true)}
               className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#252525] text-[#545454] dark:text-[#EDEAE6] border border-[#DEDBD6] dark:border-[#545454] rounded-xl text-sm font-semibold hover:bg-white dark:hover:bg-[#333333] hover:border-[#252525] dark:hover:border-[#7D7D7D] active:scale-[0.98] transition-all shadow-sm"
             >
-              <Sparkles className="w-4 h-4 text-[#252525] dark:text-[#CFCFCF]" />
+              <Sparkles className="w-4 h-4 text-[#252525] dark:text-white" />
               <span className="sm:hidden text-xs">Generate</span>
               <span className="hidden sm:inline text-sm">Generate with AI</span>
             </button>
@@ -386,7 +386,7 @@ export default function TasksPage() {
                     placeholder="Search projects..."
                     value={projectSearch}
                     onChange={(e) => setProjectSearch(e.target.value)}
-                    className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#7D7D7D] transition-all text-[#252525] dark:text-[#CFCFCF] placeholder-[#9E9E9E]"
+                    className="w-full bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#7D7D7D] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
                   />
                 </div>
                 {/* Favorites star — right of search bar */}
@@ -395,8 +395,8 @@ export default function TasksPage() {
                   onClick={() => setShowProjectFavorites((v) => !v)}
                   title={showProjectFavorites ? "Showing favorites only" : "Show favorites only"}
                   className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all active:scale-95 ${showProjectFavorites
-                    ? "bg-[#252525] dark:bg-[#CFCFCF] border-[#252525] dark:border-[#CFCFCF] text-white dark:text-[#252525] shadow-sm"
-                    : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-[#CFCFCF] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                    ? "bg-[#252525] dark:bg-white border-[#252525] dark:border-white text-white dark:text-[#252525] shadow-sm"
+                    : "bg-white/80 backdrop-blur-md dark:bg-[#252525] border-[#7D7D7D]/40 dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-white hover:text-[#252525] dark:hover:text-white"
                     }`}
                 >
                   <Star size={15} className={showProjectFavorites ? "fill-current" : ""} />
@@ -405,7 +405,7 @@ export default function TasksPage() {
               {/* Right: New Project button pushed to far right */}
               <button
                 onClick={handleQuickCreateProject}
-                className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
+                className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white/90 rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
               >
                 <Plus size={16} />
                 <span className="hidden sm:inline">New Project</span>
@@ -413,7 +413,7 @@ export default function TasksPage() {
             </div>
 
             {/* Row 2: Filter Tabs */}
-            <div className="relative flex border-b border-[#E8E5E0] dark:border-[#333] mb-4">
+            <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4">
               <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1">
                 {(["all", "in_progress", "done", "archived", "not_started"] as const).map((f) => (
                   <button key={f} onClick={() => setProjectFilter(f)} className={tabCls(projectFilter === f)}>
@@ -427,7 +427,7 @@ export default function TasksPage() {
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="min-w-[200px] h-32 bg-white dark:bg-[#CFCFCF]/5 rounded-xl border border-[#E8E5E0] dark:border-[#545454]/30 animate-pulse"></div>
+                  <div key={i} className="min-w-[200px] h-32 bg-white/80 dark:bg-white/5 rounded-xl border border-[#7D7D7D]/40 dark:border-[#545454]/30 animate-pulse"></div>
                 ))
               ) : filteredProjects.length === 0 ? (
                 <p className="text-sm text-[#545454] dark:text-[#7D7D7D] py-6">No projects found.</p>
@@ -439,12 +439,12 @@ export default function TasksPage() {
                     <div
                       key={p.id}
                       onClick={() => setSelectedProject(p)}
-                      className="relative min-w-[200px] h-32 rounded-xl bg-white dark:bg-[#CFCFCF]/10 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col justify-between cursor-pointer hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 transition-all group"
+                      className="relative min-w-[200px] h-32 rounded-xl bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col justify-between cursor-pointer hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] transition-all group"
                     >
                       {/* Title row */}
                       <div className="flex items-center gap-1.5">
-                        {p.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
-                        {p.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
+                        {p.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-white flex-shrink-0" />}
+                        {p.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-white fill-current flex-shrink-0" />}
                         <h3
                           className="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1 group-hover:text-black dark:group-hover:text-white text-sm"
                         >
@@ -495,7 +495,7 @@ export default function TasksPage() {
                 TASKS SECTION
             ══════════════════════════════ */}
           <div className="relative mt-6" ref={tasksSectionRef}>
-            <div className="sticky top-0 z-20 bg-[#F5F3EF] dark:bg-[#1A1A1A] pt-4 pb-1">
+            <div className="sticky top-0 z-20 bg-transparent dark:bg-[#1A1A1A] pt-4 pb-1">
               <h2 className="text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white mb-3">Tasks</h2>
 
               {/* Row 1: [Search + ⭐]  ................  [New Task →] */}
@@ -509,7 +509,7 @@ export default function TasksPage() {
                       placeholder="Search tasks..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
+                      className="w-full bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
                     />
                   </div>
                   {/* Favorites star — right of search bar */}
@@ -519,7 +519,7 @@ export default function TasksPage() {
                     title={showTaskFavorites ? "Showing favorites only" : "Show favorites only"}
                     className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all active:scale-95 ${showTaskFavorites
                       ? "bg-[#252525] dark:bg-white border-[#252525] dark:border-white text-white dark:text-[#252525] shadow-sm"
-                      : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#545454] text-[#7D7D7D] dark:text-[#BABABA] hover:border-[#252525] dark:hover:border-white hover:text-[#252525] dark:hover:text-white dark:hover:border-white"
+                      : "bg-white/80 backdrop-blur-md dark:bg-[#252525] border-[#7D7D7D]/40 dark:border-[#545454] text-[#7D7D7D] dark:text-[#BABABA] hover:border-[#252525] dark:hover:border-white hover:text-[#252525] dark:hover:text-white dark:hover:border-white"
                       }`}
                   >
                     <Star size={15} className={showTaskFavorites ? "fill-current" : ""} />
@@ -536,7 +536,7 @@ export default function TasksPage() {
               </div>
 
               {/* Row 2: View Toggle Tabs — clean, no extra buttons */}
-              <div className="flex border-b border-[#E8E5E0] dark:border-[#333] mb-4">
+              <div className="flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4">
                 <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
                   <button onClick={() => setTaskView("kanban")} className={tabCls(taskView === "kanban")}>
                     <LayoutGrid size={14} className="inline mr-1.5" />Kanban
@@ -553,22 +553,22 @@ export default function TasksPage() {
 
             {/* ── Kanban View ── */}
             {taskView === "kanban" && (
-              <div className="bg-white dark:bg-[#CFCFCF]/5 rounded-xl border border-[#E8E5E0] dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto">
+              <div className="bg-white/80 backdrop-blur-md dark:bg-white/5 rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto">
                 <div className="flex gap-4">
                   {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="flex-1 min-w-[260px] min-h-[400px] bg-white dark:bg-[#CFCFCF]/5 rounded-xl border border-gray-100 dark:border-[#545454]/20 p-4 animate-pulse">
-                        <div className="h-4 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-1/3 mb-4"></div>
+                      <div key={i} className="flex-1 min-w-[260px] min-h-[400px] bg-white/80 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-[#545454]/20 p-4 animate-pulse">
+                        <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-1/3 mb-4"></div>
                         <div className="space-y-3">
-                          <div className="h-24 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded-xl"></div>
-                          <div className="h-24 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded-xl"></div>
+                          <div className="h-24 bg-gray-200 dark:bg-white/10 rounded-xl"></div>
+                          <div className="h-24 bg-gray-200 dark:bg-white/10 rounded-xl"></div>
                         </div>
                       </div>
                     ))
                   ) : ["not_started", "in_progress", "in_review", "done", "archived"].map((status) => (
                     <div
                       key={status}
-                      className="flex flex-col gap-2 min-h-[200px] min-w-[260px] flex-1 bg-[#f0ede8] dark:bg-[#CFCFCF]/5 rounded-xl p-3 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#CFCFCF]/10"
+                      className="flex flex-col gap-2 min-h-[200px] min-w-[260px] flex-1 bg-[#f0ede8] dark:bg-white/5 rounded-xl p-3 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-white/10"
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, status)}
                     >
@@ -593,12 +593,12 @@ export default function TasksPage() {
                             key={t.id}
                             draggable
                             onDragStart={(e) => handleDragStart(e, t.id)}
-                            className="relative p-3 bg-white dark:bg-[#CFCFCF]/10 border border-gray-200 dark:border-[#7D7D7D]/30 rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 transition-all group/card"
+                            className="relative p-3 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#7D7D7D]/30 rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] transition-all group/card"
                           >
                             <div onClick={() => setSelectedTask(t)} className="cursor-pointer">
                               <div className="flex items-center gap-1.5">
-                                {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
-                                {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
+                                {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-white flex-shrink-0" />}
+                                {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-white fill-current flex-shrink-0" />}
                                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{t.title}</p>
                                 <button
                                   onClick={(e) => {
@@ -653,7 +653,7 @@ export default function TasksPage() {
                       */}
                     <div className="relative">
                       {/* Visual styled button (behind) */}
-                      <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0EDE8] dark:bg-[#CFCFCF]/10 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-[#CFCFCF] pointer-events-none select-none">
+                      <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0EDE8] dark:bg-white/10 border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-white pointer-events-none select-none">
                         <CalendarDays size={13} />
                         <span>{dateFilter ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All dates"}</span>
                         <ChevronDown size={12} />
@@ -672,7 +672,7 @@ export default function TasksPage() {
                       <button
                         type="button"
                         onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setDateFilter(""); }}
-                        className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-[#E8E5E0] dark:bg-[#444] text-[#545454] dark:text-[#CFCFCF] hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 active:scale-95 transition-all font-bold text-sm"
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-[#E8E5E0] dark:bg-[#444] text-[#545454] dark:text-white hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 active:scale-95 transition-all font-bold text-sm"
                         aria-label="Clear date filter"
                       >✕</button>
                     )}
@@ -704,12 +704,12 @@ export default function TasksPage() {
                       })
                       .map(([dateLabel, dateTasks]) => (
                         <div key={dateLabel} className="space-y-2">
-                          <span className="text-[11px] font-bold text-[#545454] dark:text-[#CFCFCF] uppercase tracking-wider bg-[#f0ede8] dark:bg-[#CFCFCF]/10 px-2 py-0.5 rounded-md inline-block mb-1">{dateLabel}</span>
+                          <span className="text-[11px] font-bold text-[#545454] dark:text-white uppercase tracking-wider bg-[#f0ede8] dark:bg-white/10 px-2 py-0.5 rounded-md inline-block mb-1">{dateLabel}</span>
                           {(dateTasks as any[]).map((t: any) => (
-                            <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white dark:bg-[#CFCFCF]/10 rounded-xl border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 cursor-pointer transition-all shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+                            <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white/80 backdrop-blur-md dark:bg-[#252525] rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] cursor-pointer transition-all shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === "done" ? "bg-green-500" : t.status === "in_progress" ? "bg-blue-500" : t.status === "in_review" ? "bg-purple-500" : t.status === "archived" ? "bg-gray-400" : "bg-orange-500"}`} />
-                              {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
-                              {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
+                              {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-white flex-shrink-0" />}
+                              {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-white fill-current flex-shrink-0" />}
                               <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{t.title}</p>
                               <span className="text-xs text-[#545454] dark:text-[#7D7D7D] capitalize">{t.status?.replace("_", " ")}</span>
                             </div>
@@ -731,7 +731,7 @@ export default function TasksPage() {
                     <select
                       value={projectDropdownFilter}
                       onChange={(e) => setProjectDropdownFilter(e.target.value)}
-                      className="appearance-none pl-3 pr-7 py-1 rounded-lg bg-[#F0EDE8] dark:bg-[#CFCFCF]/10 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-[#CFCFCF] cursor-pointer hover:bg-[#E8E5E0] dark:hover:bg-[#CFCFCF]/20 focus:outline-none transition-colors"
+                      className="appearance-none pl-3 pr-7 py-1 rounded-lg bg-[#F0EDE8] dark:bg-white/10 border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-white cursor-pointer hover:bg-[#E8E5E0] dark:hover:bg-white/20 focus:outline-none transition-colors"
                     >
                       <option value="all">All projects</option>
                       {projects.map((p: any) => (
@@ -746,7 +746,7 @@ export default function TasksPage() {
                 {isLoading ? (
                   <div className="flex justify-center py-6 w-full"><div className="spinner-elegant text-gray-400"></div></div>
                 ) : Object.keys(tasksByProject).length === 0 ? (
-                  <p className="text-sm text-[#545454] dark:text-[#CFCFCF] py-6">No tasks found.</p>
+                  <p className="text-sm text-[#545454] dark:text-white py-6">No tasks found.</p>
                 ) : (
                   Object.entries(tasksByProject)
                     .filter(([projLabel]) => {
@@ -757,17 +757,17 @@ export default function TasksPage() {
                     })
                     .map(([projLabel, projTasks]) => (
                       <div key={projLabel}>
-                        <h3 className="text-xs font-bold text-[#545454] dark:text-[#CFCFCF] uppercase tracking-widest mb-2">{projLabel}</h3>
+                        <h3 className="text-xs font-bold text-[#545454] dark:text-white uppercase tracking-widest mb-2">{projLabel}</h3>
                         <div className="space-y-2">
                           {(projTasks as any[]).map((t: any) => (
-                            <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white dark:bg-[#CFCFCF]/10 rounded-xl border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 cursor-pointer transition-all shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+                            <div key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center gap-3 p-3 bg-white/80 backdrop-blur-md dark:bg-[#252525] rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] cursor-pointer transition-all shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === "done" ? "bg-green-500" :
                                 t.status === "in_progress" ? "bg-blue-500" :
                                   t.status === "in_review" ? "bg-purple-500" :
                                     t.status === "archived" ? "bg-gray-400" : "bg-orange-500"
                                 }`} />
-                              {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
-                              {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
+                              {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-white flex-shrink-0" />}
+                              {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-white fill-current flex-shrink-0" />}
                               <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{t.title}</p>
                               <span className="text-xs text-[#545454] dark:text-[#7D7D7D] capitalize">{t.status?.replace("_", " ")}</span>
                             </div>
@@ -825,7 +825,7 @@ export default function TasksPage() {
 
         return (
           <div
-            className="fixed z-[9999] bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[180px] context-menu"
+            className="fixed z-[9999] bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[180px] context-menu"
             style={{
               top: menuPosition.top,
               right: menuPosition.right,
@@ -879,7 +879,7 @@ export default function TasksPage() {
                     return (
                       <div
                         className={`absolute top-0 ${showOnRight ? "left-full ml-1" : "right-full mr-1"
-                          } bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[${subMenuWidth}px] animate-in ${showOnRight ? "slide-in-from-left-1" : "slide-in-from-right-1"
+                          } bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[${subMenuWidth}px] animate-in ${showOnRight ? "slide-in-from-left-1" : "slide-in-from-right-1"
                           } duration-200`}
                       >
                         {["not_started", "in_progress", "in_review", "done", "archived"]

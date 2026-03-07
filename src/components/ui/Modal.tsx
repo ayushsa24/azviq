@@ -38,7 +38,7 @@ export default function Modal({
             onClick={onClose}
             className={`p-1.5 rounded-lg transition-colors ${isDark
                 ? 'text-[#7D7D7D] hover:bg-[#252525] hover:text-[#CFCFCF]'
-                : 'text-[#9E9E9E] hover:bg-[#F5F3EF] hover:text-[#252525]'
+                : 'text-[#9E9E9E] hover:bg-[#CFCFCF] hover:text-[#252525]'
               }`}
           >
             <X size={20} />

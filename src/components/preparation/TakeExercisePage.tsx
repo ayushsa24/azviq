@@ -174,7 +174,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
 
                     {/* Back + title */}
                     <div className="flex items-center gap-3">
-                        <button onClick={onBack} title="Back" className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-[#CFCFCF] hover:text-[#252525] hover:border-[#CFCFCF]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#252525] hover:text-white hover:border-[#252525]'}`}>
+                        <button onClick={onBack} title="Back" className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-white hover:text-[#252525]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}>
                             <ArrowLeft size={14} />
                         </button>
                         <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1">{exercise.title}</h1>
@@ -209,7 +209,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                     </div>
                                 </>
                             )}
-                            <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#E8E5E0]'}`}>
+                            <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#7D7D7D]/40'}`}>
                                 <p className="text-xl font-black text-[#252525] dark:text-white">{formatTime(timeTakenRef.current || displayTimeTaken)}</p>
                                 <p className="text-xs text-[#7D7D7D] font-medium mt-0.5 flex items-center justify-center gap-1">
                                     <Clock size={11} /> Time taken
@@ -222,7 +222,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     <div className="flex gap-3">
                         <button
                             onClick={() => { setShowResults(false); setCurrentIndex(0); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all ${isDark ? 'border-[#545454] text-white hover:bg-[#252525]' : 'border-[#E8E5E0] text-[#252525] hover:bg-[#F0EDE8]'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all ${isDark ? 'border-[#545454] text-white hover:bg-[#252525]' : 'border-[#7D7D7D]/40 text-[#252525] hover:bg-[#F0EDE8]'}`}
                         >
                             <RotateCcw size={15} /> Review Answers
                         </button>
@@ -249,7 +249,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 <button
                     onClick={onBack}
                     title="Back"
-                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 shrink-0 ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-[#CFCFCF] hover:text-[#252525] hover:border-[#CFCFCF]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#252525] hover:text-white hover:border-[#252525]'}`}
+                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 shrink-0 ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-white hover:text-[#252525]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
                 >
                     <ArrowLeft size={14} />
                 </button>
@@ -311,17 +311,17 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                             : showIncorrect
                                                 ? 'bg-red-50 dark:bg-red-900/15 border-red-400'
                                                 : isSelected
-                                                    ? isDark ? 'bg-[#2A2A2A] border-[#CFCFCF]' : 'bg-[#F0EDE8] border-[#252525]'
+                                                    ? isDark ? 'bg-[#2A2A2A] border-white' : 'bg-[#F0EDE8] border-[#252525]'
                                                     : isDark
                                                         ? 'bg-[#1E1E1E] border-[#2E2E2E] hover:bg-[#252525] hover:border-[#545454]'
-                                                        : 'bg-white border-[#E8E5E0] hover:bg-[#F9F8F6] hover:border-[#D1D1D1]'
+                                                        : 'bg-white border-[#7D7D7D]/40 hover:bg-[#F9F8F6] hover:border-[#D1D1D1]'
                                             }`}
                                     >
                                         {/* Radio */}
                                         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${showCorrect ? 'border-green-500 bg-green-500' :
                                             showIncorrect ? 'border-red-500 bg-red-500' :
                                                 isSelected ? isDark ? 'border-white bg-white' : 'border-[#252525] bg-[#252525]' :
-                                                    isDark ? 'border-[#545454]' : 'border-[#CFCFCF]'
+                                                    isDark ? 'border-[#545454]' : 'border-[#E8E5E0]'
                                             }`}>
                                             {(isSelected || showCorrect) && <span className="w-2 h-2 rounded-full bg-white" />}
                                         </span>
@@ -360,7 +360,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                             {currentIndex > 0 && (
                                 <button
                                     onClick={() => setCurrentIndex(i => i - 1)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-all active:scale-95 ${isDark ? 'border-[#333] text-[#7D7D7D] hover:bg-[#252525] hover:text-[#CFCFCF]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-all active:scale-95 ${isDark ? 'border-[#333] text-[#7D7D7D] hover:bg-[#252525] hover:text-white' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
                                 >
                                     <ArrowLeft size={14} /> Previous
                                 </button>
@@ -371,7 +371,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                     onClick={() => setCurrentIndex(i => i + 1)}
                                     disabled={!hasAnsweredCurrent && !isSubmitted}
                                     className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${hasAnsweredCurrent || isSubmitted
-                                        ? isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                                        ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
                                         : 'opacity-40 cursor-not-allowed ' + (isDark ? 'bg-[#333] text-[#545454]' : 'bg-[#E8E5E0] text-[#9E9E9E]')
                                         }`}
                                 >
@@ -382,7 +382,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                     onClick={handleSubmit}
                                     disabled={!hasAnsweredCurrent || isSubmitting}
                                     className={`px-6 py-2 rounded-full text-sm font-semibold transition-all active:scale-95 ${hasAnsweredCurrent
-                                        ? isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                                        ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
                                         : 'opacity-40 cursor-not-allowed ' + (isDark ? 'bg-[#333] text-[#545454]' : 'bg-[#E8E5E0] text-[#9E9E9E]')
                                         }`}
                                 >
@@ -397,7 +397,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                             setShowResults(true);
                                         }
                                     }}
-                                    className={`px-6 py-2 rounded-full text-sm font-semibold transition-all active:scale-95 ${isDark ? 'bg-[#CFCFCF] text-[#252525] hover:bg-white' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}
+                                    className={`px-6 py-2 rounded-full text-sm font-semibold transition-all active:scale-95 ${isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'}`}
                                 >
                                     Finish Review
                                 </button>
@@ -407,10 +407,10 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 </div>
 
                 {/* RIGHT SIDEBAR */}
-                <div className={`hidden md:flex flex-col w-60 lg:w-64 shrink-0 border-l ${isDark ? 'border-[#2E2E2E] bg-[#161616]' : 'border-[#E8E5E0] bg-white'}`}>
+                <div className={`hidden md:flex flex-col w-60 lg:w-64 shrink-0 border-l ${isDark ? 'border-[#2E2E2E] bg-[#161616]' : 'border-[#7D7D7D]/40 bg-white'}`}>
 
                     {/* Score / Progress (top) */}
-                    <div className={`p-4 border-b ${isDark ? 'border-[#2E2E2E]' : 'border-[#E8E5E0]'}`}>
+                    <div className={`p-4 border-b ${isDark ? 'border-[#2E2E2E]' : 'border-[#7D7D7D]/40'}`}>
                         {isSubmitted ? (
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center gap-2.5">
@@ -431,7 +431,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                     </div>
                                 )}
                                 {/* Time taken */}
-                                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-[#252525] text-[#7D7D7D]' : 'bg-[#F5F3EF] text-[#545454]'}`}>
+                                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-[#252525] text-[#7D7D7D]' : 'bg-[#F0EDE8] text-[#545454]'}`}>
                                     <Clock size={12} /> Time taken: <span className="font-mono font-semibold ml-auto">{formatTime(timeTakenRef.current || elapsed)}</span>
                                 </div>
                             </div>
@@ -442,7 +442,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                     <span className="font-mono text-xs text-[#7D7D7D]">{formatTime(elapsed)}</span>
                                 </div>
                                 <div className={`w-full h-1.5 rounded-full ${isDark ? 'bg-[#2E2E2E]' : 'bg-[#E8E5E0]'} overflow-hidden`}>
-                                    <div className={`h-full rounded-full transition-all ${isDark ? 'bg-[#CFCFCF]' : 'bg-[#252525]'}`}
+                                    <div className={`h-full rounded-full transition-all ${isDark ? 'bg-white' : 'bg-[#252525]'}`}
                                         style={{ width: `${(answeredCount / totalQs) * 100}%` }} />
                                 </div>
                                 <p className="text-xs text-[#7D7D7D]">{answeredCount} of {totalQs} answered</p>
@@ -451,7 +451,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     </div>
 
                     {/* Legend */}
-                    <div className={`px-4 py-2.5 flex flex-wrap gap-x-3 gap-y-1 border-b ${isDark ? 'border-[#2E2E2E]' : 'border-[#E8E5E0]'}`}>
+                    <div className={`px-4 py-2.5 flex flex-wrap gap-x-3 gap-y-1 border-b ${isDark ? 'border-[#2E2E2E]' : 'border-[#7D7D7D]/40'}`}>
                         {isSubmitted ? (
                             <>
                                 <span className="flex items-center gap-1 text-[10px] text-[#7D7D7D]"><span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> Correct</span>
@@ -482,7 +482,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     </div>
 
                     {/* Bottom action */}
-                    <div className={`p-4 border-t ${isDark ? 'border-[#2E2E2E]' : 'border-[#E8E5E0]'}`}>
+                    <div className={`p-4 border-t ${isDark ? 'border-[#2E2E2E]' : 'border-[#7D7D7D]/40'}`}>
                         {!isSubmitted && (
                             <button
                                 onClick={handleSubmit}
@@ -500,7 +500,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
             </div>
 
             {/* Mobile bottom strip */}
-            <div className={`md:hidden flex items-center gap-2 px-4 py-3 border-t overflow-x-auto scrollbar-hide shrink-0 ${isDark ? 'border-[#2E2E2E] bg-[#161616]' : 'border-[#E8E5E0] bg-white'}`}>
+            <div className={`md:hidden flex items-center gap-2 px-4 py-3 border-t overflow-x-auto scrollbar-hide shrink-0 ${isDark ? 'border-[#2E2E2E] bg-[#161616]' : 'border-[#7D7D7D]/40 bg-white'}`}>
                 {questions.map((_, i) => (
                     <button key={i} onClick={() => setCurrentIndex(i)}
                         className={`w-8 h-8 rounded-lg text-xs font-bold shrink-0 border transition-all ${qNumCls(i)}`}>

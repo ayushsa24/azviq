@@ -222,11 +222,11 @@ export function ProjectDetailModal({
             onClick={onClose}
         >
             <div
-                className="bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-white sm:dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl overflow-y-auto flex flex-col shadow-none sm:shadow-2xl relative custom-scrollbar border-none sm:border sm:border-transparent sm:dark:border-[#545454]"
+                className="bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-[#F5F3EF] sm:dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl overflow-y-auto flex flex-col shadow-none sm:shadow-2xl relative custom-scrollbar border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Top Control Bar */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 sm:bg-white/95 sm:dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] sm:border-gray-100 dark:border-[#3A3A3A]">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 sm:bg-[#F5F3EF]/95 sm:dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] sm:border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onClose}
@@ -361,7 +361,7 @@ export function ProjectDetailModal({
                         </div>
                     </div>
 
-                    <hr className="border-gray-200 dark:border-[#3A3A3A] mb-6" />
+                    <hr className="border-[#E8E5E0] dark:border-[#3A3A3A] mb-6" />
 
                     {/* Embedded Kanban Board */}
                     <div className="mb-4 flex items-center justify-between">
@@ -372,15 +372,15 @@ export function ProjectDetailModal({
                             onClick={() => setShowFavorites((v) => !v)}
                             title={showFavorites ? "Showing favorites only" : "Show favorites only"}
                             className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 ${showFavorites
-                                ? "bg-[#252525] dark:bg-[#CFCFCF] border-[#252525] dark:border-[#CFCFCF] text-white dark:text-[#252525] shadow-sm"
-                                : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-[#CFCFCF] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                                ? "bg-[#252525] dark:bg-white border-[#252525] dark:border-white text-white dark:text-[#252525] shadow-sm"
+                                : "bg-white/80 backdrop-blur-md dark:bg-[#252525] border-[#E8E5E0] dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-white hover:text-[#252525] dark:hover:text-white"
                                 }`}
                         >
                             <Star size={14} className={showFavorites ? "fill-current" : ""} />
                         </button>
                     </div>
 
-                    <div className="bg-white dark:bg-[#1A1A1A] min-h-[300px] overflow-x-auto pb-4 scrollbar-hide">
+                    <div className="bg-[#F5F3EF] dark:bg-[#1A1A1A] min-h-[300px] overflow-x-auto pb-4 scrollbar-hide">
                         <div className="flex gap-4 min-w-max px-1">
                             {/* Kanban Columns */}
                             {[
@@ -392,11 +392,11 @@ export function ProjectDetailModal({
                             ].map((status) => (
                                 <div
                                     key={status}
-                                    className="flex flex-col gap-2 min-h-[120px] w-[260px] bg-[#f7f5f2] dark:bg-[#CFCFCF]/5 rounded-[16px] p-2 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#CFCFCF]/10"
+                                    className="flex flex-col gap-2 min-h-[120px] w-[260px] bg-[#f0ede8] dark:bg-white/5 rounded-xl p-2 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-white/10"
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, status)}
                                 >
-                                    <h3 className="text-sm font-semibold text-gray-600 dark:text-[#CFCFCF] capitalize flex items-center justify-between mb-1 px-2">
+                                    <h3 className="text-sm font-semibold text-gray-600 dark:text-white capitalize flex items-center justify-between mb-1 px-2">
                                         <div className="flex items-center gap-2">
                                             <span
                                                 className={`w-2 h-2 rounded-full ${status === "done"
@@ -427,7 +427,7 @@ export function ProjectDetailModal({
                                                 key={t.id}
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, t.id)}
-                                                className="relative p-3 bg-white dark:bg-[#CFCFCF]/10 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] cursor-grab active:cursor-grabbing hover:shadow-md transition-all border border-gray-100 dark:border-[#7D7D7D]/30 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#CFCFCF]/20 group/card"
+                                                className="relative p-3 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#7D7D7D]/30 rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] transition-all group/card"
                                             >
                                                 {/* Dropdown */}
                                                 {openMenuId === t.id && (
@@ -474,8 +474,8 @@ export function ProjectDetailModal({
                                                 {/* Title row: pin/star + title + 3-dot */}
                                                 <div onClick={() => onSelectTask(t)} className="cursor-pointer">
                                                     <div className="flex items-center gap-1.5">
-                                                        {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] flex-shrink-0" />}
-                                                        {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-[#CFCFCF] fill-current flex-shrink-0" />}
+                                                        {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-white flex-shrink-0" />}
+                                                        {t.is_favorite && <Star className="w-3 h-3 text-[#545454] dark:text-white fill-current flex-shrink-0" />}
                                                         <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex-1 truncate">
                                                             {t.title}
                                                         </p>

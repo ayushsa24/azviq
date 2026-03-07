@@ -82,7 +82,7 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                         <select
                             value={selectedNoteId}
                             onChange={(e) => setSelectedNoteId(e.target.value)}
-                            className={`w-full appearance-none px-4 py-3 pr-10 rounded-xl border outline-none font-medium text-sm transition-all focus:border-white ${isDark ? "bg-[#1A1A1A] border-[#545454] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"}`}
+                            className={`w-full appearance-none px-4 py-3 pr-10 rounded-xl border outline-none font-medium text-sm transition-all focus:border-white ${isDark ? "bg-[#1A1A1A] border-[#545454] text-white" : "bg-[#F0EDE8] border-[#E8E5E0] text-[#252525]"}`}
                         >
                             <option value="" disabled>
                                 {isFetchingNotes ? "Loading…" : "Choose a Note or PDF"}

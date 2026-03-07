@@ -317,20 +317,20 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] px-4 sm:px-6 lg:px-8 overflow-hidden transition-colors">
+    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white px-4 sm:px-6 lg:px-8 overflow-hidden transition-colors">
       <div className="flex items-center gap-3 pt-3 sm:pt-6 pb-2">
         <SidebarToggleButton />
         {activeWorkspace && (
           <button
             onClick={handleBackToWorkspaces}
-            className="text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors bg-[#E0E0E0] dark:bg-[#545454] p-2 rounded-lg"
+            className="text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors bg-[#F0EDE8] dark:bg-[#545454] p-2 rounded-lg"
             title="Back to Workspaces"
           >
             <ArrowLeft size={18} />
           </button>
         )}
         <div>
-          <h1 className="text-[23px] sm:text-2xl font-extrabold text-[#252525] dark:text-[#CFCFCF] tracking-tight transition-colors">
+          <h1 className="text-[23px] sm:text-2xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
             {activeWorkspace ? activeWorkspace.name : "My Library"}
           </h1>
           <p className="text-xs text-[#7D7D7D] mt-0.5">
@@ -349,7 +349,7 @@ export default function NotesPage() {
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
+            className="w-full bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
           />
         </div>
 
@@ -388,7 +388,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="flex border-b border-[#CFCFCF] dark:border-[#545454] mb-4 transition-colors justify-between items-end gap-2 w-full relative">
+      <div className="flex border-b border-[#E8E5E0] dark:border-[#545454] mb-4 transition-colors justify-between items-end gap-2 w-full relative">
         <div className="relative flex-1 overflow-hidden">
           <div
             className="flex overflow-x-auto flex-nowrap pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x w-full pr-10"
@@ -407,8 +407,8 @@ export default function NotesPage() {
             <button
               onClick={() => setActiveTab("notes")}
               className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "notes"
-                ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
+                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                 }`}
             >
               Notes
@@ -416,8 +416,8 @@ export default function NotesPage() {
             <button
               onClick={() => setActiveTab("pdfs")}
               className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "pdfs"
-                ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
+                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                 }`}
             >
               PDFs
@@ -425,8 +425,8 @@ export default function NotesPage() {
             <button
               onClick={() => setActiveTab("favourites")}
               className={`px-1 py-2 border-b-2 font-medium text-sm mr-2 whitespace-nowrap snap-start transition-colors ${activeTab === "favourites"
-                ? "border-[#252525] dark:border-[#CFCFCF] text-[#252525] dark:text-[#CFCFCF]"
-                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
+                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                 }`}
             >
               Favourites
@@ -443,7 +443,7 @@ export default function NotesPage() {
           <button
             onClick={() => setViewMode("grid")}
             className={`p-1.5 rounded transition-colors ${viewMode === "grid"
-              ? "bg-[#E0E0E0] dark:bg-[#545454] text-[#252525] dark:text-[#CFCFCF]"
+              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white"
               : "text-[#7D7D7D] hover:bg-[#F0F0F0] dark:hover:bg-[#252525]"
               }`}
             title="Grid View"
@@ -453,7 +453,7 @@ export default function NotesPage() {
           <button
             onClick={() => setViewMode("list")}
             className={`p-1.5 rounded transition-colors ${viewMode === "list"
-              ? "bg-[#E0E0E0] dark:bg-[#545454] text-[#252525] dark:text-[#CFCFCF]"
+              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white"
               : "text-[#7D7D7D] hover:bg-[#F0F0F0] dark:hover:bg-[#252525]"
               }`}
             title="List View"
@@ -472,25 +472,25 @@ export default function NotesPage() {
               : "grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1 animate-pulse"
           }>
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className={`rounded-2xl bg-white dark:bg-[#CFCFCF]/5 border border-[#E8E5E0] dark:border-[#545454]/20 p-4 sm:p-5 flex flex-col justify-between ${viewMode === 'list' ? 'h-24 flex-row items-center' : 'h-40 sm:h-[180px]'}`}>
+              <div key={i} className={`rounded-2xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#545454]/20 p-4 sm:p-5 flex flex-col justify-between ${viewMode === 'list' ? 'h-24 flex-row items-center' : 'h-40 sm:h-[180px]'}`}>
                 {viewMode === 'grid' ? (
                   <>
                     <div className="flex items-center justify-between pointer-events-none">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#CFCFCF]/10"></div>
-                      <div className="w-4 h-4 rounded bg-gray-200 dark:bg-[#CFCFCF]/10"></div>
+                      <div className="w-8 h-8 rounded-full bg-[#F0EDE8] dark:bg-white/10"></div>
+                      <div className="w-4 h-4 rounded bg-[#F0EDE8] dark:bg-white/10"></div>
                     </div>
                     <div className="space-y-2 pointer-events-none">
-                      <div className="h-5 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-1/2"></div>
+                      <div className="h-5 bg-[#F0EDE8] dark:bg-white/10 rounded w-3/4"></div>
+                      <div className="h-3 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/2"></div>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center gap-4 w-full cursor-default select-none pointer-events-none">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#CFCFCF]/10 shrink-0"></div>
+                      <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-white/10 shrink-0"></div>
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-1/3"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-[#CFCFCF]/10 rounded w-1/4"></div>
+                        <div className="h-4 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/3"></div>
+                        <div className="h-3 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/4"></div>
                       </div>
                     </div>
                   </>
@@ -518,11 +518,11 @@ export default function NotesPage() {
               ))}
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#CFCFCF] dark:border-[#545454] rounded-2xl transition-colors">
-              <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
-                <Search size={28} className="text-[#252525] dark:text-[#CFCFCF] transition-colors" />
+            <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#E8E5E0] dark:border-[#545454] rounded-2xl transition-colors">
+              <div className="w-16 h-16 mb-4 rounded-full bg-white/80 backdrop-blur-md dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
+                <Search size={28} className="text-[#252525] dark:text-white transition-colors" />
               </div>
-              <h3 className="text-lg font-bold text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No workspaces found</h3>
+              <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1 transition-colors">No workspaces found</h3>
               <p className="text-sm">
                 {searchQuery
                   ? "Try adjusting your search query."
@@ -553,7 +553,7 @@ export default function NotesPage() {
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#DEDBD6] dark:border-[#545454] rounded-2xl transition-colors">
-            <div className="w-16 h-16 mb-4 rounded-full bg-white dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
+            <div className="w-16 h-16 mb-4 rounded-full bg-white/80 backdrop-blur-md dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
               <Search size={28} className="text-[#252525] dark:text-[#CFCFCF] transition-colors" />
             </div>
             <h3 className="text-lg font-bold text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No files found</h3>

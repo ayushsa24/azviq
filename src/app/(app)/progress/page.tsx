@@ -3,7 +3,7 @@ import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 
 export default function ProgressPage() {
   return (
-    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white px-4 sm:px-6 lg:px-8 overflow-hidden transition-colors">
+    <div className="flex flex-col h-full bg-transparent dark:bg-[#1A1A1A] text-[#252525] dark:text-white px-4 sm:px-6 lg:px-8 overflow-hidden transition-colors">
       <div className="flex items-center gap-3 pt-3 sm:pt-6 pb-3">
         <SidebarToggleButton />
         <div>

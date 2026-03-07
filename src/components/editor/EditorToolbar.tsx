@@ -91,24 +91,24 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
                     return editor.isEditable && !empty && !isEmptyTextBlock;
                 }}
-                className="z-[1000] flex items-center gap-1 bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 backdrop-blur-md"
+                className="z-[1000] flex items-center gap-1 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 backdrop-blur-md"
             >
                 <button
                     onClick={handleOpenAi}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-xs font-semibold shadow-sm transition-all group"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white/90 rounded-full text-xs font-semibold shadow-sm transition-all group"
                 >
                     <Sparkles size={14} className="group-hover:animate-pulse" />
                     Ask AI
                     <ChevronDown size={14} className={`transition-transform ${isAiOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+                <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
 
                 <button
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     className={`p-1.5 rounded-md transition-colors ${editor.isActive("bold")
-                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         }`}
                 >
                     <Bold size={16} />
@@ -116,8 +116,8 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 <button
                     onClick={() => editor.chain().focus().toggleItalic().run()}
                     className={`p-1.5 rounded-md transition-colors ${editor.isActive("italic")
-                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         }`}
                 >
                     <Italic size={16} />
@@ -125,14 +125,14 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 <button
                     onClick={() => editor.chain().focus().toggleUnderline().run()}
                     className={`p-1.5 rounded-md transition-colors ${editor.isActive("underline")
-                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         }`}
                 >
                     <Underline size={16} />
                 </button>
 
-                <div className="w-px h-5 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+                <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
 
                 <button
                     onClick={() => {
@@ -148,8 +148,8 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                         editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
                     }}
                     className={`p-1.5 rounded-md transition-colors ${editor.isActive("link")
-                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         }`}
                 >
                     <LinkIcon size={16} />
@@ -158,8 +158,8 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 <button
                     onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run()}
                     className={`p-1.5 rounded-md transition-colors ${editor.isActive("highlight")
-                        ? "bg-[#E0E0E0] dark:bg-[#3A3A3A] text-[#252525] dark:text-[#CFCFCF]"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
+                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         }`}
                 >
                     <Highlighter size={16} />
@@ -194,12 +194,12 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     const { empty } = selection;
                     return editor.isEditable && editor.isActive('table') && empty;
                 }}
-                className="flex items-center gap-1 bg-white dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-lg rounded-lg px-2 py-1 backdrop-blur-md"
+                className="flex items-center gap-1 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-lg px-2 py-1 backdrop-blur-md"
             >
-                <div className="flex items-center gap-0.5 border-r border-[#E0E0E0] dark:border-[#3A3A3A] pr-1 mr-1">
+                <div className="flex items-center gap-0.5 border-r border-[#E8E5E0] dark:border-[#3A3A3A] pr-1 mr-1">
                     <button
                         onClick={() => editor.chain().focus().addRowBefore().run()}
-                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         title="Add Row Above"
                     >
                         <div className="relative">
@@ -209,7 +209,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     </button>
                     <button
                         onClick={() => editor.chain().focus().addRowAfter().run()}
-                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         title="Add Row Below"
                     >
                         <div className="relative">
@@ -229,10 +229,10 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     </button>
                 </div>
 
-                <div className="flex items-center gap-0.5 border-r border-[#E0E0E0] dark:border-[#3A3A3A] pr-1 mr-1">
+                <div className="flex items-center gap-0.5 border-r border-[#E8E5E0] dark:border-[#3A3A3A] pr-1 mr-1">
                     <button
                         onClick={() => editor.chain().focus().addColumnBefore().run()}
-                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         title="Add Column Before"
                     >
                         <div className="relative">
@@ -242,7 +242,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     </button>
                     <button
                         onClick={() => editor.chain().focus().addColumnAfter().run()}
-                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                        className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                         title="Add Column After"
                     >
                         <div className="relative">
@@ -268,7 +268,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                         const { selection } = state;
                         editor.chain().focus().insertContentAt(selection.to, editor.getHTML().match(/<table>[\s\S]*?<\/table>/)?.[0] || '').run();
                     }}
-                    className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-[#CFCFCF]"
+                    className="p-1.5 rounded-md text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
                     title="Duplicate Table"
                 >
                     <Copy size={16} />
