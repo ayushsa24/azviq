@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { MessageSquare, Mic, FileText, Send, Sparkles } from "lucide-react";
+import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 type Mode = "chat" | "audio";
 
@@ -13,6 +14,8 @@ export default function PersonalAITab() {
     const [notes, setNotes] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const isDark = theme === 'dark';
+
+    useStudyTracker({ activityType: 'personal_ai', isEnabled: true });
 
     React.useEffect(() => {
         const fetchNotes = async () => {

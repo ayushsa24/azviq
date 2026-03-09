@@ -8,6 +8,8 @@ import RecentItemsScroll from "@/components/dashboard/RecentItemsScroll";
 import DashboardTasks from "@/components/dashboard/DashboardTasks";
 import DashboardChecklist from "@/components/dashboard/DashboardChecklist";
 import DashboardStats from "@/components/dashboard/DashboardStats";
+import StudyConsistency from "@/components/dashboard/StudyConsistency";
+import AiSuggestions from "@/components/dashboard/AiSuggestions";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -49,9 +51,21 @@ export default async function Home() {
           <RecentItemsScroll />
 
           {/* 4. To-Do List & Tasks (2 Column Grid on Laptop) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch mb-6">
             <DashboardChecklist />
             <DashboardTasks />
+          </div>
+
+          {/* Mobile Layout: AI Suggestions BEFORE Study Consistency */}
+          <div className="flex flex-col md:hidden">
+            <AiSuggestions />
+            <StudyConsistency />
+          </div>
+
+          {/* Desktop Layout: AI Suggestions AFTER Study Consistency */}
+          <div className="hidden md:flex flex-col">
+            <StudyConsistency />
+            <AiSuggestions />
           </div>
 
         </div>

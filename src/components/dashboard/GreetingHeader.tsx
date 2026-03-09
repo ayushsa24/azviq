@@ -43,7 +43,7 @@ export default function GreetingHeader({ userName, children }: { userName: strin
             <div className="flex items-center gap-3">
                 {children}
                 <h1 className="text-3xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
-                    {greeting}, {userName} <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
+                    {greeting}, {userName} <span className="animate-wave inline-block origin-[70%_70%]">!</span>
                 </h1>
             </div>
             <p className="text-[#545454] dark:text-[#BABABA] mt-1.5 font-medium transition-colors">

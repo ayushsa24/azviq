@@ -40,6 +40,7 @@ import {
   ChevronsLeft,
   Search,
 } from "lucide-react";
+import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 type Message = {
   id?: string;
@@ -61,6 +62,8 @@ function AiChatCore() {
   const router = useRouter();
   const { theme } = useTheme();
   const { open: isMainSidebarOpen, toggle: toggleMainSidebar } = useSidebar();
+
+  useStudyTracker({ activityType: 'ai_teacher', isEnabled: true });
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);

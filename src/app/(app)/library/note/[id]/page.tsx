@@ -25,6 +25,7 @@ import "highlight.js/styles/atom-one-dark.css";
 import { AiTrigger } from '@/components/editor/AiTrigger';
 import { AiInlineInput } from '@/components/editor/AiInlineInput';
 import { logRecentActivity } from '@/lib/logRecentActivity';
+import { useStudyTracker } from '@/hooks/useStudyTracker';
 
 const lowlight = createLowlight(all)
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -51,6 +52,8 @@ export default function NoteEditorPage() {
     // Use a ref to keep track of the latest title for editor closures
     const titleRef = React.useRef(title);
     const isFetchingRef = React.useRef(true);
+
+    useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
 
     useEffect(() => {
         titleRef.current = title;

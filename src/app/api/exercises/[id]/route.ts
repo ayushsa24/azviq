@@ -87,6 +87,8 @@ export async function PATCH(
             throw updateError;
         }
 
+
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("PATCH exercise error:", error);

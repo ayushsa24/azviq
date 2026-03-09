@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw } from "lucide-react";
+import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 interface Question {
     question: string;
@@ -40,6 +41,9 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showResults, setShowResults] = useState(false);
+
+    // Call useStudyTracker hook
+    useStudyTracker({ activityType: "exercise", subject: "Exercise", topic: exercise.title });
 
     // Timer
     const [elapsed, setElapsed] = useState(0);

@@ -6,6 +6,7 @@ import {
     ArrowLeft, BookOpen, Key, HelpCircle, ChevronDown, ChevronUp,
     ArrowRight, Eye, EyeOff, FileText, Clock
 } from "lucide-react";
+import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 interface Keyword { term: string; definition: string; }
 interface QAPair { question: string; answer: string; }
@@ -128,6 +129,8 @@ function SummaryRenderer({ text, isDark }: { text: string; isDark: boolean }) {
 export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageProps) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
+
+    useStudyTracker({ activityType: 'revision', isEnabled: true, subject: "Revision", topic: revision?.title || "Untitled Revision" });
 
     const [activeTab, setActiveTab] = useState<"summary" | "keywords" | "qa">("summary");
     const [expandedKw, setExpandedKw] = useState<number | null>(null);

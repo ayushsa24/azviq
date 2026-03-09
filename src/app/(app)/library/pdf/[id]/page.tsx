@@ -9,6 +9,7 @@ import { PdfDrawingOverlay, Stroke } from "@/components/pdf/PdfDrawingOverlay";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { logRecentActivity } from "@/lib/logRecentActivity";
+import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 // Set up the PDF.js worker using an unpkg CDN for reliability
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -31,6 +32,8 @@ export default function PdfEditorPage() {
     const [activeTool, setActiveTool] = useState<"pen" | "eraser">("pen");
     const [currentColor, setCurrentColor] = useState<string>("#252525");
     const [strokeWidth, setStrokeWidth] = useState<number>(3);
+
+    useStudyTracker({ activityType: 'pdf', isEnabled: !isLoading, subject: "PDF", topic: note?.title || "Untitled PDF" });
 
     useEffect(() => {
         const fetchNote = async () => {

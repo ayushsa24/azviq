@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ZoomProvider } from "@/contexts/ZoomContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { AuthProvider } from "@/contexts/AuthProvider";
 import AppShell from "@/components/layout/AppShell";
 
 const geistSans = Geist({
@@ -54,13 +55,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ZoomProvider>
-          <ThemeProvider>
-            <NotificationProvider>
-              {children}
-            </NotificationProvider>
-          </ThemeProvider>
-        </ZoomProvider>
+        <AuthProvider>
+          <ZoomProvider>
+            <ThemeProvider>
+              <NotificationProvider>
+                {children}
+              </NotificationProvider>
+            </ThemeProvider>
+          </ZoomProvider>
+        </AuthProvider>
       </body>
     </html>
   );

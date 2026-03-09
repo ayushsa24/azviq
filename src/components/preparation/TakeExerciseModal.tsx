@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
 import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, Trophy } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 interface Question {
     question: string;
@@ -34,6 +35,8 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isDark = theme === 'dark';
+
+    useStudyTracker({ activityType: 'exercise', isEnabled: isOpen, subject: "Exercise", topic: exercise?.title || "Practice" });
 
     useEffect(() => {
         if (isOpen && exercise) {
@@ -69,7 +72,11 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
         setIsSubmitting(true);
         try {
             let correct = 0;
-            exercise.questions.forEach((q, i) => { if (answers[i] === q.correctAnswerIndex) correct++; });
+            exercise.questions.forEach((q, i) => {
+                if (answers[i] === q.correctAnswerIndex) {
+                    correct++;
+                }
+            });
             const scorePercentage = Math.round((correct / totalQs) * 100);
             const res = await fetch(`/api/exercises/${exercise.id}`, {
                 method: "PATCH",
