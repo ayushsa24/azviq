@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Clock, CheckCircle2, BookOpen, Play, Pause, RotateCcw, X } from "lucide-react";
 
 export default function DashboardStats() {
-    const [tasksDone, setTasksDone] = useState(0);
+    const [tasksDue, setTasksDue] = useState(0);
     const [revisionsDue, setRevisionsDue] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -35,15 +35,15 @@ export default function DashboardStats() {
                 if (tasksRes.ok) {
                     const data = await tasksRes.json();
 
-                    const dueToday = (data.tasks || []).filter((t: any) => {
-                        if (t.status === "done") return false;
+                    const dueTodayCount = (data.tasks || []).filter((t: any) => {
+                        if (t.status === "done" || t.status === "archived") return false;
                         if (!t.due_date) return false;
                         const dueDate = new Date(t.due_date);
                         dueDate.setHours(0, 0, 0, 0);
                         return dueDate.getTime() <= today.getTime(); // overdue or today
                     }).length;
 
-                    setTasksDone(dueToday);
+                    setTasksDue(dueTodayCount);
                 }
 
                 // Fetch revisions due for review (created within last 7 days)
@@ -344,7 +344,7 @@ export default function DashboardStats() {
             <div className="hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-colors min-h-[88px]">
                 <div>
                     <p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Tasks Due</p>
-                    <h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDone}</h3>
+                    <h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDue}</h3>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
                     <CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" />
@@ -373,7 +373,7 @@ export default function DashboardStats() {
                             </div>
                             <span className="text-xs text-[#7D7D7D] dark:text-[#BABABA]">Tasks</span>
                         </div>
-                        <span className="text-lg font-bold text-[#252525] dark:text-white">{tasksDone}</span>
+                        <span className="text-lg font-bold text-[#252525] dark:text-white">{tasksDue}</span>
                     </div>
                     <div className="h-px bg-[#E8E5E0] dark:bg-[#383838]" />
                     <div className="flex items-center justify-between">

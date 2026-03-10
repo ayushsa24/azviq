@@ -14,11 +14,11 @@ interface DailySummary {
 }
 
 const ACTIVITY_LABELS: Record<string, string> = {
-    note: "Notes Read",
-    pdf: "PDF Study",
+    note: "Notes",
+    pdf: "PDFs",
     exercise: "Exercises",
     revision: "Revision",
-    ai_teacher: "AI Teacher"
+    ai_teacher: "Chat AI"
 };
 
 export default function StudyConsistency() {
@@ -324,7 +324,7 @@ export default function StudyConsistency() {
                             {Object.entries(hoveredDay.summary.activities_summary).map(([key, count]) => (
                                 <div key={key} className="flex justify-between items-center text-[11px]">
                                     <span className="text-[#CFCFCF]">{ACTIVITY_LABELS[key] || key}</span>
-                                    <span className="font-bold">{count as number}</span>
+                                    <span className="font-bold">{count as number}m</span>
                                 </div>
                             ))}
                         </div>

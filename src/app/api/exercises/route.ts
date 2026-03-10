@@ -121,7 +121,7 @@ Each object MUST have the following structure:
         }
 
         // 3. Insert into database
-        const title = `${note.title} Quiz`;
+        const title = `Exercise: ${note.title}`;
         const difficulty = "Medium"; // Defaulting or could ask AI to judge
 
         const { data: exercise, error: insertError } = await supabase

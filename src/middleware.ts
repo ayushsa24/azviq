@@ -13,7 +13,6 @@ export const config = {
         "/ai/:path*",
         "/tasks/:path*",
         "/settings/:path*",
-        "/progress/:path*",
         "/onboarding/:path*"
     ],
 };

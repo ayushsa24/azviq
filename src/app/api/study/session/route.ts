@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
         let newTotalMinutes = duration_minutes;
         let newActivityCount = 1;
-        let newActivitiesSummary: Record<string, number> = { [activity_type]: 1 };
+        let newActivitiesSummary: Record<string, number> = { [activity_type]: duration_minutes };
 
         if (existingSummary && !fetchError) {
             newTotalMinutes += existingSummary.total_minutes || 0;
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
 
             const existingActivities = existingSummary.activities_summary || {};
             newActivitiesSummary = { ...existingActivities };
-            newActivitiesSummary[activity_type] = (newActivitiesSummary[activity_type] || 0) + 1;
+            newActivitiesSummary[activity_type] = (newActivitiesSummary[activity_type] || 0) + duration_minutes;
         }
 
         const { error: upsertError } = await supabase

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose } from "lucide-react";
+import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 export default function Header({ onMenuClick, open }: { onMenuClick: () => void; open: boolean }) {
@@ -145,6 +145,17 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
                     }`}>
                   <User className="w-4 h-4" />
                   My Profile
+                </button>
+              </Link>
+              <Link href="/settings">
+                <button
+                  onClick={() => setDropdownOpen(false)}
+                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
+                    ? 'text-[#CFCFCF] hover:bg-[#545454]'
+                    : 'text-[#545454] hover:bg-[#F0EDE8]'
+                    }`}>
+                  <Settings className="w-4 h-4" />
+                  Settings
                 </button>
               </Link>
 

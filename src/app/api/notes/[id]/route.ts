@@ -156,6 +156,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
         if (deleteError) throw deleteError;
 
+        // Also remove from recent activity
+        await supabase
+            .from("recent_activity")
+            .delete()
+            .eq("item_id", id)
+            .eq("user_id", user.id);
+
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error("DELETE notes error:", error);

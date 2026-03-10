@@ -126,7 +126,7 @@ Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
             .insert({
                 user_id: user.id,
                 note_id: note.id,
-                title: note.title,
+                title: `Revision: ${note.title}`,
                 summary: parsed.summary || "",
                 keywords: parsed.keywords || [],
                 qa_pairs: parsed.qa_pairs || [],

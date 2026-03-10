@@ -9,11 +9,14 @@ export async function logRecentActivity(params: {
     href: string;
 }) {
     try {
-        await fetch("/api/recent-activity", {
+        const res = await fetch("/api/recent-activity", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(params),
         });
+        if (res.ok) {
+            window.dispatchEvent(new CustomEvent("recentActivityUpdated"));
+        }
     } catch (err) {
         // Silently fail — logging activity should never block the user
         console.error("Failed to log recent activity:", err);

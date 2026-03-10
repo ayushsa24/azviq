@@ -127,6 +127,13 @@ export async function DELETE(
             throw deleteError;
         }
 
+        // Also remove from recent activity
+        await supabase
+            .from("recent_activity")
+            .delete()
+            .eq("item_id", resolvedParams.id)
+            .eq("user_id", user.id);
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("DELETE exercise error:", error);

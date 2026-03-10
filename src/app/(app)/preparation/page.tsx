@@ -51,6 +51,7 @@ export default function PreparationPage() {
     const [activeExercise, setActiveExercise] = useState<any | null>(null);
     // Full-page revision state
     const [activeRevision, setActiveRevision] = useState<any | null>(null);
+    const processedIdRef = useRef<string | null>(null);
 
     const scrollContentRef = useRef<HTMLDivElement>(null);
     const searchParams = useSearchParams();
@@ -60,11 +61,23 @@ export default function PreparationPage() {
         const tabParam = searchParams.get("tab") as TabType | null;
         const idParam = searchParams.get("id");
 
+        // Only react if the ID in the URL actually changed
+        if (idParam === processedIdRef.current) return;
+        processedIdRef.current = idParam;
+
         if (tabParam && ["exercise", "revision", "personal_ai"].includes(tabParam)) {
             setActiveTab(tabParam);
         }
 
-        if (!idParam) return;
+        if (!idParam) {
+            setActiveExercise(null);
+            setActiveRevision(null);
+            return;
+        }
+
+        // Clear existing views so the new one can take over
+        setActiveExercise(null);
+        setActiveRevision(null);
 
         async function autoOpen() {
             if (tabParam === "exercise") {
@@ -72,7 +85,15 @@ export default function PreparationPage() {
                     const res = await fetch(`/api/exercises/${idParam}`);
                     if (res.ok) {
                         const data = await res.json();
-                        if (data.exercise) setActiveExercise(data.exercise);
+                        if (data.exercise) {
+                            setActiveExercise(data.exercise);
+                            logRecentActivity({
+                                item_id: data.exercise.id,
+                                item_type: "exercise",
+                                title: data.exercise.title || "Untitled Exercise",
+                                href: `/preparation?tab=exercise&id=${data.exercise.id}`,
+                            });
+                        }
                     }
                 } catch (e) { console.error("Failed to load exercise", e); }
             } else if (tabParam === "revision") {
@@ -80,15 +101,22 @@ export default function PreparationPage() {
                     const res = await fetch(`/api/revision/${idParam}`);
                     if (res.ok) {
                         const data = await res.json();
-                        if (data.revision) setActiveRevision(data.revision);
+                        if (data.revision) {
+                            setActiveRevision(data.revision);
+                            logRecentActivity({
+                                item_id: data.revision.id,
+                                item_type: "revision",
+                                title: data.revision.title || "Untitled Revision",
+                                href: `/preparation?tab=revision&id=${data.revision.id}`,
+                            });
+                        }
                     }
                 } catch (e) { console.error("Failed to load revision", e); }
             }
         }
 
         autoOpen();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [searchParams]);
 
     // Reset scroll to top when tab changes
     useEffect(() => {

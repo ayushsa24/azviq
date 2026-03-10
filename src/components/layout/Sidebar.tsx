@@ -9,9 +9,25 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
+
+type RecentItem = {
+  id: string;
+  item_id: string;
+  title: string;
+  item_type: "note" | "pdf" | "exercise" | "revision";
+  opened_at: string;
+  href: string;
+};
+
+const TYPE_CONFIG: Record<string, { icon: any }> = {
+  note: { icon: FileText },
+  pdf: { icon: FileIcon },
+  exercise: { icon: FlaskConical },
+  revision: { icon: BookOpen },
+};
 
 export default function Sidebar({
   open,
@@ -30,7 +46,22 @@ export default function Sidebar({
   const [profile, setProfile] = useState<{ name?: string; email?: string; avatar_url?: string } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function fetchRecentItems() {
+      try {
+        const res = await fetch("/api/recent-activity");
+        if (!res.ok) return;
+        const data = await res.json();
+        setRecentItems((data.items || []).slice(0, 8));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchRecentItems();
+  }, [pathname]);
 
   useEffect(() => {
     const userId = localStorage.getItem("userId");
@@ -59,11 +90,9 @@ export default function Sidebar({
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
     { href: "/library", label: "Library", icon: Library },
-    { href: "/tasks", label: "Tasks", icon: CheckSquare },
-    { href: "/progress", label: "Progress", icon: TrendingUp },
     { href: "/ai", label: "AI Chat", icon: MessageCircle },
+    { href: "/tasks", label: "Tasks", icon: CheckSquare },
     { href: "/preparation", label: "Preparation", icon: Sparkles },
-    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const visible = open || isHovered;
@@ -133,6 +162,37 @@ export default function Sidebar({
               </Link>
             );
           })}
+
+          {recentItems.length > 0 && (
+            <div className="mt-4 mb-2">
+              <div className={`px-4 mb-2 text-xs font-semibold flex items-center gap-1.5 opacity-60 ${isDark ? "text-white" : "text-[#252525]"}`}>
+                <Clock className="w-3.5 h-3.5" />
+                <span>Recent</span>
+              </div>
+              <div className="space-y-0.5">
+                {recentItems.map((item) => {
+                  const ItemIcon = TYPE_CONFIG[item.item_type]?.icon || FileText;
+                  const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
+
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 text-[13px] font-medium
+                        ${isActive
+                          ? isDark ? "bg-[#2E2E2E] text-white" : "bg-[#F0EDE8] text-[#252525]"
+                          : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#CFCFCF] hover:text-[#252525]"
+                        }`}
+                      title={item.title}
+                    >
+                      <ItemIcon className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`} />
+                      <span className="truncate">{item.title}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* ── BOTTOM PROFILE + POPUP ── */}
@@ -156,6 +216,16 @@ export default function Sidebar({
                 </p>
                 {profile?.email && <p className="text-xs text-[#BABABA] truncate mt-0.5">{profile.email}</p>}
               </button>
+
+              {/* Settings */}
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
+                  ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
+              >
+                <Settings className="w-4 h-4" /> Settings
+              </Link>
 
               {/* Dark / Light mode */}
               <button

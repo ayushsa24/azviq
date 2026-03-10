@@ -126,7 +126,7 @@ export default function DashboardTasks() {
         dueDate.setHours(0, 0, 0, 0);
 
         if (filterRange === "today") {
-            return dueDate.getTime() === today.getTime();
+            return dueDate.getTime() <= today.getTime();
         } else if (filterRange === "1week") {
             maxDate.setDate(today.getDate() + 7);
         } else if (filterRange === "2weeks") {

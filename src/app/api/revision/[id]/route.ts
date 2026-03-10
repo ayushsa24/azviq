@@ -55,6 +55,14 @@ export async function DELETE(
             .eq("user_id", user.id);
 
         if (error) throw error;
+
+        // Also remove from recent activity
+        await supabase
+            .from("recent_activity")
+            .delete()
+            .eq("item_id", id)
+            .eq("user_id", user.id);
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("DELETE revision error:", error);
