@@ -349,9 +349,9 @@ export default function TasksPage() {
       {/* ── Scrollable main area ── */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 scrollbar-hide"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 pb-6 scrollbar-hide w-full"
       >
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0 max-w-full">
           {/* ── Page Title + controls ── */}
           <div className="flex items-center justify-between pt-[calc(env(safe-area-inset-top,0px)+12px)] sm:pt-6 pb-1">
             <div className="flex items-center gap-3">
@@ -495,7 +495,7 @@ export default function TasksPage() {
                 TASKS SECTION
             ══════════════════════════════ */}
           <div className="relative mt-6" ref={tasksSectionRef}>
-            <div className="sticky top-0 z-20 bg-transparent dark:bg-[#1A1A1A] pt-4 pb-1">
+            <div className="sticky top-0 z-20 bg-[#F5F3EF]/95 backdrop-blur-md dark:bg-[#1A1A1A]/95 pt-4 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6">
               <h2 className="text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white mb-3">Tasks</h2>
 
               {/* Row 1: [Search + ⭐]  ................  [New Task →] */}
@@ -553,7 +553,7 @@ export default function TasksPage() {
 
             {/* ── Kanban View ── */}
             {taskView === "kanban" && (
-              <div className="bg-white/80 backdrop-blur-md dark:bg-white/5 rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto">
+              <div className="bg-white/80 backdrop-blur-md dark:bg-white/5 rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto w-full max-w-full">
                 <div className="flex gap-4">
                   {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (

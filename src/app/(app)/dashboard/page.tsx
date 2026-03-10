@@ -40,30 +40,34 @@ export default async function Home() {
           </GreetingHeader>
 
           {/* 2. Ask AI Prompt Bar */}
-          <div className="mb-1 mt-1">
+          <div className="mb-3 sm:mb-4">
             <AskAIGlobalBar />
           </div>
 
           {/* New Stats Row */}
-          <DashboardStats />
+          <div className="mb-3 sm:mb-4">
+            <DashboardStats />
+          </div>
 
           {/* 3. Recent Items (Horizontal Scroll) */}
-          <RecentItemsScroll />
+          <div className="mb-3 sm:mb-4">
+            <RecentItemsScroll />
+          </div>
 
           {/* 4. To-Do List & Tasks (2 Column Grid on Laptop) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-stretch mb-3 sm:mb-4">
             <DashboardChecklist />
             <DashboardTasks />
           </div>
 
           {/* Mobile Layout: AI Suggestions BEFORE Study Consistency */}
-          <div className="flex flex-col md:hidden">
+          <div className="flex flex-col md:hidden gap-3 sm:gap-4">
             <AiSuggestions />
             <StudyConsistency />
           </div>
 
           {/* Desktop Layout: AI Suggestions AFTER Study Consistency */}
-          <div className="hidden md:flex flex-col">
+          <div className="hidden md:flex flex-col gap-3 sm:gap-4">
             <StudyConsistency />
             <AiSuggestions />
           </div>

@@ -269,10 +269,21 @@ export function TaskDetailModal({
                             Comments / Description
                         </div>
                         <textarea
+                            ref={(el) => {
+                                if (el) {
+                                    el.style.height = "auto";
+                                    el.style.height = `${el.scrollHeight}px`;
+                                }
+                            }}
                             value={localTask.description || ""}
-                            onChange={(e) => handleUpdateField("description", e.target.value)}
+                            onChange={(e) => {
+                                handleUpdateField("description", e.target.value);
+                                e.target.style.height = "auto";
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                            }}
                             placeholder="Add your notes, action items, or comments here..."
-                            className="w-full min-h-[250px] bg-transparent text-sm text-gray-800 dark:text-gray-200 outline-none resize-y placeholder-gray-400 leading-relaxed"
+                            rows={6}
+                            className="w-full min-h-[140px] bg-transparent text-sm text-gray-800 dark:text-gray-200 outline-none resize-none placeholder-gray-400 leading-relaxed overflow-hidden transition-all duration-100"
                         />
                     </div>
                 </div>

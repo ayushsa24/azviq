@@ -75,7 +75,7 @@ export default function RecentItemsScroll() {
     if (items.length === 0) return null;
 
     return (
-        <div className="mb-4">
+        <div>
             <SectionHeader />
 
             {/* ── Horizontal scroll — all screen sizes ── */}

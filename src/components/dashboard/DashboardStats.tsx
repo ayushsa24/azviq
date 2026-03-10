@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Clock, CheckCircle2, BookOpen, Play, Pause, RotateCcw, X } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function DashboardStats() {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
     const [tasksDue, setTasksDue] = useState(0);
     const [revisionsDue, setRevisionsDue] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -84,6 +87,9 @@ export default function DashboardStats() {
                 }
             } catch (e) { }
         }
+
+        window.addEventListener("task-updated", fetchStats);
+        return () => window.removeEventListener("task-updated", fetchStats);
     }, []);
 
     // Timer interval logic
@@ -170,11 +176,14 @@ export default function DashboardStats() {
     }
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             {/* Study Time Tracker — vertical on mobile, horizontal on desktop */}
-            <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-colors relative z-20
+            <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 relative z-20 ${isDark
+                ? "hover:bg-white/10 hover:border-[#444]"
+                : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
                 flex flex-col pt-3.5 px-3.5 pb-2.5 min-h-[110px]
-                sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:min-h-[88px]">
+                sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:min-h-[88px]`}>
 
                 {/* Title — top on mobile, left on desktop */}
                 <p className="text-xs sm:text-sm font-semibold text-[#545454] dark:text-[#BABABA] sm:hidden mb-1">Study Time Today</p>
@@ -341,7 +350,10 @@ export default function DashboardStats() {
             </div>
 
             {/* Tasks Done — desktop only */}
-            <div className="hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-colors min-h-[88px]">
+            <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark
+                ? "hover:bg-white/10 hover:border-[#444]"
+                : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
                 <div>
                     <p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Tasks Due</p>
                     <h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDue}</h3>
@@ -352,7 +364,10 @@ export default function DashboardStats() {
             </div>
 
             {/* Revision Due — desktop only */}
-            <div className="hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-colors min-h-[88px]">
+            <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark
+                ? "hover:bg-white/10 hover:border-[#444]"
+                : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
                 <div>
                     <p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Revision Due</p>
                     <h3 className="text-2xl font-bold text-[#252525] dark:text-white">{revisionsDue}</h3>
@@ -363,7 +378,10 @@ export default function DashboardStats() {
             </div>
 
             {/* Combined Tasks + Revision — mobile only (2nd card) */}
-            <div className="sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-colors min-h-[88px]">
+            <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[88px] ${isDark
+                ? "hover:bg-white/10 hover:border-[#444]"
+                : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
                 <p className="text-xs font-semibold text-[#545454] dark:text-[#BABABA] mb-2">Today&apos;s Due</p>
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">

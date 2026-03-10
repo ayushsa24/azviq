@@ -33,12 +33,18 @@ export function useStudyTracker({ activityType, isEnabled = true, subject, topic
 
             const endTime = new Date();
             const durationMs = endTime.getTime() - startTimeRef.current.getTime();
-            const durationMinutes = Math.max(1, Math.round(durationMs / 60000)); // Minimum 1 minute tracked for any active interaction
+            let durationMinutes = Math.max(1, Math.round(durationMs / 60000)); // Minimum 1 minute tracked for any active interaction
 
             // Prevent logging extremely short accidental clicks (< 10 seconds), 
             // but if they stayed longer than 10s, we give them 1 minute.
             if (durationMs < 10000) {
                 return;
+            }
+
+            // Safety Cap: If a session is suspiciously long (e.g., left open overnight for > 5 hours),
+            // cap it at a reasonable 2 hours (120 mins).
+            if (durationMinutes > 300) {
+                durationMinutes = 120;
             }
 
             try {

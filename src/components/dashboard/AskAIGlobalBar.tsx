@@ -19,7 +19,7 @@ export default function AskAIGlobalBar() {
     };
 
     return (
-        <div className={`w-full max-w-2xl mx-auto mb-8 p-1 rounded-2xl shadow-sm transition-all duration-300 ${theme === 'dark'
+        <div className={`w-full max-w-2xl mx-auto p-1 rounded-2xl shadow-sm transition-all duration-300 ${theme === 'dark'
             ? 'bg-gradient-to-r from-[#545454]/40 via-[#7D7D7D]/20 to-[#545454]/40 border border-[#545454]'
             : 'bg-gradient-to-r from-[#F5F3EF] via-white to-[#F5F3EF] border border-[#E8E5E0]'
             }`}>

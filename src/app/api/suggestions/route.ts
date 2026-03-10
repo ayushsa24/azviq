@@ -34,9 +34,9 @@ export async function GET(req: Request) {
             .single();
 
         const totalMinutes = dailySummary?.total_minutes || 0;
-        if (totalMinutes < 30) {
+        if (totalMinutes < 60) {
             suggestions.push({
-                id: crypto.randomUUID(),
+                id: `short-study-${todayString}`,
                 suggestion_type: "short_study",
                 title: "Quick Study Session",
                 description: `You studied only ${totalMinutes} minutes today.`,
@@ -61,12 +61,13 @@ export async function GET(req: Request) {
 
             if (weakExercises.length > 0) {
                 const multiple_actions = weakExercises.slice(0, 3).map((ex: any) => ({
+                    id: ex.id,
                     action_type: `/preparation?tab=exercise&id=${ex.id}`,
                     action_label: ex.title || "Practice"
                 }));
 
                 suggestions.push({
-                    id: crypto.randomUUID(),
+                    id: `weak-topics-${userId}`,
                     suggestion_type: "weak_topic",
                     title: "Weak Topics Detected",
                     description: `You have ${weakExercises.length} exercise(s) with an accuracy below 60%. Retrying them will help your understanding.`,
@@ -79,55 +80,38 @@ export async function GET(req: Request) {
             }
         }
 
-        // 3. Check Revision Schedule
-        const { data: schedules } = await supabase
-            .from('revision_schedule')
+        // 3. Spaced Revision Recommendation (Notes/PDFs more than 7 days old)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const { data: notes } = await supabase
+            .from('notes')
             .select('*')
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .lt('created_at', sevenDaysAgo.toISOString())
+            .order('created_at', { ascending: true }) // Recommend oldest first
+            .limit(2);
 
-        if (schedules && schedules.length > 0) {
-            schedules.forEach((s: any) => {
-                if (!s.next_revision_date) return;
-                const nextDate = new Date(s.next_revision_date);
-                const studiedDate = new Date(s.last_studied_date);
-                const diffTime = Math.abs(todayDate.getTime() - studiedDate.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (notes && notes.length > 0) {
+            const multiple_actions = notes.slice(0, 3).map((note: any) => ({
+                id: note.id,
+                action_type: `/library/${note.file_url ? "pdf" : "note"}/${note.id}`,
+                action_label: note.title
+            }));
 
-                if (s.next_revision_date === todayString) {
-                    suggestions.push({
-                        id: crypto.randomUUID(),
-                        suggestion_type: "spaced_revision",
-                        title: "Revision Recommended",
-                        description: `You studied ${s.topic} ${diffDays} days ago.`,
-                        related_subject: s.subject,
-                        related_topic: s.topic,
-                        action_type: "/preparation",
-                        action_label: "Start Revision"
-                    });
-                } else if (nextDate < todayDate) {
-                    suggestions.push({
-                        id: crypto.randomUUID(),
-                        suggestion_type: "missed_revision",
-                        title: "Missed Revision",
-                        description: `You skipped your ${s.topic} revision yesterday.`,
-                        related_subject: s.subject,
-                        related_topic: s.topic,
-                        action_type: "/preparation",
-                        action_label: "Resume Revision"
-                    });
-                }
+            suggestions.push({
+                id: `spaced-revision-${userId}`,
+                suggestion_type: "spaced_revision",
+                title: "Revision Recommended",
+                description: `You have ${notes.length} material(s) older than 7 days. Quick revision will help you retain the concepts better.`,
+                related_subject: "Library",
+                related_topic: "Multiple",
+                action_type: multiple_actions[0].action_type,
+                action_label: multiple_actions[0].action_label,
+                multiple_actions: multiple_actions
             });
         }
 
-        // Prioritize and limit
-        const priorityOrder: Record<string, number> = {
-            "missed_revision": 1,
-            "spaced_revision": 2,
-            "weak_topic": 3,
-            "short_study": 4
-        };
-
-        suggestions.sort((a, b) => priorityOrder[a.suggestion_type] - priorityOrder[b.suggestion_type]);
         const topSuggestions = suggestions.slice(0, 4);
 
         // Optionally persist to ai_suggestions table

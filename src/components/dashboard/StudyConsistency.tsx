@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronDown, Loader2 } from 'lucide-react';
+import { useTheme } from "@/contexts/ThemeContext";
 import { format, eachDayOfInterval, startOfYear, endOfYear, getDay, isSameDay, subDays, differenceInCalendarDays, startOfDay } from 'date-fns';
 
 interface DailySummary {
@@ -22,6 +23,8 @@ const ACTIVITY_LABELS: Record<string, string> = {
 };
 
 export default function StudyConsistency() {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [summaries, setSummaries] = useState<DailySummary[]>([]);
@@ -215,29 +218,72 @@ export default function StudyConsistency() {
     };
 
     return (
-        <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 sm:p-6 shadow-sm transition-colors mb-6 relative">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 sm:p-6 shadow-sm transition-all duration-200 relative group/card ${isDark
+            ? "hover:bg-white/10 hover:border-[#444]"
+            : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+            } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
+            <div className="flex items-center justify-between mb-6 gap-2">
                 <h3 className="font-bold text-lg text-[#252525] dark:text-white transition-colors">
                     Study Consistency
                 </h3>
 
-                <div className="relative">
+                <div className="relative shrink-0">
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(Number(e.target.value))}
-                        className="appearance-none bg-[#F5F3EF] dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#545454] rounded-xl px-4 py-2 pr-10 text-sm font-semibold text-[#252525] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C2A27A]/30 cursor-pointer"
+                        className="appearance-none bg-[#F5F3EF] dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#545454] rounded-xl px-3 py-1.5 pr-8 text-xs font-semibold text-[#252525] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C2A27A]/30 cursor-pointer shadow-sm hover:bg-[#E8E5E0] dark:hover:bg-[#333] transition-colors"
                     >
                         {years.map(y => (
                             <option key={y} value={y}>{y}</option>
                         ))}
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7D7D7D] pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7D7D7D] pointer-events-none" />
                 </div>
             </div>
 
             {isLoading ? (
-                <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#C2A27A]" />
+                <div className="flex flex-col animate-pulse">
+                    <div className="relative overflow-x-auto pb-4 custom-scrollbar w-fit mx-auto max-w-full">
+                        <div className="flex gap-[2px] min-w-max pl-6 relative opacity-20">
+                            <div className="absolute left-0 top-0 flex flex-col gap-[2px] text-[9px] sm:text-[10px] text-[#7D7D7D] dark:text-[#BABABA] leading-[11px] sm:leading-[13px]">
+                                <div className="h-[11px] sm:h-[13px]"></div>
+                                <div className="h-[11px] sm:h-[13px]">Mon</div>
+                                <div className="h-[11px] sm:h-[13px]"></div>
+                                <div className="h-[11px] sm:h-[13px]">Wed</div>
+                                <div className="h-[11px] sm:h-[13px]"></div>
+                                <div className="h-[11px] sm:h-[13px]">Fri</div>
+                                <div className="h-[11px] sm:h-[13px]"></div>
+                            </div>
+                            {Array.from({ length: 52 }).map((_, weekIdx) => (
+                                <div key={weekIdx} className="flex flex-col gap-[2px]">
+                                    {Array.from({ length: 7 }).map((_, dayIdx) => (
+                                        <div key={dayIdx} className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] rounded-[2px] bg-[#252525]/10 dark:bg-white/10" />
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Stats Skeleton */}
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-[#E8E5E0] dark:border-[#545454] opacity-40">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-3 bg-[#545454] dark:bg-[#7D7D7D] rounded"></div>
+                            <div className="flex gap-[2px]">
+                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#CFCFCF] dark:bg-[#383838]"></div>
+                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#7D7D7D] dark:bg-[#545454]"></div>
+                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#545454] dark:bg-[#9E9E9E]"></div>
+                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#252525] dark:bg-white"></div>
+                            </div>
+                            <div className="w-8 h-3 bg-[#545454] dark:bg-[#7D7D7D] rounded"></div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4 sm:gap-6">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="flex flex-col gap-1.5">
+                                    <div className="w-16 h-2.5 bg-[#545454] dark:bg-[#7D7D7D] rounded"></div>
+                                    <div className="w-10 h-4 bg-[#252525] dark:bg-white rounded"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             ) : (
                 <div className="flex flex-col">

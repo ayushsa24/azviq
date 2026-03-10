@@ -39,7 +39,7 @@ export default function GreetingHeader({ userName, children }: { userName: strin
     }, []);
 
     return (
-        <div className="flex flex-col mb-3 px-2">
+        <div className="flex flex-col mb-1 px-2">
             <div className="flex items-center gap-3">
                 {children}
                 <h1 className="text-3xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">

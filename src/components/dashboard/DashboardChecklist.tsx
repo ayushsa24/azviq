@@ -5,6 +5,7 @@ import {
     Plus, Trash2, ListTodo, Clock, X,
     CheckCircle2, Circle, AlarmClock, RotateCcw, Loader2
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type RepeatType = "today" | "daily" | "weekdays" | "weekends" | "custom";
 
@@ -29,12 +30,17 @@ const REPEAT_LABELS: Record<RepeatType, string> = {
 };
 
 function isTodoVisibleToday(item: TodoItem): boolean {
-    const today = new Date().getDay();
-    if (item.repeat === "today") return true;
+    const now = new Date();
+    const todayDay = now.getDay();
+    if (item.repeat === "today") {
+        if (!item.created_at) return true;
+        const itemDate = new Date(item.created_at);
+        return itemDate.toDateString() === now.toDateString();
+    }
     if (item.repeat === "daily") return true;
-    if (item.repeat === "weekdays") return today >= 1 && today <= 5;
-    if (item.repeat === "weekends") return today === 0 || today === 6;
-    if (item.repeat === "custom") return (item.custom_days || []).includes(today);
+    if (item.repeat === "weekdays") return todayDay >= 1 && todayDay <= 5;
+    if (item.repeat === "weekends") return todayDay === 0 || todayDay === 6;
+    if (item.repeat === "custom") return (item.custom_days || []).includes(todayDay);
     return false;
 }
 
@@ -47,12 +53,15 @@ const defaultForm = () => ({
 });
 
 export default function DashboardChecklist() {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
     const [items, setItems] = useState<TodoItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState(defaultForm());
+    const [showAll, setShowAll] = useState(false);
 
     const fetchTodos = useCallback(async () => {
         try {
@@ -108,6 +117,7 @@ export default function DashboardChecklist() {
                 if (res.ok) {
                     const { todo } = await res.json();
                     setItems(prev => prev.map(i => i.id === editingId ? todo : i));
+                    fetchTodos(); // Force refresh
                 }
             } else {
                 const res = await fetch("/api/todos", {
@@ -124,6 +134,7 @@ export default function DashboardChecklist() {
                 if (res.ok) {
                     const { todo } = await res.json();
                     setItems(prev => [todo, ...prev]);
+                    fetchTodos(); // Force refresh
                 }
             }
             setShowModal(false);
@@ -166,31 +177,42 @@ export default function DashboardChecklist() {
         }));
     };
 
-    const visibleItems = items.filter(isTodoVisibleToday);
+    const visibleItems = showAll ? items : items.filter(isTodoVisibleToday);
     const pending = visibleItems.filter(i => !i.done);
     const done = visibleItems.filter(i => i.done);
 
     return (
         <>
-            <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm transition-colors sm:h-full flex flex-col">
+            <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm transition-all duration-200 sm:h-full flex flex-col group/card ${isDark
+                ? "hover:bg-white/10 hover:border-[#444]"
+                : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                        <ListTodo className="w-4 h-4 text-[#545454] dark:text-[#BABABA]" />
-                        <h2 className="text-base font-bold text-[#252525] dark:text-white">To-Do</h2>
+                        <ListTodo className="w-5 h-5 text-[#252525] dark:text-white" />
+                        <h2 className="text-lg font-bold text-[#252525] dark:text-white">To-Do</h2>
                         {pending.length > 0 && (
-                            <span className="text-[10px] font-bold bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-[#CFCFCF] px-1.5 py-0.5 rounded-full">
+                            <span className="text-xs font-bold bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-[#CFCFCF] px-2 py-0.5 rounded-full">
                                 {pending.length}
                             </span>
                         )}
                     </div>
-                    <button
-                        onClick={openAdd}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-[#252525] dark:bg-white hover:bg-[#1A1A1A] dark:hover:bg-[#F0EDE8] text-white dark:text-[#252525] rounded-full text-xs font-semibold transition-all shadow-sm"
-                    >
-                        <Plus size={12} />
-                        Add
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowAll(!showAll)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#F0EDE8] dark:bg-[#383838] hover:bg-[#E8E5E0] dark:hover:bg-[#444] text-[#252525] dark:text-[#CFCFCF] rounded-full text-xs font-semibold transition-all shadow-sm"
+                        >
+                            {showAll ? "View Today" : "View All"}
+                        </button>
+                        <button
+                            onClick={openAdd}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#252525] dark:bg-white hover:bg-[#1A1A1A] dark:hover:bg-[#F0EDE8] text-white dark:text-[#252525] rounded-full text-xs font-semibold transition-all shadow-sm"
+                        >
+                            <Plus size={12} />
+                            Add
+                        </button>
+                    </div>
                 </div>
 
                 {/* List */}
@@ -216,7 +238,7 @@ export default function DashboardChecklist() {
                             <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
                                 <ListTodo className="w-5 h-5 text-[#7D7D7D] dark:text-[#BABABA]" />
                             </div>
-                            <p className="text-xs text-[#7D7D7D] dark:text-[#BABABA] text-center">No tasks for today.<br />Tap <strong>Add</strong> to create one.</p>
+                            <p className="text-xs text-[#7D7D7D] dark:text-[#BABABA] text-center">No tasks found.<br />Tap <strong>Add</strong> to create one.</p>
                         </div>
                     ) : (
                         <>

@@ -28,24 +28,42 @@ export async function POST(req: Request) {
 
         const userId = user.id;
 
-        // 1. Insert the session
-        const { error: sessionError } = await supabase
+        // 1. Find or Update the session for this date and activity type
+        const studyDate = new Date(start_time).toISOString().split('T')[0];
+
+        const { data: existingSession } = await supabase
             .from("study_sessions")
-            .insert({
+            .select("*")
+            .eq("user_id", userId)
+            .eq("activity_type", activity_type)
+            .eq("study_date", studyDate)
+            .maybeSingle();
+
+        let sessionError = null;
+        const newDuration = (existingSession?.duration_minutes || 0) + duration_minutes;
+
+        const { error } = await supabase
+            .from("study_sessions")
+            .upsert({
+                id: existingSession?.id,
                 user_id: userId,
                 activity_type,
-                start_time,
+                study_date: studyDate,
+                start_time: existingSession?.start_time || start_time,
                 end_time,
-                duration_minutes
+                duration_minutes: newDuration
+            }, {
+                onConflict: "user_id,study_date,activity_type"
             });
+        sessionError = error;
 
         if (sessionError) {
-            console.error("Error inserting study session:", sessionError);
+            console.error("Error handling study session:", sessionError);
             return NextResponse.json({ error: "Failed to log session", details: sessionError }, { status: 500 });
         }
 
         // 2. Update the daily summary
-        const studyDate = new Date(start_time).toISOString().split('T')[0];
+        // studyDate is already declared above
 
         // Use an RPC if available to increment safely, but for simplicity we can read then upsert.
         // It's safer to upsert. Let's fetch current to see if we need to add.
