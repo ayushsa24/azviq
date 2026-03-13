@@ -110,7 +110,6 @@ export default function Signup() {
         ? 'bg-gradient-to-br from-[#252525] via-[#545454]/20 to-[#252525]'
         : 'bg-gradient-to-br from-[#CFCFCF] via-[#7D7D7D]/20 to-[#CFCFCF]'
         }`}
-      onKeyPress={handleKeyPress}
     >
 
       <div className={`w-full max-w-sm p-6 rounded-3xl shadow-2xl backdrop-blur-xl transition-all duration-300 border ${theme === 'dark'
@@ -134,87 +133,92 @@ export default function Signup() {
           </p>
         </div>
 
-        {/* Email Input */}
-        <div className="mb-4">
-          <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
-            Email
-          </label>
-          <div className="relative">
-            <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-              }`} />
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none focus:ring-2 transition-all duration-200
-                ${theme === 'dark'
-                  ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70'
-                  : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
-                } ${errors.email ? 'border-red-500 focus:ring-red-500/50' : ''}`}
-            />
+        <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }}>
+          {/* Email Input */}
+          <div className="mb-4">
+            <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
+              }`}>
+              Email
+            </label>
+            <div className="relative">
+              <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
+                }`} />
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none focus:ring-2 transition-all duration-200
+                  ${theme === 'dark'
+                    ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70'
+                    : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
+                  } ${errors.email ? 'border-red-500 focus:ring-red-500/50' : ''}`}
+                autoComplete="email"
+              />
+            </div>
+            {errors.email && (
+              <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
+                <X className="w-4 h-4" />
+                <span>{errors.email}</span>
+              </div>
+            )}
           </div>
-          {errors.email && (
-            <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-              <X className="w-4 h-4" />
-              <span>{errors.email}</span>
-            </div>
-          )}
-        </div>
 
-        {/* Password Input */}
-        <div className="mb-4">
-          <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
-            Password
-          </label>
-          <PasswordInput
-            placeholder="Create a password"
-            value={password}
-            onChange={setPassword}
-            className={`${errors.password ? 'border-red-500 focus:ring-red-500/50' : ''}`}
-          />
-          {errors.password && (
-            <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-              <X className="w-4 h-4" />
-              <span>{errors.password}</span>
-            </div>
-          )}
-        </div>
+          {/* Password Input */}
+          <div className="mb-4">
+            <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
+              }`}>
+              Password
+            </label>
+            <PasswordInput
+              placeholder="Create a password"
+              value={password}
+              onChange={setPassword}
+              className={`${errors.password ? 'border-red-500 focus:ring-red-500/50' : ''}`}
+              autoComplete="new-password"
+            />
+            {errors.password && (
+              <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
+                <X className="w-4 h-4" />
+                <span>{errors.password}</span>
+              </div>
+            )}
+          </div>
 
-        {/* Confirm Password Input */}
-        <div className="mb-6">
-          <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
-            Confirm Password
-          </label>
-          <PasswordInput
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChange={setConfirmPassword}
-            className={`${errors.confirmPassword ? 'border-red-500 focus:ring-red-500/50' : ''}`}
-          />
-          {errors.confirmPassword && (
-            <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-              <X className="w-4 h-4" />
-              <span>{errors.confirmPassword}</span>
-            </div>
-          )}
-        </div>
+          {/* Confirm Password Input */}
+          <div className="mb-6">
+            <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
+              }`}>
+              Confirm Password
+            </label>
+            <PasswordInput
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              className={`${errors.confirmPassword ? 'border-red-500 focus:ring-red-500/50' : ''}`}
+              autoComplete="new-password"
+            />
+            {errors.confirmPassword && (
+              <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
+                <X className="w-4 h-4" />
+                <span>{errors.confirmPassword}</span>
+              </div>
+            )}
+          </div>
 
-        {/* Sign Up Button */}
-        <button
-          onClick={handleSignup}
-          className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2
-            ${theme === 'dark'
-              ? 'bg-[#7D7D7D] hover:bg-[#545454] text-white'
-              : 'bg-[#7D7D7D] hover:bg-[#545454] text-white'
-            }`}
-        >
-          <UserPlus className="w-5 h-5" />
-          Sign Up
-        </button>
+          {/* Sign Up Button */}
+          <button
+            type="submit"
+            className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2
+              ${theme === 'dark'
+                ? 'bg-[#7D7D7D] hover:bg-[#545454] text-white'
+                : 'bg-[#7D7D7D] hover:bg-[#545454] text-white'
+              }`}
+          >
+            <UserPlus className="w-5 h-5" />
+            Sign Up
+          </button>
+        </form>
 
         {/* Login Link */}
         <p className={`text-center mt-4 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'

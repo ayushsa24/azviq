@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -29,6 +29,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [projectSearch, setProjectSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,10 +109,11 @@ export default function TasksPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [tasksRes, projectsRes, notesRes] = await Promise.all([
+      const [tasksRes, projectsRes, notesRes, workspacesRes] = await Promise.all([
         fetch("/api/tasks", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
         fetch("/api/projects", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-        fetch("/api/notes", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
+        fetch("/api/notes?all=true", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
+        fetch("/api/workspaces", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
       ]);
 
       if (tasksRes.ok) {
@@ -127,6 +129,11 @@ export default function TasksPage() {
       if (notesRes.ok) {
         const notesData = await notesRes.json();
         setNotes(notesData.notes || []);
+      }
+
+      if (workspacesRes.ok) {
+        const workspacesData = await workspacesRes.json();
+        setWorkspaces(workspacesData.workspaces || []);
       }
     } catch (error) {
       console.error("Failed to load tasks and projects");
@@ -802,6 +809,7 @@ export default function TasksPage() {
         onClose={() => setSelectedTask(null)}
         projects={projects}
         notes={notes}
+        workspaces={workspaces}
         onTaskUpdated={handleTaskUpdated}
       />
 
@@ -810,6 +818,7 @@ export default function TasksPage() {
         onClose={() => { setSelectedProject(null); setSelectedProjectTask(null); }}
         tasks={tasks}
         notes={notes}
+        workspaces={workspaces}
         onProjectUpdated={handleProjectUpdated}
         onTaskUpdated={fetchData}
         selectedTask={selectedProjectTask}

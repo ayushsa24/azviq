@@ -19,15 +19,7 @@ export default function NotesPage() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">(
-    () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem('libraryActiveTab');
-        if (saved) return saved as "workspaces" | "notes" | "pdfs" | "all" | "favourites";
-      }
-      return "workspaces";
-    }
-  );
+  const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
   const [viewMode, setViewModeState] = useState<"grid" | "list">(
     () => {
       if (typeof window !== "undefined") {
@@ -43,11 +35,7 @@ export default function NotesPage() {
     // Clear the search query whenever this component mounts
     setSearchQuery("");
 
-    const savedTab = localStorage.getItem('libraryActiveTab');
-    if (savedTab) {
-      setActiveTabState(savedTab as any);
-    }
-
+    // Removed libraryActiveTab persistence - always start with workspaces
     const savedView = localStorage.getItem('libraryViewMode');
     if (savedView === "grid" || savedView === "list") {
       setViewModeState(savedView);
@@ -61,7 +49,6 @@ export default function NotesPage() {
 
   const setActiveTab = (tab: "workspaces" | "notes" | "pdfs" | "all" | "favourites") => {
     setActiveTabState(tab);
-    localStorage.setItem('libraryActiveTab', tab);
   };
 
   const setViewMode = (mode: "grid" | "list") => {
@@ -346,7 +333,19 @@ export default function NotesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
           <input
             type="text"
-            placeholder="Search notes..."
+            placeholder={
+              activeWorkspace 
+                ? `Search in ${activeWorkspace.name}...` 
+                : activeTab === "workspaces" 
+                  ? "Search workspaces..." 
+                  : activeTab === "notes" 
+                    ? "Search notes..." 
+                    : activeTab === "pdfs" 
+                      ? "Search PDFs..." 
+                      : activeTab === "favourites" 
+                        ? "Search favourites..." 
+                        : "Search notes..."
+            }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
@@ -360,6 +359,7 @@ export default function NotesPage() {
               className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
             >
               <Plus size={18} />
+              <span className="sm:hidden">Create</span>
               <span className="hidden sm:inline">Create Workspace</span>
             </button>
           ) : (
@@ -370,6 +370,7 @@ export default function NotesPage() {
                   className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
                   <Upload size={18} />
+                  <span className="sm:hidden">Upload</span>
                   <span className="hidden sm:inline">Upload File</span>
                 </button>
               )}
@@ -380,6 +381,7 @@ export default function NotesPage() {
                   className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
                   <Plus size={18} />
+                  <span className="sm:hidden">Create</span>
                   <span className="hidden sm:inline">Create Note</span>
                 </button>
               )}

@@ -22,6 +22,7 @@ export function WorkspaceCard({
 }: WorkspaceCardProps) {
     const isList = viewMode === "list";
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileApp, setIsMobileApp] = useState(false);
     const [menuSide, setMenuSide] = useState<"top" | "bottom">("bottom");
     const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,14 @@ export function WorkspaceCard({
     const isLongPress = useRef(false);
 
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            const checkIsPWA =
+                window.matchMedia("(display-mode: standalone)").matches ||
+                ("standalone" in window.navigator &&
+                    (window.navigator as any).standalone);
+            setIsMobileApp(!!checkIsPWA);
+        }
+
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setIsMenuOpen(false);
@@ -148,16 +157,18 @@ export function WorkspaceCard({
                     </span>
 
                     <div ref={menuRef} className="relative">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsMenuOpen(!isMenuOpen);
-                            }}
-                            className={`p-1.5 rounded-md hover:bg-[#E0E0E0] dark:hover:bg-[#545454] transition-colors ${isMenuOpen ? "bg-[#E0E0E0] dark:bg-[#545454] opacity-100" : "opacity-0 group-hover:opacity-100"
-                                }`}
-                        >
-                            <MoreVertical size={16} className="text-[#545454] dark:text-white" />
-                        </button>
+                        {!isMobileApp && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsMenuOpen(!isMenuOpen);
+                                }}
+                                className={`p-1.5 rounded-md hover:bg-[#E0E0E0] dark:hover:bg-[#545454] transition-colors ${isMenuOpen ? "bg-[#E0E0E0] dark:bg-[#545454] opacity-100" : "opacity-0 group-hover:opacity-100"
+                                    }`}
+                            >
+                                <MoreVertical size={16} className="text-[#545454] dark:text-white" />
+                            </button>
+                        )}
 
                         {isMenuOpen && menuPosition && (
                             <div
@@ -189,6 +200,11 @@ export function WorkspaceCard({
                             </div>
                         )}
                     </div>
+                    {isList && (
+                        <div className="w-5 h-5 flex items-center justify-center text-[#BABABA] shrink-0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -612,26 +612,54 @@ function AiChatCore() {
     });
   const archivedChats = sessions.filter((s) => s.is_archived);
 
-  const renderSessionItem = (session: ChatSession) => (
-    <div
-      key={session.id}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setActiveMenuId(activeMenuId === session.id ? null : session.id);
-      }}
-      className={`group relative w-full flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 ${activeChatId === session.id
-        ? theme === "dark"
-          ? "bg-[#545454] text-white"
-          : "bg-[#F0EDE8] text-[#252525]"
-        : theme === "dark"
-          ? "text-gray-300 hover:bg-[#2A2A2A]"
-          : "text-gray-600 hover:bg-[#F0EDE8]/50"
-        }`}
-    >
-      <button
-        onClick={() => switchChat(session.id)}
-        className="flex items-center gap-2.5 flex-1 min-w-0 pr-2"
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPressActive = useRef(false);
+
+  const renderSessionItem = (session: ChatSession) => {
+    const handleTouchStart = () => {
+      if (!isMobileApp) return;
+      isLongPressActive.current = false;
+      longPressTimerRef.current = setTimeout(() => {
+        isLongPressActive.current = true;
+        setActiveMenuId(session.id);
+      }, 500);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+
+    const handleSessionClick = () => {
+      if (isLongPressActive.current) {
+        isLongPressActive.current = false;
+        return;
+      }
+      switchChat(session.id);
+    };
+
+    return (
+      <div
+        key={session.id}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setActiveMenuId(activeMenuId === session.id ? null : session.id);
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
+        className={`group relative w-full flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 ${activeChatId === session.id
+          ? theme === "dark"
+            ? "bg-[#545454] text-white"
+            : "bg-[#F0EDE8] text-[#252525]"
+          : theme === "dark"
+            ? "text-gray-300 hover:bg-[#2A2A2A]"
+            : "text-gray-600 hover:bg-[#F0EDE8]/50"
+          }`}
       >
+        <button
+          onClick={handleSessionClick}
+          className="flex items-center gap-2.5 flex-1 min-w-0 pr-2"
+        >
         <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
         {isRenamingId === session.id ? (
           <input
@@ -732,7 +760,8 @@ function AiChatCore() {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div

@@ -42,6 +42,7 @@ export function NoteCard({
     const isList = viewMode === "list";
     const isPinned = isPinnedOverride !== undefined ? isPinnedOverride : !!note.is_pinned;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileApp, setIsMobileApp] = useState(false);
     const [menuSide, setMenuSide] = useState<"top" | "bottom">("bottom");
     const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -49,6 +50,14 @@ export function NoteCard({
     const isLongPress = useRef(false);
 
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            const checkIsPWA =
+                window.matchMedia("(display-mode: standalone)").matches ||
+                ("standalone" in window.navigator &&
+                    (window.navigator as any).standalone);
+            setIsMobileApp(!!checkIsPWA);
+        }
+
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setIsMenuOpen(false);
@@ -154,7 +163,7 @@ export function NoteCard({
 
             <div className={`flex items-center shrink-0 text-[#545454] dark:text-[#7D7D7D] group-hover:text-[#252525] dark:group-hover:text-white transition-colors ${isList ? "" : "flex-1 justify-center"
                 }`}>
-                {isPdf ? <FileText size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} /> : <File size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} />}
+                {isPdf ? <File size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} /> : <FileText size={isList ? 24 : 40} strokeWidth={isList ? 2 : 1.5} />}
             </div>
 
             <div className={`border-[#E8E5E0] dark:border-[#7D7D7D]/20 transition-colors ${isList ? "flex-1 min-w-0 flex flex-row items-center justify-between border-none mt-0 pt-0 gap-2" : "mt-4 pt-4 border-t"
@@ -186,16 +195,18 @@ export function NoteCard({
                     </span>
 
                     <div ref={menuRef} className="relative">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsMenuOpen(!isMenuOpen);
-                            }}
-                            className={`p-1.5 rounded-md hover:bg-[#F0EDE8] dark:hover:bg-[#545454] transition-colors ${isMenuOpen ? "bg-[#F0EDE8] dark:bg-[#545454] opacity-100" : "opacity-0 group-hover:opacity-100"
-                                }`}
-                        >
-                            <MoreVertical size={16} className="text-[#545454] dark:text-white" />
-                        </button>
+                        {!isMobileApp && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsMenuOpen(!isMenuOpen);
+                                }}
+                                className={`p-1.5 rounded-md hover:bg-[#F0EDE8] dark:hover:bg-[#545454] transition-colors ${isMenuOpen ? "bg-[#F0EDE8] dark:bg-[#545454] opacity-100" : "opacity-0 group-hover:opacity-100"
+                                    }`}
+                            >
+                                <MoreVertical size={16} className="text-[#545454] dark:text-white" />
+                            </button>
+                        )}
 
                         {isMenuOpen && menuPosition && (
                             <div
@@ -241,6 +252,11 @@ export function NoteCard({
                             </div>
                         )}
                     </div>
+                    {isList && (
+                        <div className="w-5 h-5 flex items-center justify-center text-[#BABABA] shrink-0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -29,6 +29,7 @@ interface ProjectDetailModalProps {
     breadcrumb?: string;
     selectedTask: any | null;       // lifted from parent
     onSelectTask: (t: any | null) => void; // lifted from parent
+    workspaces: any[];
 }
 
 export function ProjectDetailModal({
@@ -41,6 +42,7 @@ export function ProjectDetailModal({
     breadcrumb = "Projects",
     selectedTask,
     onSelectTask,
+    workspaces,
 }: ProjectDetailModalProps) {
     const [localProject, setLocalProject] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -211,6 +213,7 @@ export function ProjectDetailModal({
                 onClose={() => onSelectTask(null)}
                 projects={[]}
                 notes={notes}
+                workspaces={workspaces}
                 onTaskUpdated={() => { onTaskUpdated(); }}
             />
         );

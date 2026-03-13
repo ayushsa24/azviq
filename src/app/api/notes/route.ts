@@ -22,6 +22,7 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const workspaceId = url.searchParams.get("workspace_id");
+    const all = url.searchParams.get("all") === "true";
 
     let query = supabase
       .from("notes")
@@ -29,10 +30,12 @@ export async function GET(req: Request) {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (workspaceId) {
-      query = query.eq("workspace_id", workspaceId);
-    } else {
-      query = query.is("workspace_id", null);
+    if (!all) {
+      if (workspaceId) {
+        query = query.eq("workspace_id", workspaceId);
+      } else {
+        query = query.is("workspace_id", null);
+      }
     }
 
     const { data: notes, error } = await query;

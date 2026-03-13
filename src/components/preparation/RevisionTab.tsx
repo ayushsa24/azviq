@@ -53,7 +53,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
 
     if (isLoading) {
         return (
-            <div className={isList ? "flex flex-col gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"}>
+            <div className={isList ? "flex flex-col gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
                 {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-5 gap-3'}`}>
                         {isList ? (
@@ -102,7 +102,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
     }
 
     return (
-        <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"}>
+        <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
             {filtered.map((rev) => (
                 <div
                     key={rev.id}
@@ -123,7 +123,6 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                     {rev.title}
                                 </h3>
                                 <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
-                                    <span className="truncate max-w-[150px]">{rev.notes?.title || "Unknown source"}</span>
                                     <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(rev.created_at)}</span>
                                     <span className="font-bold text-[#252525] dark:text-white">
                                         {rev.keywords?.length || 0} keywords · {rev.qa_pairs?.length || 0} Q&A

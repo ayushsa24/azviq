@@ -7,7 +7,10 @@ import {
     Clock,
     FileText,
     AlignLeft,
-    ArrowLeft
+    ArrowLeft,
+    Check,
+    ChevronDown,
+    Search
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -17,6 +20,7 @@ interface TaskDetailModalProps {
     onClose: () => void;
     projects: any[];
     notes: any[];
+    workspaces: any[];
     onTaskUpdated: (updatedTask?: any) => void;
 }
 
@@ -25,10 +29,13 @@ export function TaskDetailModal({
     onClose,
     projects,
     notes,
+    workspaces,
     onTaskUpdated,
 }: TaskDetailModalProps) {
     const [localTask, setLocalTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isMaterialDropdownOpen, setIsMaterialDropdownOpen] = useState(false);
+    const [materialSearchQuery, setMaterialSearchQuery] = useState("");
 
     useEffect(() => {
         if (task) {
@@ -235,18 +242,91 @@ export function TaskDetailModal({
                                 <span>Study Material</span>
                             </div>
                             <div className="col-span-2 flex items-center gap-2">
-                                <select
-                                    value={localTask.linked_document_id || ""}
-                                    onChange={(e) => handleUpdateField("linked_document_id", e.target.value || null)}
-                                    className="bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-1 -ml-1 rounded transition-colors w-full cursor-pointer"
-                                >
-                                    <option value="">Empty</option>
-                                    {notes.map((n) => (
-                                        <option key={n.id} value={n.id}>
-                                            {n.title} ({n.file_url ? 'PDF' : 'Note'})
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative w-full">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsMaterialDropdownOpen(!isMaterialDropdownOpen)}
+                                        className="flex items-center justify-between bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-2 rounded-lg transition-colors w-full cursor-pointer border border-[#E8E5E0] dark:border-[#545454]"
+                                    >
+                                        <span className="truncate">
+                                            {localTask.linked_document_id ? (() => {
+                                                const n = notes.find(note => note.id === localTask.linked_document_id);
+                                                if (!n) return "Empty";
+                                                const ws = workspaces?.find((w) => w.id === n.workspace_id);
+                                                return `${ws ? `[${ws.name}] ` : ""}${n.title} (${n.file_url ? 'PDF' : 'Note'})`;
+                                            })() : "Empty"}
+                                        </span>
+                                        <ChevronDown className="w-4 h-4 text-gray-400 ml-2" />
+                                    </button>
+
+                                    {isMaterialDropdownOpen && (
+                                        <div className="absolute top-11 right-0 sm:left-0 sm:right-auto w-[260px] sm:w-[350px] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-lg shadow-xl z-50 flex flex-col max-h-[250px] overflow-hidden">
+                                            <div className="p-2 border-b border-[#E8E5E0] dark:border-[#444] bg-gray-50 dark:bg-[#1A1A1A]">
+                                                <div className="relative">
+                                                    <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        autoFocus
+                                                        placeholder="Search material..."
+                                                        value={materialSearchQuery}
+                                                        onChange={(e) => setMaterialSearchQuery(e.target.value)}
+                                                        className="w-full bg-white dark:bg-[#2A2A2A] border border-[#E8E5E0] dark:border-[#444] focus:border-gray-400 dark:focus:border-[#666] rounded-md text-sm py-1.5 pl-8 pr-3 outline-none transition-colors text-black dark:text-white"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        handleUpdateField("linked_document_id", null);
+                                                        setIsMaterialDropdownOpen(false);
+                                                        setMaterialSearchQuery("");
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between mb-1 ${!localTask.linked_document_id ? "bg-gray-100 dark:bg-[#333] text-black dark:text-white" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3A3A3A]"}`}
+                                                >
+                                                    Empty
+                                                    {!localTask.linked_document_id && <Check className="w-4 h-4" />}
+                                                </button>
+                                                
+                                                {notes.filter(n => n.title.toLowerCase().includes(materialSearchQuery.toLowerCase())).map((n) => {
+                                                    const ws = workspaces?.find((w) => w.id === n.workspace_id);
+                                                    const wsPrefix = ws ? `[${ws.name}] ` : "";
+                                                    const isSelected = localTask.linked_document_id === n.id;
+                                                    return (
+                                                        <button
+                                                            key={n.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleUpdateField("linked_document_id", n.id);
+                                                                setIsMaterialDropdownOpen(false);
+                                                                setMaterialSearchQuery("");
+                                                            }}
+                                                            className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-gray-100 dark:bg-[#333] text-black dark:text-white font-medium" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3A3A3A]"}`}
+                                                        >
+                                                            <div className="flex flex-col min-w-0 pr-2">
+                                                                <span className="truncate">
+                                                                    {n.title}
+                                                                </span>
+                                                                <span className="text-[10px] text-gray-500 truncate mt-0.5 flex gap-1">
+                                                                    {wsPrefix && <span className="font-medium text-gray-400">{wsPrefix}</span>}
+                                                                    <span>{n.file_url ? 'PDF Document' : 'Note'}</span>
+                                                                </span>
+                                                            </div>
+                                                            {isSelected && <Check className="w-4 h-4 flex-shrink-0 text-gray-600 dark:text-gray-300" />}
+                                                        </button>
+                                                    )
+                                                })}
+                                                {notes.filter(n => n.title.toLowerCase().includes(materialSearchQuery.toLowerCase())).length === 0 && (
+                                                    <div className="px-3 py-6 text-center text-sm text-gray-500">
+                                                        No material found
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                                 {localTask.linked_document_id && (
                                     <Link
                                         href={`/library/${localTask.linked_document_type}/${localTask.linked_document_id}`}

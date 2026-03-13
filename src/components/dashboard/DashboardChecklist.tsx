@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     Plus, Trash2, ListTodo, Clock, X,
     CheckCircle2, Circle, AlarmClock, RotateCcw, Loader2
@@ -407,55 +407,115 @@ function TodoRow({ item, onToggle, onEdit, onDelete }: {
     onEdit: (item: TodoItem) => void;
     onDelete: (id: string) => void;
 }) {
-    return (
-        <div
-            className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all cursor-pointer
-                ${item.done
-                    ? "bg-[#F9F8F6] dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#333] opacity-60"
-                    : "bg-white/80 backdrop-blur-md dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md"
-                }`}
-            onClick={() => onEdit(item)}
-        >
-            {/* Checkbox */}
-            <button
-                onClick={e => { e.stopPropagation(); onToggle(item.id, item.done); }}
-                className="flex-shrink-0 text-[#CFCFCF] dark:text-[#545454] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
-            >
-                {item.done
-                    ? <CheckCircle2 className="w-4 h-4 text-[#545454] dark:text-[#BABABA]" />
-                    : <Circle className="w-4 h-4" />
-                }
-            </button>
+    const touchStartRef = useRef<{ x: number, y: number } | null>(null);
+    const [swipeOffset, setSwipeOffset] = useState(0);
 
-            {/* Text + meta */}
-            <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${item.done ? "line-through text-[#BABABA]" : "text-[#252525] dark:text-[#CFCFCF]"}`}>
-                    {item.title}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                    {item.time && (
-                        <span className="flex items-center gap-0.5 text-[10px] text-[#7D7D7D] dark:text-[#BABABA]">
-                            <Clock className="w-2.5 h-2.5" />{item.time}
-                        </span>
-                    )}
-                    <span className="text-[10px] text-[#BABABA] dark:text-[#545454]">
-                        {REPEAT_LABELS[item.repeat]}
-                    </span>
+    return (
+        <div className="relative rounded-xl overflow-hidden touch-pan-y group">
+            {/* Background actions revealed by swipe */}
+            <div className="absolute inset-0 flex items-center justify-between text-white font-medium text-xs">
+                {/* Background for Complete (Swipe Right -> reveals left) */}
+                <div className={`absolute inset-y-0 left-0 flex items-center justify-start px-4 w-1/2 transition-opacity duration-200 ${swipeOffset > 20 ? "opacity-100 bg-[#C2A27A]" : "opacity-0 bg-[#C2A27A]/80"}`}>
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                </div>
+                {/* Background for Delete (Swipe Left -> reveals right) */}
+                <div className={`absolute inset-y-0 right-0 flex items-center justify-end px-4 w-1/2 transition-opacity duration-200 ${swipeOffset < -20 ? "opacity-100 bg-red-500" : "opacity-0 bg-red-400"}`}>
+                    <Trash2 className="w-5 h-5 text-white" />
                 </div>
             </div>
 
-            {/* Delete */}
-            <button
-                onClick={e => {
-                    e.stopPropagation();
-                    if (window.confirm("Are you sure you want to delete this to-do item?")) {
-                        onDelete(item.id);
+            {/* Foreground Card */}
+            <div
+                className={`relative z-10 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all cursor-pointer shadow-sm
+                    ${swipeOffset === 0 ? "transition-transform duration-300 ease-out" : ""}
+                    ${item.done
+                        ? "bg-[#F9F8F6] dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#333] opacity-60"
+                        : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md"
+                    }`}
+                style={{
+                    transform: `translateX(${swipeOffset}px)`
+                }}
+                onClick={() => {
+                    if (swipeOffset === 0) onEdit(item);
+                }}
+                onTouchStart={(e) => {
+                    touchStartRef.current = {
+                        x: e.touches[0].clientX,
+                        y: e.touches[0].clientY,
+                    };
+                }}
+                onTouchMove={(e) => {
+                    if (!touchStartRef.current) return;
+                    const deltaX = e.touches[0].clientX - touchStartRef.current.x;
+                    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+
+                    if (deltaY < 30 && Math.abs(deltaX) > 10) {
+                        // Limit max swipe amount
+                        setSwipeOffset(Math.max(-100, Math.min(100, deltaX)));
                     }
                 }}
-                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#BABABA] transition-all flex-shrink-0"
+                onTouchEnd={(e) => {
+                    if (!touchStartRef.current) {
+                        setSwipeOffset(0);
+                        return;
+                    }
+
+                    if (swipeOffset < -60) {
+                        if (window.confirm("Are you sure you want to delete this to-do item?")) {
+                            onDelete(item.id);
+                        } else {
+                            setSwipeOffset(0);
+                        }
+                    } else if (swipeOffset > 60) {
+                        onToggle(item.id, item.done);
+                        setSwipeOffset(0);
+                    } else {
+                        setSwipeOffset(0);
+                    }
+                    touchStartRef.current = null;
+                }}
             >
-                <Trash2 size={13} />
-            </button>
+                {/* Checkbox */}
+                <button
+                    onClick={e => { e.stopPropagation(); onToggle(item.id, item.done); }}
+                    className="flex-shrink-0 text-[#CFCFCF] dark:text-[#545454] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
+                >
+                    {item.done
+                        ? <CheckCircle2 className="w-4 h-4 text-[#545454] dark:text-[#BABABA]" />
+                        : <Circle className="w-4 h-4" />
+                    }
+                </button>
+
+                {/* Text + meta */}
+                <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${item.done ? "line-through text-[#BABABA]" : "text-[#252525] dark:text-[#CFCFCF]"}`}>
+                        {item.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        {item.time && (
+                            <span className="flex items-center gap-0.5 text-[10px] text-[#7D7D7D] dark:text-[#BABABA]">
+                                <Clock className="w-2.5 h-2.5" />{item.time}
+                            </span>
+                        )}
+                        <span className="text-[10px] text-[#BABABA] dark:text-[#545454]">
+                            {REPEAT_LABELS[item.repeat]}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Delete (only visible on desktop hover) */}
+                <button
+                    onClick={e => {
+                        e.stopPropagation();
+                        if (window.confirm("Are you sure you want to delete this to-do item?")) {
+                            onDelete(item.id);
+                        }
+                    }}
+                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#BABABA] transition-all flex-shrink-0 hidden md:block"
+                >
+                    <Trash2 size={13} />
+                </button>
+            </div>
         </div>
     );
 }

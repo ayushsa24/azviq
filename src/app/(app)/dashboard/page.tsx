@@ -32,7 +32,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col h-full bg-transparent dark:bg-[#1A1A1A] text-[#252525] dark:text-white overflow-hidden transition-colors">
       <div className="flex-1 w-full overflow-y-auto min-h-0 pb-16">
-        <div className="w-full 2xl:max-w-[1600px] mx-auto flex flex-col pt-3 sm:pt-4 lg:pt-6 px-4 sm:px-6 lg:px-8">
+        <div className="w-full flex flex-col pt-3 sm:pt-4 lg:pt-6 px-3 sm:px-6">
 
           {/* 1. Greeting, Motivation, Date */}
           <GreetingHeader userName={userName}>

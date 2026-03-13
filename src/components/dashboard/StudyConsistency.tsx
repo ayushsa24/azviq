@@ -22,6 +22,15 @@ const ACTIVITY_LABELS: Record<string, string> = {
     ai_teacher: "Chat AI"
 };
 
+const formatTime = (totalMinutes: number) => {
+    if (!totalMinutes) return "0m";
+    const h = Math.floor(totalMinutes / 60);
+    const m = Math.round(totalMinutes % 60);
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+};
+
 export default function StudyConsistency() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -363,14 +372,14 @@ export default function StudyConsistency() {
                     style={{ left: hoveredDay.x, top: hoveredDay.y }}
                 >
                     <div className="font-semibold text-sm mb-1">{format(hoveredDay.date, 'MMM d, yyyy')}</div>
-                    <div className="text-xs text-[#CFCFCF] mb-2">{hoveredDay.summary?.total_minutes || 0} minutes studied</div>
+                    <div className="text-xs text-[#CFCFCF] mb-2">{formatTime(hoveredDay.summary?.total_minutes || 0)} studied</div>
 
                     {hoveredDay.summary?.activities_summary && Object.keys(hoveredDay.summary.activities_summary).length > 0 ? (
                         <div className="space-y-1 mt-2 pt-2 border-t border-[#545454]">
                             {Object.entries(hoveredDay.summary.activities_summary).map(([key, count]) => (
                                 <div key={key} className="flex justify-between items-center text-[11px]">
                                     <span className="text-[#CFCFCF]">{ACTIVITY_LABELS[key] || key}</span>
-                                    <span className="font-bold">{count as number}m</span>
+                                    <span className="font-bold">{formatTime(count as number)}</span>
                                 </div>
                             ))}
                         </div>

@@ -75,7 +75,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
         <div className="flex flex-col gap-4 flex-1 h-full">
 
             {/* Content Container */}
-            <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"}>
+            <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
                 {isLoading ? (
                     Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className={`p-5 rounded-xl border flex flex-col gap-3 animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'}`}>
@@ -105,6 +105,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                 ) : filtered.map((ex: any) => (
                     <div
                         key={ex.id}
+                        onClick={() => onStartExercise?.(ex)}
                         className={`group relative transition-all duration-200 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#3C3C3C] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] hover:border-[#D1CEC8] dark:hover:border-[#545454] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer
                             ${isList
                                 ? "flex flex-row items-center gap-4 p-3 rounded-xl h-auto"
@@ -121,7 +122,6 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                         {ex.title}
                                     </h3>
                                     <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
-                                        <span className="truncate max-w-[150px]">{ex.notes?.title || "Unknown source"}</span>
                                         <span className="flex items-center gap-1"><Clock size={10} /> {ex.questions?.length || 5} qns</span>
                                         <span className={`font-bold ${getStatusStyle(ex.status)}`}>
                                             {ex.status} {ex.score !== null && ex.score !== undefined && `· ${ex.score}%`}

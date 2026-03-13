@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, CheckCircle2, Circle, Trash2, CalendarDays, ChevronDown } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { format } from "date-fns";
@@ -17,7 +17,7 @@ export default function DashboardTasks() {
 
     // Selected task state for the detail modal
     const [selectedTask, setSelectedTask] = useState<any>(null);
-    const [filterRange, setFilterRange] = useState<"today" | "1week" | "2weeks" | "1month">("today");
+    const [filterRange, setFilterRange] = useState<"today" | "overdue" | "1week" | "2weeks" | "1month">("today");
 
     useEffect(() => {
         fetchData();
@@ -75,8 +75,8 @@ export default function DashboardTasks() {
         }
     };
 
-    const toggleTaskStatus = async (task: any, e: React.MouseEvent) => {
-        e.stopPropagation();
+    const toggleTaskStatus = async (task: any, e?: React.SyntheticEvent) => {
+        if (e) e.stopPropagation();
         const newStatus = task.status === "done" ? "not_started" : "done";
 
         // Optimistic update
@@ -97,8 +97,8 @@ export default function DashboardTasks() {
         }
     };
 
-    const deleteTask = async (taskId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
+    const deleteTask = async (taskId: string, e?: React.SyntheticEvent) => {
+        if (e) e.stopPropagation();
         // Optimistic update
         setTasks((prev) => prev.filter((t) => t.id !== taskId));
         try {
@@ -133,7 +133,9 @@ export default function DashboardTasks() {
         dueDate.setHours(0, 0, 0, 0);
 
         if (filterRange === "today") {
-            return dueDate.getTime() <= today.getTime();
+            return dueDate.getTime() === today.getTime();
+        } else if (filterRange === "overdue") {
+            return dueDate.getTime() < today.getTime();
         } else if (filterRange === "1week") {
             maxDate.setDate(today.getDate() + 7);
         } else if (filterRange === "2weeks") {
@@ -153,6 +155,7 @@ export default function DashboardTasks() {
     const getTitle = () => {
         switch (filterRange) {
             case "today": return "Today's Tasks";
+            case "overdue": return "Overdue Tasks";
             case "1week": return "This Week's Tasks";
             case "2weeks": return "Next 2 Weeks' Tasks";
             case "1month": return "This Month's Tasks";
@@ -181,6 +184,7 @@ export default function DashboardTasks() {
                             className="appearance-none bg-[#F0EDE8] dark:bg-[#383838] hover:bg-[#E8E5E0] dark:hover:bg-[#444] text-xs font-semibold text-[#252525] dark:text-[#CFCFCF] pl-3 pr-7 py-1.5 rounded-full border-none focus:ring-1 focus:ring-[#C2A27A]/30 cursor-pointer transition-colors outline-none shadow-sm"
                         >
                             <option value="today">Today</option>
+                            <option value="overdue">Overdue</option>
                             <option value="1week">1 Week</option>
                             <option value="2weeks">2 Weeks</option>
                             <option value="1month">1 Month</option>
@@ -205,55 +209,21 @@ export default function DashboardTasks() {
                     ) : displayTasks.length === 0 ? (
                         <div className="text-center py-4 px-4">
                             <p className="text-sm text-[#545454] dark:text-[#7D7D7D]">
-                                {filterRange === "today" ? "All caught up for today! 🎉" : "No tasks found for this period."}
+                                {filterRange === "today" ? "All caught up for today! 🎉" :
+                                 filterRange === "overdue" ? "No overdue tasks! Great job! 🙌" : 
+                                 "No tasks found for this period."}
                             </p>
                         </div>
                     ) : (
                         displayTasks.map((task) => (
-                            <div
+                            <TaskRow
                                 key={task.id}
-                                onClick={() => setSelectedTask(task)}
-                                className="group flex items-center justify-between px-3 py-2.5 bg-white/80 backdrop-blur-md dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 rounded-xl hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md"
-                            >
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                    <button
-                                        type="button"
-                                        onClick={(e) => toggleTaskStatus(task, e)}
-                                        className="text-[#CFCFCF] dark:text-[#545454] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors flex-shrink-0"
-                                    >
-                                        {task.status === "done" ? (
-                                            <CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" />
-                                        ) : (
-                                            <Circle className="w-5 h-5" />
-                                        )}
-                                    </button>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className={`text-sm font-medium truncate ${task.status === "done" ? "text-gray-400 line-through" : "text-[#252525] dark:text-[#CFCFCF]"}`}>
-                                            {task.title}
-                                        </span>
-                                        {task.project_id && projects.find(p => p.id === task.project_id) && (
-                                            <span className="text-[10px] text-[#7D7D7D] truncate">
-                                                {projects.find(p => p.id === task.project_id)?.title}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Delete button appears on hover (always on mobile) */}
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (window.confirm("Are you sure you want to delete this task?")) {
-                                            deleteTask(task.id, e);
-                                        }
-                                    }}
-                                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-2 text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] hover:bg-[#F0EDE8] dark:hover:bg-[#333] rounded-lg transition-all flex-shrink-0"
-                                    title="Delete task"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+                                task={task}
+                                projects={projects}
+                                setSelectedTask={setSelectedTask}
+                                toggleTaskStatus={toggleTaskStatus}
+                                deleteTask={deleteTask}
+                            />
                         ))
                     )}
                 </div>
@@ -270,5 +240,112 @@ export default function DashboardTasks() {
             // Instead of onDelete, the UI in DashboardTasks handles deletion before even opening the modal.
             />
         </>
+    );
+}
+
+function TaskRow({ task, projects, setSelectedTask, toggleTaskStatus, deleteTask }: any) {
+    const touchStartRef = useRef<{ x: number, y: number } | null>(null);
+    const [swipeOffset, setSwipeOffset] = useState(0);
+
+    return (
+        <div className="relative rounded-xl overflow-hidden touch-pan-y group">
+            {/* Background actions revealed by swipe */}
+            <div className="absolute inset-0 flex items-center justify-between text-white font-medium text-xs">
+                {/* Background for Complete (Swipe Right -> reveals left) */}
+                <div className={`absolute inset-y-0 left-0 flex items-center justify-start px-4 w-1/2 transition-opacity duration-200 ${swipeOffset > 20 ? "opacity-100 bg-[#C2A27A]" : "opacity-0 bg-[#C2A27A]/80"}`}>
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                </div>
+                {/* Background for Delete (Swipe Left -> reveals right) */}
+                <div className={`absolute inset-y-0 right-0 flex items-center justify-end px-4 w-1/2 transition-opacity duration-200 ${swipeOffset < -20 ? "opacity-100 bg-red-500" : "opacity-0 bg-red-400"}`}>
+                    <Trash2 className="w-5 h-5 text-white" />
+                </div>
+            </div>
+
+            {/* Foreground Card */}
+            <div
+                className={`relative z-10 flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all cursor-pointer shadow-sm
+                    ${swipeOffset === 0 ? "transition-transform duration-300 ease-out" : ""}
+                    bg-white/80 backdrop-blur-md dark:bg-white/5 border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444]
+                `}
+                style={{ transform: `translateX(${swipeOffset}px)` }}
+                onClick={() => {
+                    if (swipeOffset === 0) setSelectedTask(task);
+                }}
+                onTouchStart={(e) => {
+                    touchStartRef.current = {
+                        x: e.touches[0].clientX,
+                        y: e.touches[0].clientY,
+                    };
+                }}
+                onTouchMove={(e) => {
+                    if (!touchStartRef.current) return;
+                    const deltaX = e.touches[0].clientX - touchStartRef.current.x;
+                    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+
+                    if (deltaY < 30 && Math.abs(deltaX) > 10) {
+                        setSwipeOffset(Math.max(-100, Math.min(100, deltaX)));
+                    }
+                }}
+                onTouchEnd={(e) => {
+                    if (!touchStartRef.current) {
+                        setSwipeOffset(0);
+                        return;
+                    }
+
+                    if (swipeOffset < -60) {
+                        if (window.confirm("Are you sure you want to delete this task?")) {
+                            deleteTask(task.id, e);
+                        } else {
+                            setSwipeOffset(0);
+                        }
+                    } else if (swipeOffset > 60) {
+                        toggleTaskStatus(task, e);
+                        setSwipeOffset(0);
+                    } else {
+                        setSwipeOffset(0);
+                    }
+                    touchStartRef.current = null;
+                }}
+            >
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={(e) => toggleTaskStatus(task, e)}
+                        className="text-[#CFCFCF] dark:text-[#545454] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors flex-shrink-0"
+                    >
+                        {task.status === "done" ? (
+                            <CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" />
+                        ) : (
+                            <Circle className="w-5 h-5" />
+                        )}
+                    </button>
+                    <div className="flex flex-col min-w-0">
+                        <span className={`text-sm font-medium truncate ${task.status === "done" ? "text-gray-400 line-through" : "text-[#252525] dark:text-[#CFCFCF]"}`}>
+                            {task.title}
+                        </span>
+                        {task.project_id && projects.find((p: any) => p.id === task.project_id) && (
+                            <span className="text-[10px] text-[#7D7D7D] truncate">
+                                {projects.find((p: any) => p.id === task.project_id)?.title}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Delete button appears on hover (hidden on mobile to prevent accidental clicks) */}
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm("Are you sure you want to delete this task?")) {
+                            deleteTask(task.id, e);
+                        }
+                    }}
+                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-2 text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] hover:bg-[#F0EDE8] dark:hover:bg-[#333] rounded-lg transition-all flex-shrink-0 hidden md:block"
+                    title="Delete task"
+                >
+                    <Trash2 size={16} />
+                </button>
+            </div>
+        </div>
     );
 }
