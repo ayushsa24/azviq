@@ -6,6 +6,7 @@ import {
     CheckCircle2, Circle, AlarmClock, RotateCcw, Loader2
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 type RepeatType = "today" | "daily" | "weekdays" | "weekends" | "custom";
 
@@ -55,6 +56,7 @@ const defaultForm = () => ({
 export default function DashboardChecklist() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
+    const { fetchNotifications } = useNotifications();
     const [items, setItems] = useState<TodoItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -77,6 +79,8 @@ export default function DashboardChecklist() {
             setIsLoading(false);
         }
     }, []);
+
+    useEffect(() => { fetchTodos(); }, [fetchTodos]);
 
     useEffect(() => { fetchTodos(); }, [fetchTodos]);
 
@@ -309,7 +313,7 @@ export default function DashboardChecklist() {
                             {/* Time */}
                             <div>
                                 <label className="text-xs font-semibold text-[#7D7D7D] dark:text-[#BABABA] mb-1 flex items-center gap-1 block">
-                                    <AlarmClock className="w-3 h-3" /> Reminder Time (optional)
+                                    <AlarmClock className="w-3 h-3" /> Reminder Time
                                 </label>
                                 <input
                                     type="time"

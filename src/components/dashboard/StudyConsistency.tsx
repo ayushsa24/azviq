@@ -68,7 +68,7 @@ export default function StudyConsistency() {
         const end = endOfYear(new Date(selectedYear, 11, 31));
 
         // Ensure we stop at today if viewing current year
-        const endToRender = selectedYear === currentYear && end > new Date() ? new Date() : end;
+        const endToRender = selectedYear === currentYear && end > new Date() ? startOfDay(new Date()) : end;
 
         const allDays = eachDayOfInterval({ start, end });
 
@@ -88,12 +88,19 @@ export default function StudyConsistency() {
         // A real robust streak would be calculated backend, but doing frontend for now.
 
         // Iterate backwards from today to find current streak
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const yestStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+        const getLocalDateStr = (d: Date) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
 
-        if ((dayMap.get(todayStr)?.total_minutes || 0) > 0 || (dayMap.get(yestStr)?.total_minutes || 0) > 0) {
-            let d = (dayMap.get(todayStr)?.total_minutes || 0) > 0 ? new Date() : subDays(new Date(), 1);
-            while ((dayMap.get(format(d, 'yyyy-MM-dd'))?.total_minutes || 0) > 0) {
+        const todayLocalStr = getLocalDateStr(new Date());
+        const yesterdayLocalStr = getLocalDateStr(subDays(new Date(), 1));
+
+        if ((dayMap.get(todayLocalStr)?.total_minutes || 0) > 0 || (dayMap.get(yesterdayLocalStr)?.total_minutes || 0) > 0) {
+            let d = (dayMap.get(todayLocalStr)?.total_minutes || 0) > 0 ? new Date() : subDays(new Date(), 1);
+            while ((dayMap.get(getLocalDateStr(d))?.total_minutes || 0) > 0) {
                 currentStreak++;
                 d = subDays(d, 1);
                 // Break if we left the current year (simplification)
@@ -102,7 +109,7 @@ export default function StudyConsistency() {
         }
 
         const daysWithData = allDays.map(date => {
-            const dateStr = format(date, 'yyyy-MM-dd');
+            const dateStr = getLocalDateStr(date);
             const summary = dayMap.get(dateStr);
 
             if (summary && summary.total_minutes > 0) {

@@ -29,7 +29,12 @@ export async function POST(req: Request) {
         const userId = user.id;
 
         // 1. Find or Update the session for this date and activity type
-        const studyDate = new Date(start_time).toISOString().split('T')[0];
+        // Use local date for the user to avoid timezone shifts (especially after midnight)
+        const startDateObj = new Date(start_time);
+        const year = startDateObj.getFullYear();
+        const month = String(startDateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(startDateObj.getDate()).padStart(2, '0');
+        const studyDate = `${year}-${month}-${day}`;
 
         const { data: existingSession } = await supabase
             .from("study_sessions")

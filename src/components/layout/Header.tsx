@@ -11,7 +11,7 @@ import { signOut } from "next-auth/react";
 export default function Header({ onMenuClick, open }: { onMenuClick: () => void; open: boolean }) {
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, zoomIn, zoomOut, resetZoom } = useZoom();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -95,14 +95,17 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
           <Bot className="w-5 h-5" />
         </button>
 
-        <button className={`p-2 rounded-xl transition-all duration-200 hover:scale-105 relative
+        <button
+          data-notification-bell
+          onClick={() => setPanelOpen(!panelOpen)}
+          className={`md:hidden p-2 rounded-xl transition-all duration-200 hover:scale-105 relative
           ${theme === 'dark'
             ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
             : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
-          }`}>
+          } ${panelOpen ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-[#7D7D7D] text-white') : ''}`}>
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-[#252525]">
+            <span className="absolute top-0 right-0 w-4 h-4 bg-[#C2A27A] text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-[#252525]">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}

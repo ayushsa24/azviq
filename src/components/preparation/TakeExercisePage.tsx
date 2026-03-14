@@ -131,6 +131,19 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 })
             });
             if (!res.ok) throw new Error();
+
+            // Log exercise results for weak subject detection
+            fetch("/api/exercise-results", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    exercise_id: exercise.id,
+                    subject: "Exercise",
+                    topic: exercise.title,
+                    total_questions: totalQs,
+                    correct_answers: correctCount,
+                }),
+            }).catch(() => {}); // Fire and forget
             setIsSubmitted(true);
             setShowResults(true);   // go to results screen
             // onComplete(); // removed so user can see score first

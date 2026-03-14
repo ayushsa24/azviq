@@ -11,6 +11,8 @@ export default function DashboardTasks() {
     const isDark = theme === "dark";
     const [tasks, setTasks] = useState<any[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
+    const [workspaces, setWorkspaces] = useState<any[]>([]);
+    const [notes, setNotes] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [newTaskTitle, setNewTaskTitle] = useState("");
     const [isCreating, setIsCreating] = useState(false);
@@ -26,9 +28,11 @@ export default function DashboardTasks() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [tasksRes, projectsRes] = await Promise.all([
+            const [tasksRes, projectsRes, workspacesRes, notesRes] = await Promise.all([
                 fetch("/api/tasks", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
                 fetch("/api/projects", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
+                fetch("/api/workspaces", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
+                fetch("/api/notes", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
             ]);
 
             if (tasksRes.ok) {
@@ -39,8 +43,16 @@ export default function DashboardTasks() {
                 const projectsData = await projectsRes.json();
                 setProjects(projectsData.projects || []);
             }
+            if (workspacesRes.ok) {
+                const workspacesData = await workspacesRes.json();
+                setWorkspaces(workspacesData.workspaces || []);
+            }
+            if (notesRes.ok) {
+                const notesData = await notesRes.json();
+                setNotes(notesData.notes || []);
+            }
         } catch (error) {
-            console.error("Failed to load tasks and projects");
+            console.error("Failed to load dashboard data");
         } finally {
             setIsLoading(false);
         }
@@ -133,7 +145,7 @@ export default function DashboardTasks() {
         dueDate.setHours(0, 0, 0, 0);
 
         if (filterRange === "today") {
-            return dueDate.getTime() === today.getTime();
+            return dueDate.toDateString() === today.toDateString();
         } else if (filterRange === "overdue") {
             return dueDate.getTime() < today.getTime();
         } else if (filterRange === "1week") {
@@ -220,6 +232,8 @@ export default function DashboardTasks() {
                                 key={task.id}
                                 task={task}
                                 projects={projects}
+                                workspaces={workspaces}
+                                notes={notes}
                                 setSelectedTask={setSelectedTask}
                                 toggleTaskStatus={toggleTaskStatus}
                                 deleteTask={deleteTask}
@@ -235,7 +249,8 @@ export default function DashboardTasks() {
                 onClose={() => setSelectedTask(null)}
                 task={selectedTask}
                 projects={projects}
-                notes={[]} // Empty array since we aren't fetching notes in dashboard view
+                notes={notes}
+                workspaces={workspaces}
                 onTaskUpdated={handleTaskUpdated}
             // Instead of onDelete, the UI in DashboardTasks handles deletion before even opening the modal.
             />
@@ -243,9 +258,17 @@ export default function DashboardTasks() {
     );
 }
 
-function TaskRow({ task, projects, setSelectedTask, toggleTaskStatus, deleteTask }: any) {
+function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTaskStatus, deleteTask }: any) {
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
     const [swipeOffset, setSwipeOffset] = useState(0);
+
+    // Find workspace name if task is linked to a note in a workspace
+    const workspaceName = task.linked_document_id ? (() => {
+        const n = notes.find((note: any) => note.id === task.linked_document_id);
+        if (!n) return null;
+        const ws = workspaces.find((w: any) => w.id === n.workspace_id);
+        return ws ? ws.name : null;
+    })() : null;
 
     return (
         <div className="relative rounded-xl overflow-hidden touch-pan-y group">
@@ -323,11 +346,18 @@ function TaskRow({ task, projects, setSelectedTask, toggleTaskStatus, deleteTask
                         <span className={`text-sm font-medium truncate ${task.status === "done" ? "text-gray-400 line-through" : "text-[#252525] dark:text-[#CFCFCF]"}`}>
                             {task.title}
                         </span>
-                        {task.project_id && projects.find((p: any) => p.id === task.project_id) && (
-                            <span className="text-[10px] text-[#7D7D7D] truncate">
-                                {projects.find((p: any) => p.id === task.project_id)?.title}
-                            </span>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5">
+                            {workspaceName && (
+                                <span className="text-[10px] text-[#C2A27A] dark:text-[#D4AF37] font-semibold truncate bg-[#C2A27A]/10 dark:bg-white/5 px-1.5 py-0.5 rounded-md">
+                                    {workspaceName}
+                                </span>
+                            )}
+                            {task.project_id && projects.find((p: any) => p.id === task.project_id) && (
+                                <span className="text-[10px] text-[#7D7D7D] truncate">
+                                    {projects.find((p: any) => p.id === task.project_id)?.title}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 

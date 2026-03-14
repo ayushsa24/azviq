@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
   Search,
@@ -57,10 +58,22 @@ export default function TasksPage() {
   const [projectDropdownFilter, setProjectDropdownFilter] = useState("all"); // project id or 'all'
   const [showTaskFavorites, setShowTaskFavorites] = useState(false);
   const [showProjectFavorites, setShowProjectFavorites] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Deep-link: auto-open task from URL param
+  useEffect(() => {
+    const taskId = searchParams.get("id");
+    if (taskId && tasks.length > 0) {
+      const task = tasks.find((t) => t.id === taskId);
+      if (task && selectedTask?.id !== taskId) {
+        setSelectedTask(task);
+      }
+    }
+  }, [searchParams, tasks]);
 
   // ── Phone back button: single centralized handler for all modal levels ──
   // Push a history entry whenever the top-most modal changes

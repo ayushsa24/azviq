@@ -6,6 +6,7 @@ import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
+import NotificationPanel from "./NotificationPanel";
 import { useState } from "react";
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         isHovered={isSidebarHovered}
         onMouseLeave={() => setIsSidebarHovered(false)}
       />
+
+      {/* Global Notification Panel */}
+      <NotificationPanel />
 
       {!open && (
         <div

@@ -4,14 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { signOut } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
+import NotificationPanel from "./NotificationPanel";
 
 type RecentItem = {
   id: string;
@@ -42,6 +44,7 @@ export default function Sidebar({
   const { toggle } = useSidebar();
   const pathname = usePathname();
   const isDark = theme === "dark";
+  const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
 
   const [profile, setProfile] = useState<{ name?: string; email?: string; avatar_url?: string } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -122,6 +125,22 @@ export default function Sidebar({
           <span className={`font-bold text-base tracking-tight flex-1 ${isDark ? "text-white" : "text-[#252525]"}`}>
             Ascend
           </span>
+          <button
+            data-notification-bell
+            onClick={() => setPanelOpen(!panelOpen)}
+            className={`p-1.5 rounded-xl transition-all duration-200 hover:scale-105 relative cursor-pointer shrink-0
+            ${isDark
+              ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
+              : 'text-[#545454] hover:bg-[#E8E5E0] hover:text-[#252525]'
+            } ${panelOpen ? (isDark ? 'bg-[#545454] text-white' : 'bg-[#E8E5E0] text-[#252525]') : ''}`}>
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 w-3 h-3 bg-[#C2A27A] text-white text-[8px] font-bold flex items-center justify-center rounded-full border border-white dark:border-[#252525]">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+          
           {open && (
             <button
               onClick={toggle}
