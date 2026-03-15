@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw, PanelLeft } from "lucide-react";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 interface Question {
     question: string;
@@ -35,6 +36,7 @@ function formatTime(secs: number) {
 export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeExercisePageProps) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -190,8 +192,17 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 <div className="max-w-xl mx-auto w-full px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-8 flex flex-col gap-6">
 
                     {/* Back + title */}
-                    <div className="flex items-center gap-3">
-                        <button onClick={onBack} title="Back" className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-white hover:text-[#252525]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        {!sidebarOpen && (
+                            <button
+                                onClick={toggleSidebar}
+                                className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-transparent transition-all text-[#545454] dark:text-[#7D7D7D] hover:bg-white hover:text-[#252525] shrink-0"
+                                title="Open Sidebar"
+                            >
+                                <PanelLeft size={18} />
+                            </button>
+                        )}
+                        <button onClick={onBack} title="Back" className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all shrink-0 ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-white hover:text-[#252525]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}>
                             <ArrowLeft size={14} />
                         </button>
                         <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1">{exercise.title}</h1>
@@ -262,7 +273,16 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
         <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
 
             {/* ── Top bar ── */}
-            <div className={`flex items-center gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? 'border-[#333] bg-[#1A1A1A]' : 'border-[#E8E5E0] bg-[#F5F3EF]'}`}>
+            <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? 'border-[#333] bg-[#1A1A1A]' : 'border-[#E8E5E0] bg-[#F5F3EF]'}`}>
+                {!sidebarOpen && (
+                    <button
+                        onClick={toggleSidebar}
+                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-transparent transition-all text-[#545454] dark:text-[#7D7D7D] hover:bg-white hover:text-[#252525] shrink-0"
+                        title="Open Sidebar"
+                    >
+                        <PanelLeft size={18} />
+                    </button>
+                )}
                 <button
                     onClick={onBack}
                     title="Back"

@@ -4,13 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     ArrowLeft, Save, Download, Loader2, Undo2, Redo2,
-    Pen, Eraser, Highlighter, Type, Layout, MousePointer2, ZoomIn, ZoomOut
+    Pen, Eraser, Highlighter, Type, Layout, MousePointer2, ZoomIn, ZoomOut, PanelLeft
 } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { PDFDocument, rgb } from "pdf-lib";
 import { PdfDrawingOverlay, Annotation } from "@/components/pdf/PdfDrawingOverlay";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { logRecentActivity } from "@/lib/logRecentActivity";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 
@@ -32,6 +33,7 @@ interface TextInput {
 export default function PdfEditorPage() {
     const { id } = useParams() as { id: string };
     const router = useRouter();
+    const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
 
     const [note, setNote] = useState<any>(null);
     const [numPages, setNumPages] = useState<number>(0);
@@ -532,9 +534,9 @@ export default function PdfEditorPage() {
     const toolBtn = (tool: Tool, icon: React.ReactNode, label: string, extraClass = "") =>
         <button
             onClick={() => setActiveTool(tool)}
-            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-medium transition-all ${activeTool === tool
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-medium transition-all ${extraClass} ${activeTool === tool
                 ? "bg-[#252525] text-white shadow-md"
-                : `bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] ${extraClass}`
+                : "bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A]"
             }`}
             title={label}
         >
@@ -571,16 +573,31 @@ export default function PdfEditorPage() {
             {/* On desktop (sm:) it reverts to normal static flow */}
             <div ref={headerRef} className="fixed top-0 left-0 right-0 sm:static flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-0">
                 <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                    {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
+                    {!sidebarOpen && (
+                        <button
+                            onClick={toggleSidebar}
+                            className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
+                            title="Open Sidebar"
+                        >
+                            <PanelLeft size={20} />
+                        </button>
+                    )}
+
+                    {/* Always visible Back button */}
                     <button
                         onClick={() => {
                             const workspaceParam = note?.workspace_id ? `workspace=${note.workspace_id}&` : "";
                             router.push(`/library?${workspaceParam}tab=pdfs`);
                         }}
                         className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
+                        title="Back"
                     >
                         <ArrowLeft size={20} />
                     </button>
+
+                    {/* Mobile Thumbnail Toggle */}
                     <button
                         onClick={() => setShowThumbnails(!showThumbnails)}
                         className={`sm:hidden p-2 rounded-md transition-colors ${showThumbnails ? "bg-[#252525] text-white" : "text-[#545454] dark:text-[#7D7D7D] hover:bg-gray-100 dark:hover:bg-[#1A1A1A]"}`}
@@ -837,7 +854,7 @@ export default function PdfEditorPage() {
 
                     {/* Tool Selection */}
                     <div className="flex flex-row sm:grid sm:grid-cols-2 gap-3 sm:gap-2 flex-shrink-0">
-                        {toolBtn("select", <MousePointer2 size={22} />, "Select")}
+                        {toolBtn("select", <MousePointer2 size={22} />, "Select", "sm:hidden")}
                         {toolBtn("pen", <Pen size={22} />, "Pen")}
                         {toolBtn("highlight", <Highlighter size={22} />, "Highlight")}
                         {toolBtn("text", <Type size={22} />, "Text")}

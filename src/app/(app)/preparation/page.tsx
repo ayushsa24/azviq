@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 
@@ -29,6 +29,7 @@ const tabCls = (active: boolean) =>
     }`;
 
 export default function PreparationPage() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<TabType>("exercise");
     const [search, setSearch] = useState("");
     const [isGenerateOpen, setIsGenerateOpen] = useState(false);
@@ -125,36 +126,15 @@ export default function PreparationPage() {
         }
     }, [activeTab]);
 
-    // Trap hardware back button on mobile
-    useEffect(() => {
-        if (activeExercise || activeRevision) {
-            // Push a state so "back" triggers popstate
-            window.history.pushState({ subview: "preparation" }, "");
-
-            const handlePopState = (e: PopStateEvent) => {
-                // When hardware back is pressed
-                setActiveExercise(null);
-                setActiveRevision(null);
-                setRefreshKey(k => k + 1);
-            };
-
-            window.addEventListener("popstate", handlePopState);
-            return () => {
-                window.removeEventListener("popstate", handlePopState);
-            };
-        }
-    }, [activeExercise, activeRevision]);
+    // URL sync happens via the useEffect deep-link logic at the top.
+    // Standard router navigation now handles hardware back buttons.
 
     const handleBack = () => {
-        // If we have our dummy state in history, go back to clear it
-        if (window.history.state?.subview === "preparation") {
-            window.history.back();
-        } else {
-            // Fallback if state was somehow lost
-            setActiveExercise(null);
-            setActiveRevision(null);
-            setRefreshKey(k => k + 1);
-        }
+        // Clear parameters to return to main list
+        router.push("/preparation");
+        setActiveExercise(null);
+        setActiveRevision(null);
+        setRefreshKey(k => k + 1);
     };
 
     // If a revision is active, show TakeRevisionPage full-page
@@ -310,13 +290,7 @@ export default function PreparationPage() {
                         onNeedGenerate={() => setIsGenerateOpen(true)}
                         refreshKey={refreshKey}
                         onStartExercise={(ex) => {
-                            setActiveExercise(ex);
-                            logRecentActivity({
-                                item_id: ex.id,
-                                item_type: "exercise",
-                                title: ex.title || "Untitled Exercise",
-                                href: `/preparation?tab=exercise&id=${ex.id}`,
-                            });
+                            router.push(`/preparation?tab=exercise&id=${ex.id}`);
                         }}
                         viewMode={viewMode}
                     />
@@ -326,13 +300,7 @@ export default function PreparationPage() {
                         search={search}
                         refreshKey={refreshKey}
                         onOpenRevision={(rev) => {
-                            setActiveRevision(rev);
-                            logRecentActivity({
-                                item_id: rev.id,
-                                item_type: "revision",
-                                title: rev.title || "Untitled Revision",
-                                href: `/preparation?tab=revision&id=${rev.id}`,
-                            });
+                            router.push(`/preparation?tab=revision&id=${rev.id}`);
                         }}
                         viewMode={viewMode}
                     />

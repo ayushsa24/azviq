@@ -4,9 +4,10 @@ import React, { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
     ArrowLeft, BookOpen, Key, HelpCircle, ChevronDown, ChevronUp,
-    ArrowRight, Eye, EyeOff, FileText, Clock
+    ArrowRight, Eye, EyeOff, FileText, Clock, PanelLeft
 } from "lucide-react";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 interface Keyword { term: string; definition: string; }
 interface QAPair { question: string; answer: string; }
@@ -129,6 +130,7 @@ function SummaryRenderer({ text, isDark }: { text: string; isDark: boolean }) {
 export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageProps) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
+    const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
 
     useStudyTracker({ activityType: 'revision', isEnabled: true, subject: "Revision", topic: revision?.title || "Untitled Revision" });
 
@@ -151,7 +153,16 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
         <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
 
             {/* Top bar */}
-            <div className={`flex items-center gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? "border-[#333] bg-[#1A1A1A]" : "border-[#E8E5E0] bg-[#F5F3EF]"}`}>
+            <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? "border-[#333] bg-[#1A1A1A]" : "border-[#E8E5E0] bg-[#F5F3EF]"}`}>
+                {!sidebarOpen && (
+                    <button
+                        onClick={toggleSidebar}
+                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-transparent transition-all text-[#545454] dark:text-[#7D7D7D] hover:bg-white hover:text-[#252525] shrink-0"
+                        title="Open Sidebar"
+                    >
+                        <PanelLeft size={18} />
+                    </button>
+                )}
                 <button
                     onClick={onBack}
                     title="Back"

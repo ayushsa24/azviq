@@ -9,7 +9,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2, SmilePlus } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2, SmilePlus, PanelLeft } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import dynamic from 'next/dynamic';
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
@@ -26,6 +26,7 @@ import { AiTrigger } from '@/components/editor/AiTrigger';
 import { AiInlineInput } from '@/components/editor/AiInlineInput';
 import { logRecentActivity } from '@/lib/logRecentActivity';
 import { useStudyTracker } from '@/hooks/useStudyTracker';
+import { useSidebar } from "@/contexts/SidebarContext";
 
 const lowlight = createLowlight(all)
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -34,6 +35,7 @@ export default function NoteEditorPage() {
     const { id } = useParams() as { id: string };
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const router = useRouter();
+    const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
     const searchParams = useSearchParams();
 
     const [title, setTitle] = useState("Untitled Note");
@@ -308,7 +310,19 @@ export default function NoteEditorPage() {
 
             {/* Top Navigation Bar */}
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A] transition-colors">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 sm:gap-3">
+                    {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
+                    {!sidebarOpen && (
+                        <button
+                            onClick={toggleSidebar}
+                            className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
+                            title="Open Sidebar"
+                        >
+                            <PanelLeft size={20} />
+                        </button>
+                    )}
+
+                    {/* Always visible Back button */}
                     <button
                         onClick={() => {
                             const wsParam = workspaceId ? `workspace=${workspaceId}&` : "";
