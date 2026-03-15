@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     ArrowLeft, Save, Download, Loader2, Undo2, Redo2,
-    Pen, Eraser, Highlighter, Type
+    Pen, Eraser, Highlighter, Type, Layout, MousePointer2, ZoomIn, ZoomOut
 } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { PDFDocument, rgb } from "pdf-lib";
@@ -16,7 +16,7 @@ import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-type Tool = "pen" | "eraser" | "highlight" | "text";
+type Tool = "select" | "pen" | "eraser" | "highlight" | "text";
 
 interface TextInput {
     pageNum: number;
@@ -38,7 +38,7 @@ export default function PdfEditorPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    const [pageDimensions, setPageDimensions] = useState<{ width: number; height: number } | null>(null);
+    const [allPageDims, setAllPageDims] = useState<Record<number, { width: number; height: number }>>({});
 
     // Unified annotation model: per-page list
     const [annotsByPage, setAnnotsByPage] = useState<Record<number, Annotation[]>>({});
@@ -48,7 +48,7 @@ export default function PdfEditorPage() {
     const [historyIdx, setHistoryIdx] = useState(0);
 
     // Tools
-    const [activeTool, setActiveTool] = useState<Tool>("pen");
+    const [activeTool, setActiveTool] = useState<Tool>("select");
     const [currentColor, setCurrentColor] = useState<string>("#1E1E1E");
     const [strokeWidth, setStrokeWidth] = useState<number>(3);
     const [highlightColor, setHighlightColor] = useState<string>("#FBBF24");
@@ -65,8 +65,173 @@ export default function PdfEditorPage() {
     const [textInput, setTextInput] = useState<TextInput | null>(null);
     const [textValue, setTextValue] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [showThumbnails, setShowThumbnails] = useState(false);
+    const documentContainerRef = useRef<HTMLDivElement>(null);
+    // Initialize exactly to viewport size so React-PDF doesn't default to 800px and stretch the layout
+    const [containerWidth, setContainerWidth] = useState<number>(
+        typeof window !== 'undefined' ? (window.innerWidth < 640 ? window.innerWidth : (window.innerWidth - 300) * 0.6) : 800
+    );
+    const [zoomLevel, setZoomLevel] = useState(1); // Manage desktop PDF zoom
+    const [currentPage, setCurrentPage] = useState(1); // Track current active page for sidebar highlighting
 
     const pageContainerRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    // Ref to the header div for direct DOM manipulation (no re-render)
+    const headerRef = useRef<HTMLDivElement>(null);
+    const toolbarRef = useRef<HTMLDivElement>(null);
+    // Ref to the spacer div that compensates for the fixed header height on mobile
+    const headerSpacerRef = useRef<HTMLDivElement>(null);
+    const thumbnailSidebarRef = useRef<HTMLDivElement>(null); // Ref for thumbnail sidebar to sync scrolling
+
+    // Keep spacer height in sync with actual header height (handles text toolbar appearing/disappearing)
+    useEffect(() => {
+        const header = headerRef.current;
+        const spacer = headerSpacerRef.current;
+        if (!header || !spacer) return;
+
+        // Only apply on mobile (< 640px)
+        const syncHeight = () => {
+            if (window.innerWidth < 640) {
+                spacer.style.height = `${header.offsetHeight}px`;
+            } else {
+                spacer.style.height = '0px';
+            }
+        };
+
+        const ro = new ResizeObserver(syncHeight);
+        ro.observe(header);
+        syncHeight(); // run immediately
+        return () => ro.disconnect();
+    }, []);
+
+    // ── Body scroll lock: prevents window from scrolling when keyboard opens ────
+    // We directly mutate body styles on mount/unmount (no React state = no re-renders)
+    useEffect(() => {
+        const body = document.body;
+        const originalPosition = body.style.position;
+        const originalTop = body.style.top;
+        const originalWidth = body.style.width;
+        const scrollY = window.scrollY;
+
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollY}px`;
+        body.style.width = '100%';
+
+        return () => {
+            body.style.position = originalPosition;
+            body.style.top = originalTop;
+            body.style.width = originalWidth;
+            window.scrollTo(0, scrollY);
+        };
+    }, []);
+
+    // ── Keyboard open detection + header pinning (iOS Safari fix) ─────────────
+    // On iOS, when keyboard opens, visualViewport scrolls (offsetTop > 0).
+    // position:fixed elements move with this scroll — so we manually correct
+    // the header's top to counteract it using direct DOM style mutation.
+    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+    useEffect(() => {
+        const vv = window.visualViewport;
+        if (!vv) return;
+
+        const initialHeight = vv.height;
+
+        const update = () => {
+            // Correct the header position so it stays at visible top
+            if (headerRef.current) {
+                headerRef.current.style.top = `${vv.offsetTop}px`;
+            }
+            // Keyboard is considered open if viewport shrank by more than 120px
+            const keyboardOpen = vv.height < initialHeight - 120;
+            
+            // Bring the tools bar up above the keyboard on mobile
+            if (toolbarRef.current) {
+                if (keyboardOpen && window.innerWidth < 640) {
+                     toolbarRef.current.style.top = `${vv.offsetTop + vv.height - toolbarRef.current.offsetHeight}px`;
+                } else {
+                     toolbarRef.current.style.top = ''; // revert to native CSS flow
+                }
+            }
+            
+            setIsKeyboardOpen(keyboardOpen);
+        };
+
+        vv.addEventListener('resize', update);
+        vv.addEventListener('scroll', update);
+        return () => {
+            vv.removeEventListener('resize', update);
+            vv.removeEventListener('scroll', update);
+        };
+    }, []);
+
+    // ── Intersection Observer to track the "Active" page for sidebar highlighting ──
+    useEffect(() => {
+        const container = documentContainerRef.current;
+        if (!container || numPages === 0) return;
+
+        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+                    const pageId = entry.target.id;
+                    const pageNum = parseInt(pageId.replace('pdf-page-', ''));
+                    if (!isNaN(pageNum)) {
+                        setCurrentPage(pageNum);
+                    }
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(handleIntersect, {
+            root: container,
+            threshold: 0.5, // Page must be at least 50% visible in the viewport area
+            rootMargin: '-20% 0px -20% 0px' // Focus on the middle 60% of the viewport
+        });
+
+        // Observe all page containers
+        Object.values(pageContainerRefs.current).forEach(ref => {
+            if (ref) observer.observe(ref);
+        });
+
+        return () => observer.disconnect();
+    }, [numPages, zoomLevel]); // Re-bind if page count or zoom (and thus heights) change
+
+    // ── Live sync: scroll thumbnail sidebar to current page ───────────────────
+    useEffect(() => {
+        // Only trigger auto-scroll for mobile users; laptop users prefer a static sidebar
+        if (!thumbnailSidebarRef.current || currentPage === 0 || window.innerWidth >= 640) return;
+        
+        const thumbElement = document.getElementById(`thumb-item-${currentPage}`);
+        if (thumbElement) {
+            thumbElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
+        }
+    }, [currentPage]);
+    // Observe container width for responsive PDF pages
+    useEffect(() => {
+        if (!documentContainerRef.current) return;
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                // On mobile, we want the PDF to be as wide as possible
+                const isMobile = window.innerWidth < 640;
+                // For mobile, subtract minimal padding (8px each side) or 0 if we want flush
+                // For desktop, margin guarantees a clear gap (96px total = 48px each side)
+                const margin = isMobile ? 0 : 96; 
+                // Set the default "100%" scale for desktop to be physically 60% of the available area 
+                // as requested for ideal readability
+                const availableWidth = entry.contentRect.width - margin;
+                const finalWidth = isMobile ? availableWidth : availableWidth * 0.6;
+                
+                // Math.max(10, ...) ensures React-PDF doesn't crash from 0 width, but allows full shrinking
+                setContainerWidth(Math.max(10, finalWidth));
+            }
+        });
+
+        resizeObserver.observe(documentContainerRef.current);
+        return () => resizeObserver.disconnect();
+    }, []);
 
     useStudyTracker({ activityType: "pdf", isEnabled: !isLoading, subject: "PDF", topic: note?.title || "Untitled PDF" });
 
@@ -92,6 +257,30 @@ export default function PdfEditorPage() {
         fetchNote();
     }, [id]);
 
+    // Force focus when text box spawns/moves
+    useEffect(() => {
+        if (textInput && textareaRef.current) {
+            // A quick timeout ensures the DOM has fully processed
+            // the transition from the active canvas pointer capture
+            setTimeout(() => {
+                // Save scroll position before focus
+                const container = documentContainerRef.current;
+                const scrollTop = container?.scrollTop ?? 0;
+
+                // preventScroll: true stops iOS Safari from auto-scrolling
+                // the PDF area to bring the textarea into view.
+                // This prevents the header from appearing to scroll away.
+                textareaRef.current?.focus({ preventScroll: true });
+
+                // Restore scroll position after iOS may have changed it
+                if (container) {
+                    requestAnimationFrame(() => {
+                        container.scrollTop = scrollTop;
+                    });
+                }
+            }, 10);
+        }
+    }, [textInput]);
 
     // ── History helpers ────────────────────────────────────────────────────────
     const pushHistory = useCallback((newAnnots: Record<number, Annotation[]>) => {
@@ -212,10 +401,11 @@ export default function PdfEditorPage() {
     const handleDragPointerMove = (e: React.PointerEvent) => {
         if (!textInput?.isDragging) return;
         const container = pageContainerRefs.current[textInput.pageNum];
-        if (container && pageDimensions) {
+        const pageDims = allPageDims[textInput.pageNum];
+        if (container && pageDims) {
             const rect = container.getBoundingClientRect();
-            const scaleX = pageDimensions.width / rect.width;
-            const scaleY = pageDimensions.height / rect.height;
+            const scaleX = pageDims.width / rect.width;
+            const scaleY = pageDims.height / rect.height;
             const dx = e.clientX - (textInput.dragStartX || 0);
             const dy = e.clientY - (textInput.dragStartY || 0);
             setTextInput(prev => prev ? {
@@ -271,10 +461,11 @@ export default function PdfEditorPage() {
             for (const [pageNumStr, annotations] of Object.entries(annotsByPage)) {
                 const pageNum = parseInt(pageNumStr);
                 if (!annotations || annotations.length === 0) continue;
+                const pageDims = allPageDims[pageNum];
                 const page = pages[pageNum - 1];
                 const { width, height } = page.getSize();
-                const scaleX = pageDimensions ? width / pageDimensions.width : 1;
-                const scaleY = pageDimensions ? height / pageDimensions.height : 1;
+                const scaleX = pageDims ? width / pageDims.width : 1;
+                const scaleY = pageDims ? height / pageDims.height : 1;
 
                 for (const ann of annotations) {
                     if (ann.kind === "stroke" && ann.path.length >= 2) {
@@ -341,13 +532,13 @@ export default function PdfEditorPage() {
     const toolBtn = (tool: Tool, icon: React.ReactNode, label: string, extraClass = "") =>
         <button
             onClick={() => setActiveTool(tool)}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-xl text-xs font-medium transition-all ${activeTool === tool
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium transition-all ${activeTool === tool
                 ? "bg-[#252525]/10 dark:bg-white/10 text-[#252525] dark:text-white ring-1 ring-[#252525] dark:ring-white"
                 : `bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] ${extraClass}`
             }`}
             title={label}
         >
-            {icon}
+            <div className="scale-110 sm:scale-100">{icon}</div>
             <span className="hidden sm:block">{label}</span>
         </button>;
 
@@ -375,29 +566,35 @@ export default function PdfEditorPage() {
 
     return (
         <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
-            {/* Floating text input */}
 
-
-            {/* Top Navigation Bar */}
-            <div className="flex-shrink-0 flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-10 transition-colors">
+            {/* Top Navigation Bar — fixed on mobile so keyboard can't push it off screen */}
+            {/* On desktop (sm:) it reverts to normal static flow */}
+            <div ref={headerRef} className="fixed top-0 left-0 right-0 sm:static flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-50 transition-colors pt-2 sm:pt-0">
                 <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                     <button
                         onClick={() => window.history.length > 2 ? router.back() : router.push("/library")}
                         className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <span className="text-sm font-semibold text-[#252525] dark:text-white max-w-[200px] sm:max-w-md truncate">
+                    <button
+                        onClick={() => setShowThumbnails(!showThumbnails)}
+                        className={`sm:hidden p-2 rounded-md transition-colors ${showThumbnails ? "bg-[#252525] text-white" : "text-[#545454] dark:text-[#7D7D7D] hover:bg-gray-100 dark:hover:bg-[#1A1A1A]"}`}
+                        title="Toggle Thumbnails"
+                    >
+                        <Layout size={20} />
+                    </button>
+                    <span className="text-sm font-semibold text-[#252525] dark:text-white max-w-[120px] sm:max-w-md truncate">
                         {note.title}
                     </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                     <button
                         onClick={undo}
                         disabled={!canUndo}
-                        className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md transition-colors disabled:opacity-30"
+                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md transition-colors disabled:opacity-30"
                         title="Undo"
                     >
                         <Undo2 size={18} />
@@ -405,134 +602,104 @@ export default function PdfEditorPage() {
                     <button
                         onClick={redo}
                         disabled={!canRedo}
-                        className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md transition-colors disabled:opacity-30"
+                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md transition-colors disabled:opacity-30"
                         title="Redo"
                     >
                         <Redo2 size={18} />
                     </button>
-                    <div className="w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+
+                    {/* Zoom Controls (Desktop only) */}
+                    <div className="hidden sm:flex items-center mx-2 gap-1 bg-[#F5F3EF] dark:bg-[#1A1A1A] rounded-md p-0.5">
+                        <button
+                            onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.2))}
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white hover:bg-white dark:hover:bg-[#2A2A2A] rounded transition-colors"
+                            title="Zoom Out"
+                        >
+                            <ZoomOut size={16} />
+                        </button>
+                        <span className="text-xs font-medium text-[#545454] dark:text-[#7D7D7D] w-12 text-center select-none">
+                            {Math.round(zoomLevel * 100)}%
+                        </span>
+                        <button
+                            onClick={() => setZoomLevel(z => Math.min(3, z + 0.2))}
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white hover:bg-white dark:hover:bg-[#2A2A2A] rounded transition-colors"
+                            title="Zoom In"
+                        >
+                            <ZoomIn size={16} />
+                        </button>
+                    </div>
+
+                    <div className="hidden sm:block w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
                     <button
                         onClick={() => window.open(note.file_url, "_blank")}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-transparent border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-white hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] rounded-md text-sm font-medium transition-colors"
+                        className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-transparent border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-white hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] rounded-md text-sm font-medium transition-colors"
+                        title="Download"
                     >
                         <Download size={16} />
-                        <span className="hidden sm:inline">Download</span>
+                        <span className="hidden lg:inline ml-2">Download</span>
                     </button>
                     <button
                         onClick={handleSavePdf}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-4 py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white/90 rounded-md text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                        className="flex items-center justify-center p-2 sm:px-4 sm:py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white/90 rounded-md text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                        title="Save PDF"
                     >
                         {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        Save PDF
+                        <span className="hidden sm:inline ml-2">Save</span>
                     </button>
                 </div>
                 </div>
 
-                {/* Text Formatting Toolbar — only visible when text tool is active */}
-                {activeTool === "text" && (
-                    <div className="flex items-center gap-1 px-4 py-2 border-t border-[#E8E5E0] dark:border-[#2A2A2A] bg-white dark:bg-[#1E1C19] overflow-x-auto">
-                        {/* Font Family */}
-                        <select
-                            value={textFontFamily}
-                            onChange={(e) => setTextFontFamily(e.target.value)}
-                            className="text-xs h-7 px-2 rounded border border-[#E8E5E0] dark:border-[#3A3A3A] bg-white dark:bg-[#252525] text-[#252525] dark:text-white outline-none"
-                        >
-                            {["Times New Roman", "Arial", "Georgia", "Courier New", "Verdana", "Trebuchet MS"].map(f => (
-                                <option key={f} value={f}>{f}</option>
-                            ))}
-                        </select>
 
-                        {/* Font Size */}
-                        <select
-                            value={textFontSize}
-                            onChange={(e) => setTextFontSize(Number(e.target.value))}
-                            className="text-xs h-7 w-14 px-1 rounded border border-[#E8E5E0] dark:border-[#3A3A3A] bg-white dark:bg-[#252525] text-[#252525] dark:text-white outline-none"
-                        >
-                            {[8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72].map(s => (
-                                <option key={s} value={s}>{s}</option>
-                            ))}
-                        </select>
-
-                        <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1 flex-shrink-0" />
-
-                        {/* Bold */}
-                        <button
-                            onClick={() => setTextBold(b => !b)}
-                            className={`w-7 h-7 flex items-center justify-center rounded font-bold text-sm transition-colors ${textBold ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
-                            title="Bold"
-                        >B</button>
-
-                        {/* Italic */}
-                        <button
-                            onClick={() => setTextItalic(i => !i)}
-                            className={`w-7 h-7 flex items-center justify-center rounded italic text-sm transition-colors ${textItalic ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
-                            title="Italic"
-                        >I</button>
-
-                        {/* Underline */}
-                        <button
-                            onClick={() => setTextUnderline(u => !u)}
-                            className={`w-7 h-7 flex items-center justify-center rounded underline text-sm transition-colors ${textUnderline ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
-                            title="Underline"
-                        >U</button>
-
-                        <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1 flex-shrink-0" />
-
-                        {/* Text Color */}
-                        <label className="flex items-center gap-1 cursor-pointer text-xs text-[#545454] dark:text-[#7D7D7D]" title="Text Color">
-                            <span>A</span>
-                            <input
-                                type="color"
-                                value={currentColor}
-                                onChange={(e) => setCurrentColor(e.target.value)}
-                                className="w-6 h-6 cursor-pointer rounded border-0 p-0 bg-transparent"
-                            />
-                        </label>
-
-                        <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1 flex-shrink-0" />
-
-                        {/* Alignment */}
-                        {(["left", "center", "right"] as const).map((align) => (
-                            <button
-                                key={align}
-                                onClick={() => setTextAlign(align)}
-                                title={`Align ${align}`}
-                                className={`w-7 h-7 flex items-center justify-center rounded text-xs transition-colors ${textAlign === align ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
-                            >
-                                {align === "left" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>}
-                                {align === "center" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg>}
-                                {align === "right" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>}
-                            </button>
-                        ))}
-                    </div>
-                )}
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex flex-1 overflow-hidden">
+            {/* Spacer for fixed header on mobile — height is set dynamically via ResizeObserver */}
+            {/* This ensures content is never hidden behind the header regardless of header height */}
+            <div ref={headerSpacerRef} className="sm:hidden flex-shrink-0" />
+
+            {/* Main Content Area — vertical on mobile, horizontal on laptop */}
+            <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden relative">
+                
+                {/* Mobile Overlay - Closes sidebar when tapped outside */}
+                {showThumbnails && (
+                    <div 
+                        className="sm:hidden absolute inset-0 z-10 bg-black/50 transition-opacity backdrop-blur-sm"
+                        onClick={() => setShowThumbnails(false)}
+                    />
+                )}
+
                 {/* Left Sidebar - Thumbnails */}
-                <div className="hidden lg:flex w-64 flex-col bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors">
-                    <Document file={note.file_url} className="flex flex-col gap-4">
-                        {Array.from(new Array(numPages), (_, index) => (
-                            <div
-                                key={`thumb_${index + 1}`}
-                                className="cursor-pointer rounded-lg overflow-hidden border-2 transition-all hover:border-[#E8E5E0] dark:hover:border-[#545454] border-transparent"
-                                onClick={() => document.getElementById(`pdf-page-${index + 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                            >
-                                <Page pageNumber={index + 1} width={120} renderAnnotationLayer={false} renderTextLayer={false} className="shadow-sm bg-white m-auto" />
-                                <div className="text-center py-1 text-xs text-[#545454] dark:text-[#7D7D7D] bg-[#F5F3EF] dark:bg-[#1A1A1A]">{index + 1}</div>
-                            </div>
-                        ))}
+                {/* Left Sidebar - Thumbnails: Always show on laptop, toggle on mobile as overlay */}
+                <div 
+                    ref={thumbnailSidebarRef}
+                    className={`
+                    flex-col w-40 flex-shrink-0 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors
+                    ${showThumbnails ? 'flex absolute top-[72px] bottom-0 left-0 z-20 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
+                `}>
+                    <Document file={note.file_url} className="flex flex-col gap-4 items-center">
+                    {Array.from(new Array(numPages), (_, index) => (
+                        <div
+                            key={`thumb_${index + 1}`}
+                            id={`thumb-item-${index + 1}`}
+                            className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 ${(currentPage === index + 1 && typeof window !== 'undefined' && window.innerWidth < 640) ? "border-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.3)] scale-[1.02]" : "border-transparent hover:border-[#E8E5E0] dark:hover:border-[#545454]"}`}
+                            onClick={() => {
+                                document.getElementById(`pdf-page-${index + 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                if (window.innerWidth < 640) setShowThumbnails(false);
+                            }}
+                        >
+                            <Page pageNumber={index + 1} width={120} renderAnnotationLayer={false} renderTextLayer={false} className="shadow-sm bg-white m-auto" />
+                            <div className={`text-center py-1 text-xs font-medium transition-colors ${(currentPage === index + 1 && typeof window !== 'undefined' && window.innerWidth < 640) ? "text-[#3B82F6] bg-blue-50 dark:bg-blue-900/20" : "text-[#545454] dark:text-[#7D7D7D] bg-[#F5F3EF] dark:bg-[#1A1A1A]"}`}>{index + 1}</div>
+                        </div>
+                    ))}
                     </Document>
                 </div>
 
-                {/* Center Canvas Area */}
-                <div className="flex-1 bg-[#E8E5E0] dark:bg-[#161514] overflow-auto relative flex justify-center p-8 custom-scrollbar">
+                {/* Center Canvas Area - min-w-0 is crucial for flex-1 to not overflow siblings */}
+                <div ref={documentContainerRef} className="flex-1 min-w-0 bg-[#E8E5E0] dark:bg-[#161514] overflow-auto overflow-x-hidden relative flex justify-center p-0 pt-[calc(72px+env(safe-area-inset-top,0px))] sm:p-12 custom-scrollbar">
                     <Document
                         file={note.file_url}
                         onLoadSuccess={onDocumentLoadSuccess}
-                        className="flex flex-col items-center gap-6"
+                        className="flex flex-col gap-4 sm:gap-8 pb-32 items-center"
                         loading={
                             <div className="flex items-center gap-2 text-[#545454] dark:text-[#7D7D7D]">
                                 <Loader2 size={24} className="animate-spin" />
@@ -544,41 +711,48 @@ export default function PdfEditorPage() {
                             const pg = index + 1;
                             return (
                                 <div
-                                    key={`page_${pg}`}
-                                    id={`pdf-page-${pg}`}
+                                    key={`page_${index + 1}`}
+                                    id={`pdf-page-${index + 1}`}
                                     ref={(el) => { pageContainerRefs.current[pg] = el; }}
-                                    className="relative shadow-2xl bg-white select-none"
+                                    className="relative bg-white shadow-md sm:shadow-lg transition-all"
                                 >
                                     <Page
                                         pageNumber={pg}
+                                        width={containerWidth || undefined}
+                                        scale={zoomLevel}
                                         className="bg-white pointer-events-none"
                                         renderAnnotationLayer={false}
                                         renderTextLayer={false}
                                         onRenderSuccess={(pageInfo) => {
-                                            setPageDimensions({ width: pageInfo.width, height: pageInfo.height });
+                                            if (zoomLevel !== 1) return; // Only capture base layout dimensions at 100%
+                                            setAllPageDims(prev => {
+                                                if (prev[pg]) return prev;
+                                                return {
+                                                    ...prev,
+                                                    [pg]: { width: pageInfo.width, height: pageInfo.height }
+                                                };
+                                            });
                                         }}
                                     />
-                                    {pageDimensions && (
-                                        // Disable canvas pointer events while a text box is open on this page
-                                        <div className={textInput?.pageNum === pg ? "pointer-events-none" : ""}>
-                                            <PdfDrawingOverlay
-                                                width={pageDimensions.width}
-                                                height={pageDimensions.height}
-                                                activeTool={activeTool}
-                                                currentColor={activeTool === "highlight" ? highlightColor : currentColor}
-                                                strokeWidth={strokeWidth}
-                                                annotations={annotsByPage[pg] || []}
-                                                onAnnotationAdd={(ann) => addAnnotation(pg, ann)}
-                                                onEraseAt={(coords) => eraseAt(pg, coords)}
-                                                onTextClick={(x, y) => handleTextClick(pg, x, y)}
-                                            />
-                                        </div>
+                                    {allPageDims[pg] && (
+                                        <PdfDrawingOverlay
+                                            width={allPageDims[pg].width * zoomLevel}
+                                            height={allPageDims[pg].height * zoomLevel}
+                                            scale={zoomLevel}
+                                            activeTool={activeTool}
+                                            currentColor={activeTool === "highlight" ? highlightColor : currentColor}
+                                            strokeWidth={strokeWidth}
+                                            annotations={annotsByPage[pg] || []}
+                                            onAnnotationAdd={(ann) => addAnnotation(pg, ann)}
+                                            onEraseAt={(coords) => eraseAt(pg, coords)}
+                                            onTextClick={(x, y) => handleTextClick(pg, x, y)}
+                                        />
                                     )}
 
                                     {/* Inline text input — rendered directly on the page */}
-                                    {textInput && textInput.pageNum === pg && pageDimensions && (
+                                    {textInput && textInput.pageNum === pg && allPageDims[pg] && (
                                         <div
-                                            className="absolute z-30 flex flex-col items-start gap-1 group"
+                                            className="absolute z-30 flex flex-col items-start gap-1 group pointer-events-auto select-text"
                                             style={{
                                                 left: textInput.x,
                                                 top: textInput.y - textFontSize - 28,
@@ -622,7 +796,7 @@ export default function PdfEditorPage() {
                                                 }}
                                                 placeholder="Insert text here…"
                                                 rows={1}
-                                                className="bg-transparent border-0 border-b-2 border-dashed border-[#3B82F6] focus:border-solid outline-none resize-none overflow-hidden leading-tight p-0 mt-[-4px]"
+                                                className="bg-transparent border-0 border-b-2 border-dashed border-[#3B82F6] focus:border-solid outline-none resize-none overflow-hidden leading-tight p-0 mt-[-4px] select-text pointer-events-auto"
                                                 style={{
                                                     color: currentColor,
                                                     fontSize: textFontSize,
@@ -643,75 +817,169 @@ export default function PdfEditorPage() {
                         })}
                     </Document>
                 </div>
-
-                {/* Right Sidebar - Tools */}
-                <div className="w-16 sm:w-64 flex-shrink-0 bg-white dark:bg-[#24221F] border-l border-[#E8E5E0] dark:border-[#2A2A2A] p-4 flex flex-col items-center sm:items-stretch gap-5 transition-colors overflow-y-auto custom-scrollbar">
+                {/* Right Sidebar - Tools (Bottom on Mobile, Right on Desktop) */}
+                {/* On mobile, if the keyboard is open, this docks above the keyboard. If closed, docks at bottom. */}
+                <div ref={toolbarRef} className={`
+                    flex-shrink-0 w-full sm:w-56 h-auto sm:h-full bg-white dark:bg-[#24221F] border-t sm:border-t-0 sm:border-l border-[#E8E5E0] dark:border-[#2A2A2A] py-3 px-4 pb-7 sm:pb-4 sm:p-4 flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-5 transition-colors overflow-x-auto sm:overflow-y-auto custom-scrollbar flex
+                    ${isKeyboardOpen ? 'fixed left-0 right-0 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] !pb-3 bg-white/95 backdrop-blur-md sm:static sm:bg-white sm:backdrop-blur-none' : 'static'}
+                `}>
 
                     {/* Tool Selection */}
-                    <div className="grid grid-cols-2 gap-2 w-full">
-                        {toolBtn("pen", <Pen size={18} />, "Pen")}
-                        {toolBtn("highlight", <Highlighter size={18} />, "Highlighter")}
-                        {toolBtn("text", <Type size={18} />, "Text")}
-                        {toolBtn("eraser", <Eraser size={18} />, "Eraser")}
+                    <div className="flex flex-row sm:grid sm:grid-cols-2 gap-3 sm:gap-2 flex-shrink-0">
+                        {toolBtn("select", <MousePointer2 size={20} />, "Select")}
+                        {toolBtn("pen", <Pen size={20} />, "Pen")}
+                        {toolBtn("highlight", <Highlighter size={20} />, "Highlight")}
+                        {toolBtn("text", <Type size={20} />, "Text")}
+                        {toolBtn("eraser", <Eraser size={20} />, "Eraser")}
                     </div>
 
-                    <div className="w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
+                    <div className="hidden sm:block w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
+                    <div className="sm:hidden w-px h-8 bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
 
                     {/* Stroke Size (pen/eraser only) */}
                     {(activeTool === "pen" || activeTool === "eraser") && (
-                        <div className="flex flex-col gap-3 w-full">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Size</span>
-                            <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                                {[2, 4, 6, 8, 12].map((size) => (
-                                    <button
-                                        key={size}
-                                        onClick={() => setStrokeWidth(size)}
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${strokeWidth === size ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] ring-1 ring-[#252525] dark:ring-white" : "hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A]"}`}
-                                    >
-                                        <div className="bg-[#252525] dark:bg-white rounded-full" style={{ width: size, height: size }} />
-                                    </button>
-                                ))}
+                        <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 flex-shrink-0 w-32 sm:w-full sm:pr-0">
+                            <div className="flex justify-between w-full hidden sm:flex">
+                                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D]">Size</span>
+                                <span className="text-[10px] sm:text-xs font-medium text-[#252525] dark:text-[#7D7D7D]">{strokeWidth}px</span>
+                            </div>
+                            <div className="flex flex-row items-center gap-2 w-full h-8 sm:h-auto">
+                                <div className="hidden sm:block bg-[#7D7D7D] rounded-full flex-shrink-0" style={{ width: 4, height: 4 }} />
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="32"
+                                    value={strokeWidth}
+                                    onChange={(e) => setStrokeWidth(Number(e.target.value))}
+                                    className="flex-1 w-24 sm:w-full cursor-pointer accent-[#252525] dark:accent-white"
+                                    style={{ padding: 0 }}
+                                />
+                                <div className="hidden sm:block bg-[#252525] dark:bg-white rounded-full flex-shrink-0" style={{ width: 12, height: 12 }} />
                             </div>
                         </div>
                     )}
 
                     {/* Highlight Color picker */}
                     {activeTool === "highlight" && (
-                        <div className="flex flex-col gap-3 w-full">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Highlight Color</span>
-                            <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                                {["#FBBF24", "#34D399", "#60A5FA", "#F87171", "#C084FC", "#FB923C"].map((color) => (
+                        <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 flex-shrink-0 pr-4 sm:pr-0">
+                            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Colors</span>
+                            
+                            {/* Desktop: Show full grid */}
+                            <div className="hidden sm:grid sm:grid-cols-5 gap-2 w-full">
+                                {["#FEF08A", "#FDE047", "#FBBF24", "#A7F3D0", "#34D399", "#BFDBFE", "#60A5FA", "#FECACA", "#F87171"].map((color) => (
                                     <button
                                         key={color}
                                         onClick={() => setHighlightColor(color)}
-                                        className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${highlightColor === color ? "border-[#252525] dark:border-white ring-2 ring-[#252525]/20 dark:ring-white/20 shadow-md" : "border-[#E8E5E0] dark:border-[#3A3A3A]"}`}
+                                        className={`w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 ${highlightColor === color ? "border-[#252525] dark:border-white ring-1 ring-[#252525]/20 dark:ring-white/20 shadow-sm" : "border-[#E8E5E0] dark:border-[#3A3A3A]"}`}
                                         style={{ backgroundColor: color }}
-                                        title={color}
                                     />
                                 ))}
+                                <div className="relative w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 flex items-center justify-center overflow-hidden border-[#E8E5E0] dark:border-[#3A3A3A]">
+                                    <div className="absolute inset-0 bg-[conic-gradient(from_0deg,red,orange,yellow,green,blue,purple,red)] opacity-80" />
+                                    <input type="color" value={highlightColor} onChange={(e) => setHighlightColor(e.target.value)} className="absolute opacity-0 inset-[-20px] w-20 h-20 cursor-pointer" />
+                                </div>
+                            </div>
+
+                            {/* Mobile: Show only ONE color dot */}
+                            <div className="sm:hidden relative w-8 h-8 rounded-full border-2 border-[#E8E5E0] dark:border-[#3A3A3A] overflow-hidden shadow-sm flex-shrink-0" style={{ backgroundColor: highlightColor }}>
+                                <input
+                                    type="color"
+                                    value={highlightColor}
+                                    onChange={(e) => setHighlightColor(e.target.value)}
+                                    className="absolute opacity-0 inset-[-20px] w-16 h-16 cursor-pointer"
+                                />
                             </div>
                         </div>
                     )}
 
                     {/* Pen / Text Color */}
                     {(activeTool === "pen" || activeTool === "text") && (
+                        <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 flex-shrink-0 pr-4 sm:pr-0">
+                            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Colors</span>
+                            
+                            {/* Desktop: Show full grid */}
+                            <div className="hidden sm:grid sm:grid-cols-5 gap-2 w-full">
+                                {[
+                                    "#1E1E1E", "#757575", "#E0E0E0", "#FFFFFF", "#EF4444", 
+                                    "#F97316", "#F59E0B", "#EAB308", "#84CC16", "#10B981", 
+                                    "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899",
+                                ].map((color) => (
+                                    <button
+                                        key={color}
+                                        onClick={() => setCurrentColor(color)}
+                                        className={`w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 ${currentColor === color ? "border-[#252525] dark:border-white shadow-sm ring-1 ring-[#252525]/20 dark:ring-white/20" : "border-[#E8E5E0] dark:border-[#3A3A3A]"}`}
+                                        style={{ backgroundColor: color }}
+                                    />
+                                ))}
+                                <div className="relative w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 flex items-center justify-center overflow-hidden border-[#E8E5E0] dark:border-[#3A3A3A]">
+                                    <div className="absolute inset-0 bg-[conic-gradient(from_0deg,red,orange,yellow,green,blue,purple,red)] opacity-80" />
+                                    <input type="color" value={currentColor} onChange={(e) => setCurrentColor(e.target.value)} className="absolute opacity-0 inset-[-20px] w-20 h-20 cursor-pointer" />
+                                </div>
+                            </div>
+
+                            {/* Mobile: Show only ONE color dot */}
+                            <div className="sm:hidden relative w-8 h-8 rounded-full border-2 border-[#E8E5E0] dark:border-[#3A3A3A] overflow-hidden shadow-sm flex-shrink-0" style={{ backgroundColor: currentColor }}>
+                                <input
+                                    type="color"
+                                    value={currentColor}
+                                    onChange={(e) => setCurrentColor(e.target.value)}
+                                    className="absolute opacity-0 inset-[-20px] w-16 h-16 cursor-pointer"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Text Formatting (Text Tool Only) */}
+                    {activeTool === "text" && (
                         <>
-                            <div className="w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
-                            <div className="flex flex-col gap-3 w-full">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Color</span>
-                                <div className="grid grid-cols-4 gap-2">
-                                    {[
-                                        "#1E1E1E", "#757575", "#E0E0E0", "#FFFFFF",
-                                        "#EF4444", "#F59E0B", "#10B981", "#3B82F6",
-                                        "#8B5CF6", "#EC4899", "#14B8A6", "#84CC16",
-                                    ].map((color) => (
+                            <div className="hidden sm:block w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A] mt-2" />
+                            <div className="sm:hidden w-px h-8 flex-shrink-0 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+
+                            <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 w-auto sm:w-full flex-shrink-0">
+                                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Typography</span>
+                                <div className="flex flex-row sm:flex-col items-center sm:items-stretch gap-2">
+                                    <select
+                                        value={textFontFamily}
+                                        onChange={(e) => setTextFontFamily(e.target.value)}
+                                        className="text-[10px] sm:text-xs h-8 sm:h-9 w-[110px] sm:w-auto px-1 sm:px-2 flex-shrink-0 rounded-md border border-[#E8E5E0] dark:border-[#3A3A3A] bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white outline-none"
+                                    >
+                                        {["Times New Roman", "Arial", "Georgia", "Courier New", "Verdana", "Trebuchet MS"].map(f => (
+                                            <option key={f} value={f}>{f}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 flex-shrink-0">
+                                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Style</span>
+                                <div className="flex gap-1 border sm:border-0 border-[#E8E5E0] dark:border-[#3A3A3A] sm:border-transparent rounded-md p-0.5 sm:p-0">
+                                    <button
+                                        onClick={() => setTextBold(b => !b)}
+                                        className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md font-bold text-sm transition-all ${textBold ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
+                                    >B</button>
+                                    <button
+                                        onClick={() => setTextItalic(i => !i)}
+                                        className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md italic text-sm transition-all ${textItalic ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
+                                    >I</button>
+                                    <button
+                                        onClick={() => setTextUnderline(u => !u)}
+                                        className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md underline text-sm transition-all ${textUnderline ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
+                                    >U</button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 flex-shrink-0 pr-4 sm:pr-0">
+                                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Alignment</span>
+                                <div className="flex gap-1 border sm:border-0 border-[#E8E5E0] dark:border-[#3A3A3A] sm:border-transparent rounded-md p-0.5 sm:p-0">
+                                    {(["left", "center", "right"] as const).map((align) => (
                                         <button
-                                            key={color}
-                                            onClick={() => setCurrentColor(color)}
-                                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${currentColor === color ? "border-[#252525] dark:border-white shadow-md ring-2 ring-[#252525]/20 dark:ring-white/20" : "border-[#E8E5E0] dark:border-[#3A3A3A]"}`}
-                                            style={{ backgroundColor: color }}
-                                            title={color}
-                                        />
+                                            key={align}
+                                            onClick={() => setTextAlign(align)}
+                                            className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs transition-all ${textAlign === align ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
+                                        >
+                                            {align === "left" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>}
+                                            {align === "center" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg>}
+                                            {align === "right" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>}
+                                        </button>
                                     ))}
                                 </div>
                             </div>

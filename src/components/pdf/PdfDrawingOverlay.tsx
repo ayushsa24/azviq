@@ -30,13 +30,14 @@ export type Stroke = StrokeAnnotation;
 interface PdfDrawingOverlayProps {
     width: number;
     height: number;
-    activeTool: "pen" | "eraser" | "highlight" | "text";
+    activeTool: "select" | "pen" | "eraser" | "highlight" | "text";
     currentColor: string;
     strokeWidth: number;
     annotations: Annotation[];
     onAnnotationAdd: (a: Annotation) => void;
     onEraseAt: (coords: { x: number; y: number }) => void;
     onTextClick?: (x: number, y: number) => void;
+    scale?: number;
 }
 
 export function PdfDrawingOverlay({
@@ -49,6 +50,7 @@ export function PdfDrawingOverlay({
     onAnnotationAdd,
     onEraseAt,
     onTextClick,
+    scale = 1,
 }: PdfDrawingOverlayProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -61,9 +63,13 @@ export function PdfDrawingOverlay({
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        ctx.clearRect(0, 0, width, height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
+
+        // Apply visual scale mapping to raw coordinates
+        ctx.save();
+        ctx.scale(scale, scale);
 
         for (const ann of annotations) {
             if (ann.kind === "stroke") {
@@ -72,6 +78,8 @@ export function PdfDrawingOverlay({
                 ctx.globalAlpha = ann.opacity;
                 ctx.strokeStyle = ann.color;
                 ctx.lineWidth = ann.width;
+                // Highlighters usually look better with square ends
+                ctx.lineCap = ann.opacity < 1 ? "square" : "round";
                 ctx.beginPath();
                 ctx.moveTo(ann.path[0].x, ann.path[0].y);
                 for (let i = 1; i < ann.path.length; i++) {
@@ -109,7 +117,8 @@ export function PdfDrawingOverlay({
             ctx.save();
             ctx.globalAlpha = activeTool === "highlight" ? 0.35 : 1.0;
             ctx.strokeStyle = currentColor;
-            ctx.lineWidth = activeTool === "highlight" ? Math.max(strokeWidth, 16) : strokeWidth;
+            ctx.lineWidth = activeTool === "highlight" ? Math.max(strokeWidth, 10) : strokeWidth;
+            ctx.lineCap = activeTool === "highlight" ? "square" : "round";
             ctx.beginPath();
             ctx.moveTo(currentPath[0].x, currentPath[0].y);
             for (let i = 1; i < currentPath.length; i++) {
@@ -118,28 +127,27 @@ export function PdfDrawingOverlay({
             ctx.stroke();
             ctx.restore();
         }
-    }, [annotations, currentPath, width, height, activeTool, currentColor, strokeWidth]);
 
-    const getCoordinates = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        ctx.restore(); // Restore the global scale
+    }, [annotations, currentPath, width, height, activeTool, currentColor, strokeWidth, scale]);
+
+    const getCoordinates = (e: React.MouseEvent | React.PointerEvent) => {
         const canvas = canvasRef.current;
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY,
+            x: ((e.clientX - rect.left) * scaleX) / scale,
+            y: ((e.clientY - rect.top) * scaleY) / scale,
         };
     };
 
     const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        if (activeTool === "text" || activeTool === "select") return;
+
         (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
 
-        if (activeTool === "text") {
-            const coords = getCoordinates(e);
-            onTextClick?.(coords.x, coords.y);
-            return;
-        }
 
         setIsDrawing(true);
         setCurrentPath([getCoordinates(e)]);
@@ -154,6 +162,13 @@ export function PdfDrawingOverlay({
         if (activeTool === "eraser") {
             setCurrentPath((prev) => [...prev, coords]);
             onEraseAt(coords);
+        } else if (activeTool === "highlight") {
+            // Force horizontal line for highlighter to snap to text lines
+            // Offset Y slightly to center the highlight on the text line
+            setCurrentPath((prev) => {
+                const startY = prev.length > 0 ? prev[0].y : coords.y;
+                return [...prev, { x: coords.x, y: startY }];
+            });
         } else {
             setCurrentPath((prev) => [...prev, coords]);
         }
@@ -168,7 +183,7 @@ export function PdfDrawingOverlay({
             onAnnotationAdd({
                 kind: "stroke",
                 color: currentColor,
-                width: activeTool === "highlight" ? Math.max(strokeWidth, 16) : strokeWidth,
+                width: activeTool === "highlight" ? Math.max(strokeWidth, 10) : strokeWidth,
                 opacity: activeTool === "highlight" ? 0.35 : 1.0,
                 path: currentPath,
             });
@@ -180,6 +195,7 @@ export function PdfDrawingOverlay({
         activeTool === "pen" ? "cursor-crosshair"
         : activeTool === "highlight" ? "cursor-text"
         : activeTool === "text" ? "cursor-text"
+        : activeTool === "select" ? "cursor-default"
         : "cursor-cell";
 
     return (
@@ -187,13 +203,26 @@ export function PdfDrawingOverlay({
             ref={canvasRef}
             width={width}
             height={height}
-            style={{ width, height, touchAction: "none" }}
+            style={{ 
+                width, 
+                height, 
+                // "select" and "text" tools: allow native scroll gestures (pan-x pan-y)
+                // "pen", "highlight", "eraser": block all touch to capture drawing (none)
+                touchAction: (activeTool === "select" || activeTool === "text") ? "auto" : "none",
+                pointerEvents: activeTool === "select" ? "none" : "auto" 
+            }}
             className={`absolute top-0 left-0 z-20 ${cursor}`}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
             onPointerLeave={handlePointerUp}
+            onClick={(e) => {
+                if (activeTool === "text") {
+                    const coords = getCoordinates(e);
+                    onTextClick?.(coords.x, coords.y);
+                }
+            }}
         />
     );
 }
