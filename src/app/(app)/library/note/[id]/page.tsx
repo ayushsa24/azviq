@@ -42,6 +42,7 @@ export default function NoteEditorPage() {
     const [saveError, setSaveError] = useState("");
     const [mounted, setMounted] = useState(false);
     const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [workspaceId, setWorkspaceId] = useState<string | null>(null);
     const moreMenuRef = React.useRef<HTMLDivElement>(null);
 
     // Default to locked, unless the 'new' query parameter is present meaning we just created it
@@ -206,6 +207,7 @@ export default function NoteEditorPage() {
 
                 titleRef.current = note.title;
                 setTitle(note.title);
+                setWorkspaceId(note.workspace_id);
                 if (editor && note.content) {
                     editor.commands.setContent(note.content, { emitUpdate: false });
                 }
@@ -309,11 +311,8 @@ export default function NoteEditorPage() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => {
-                            if (window.history.length > 2) {
-                                router.back();
-                            } else {
-                                router.push("/library");
-                            }
+                            const wsParam = workspaceId ? `workspace=${workspaceId}&` : "";
+                            router.push(`/library?${wsParam}tab=notes`);
                         }}
                         className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
                         title="Back"
@@ -401,8 +400,8 @@ export default function NoteEditorPage() {
             </div>
 
             {/* Main Editor Area */}
-            <div className="flex-1 max-w-4xl mx-auto w-full px-6 pt-12 pb-[50vh] flex flex-col">
-                <div className="flex items-center gap-4 mb-8">
+            <div className="flex-1 max-w-4xl mx-auto w-full px-6 pt-4 sm:pt-12 pb-[50vh] flex flex-col">
+                <div className="flex items-center gap-4 mb-4 sm:mb-8">
                     <input
                         id="note-title-input"
                         type="text"

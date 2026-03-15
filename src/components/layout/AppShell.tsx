@@ -40,6 +40,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isPdfEditor = pathname.includes("/library/pdf/");
+  const isNoteEditor = pathname.includes("/library/note/");
 
   return (
     <div className={`h-[100dvh] overflow-hidden flex flex-col transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>
@@ -51,7 +52,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {!isPdfEditor && (
+      {!isPdfEditor && !isNoteEditor && (
         <Sidebar
           open={open}
           isHovered={isSidebarHovered}
@@ -62,7 +63,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       {/* Global Notification Panel */}
       <NotificationPanel />
 
-      {!open && !isPdfEditor && (
+      {!open && !isPdfEditor && !isNoteEditor && (
         <div
           className="fixed left-0 top-0 w-3 h-full z-[55] hidden md:flex items-center group"
           onMouseEnter={() => setIsSidebarHovered(true)}
@@ -76,17 +77,17 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       <main className={`
         ${isDashboard
-          ? 'pt-[calc(5rem+env(safe-area-inset-top,0px))] md:pt-0'
-          : isPdfEditor ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-[calc(env(safe-area-inset-top,0px)+28px)] md:pt-0'}
+          ? 'pt-[calc(3.25rem+env(safe-area-inset-top,0px))] md:pt-0'
+          : (isPdfEditor || isNoteEditor) ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-[env(safe-area-inset-top,0px)] md:pt-0'}
         flex flex-col overflow-hidden transition-all duration-300 ease-in-out
-        ${open && !isPdfEditor ? 'md:pl-56' : 'md:pl-0'}
-        ${isKeyboardOpen || isPdfEditor ? 'pb-0' : 'pb-[calc(3.5rem+env(safe-area-inset-bottom,1rem))] md:pb-0'} flex-1 min-h-0
+        ${open && !isPdfEditor && !isNoteEditor ? 'md:pl-56' : 'md:pl-0'}
+        ${isKeyboardOpen || isPdfEditor || isNoteEditor ? 'pb-0' : 'pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0'} flex-1 min-h-0
         ${theme === 'dark' ? 'bg-[#1A1A1A]' : 'bg-[#F5F3EF]'}
       `}>
         {children}
       </main>
 
-      {!isPdfEditor && <BottomNav />}
+      {!isPdfEditor && !isNoteEditor && <BottomNav />}
     </div>
   );
 }

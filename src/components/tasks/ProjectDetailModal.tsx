@@ -221,7 +221,7 @@ export function ProjectDetailModal({
 
     return (
         <div
-            className="fixed inset-0 z-[60] flex flex-col sm:justify-center sm:items-center bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-black/40 sm:dark:bg-black/40 sm:backdrop-blur-sm pt-[calc(env(safe-area-inset-top,0px)+28px)] sm:pt-0 sm:px-4 sm:py-6"
+            className="fixed inset-0 z-[60] flex flex-col sm:justify-center sm:items-center bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-black/40 sm:dark:bg-black/40 sm:backdrop-blur-sm pt-[env(safe-area-inset-top,0px)] sm:pt-0 sm:px-4 sm:py-6"
             onClick={onClose}
         >
             <div

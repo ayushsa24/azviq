@@ -369,11 +369,11 @@ export default function TasksPage() {
       {/* ── Scrollable main area ── */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 pb-6 scrollbar-hide w-full"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 pb-0 scrollbar-hide w-full"
       >
         <div className="flex flex-col min-w-0 max-w-full">
           {/* ── Page Title + controls ── */}
-          <div className="flex items-center justify-between pt-[calc(env(safe-area-inset-top,0px)+12px)] sm:pt-6 pb-1">
+          <div className="flex items-center justify-between pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-1">
             <div className="flex items-center gap-3">
               <SidebarToggleButton />
               <div>

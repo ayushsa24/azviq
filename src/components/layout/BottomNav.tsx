@@ -46,8 +46,8 @@ export default function BottomNav() {
   return (
     <nav className={`fixed bottom-0 left-0 right-0 z-[100] border-t transition-all duration-300 ease-in-out shadow-lg md:hidden pb-[env(safe-area-inset-bottom,0px)]
       ${hidden ? 'translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}
-      ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-[#CFCFCF] border-[#7D7D7D]'}`}>
-      <div className="mx-auto flex max-w-xl justify-around px-2 py-2">
+      ${theme === 'dark' ? 'bg-[#252525] border-[#545454]' : 'bg-[#F5F3EF]/95 backdrop-blur-md border-[#E8E5E0]'}`}>
+      <div className="mx-auto flex max-w-xl justify-around px-2 py-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
@@ -62,8 +62,8 @@ export default function BottomNav() {
                     ? 'bg-[#545454] text-white'
                     : 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
                   : isActive
-                    ? 'bg-[#7D7D7D] text-white shadow-sm'
-                    : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
+                    ? 'bg-[#252525] text-white shadow-md'
+                    : 'text-[#7D7D7D] hover:bg-[#252525]/10 hover:text-[#252525]'
                 }`}
             >
               <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />

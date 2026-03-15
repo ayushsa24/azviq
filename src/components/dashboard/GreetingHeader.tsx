@@ -42,11 +42,11 @@ export default function GreetingHeader({ userName, children }: { userName: strin
         <div className="flex flex-col mb-1 px-2">
             <div className="flex items-center gap-3">
                 {children}
-                <h1 className="text-3xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
                     {greeting}, {userName} <span className="animate-wave inline-block origin-[70%_70%]">!</span>
                 </h1>
             </div>
-            <p className="text-[#545454] dark:text-[#BABABA] mt-1.5 font-medium transition-colors">
+            <p className="text-[#545454] dark:text-[#BABABA] mt-0.5 sm:mt-1.5 font-medium transition-colors text-sm sm:text-base">
                 {quote}
             </p>
             <p className="text-[#545454] dark:text-[#888888] mt-1 text-sm font-semibold transition-colors">

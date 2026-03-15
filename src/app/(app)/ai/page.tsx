@@ -777,7 +777,7 @@ function AiChatCore() {
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed inset-y-0 left-0 z-[60] pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-[calc(env(safe-area-inset-bottom,0px)+16px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-72 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
+        className={`fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-72 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
           ? "bg-[#1A1A1A] border-[#545454]"
           : "bg-[#F5F3EF] border-[#E8E5E0]"
           }`}
@@ -972,7 +972,7 @@ function AiChatCore() {
         )}
         {/* Mobile Header Toggle */}
         <div
-          className={`md:hidden shrink-0 sticky top-0 z-10 p-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
+          className={`md:hidden shrink-0 sticky top-0 z-10 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
             ? "bg-[#1A1A1A] border-[#545454]"
             : "bg-[#F5F3EF] border-[#E8E5E0]"
             }`}
@@ -1017,7 +1017,7 @@ function AiChatCore() {
               setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
             }
           }}
-          className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6"
+          className="flex-1 overflow-y-auto p-0 md:p-6 space-y-4 md:space-y-6"
         >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
@@ -1393,7 +1393,7 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`relative px-3 md:px-5 md:pb-2 pt-0 mt-2 ${isKeyboardOpen ? 'pb-2' : 'pb-4'}`}>
+        <div className={`relative px-3 md:px-5 md:pb-2 pt-0 mt-2 ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
           {/* Scroll To Bottom Button */}
           {showScrollDown && (
             <div className="absolute bottom-full left-0 right-0 flex justify-center pb-3 z-20">

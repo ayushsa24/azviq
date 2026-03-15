@@ -51,7 +51,7 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
   };
 
   return (
-    <header className={`h-[calc(5rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out fixed z-50 ${theme === 'dark'
+    <header className={`h-[calc(3.25rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(env(safe-area-inset-top,0px)+8px)] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out fixed z-50 ${theme === 'dark'
       ? 'bg-[#1A1A1A] border-[#545454]'
       : 'bg-[#F5F3EF] border-[#E8E5E0]'
       } ${open

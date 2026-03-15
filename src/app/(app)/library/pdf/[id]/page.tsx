@@ -137,7 +137,7 @@ export default function PdfEditorPage() {
         const initialHeight = vv.height;
 
         const update = () => {
-            // Correct the header position so it stays at visible top
+            // Correct the header position so it stays at the top of the visible area
             if (headerRef.current) {
                 headerRef.current.style.top = `${vv.offsetTop}px`;
             }
@@ -532,13 +532,13 @@ export default function PdfEditorPage() {
     const toolBtn = (tool: Tool, icon: React.ReactNode, label: string, extraClass = "") =>
         <button
             onClick={() => setActiveTool(tool)}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium transition-all ${activeTool === tool
-                ? "bg-[#252525]/10 dark:bg-white/10 text-[#252525] dark:text-white ring-1 ring-[#252525] dark:ring-white"
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-medium transition-all ${activeTool === tool
+                ? "bg-[#252525] text-white shadow-md"
                 : `bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] ${extraClass}`
             }`}
             title={label}
         >
-            <div className="scale-110 sm:scale-100">{icon}</div>
+            <div className="transition-transform duration-200">{icon}</div>
             <span className="hidden sm:block">{label}</span>
         </button>;
 
@@ -569,11 +569,14 @@ export default function PdfEditorPage() {
 
             {/* Top Navigation Bar — fixed on mobile so keyboard can't push it off screen */}
             {/* On desktop (sm:) it reverts to normal static flow */}
-            <div ref={headerRef} className="fixed top-0 left-0 right-0 sm:static flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-50 transition-colors pt-2 sm:pt-0">
+            <div ref={headerRef} className="fixed top-0 left-0 right-0 sm:static flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-0">
                 <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2 sm:gap-4">
                     <button
-                        onClick={() => window.history.length > 2 ? router.back() : router.push("/library")}
+                        onClick={() => {
+                            const workspaceParam = note?.workspace_id ? `workspace=${note.workspace_id}&` : "";
+                            router.push(`/library?${workspaceParam}tab=pdfs`);
+                        }}
                         className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                     >
                         <ArrowLeft size={20} />
@@ -672,9 +675,10 @@ export default function PdfEditorPage() {
                 {/* Left Sidebar - Thumbnails: Always show on laptop, toggle on mobile as overlay */}
                 <div 
                     ref={thumbnailSidebarRef}
+                    onPointerDown={(e) => e.stopPropagation()}
                     className={`
                     flex-col w-40 flex-shrink-0 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors
-                    ${showThumbnails ? 'flex absolute top-[72px] bottom-0 left-0 z-20 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
+                    ${showThumbnails ? 'flex absolute top-[calc(env(safe-area-inset-top,0px)+52px)] bottom-0 left-0 z-40 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
                 `}>
                     <Document file={note.file_url} className="flex flex-col gap-4 items-center">
                     {Array.from(new Array(numPages), (_, index) => (
@@ -685,6 +689,11 @@ export default function PdfEditorPage() {
                             onClick={() => {
                                 document.getElementById(`pdf-page-${index + 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                                 if (window.innerWidth < 640) setShowThumbnails(false);
+                                
+                                // Reset to select tool when navigating via sidebar to prevent accidental draws
+                                setActiveTool("select");
+                                // If user was typing text, finish it
+                                if (textInput) commitText();
                             }}
                         >
                             <Page pageNumber={index + 1} width={120} renderAnnotationLayer={false} renderTextLayer={false} className="shadow-sm bg-white m-auto" />
@@ -695,7 +704,7 @@ export default function PdfEditorPage() {
                 </div>
 
                 {/* Center Canvas Area - min-w-0 is crucial for flex-1 to not overflow siblings */}
-                <div ref={documentContainerRef} className="flex-1 min-w-0 bg-[#E8E5E0] dark:bg-[#161514] overflow-auto overflow-x-hidden relative flex justify-center p-0 pt-[calc(72px+env(safe-area-inset-top,0px))] sm:p-12 custom-scrollbar">
+                <div ref={documentContainerRef} className="flex-1 min-w-0 bg-[#E8E5E0] dark:bg-[#161514] overflow-auto overflow-x-hidden relative flex justify-center p-0 pt-[calc(env(safe-area-inset-top,0px)+52px)] sm:pt-12 sm:px-12 custom-scrollbar">
                     <Document
                         file={note.file_url}
                         onLoadSuccess={onDocumentLoadSuccess}
@@ -746,6 +755,7 @@ export default function PdfEditorPage() {
                                             onAnnotationAdd={(ann) => addAnnotation(pg, ann)}
                                             onEraseAt={(coords) => eraseAt(pg, coords)}
                                             onTextClick={(x, y) => handleTextClick(pg, x, y)}
+                                            onStrokeWidthChange={(w) => setStrokeWidth(w)}
                                         />
                                     )}
 
@@ -820,17 +830,18 @@ export default function PdfEditorPage() {
                 {/* Right Sidebar - Tools (Bottom on Mobile, Right on Desktop) */}
                 {/* On mobile, if the keyboard is open, this docks above the keyboard. If closed, docks at bottom. */}
                 <div ref={toolbarRef} className={`
-                    flex-shrink-0 w-full sm:w-56 h-auto sm:h-full bg-white dark:bg-[#24221F] border-t sm:border-t-0 sm:border-l border-[#E8E5E0] dark:border-[#2A2A2A] py-3 px-4 pb-7 sm:pb-4 sm:p-4 flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-5 transition-colors overflow-x-auto sm:overflow-y-auto custom-scrollbar flex
+                    flex-shrink-0 w-full sm:w-56 h-auto sm:h-full bg-white dark:bg-[#24221F] border-t sm:border-t-0 sm:border-l border-[#E8E5E0] dark:border-[#2A2A2A] py-2 px-4 pb-1 sm:pb-4 sm:p-4 flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-5 transition-all duration-500 overflow-x-auto sm:overflow-y-auto custom-scrollbar flex
+                    ${activeTool === "select" ? 'sm:justify-start justify-center' : 'justify-start'}
                     ${isKeyboardOpen ? 'fixed left-0 right-0 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] !pb-3 bg-white/95 backdrop-blur-md sm:static sm:bg-white sm:backdrop-blur-none' : 'static'}
                 `}>
 
                     {/* Tool Selection */}
                     <div className="flex flex-row sm:grid sm:grid-cols-2 gap-3 sm:gap-2 flex-shrink-0">
-                        {toolBtn("select", <MousePointer2 size={20} />, "Select")}
-                        {toolBtn("pen", <Pen size={20} />, "Pen")}
-                        {toolBtn("highlight", <Highlighter size={20} />, "Highlight")}
-                        {toolBtn("text", <Type size={20} />, "Text")}
-                        {toolBtn("eraser", <Eraser size={20} />, "Eraser")}
+                        {toolBtn("select", <MousePointer2 size={22} />, "Select")}
+                        {toolBtn("pen", <Pen size={22} />, "Pen")}
+                        {toolBtn("highlight", <Highlighter size={22} />, "Highlight")}
+                        {toolBtn("text", <Type size={22} />, "Text")}
+                        {toolBtn("eraser", <Eraser size={22} />, "Eraser")}
                     </div>
 
                     <div className="hidden sm:block w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />

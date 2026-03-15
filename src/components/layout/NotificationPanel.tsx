@@ -88,7 +88,7 @@ export default function NotificationPanel() {
             `}
         >
             {/* Header */}
-            <div className={`flex items-center justify-between px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+36px)] pb-4 md:px-5 md:pt-3 md:pb-3 border-b shrink-0 ${isDark ? "border-[#333]" : "border-[#E8E5E0]"}`}>
+            <div className={`flex items-center justify-between px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-4 md:px-5 md:pt-3 md:pb-3 border-b shrink-0 ${isDark ? "border-[#333]" : "border-[#E8E5E0]"}`}>
                 <div className="flex items-center gap-2">
                     <Bell className="w-5 h-5 md:w-4 md:h-4" />
                     <span className="font-extrabold text-xl md:font-semibold md:text-sm">Notifications</span>

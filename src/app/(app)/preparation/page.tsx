@@ -188,7 +188,7 @@ export default function PreparationPage() {
             {/* Fixed Header Section (Title + Search + Tabs) */}
             <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
                 {/* Title Section */}
-                <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] sm:pt-6 pb-2">
+                <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
                     <SidebarToggleButton />
                     <div>
                         <h1 className="text-[23px] sm:text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white">
@@ -301,7 +301,7 @@ export default function PreparationPage() {
             {/* Scrollable Content Area */}
             <div
                 ref={scrollContentRef}
-                className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 mt-2 scrollbar-hide"
+                className="flex-1 overflow-y-auto px-4 sm:px-6 pb-0 mt-2 scrollbar-hide"
             >
                 {/* Tab content */}
                 {activeTab === "exercise" && (

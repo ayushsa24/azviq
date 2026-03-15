@@ -37,6 +37,7 @@ interface PdfDrawingOverlayProps {
     onAnnotationAdd: (a: Annotation) => void;
     onEraseAt: (coords: { x: number; y: number }) => void;
     onTextClick?: (x: number, y: number) => void;
+    onStrokeWidthChange?: (width: number) => void;
     scale?: number;
 }
 
@@ -50,6 +51,7 @@ export function PdfDrawingOverlay({
     onAnnotationAdd,
     onEraseAt,
     onTextClick,
+    onStrokeWidthChange,
     scale = 1,
 }: PdfDrawingOverlayProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -112,19 +114,54 @@ export function PdfDrawingOverlay({
             }
         }
 
-        // Draw current in-progress path
-        if (currentPath.length > 0 && (activeTool === "pen" || activeTool === "highlight")) {
+        // Draw current in-progress path (Pen, Highlight, or Eraser)
+        if (currentPath.length > 0) {
             ctx.save();
-            ctx.globalAlpha = activeTool === "highlight" ? 0.35 : 1.0;
-            ctx.strokeStyle = currentColor;
-            ctx.lineWidth = activeTool === "highlight" ? Math.max(strokeWidth, 10) : strokeWidth;
-            ctx.lineCap = activeTool === "highlight" ? "square" : "round";
-            ctx.beginPath();
-            ctx.moveTo(currentPath[0].x, currentPath[0].y);
-            for (let i = 1; i < currentPath.length; i++) {
-                ctx.lineTo(currentPath[i].x, currentPath[i].y);
+            if (activeTool === "pen" || activeTool === "highlight") {
+                ctx.globalAlpha = activeTool === "highlight" ? 0.35 : 1.0;
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = activeTool === "highlight" ? Math.max(strokeWidth, 10) : strokeWidth;
+                ctx.lineCap = activeTool === "highlight" ? "square" : "round";
+                ctx.beginPath();
+                ctx.moveTo(currentPath[0].x, currentPath[0].y);
+                for (let i = 1; i < currentPath.length; i++) {
+                    ctx.lineTo(currentPath[i].x, currentPath[i].y);
+                }
+                ctx.stroke();
+            } else if (activeTool === "eraser") {
+                // Eraser visual: A soft red "deletion zone" trail that shows what's being cleared
+                ctx.save();
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(255, 59, 48, 0.15)"; // Soft iOS-style Red
+                ctx.lineWidth = strokeWidth * 4; // Dynamic trail width based on size
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.moveTo(currentPath[0].x, currentPath[0].y);
+                for (let i = 1; i < currentPath.length; i++) {
+                    ctx.lineTo(currentPath[i].x, currentPath[i].y);
+                }
+                ctx.stroke();
+
+                // Draw a clean "Eraser Tip" at the current position
+                const last = currentPath[currentPath.length - 1];
+                ctx.beginPath();
+                ctx.arc(last.x, last.y, strokeWidth * 2.5, 0, Math.PI * 2); // Dynamic tip size
+                ctx.fillStyle = "white";
+                // Add a subtle drop shadow to make the eraser tip pop
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = "rgba(0,0,0,0.15)";
+                ctx.fill();
+                ctx.strokeStyle = "#FF3B30";
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                // Small inner dot for precision
+                ctx.beginPath();
+                ctx.arc(last.x, last.y, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = "#FF3B30";
+                ctx.fill();
+                ctx.restore();
             }
-            ctx.stroke();
             ctx.restore();
         }
 
@@ -160,8 +197,20 @@ export function PdfDrawingOverlay({
         if (!isDrawing) return;
         const coords = getCoordinates(e);
         if (activeTool === "eraser") {
+            const last = currentPath[currentPath.length - 1];
+            if (last) {
+                const dist = distance(last, coords);
+                const steps = Math.ceil(dist / 5); // Erase every 5 pixels
+                for (let i = 1; i <= steps; i++) {
+                    onEraseAt({
+                        x: last.x + (coords.x - last.x) * (i / steps),
+                        y: last.y + (coords.y - last.y) * (i / steps),
+                    });
+                }
+            } else {
+                onEraseAt(coords);
+            }
             setCurrentPath((prev) => [...prev, coords]);
-            onEraseAt(coords);
         } else if (activeTool === "highlight") {
             // Force horizontal line for highlighter to snap to text lines
             // Offset Y slightly to center the highlight on the text line
@@ -217,6 +266,13 @@ export function PdfDrawingOverlay({
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
             onPointerLeave={handlePointerUp}
+            onWheel={(e) => {
+                if ((activeTool === "pen" || activeTool === "eraser") && onStrokeWidthChange && e.altKey) {
+                    const delta = e.deltaY > 0 ? -1 : 1;
+                    const next = Math.min(32, Math.max(1, strokeWidth + delta));
+                    onStrokeWidthChange(next);
+                }
+            }}
             onClick={(e) => {
                 if (activeTool === "text") {
                     const coords = getCoordinates(e);

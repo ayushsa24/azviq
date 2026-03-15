@@ -167,19 +167,30 @@ export default function NotesPage() {
     router.push("/library", { scroll: false });
   };
 
-  // Sync workspace state with URL (handles browser back/forward)
+  // Sync state with URL (handles browser back/forward + deep links)
   useEffect(() => {
     const wsId = searchParams.get("workspace");
+    const tabParam = searchParams.get("tab") as any;
+
+    // Handle Tab Param
+    if (tabParam && ["workspaces", "notes", "pdfs", "all", "favourites"].includes(tabParam)) {
+      if (activeTab !== tabParam) {
+        setActiveTab(tabParam);
+      }
+    }
+
+    // Handle Workspace Param
     if (wsId && workspaces.length > 0) {
       const found = workspaces.find((w) => w.id === wsId);
       if (found && activeWorkspace?.id !== found.id) {
         setActiveWorkspace(found);
-        setActiveTab("notes");
+        // If a tab wasn't explicitly provided, default to notes for workspace view
+        if (!tabParam) setActiveTab("notes");
       }
     } else if (!wsId && activeWorkspace) {
       // URL has no workspace param but we have an active one — user pressed back
       setActiveWorkspace(null);
-      setActiveTab("workspaces");
+      if (!tabParam) setActiveTab("workspaces");
     }
   }, [searchParams, workspaces]);
 
@@ -305,7 +316,7 @@ export default function NotesPage() {
 
   return (
     <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white px-4 sm:px-6 lg:px-8 overflow-hidden transition-colors">
-      <div className="flex items-center gap-3 pt-3 sm:pt-6 pb-2">
+      <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
         <SidebarToggleButton />
         {activeWorkspace && (
           <button
@@ -466,7 +477,7 @@ export default function NotesPage() {
       </div>
 
       {/* SCROLLABLE CONTENT AREA */}
-      <div className="flex-1 flex flex-col overflow-y-auto min-h-0 pr-2 pb-2">
+      <div className="flex-1 flex flex-col overflow-y-auto min-h-0 pr-2 pb-0">
         {isLoading ? (
           <div className={
             viewMode === "grid"
