@@ -39,7 +39,9 @@ import {
   History,
   ChevronsLeft,
   Search,
+  Clock,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 
 type Message = {
@@ -637,6 +639,15 @@ function AiChatCore() {
       switchChat(session.id);
     };
 
+    const formatDate = (iso: string) => {
+      if (!iso) return "";
+      const date = new Date(iso);
+      const now = new Date();
+      const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffInDays < 3) return formatDistanceToNow(date, { addSuffix: true });
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    };
+
     return (
       <div
         key={session.id}
@@ -647,7 +658,7 @@ function AiChatCore() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
-        className={`group relative w-full flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200 ${activeChatId === session.id
+        className={`group relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 ${activeChatId === session.id
           ? theme === "dark"
             ? "bg-[#545454] text-white"
             : "bg-[#F0EDE8] text-[#252525]"
@@ -658,108 +669,114 @@ function AiChatCore() {
       >
         <button
           onClick={handleSessionClick}
-          className="flex items-center gap-2.5 flex-1 min-w-0 pr-2"
+          className="flex items-start gap-2.5 flex-1 min-w-0 pr-2"
         >
-        <MessageCircle className="w-4 h-4 shrink-0 opacity-70" />
-        {isRenamingId === session.id ? (
-          <input
-            type="text"
-            value={renameTitle}
-            onChange={(e) => setRenameTitle(e.target.value)}
-            onBlur={() => handleRename(session.id)}
-            onKeyDown={(e) => e.key === "Enter" && handleRename(session.id)}
-            className={`flex-1 min-w-0 text-sm font-medium bg-transparent border-b outline-none px-1 ${theme === "dark" ? "border-gray-500 text-white" : "border-[#E8E5E0] text-gray-900"}`}
-            autoFocus
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span className="truncate text-sm font-medium flex-1 text-left">
-            {session.title}
-          </span>
-        )}
-        {session.is_pinned && (
-          <Pin className="w-3 h-3 ml-1 shrink-0 opacity-50" />
-        )}
-      </button>
+          <MessageCircle className="w-4 h-4 shrink-0 opacity-70 mt-0.5" />
+          <div className="flex flex-col items-start min-w-0 flex-1">
+            {isRenamingId === session.id ? (
+              <input
+                type="text"
+                value={renameTitle}
+                onChange={(e) => setRenameTitle(e.target.value)}
+                onBlur={() => handleRename(session.id)}
+                onKeyDown={(e) => e.key === "Enter" && handleRename(session.id)}
+                className={`w-full text-sm font-semibold bg-transparent border-b outline-none px-0 ${theme === "dark" ? "border-gray-500 text-white" : "border-[#E8E5E0] text-gray-900"}`}
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span className="truncate text-[13px] font-semibold text-left w-full leading-tight">
+                {session.title}
+              </span>
+            )}
+          </div>
+          {session.is_pinned && (
+            <Pin className="w-3 h-3 ml-1 shrink-0 opacity-50 mt-1" />
+          )}
+        </button>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setActiveMenuId(activeMenuId === session.id ? null : session.id);
-        }}
-        className={`block p-1.5 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-[#F0EDE8]"
-          }`}
-      >
-        <MoreHorizontal className="w-4 h-4 opacity-70" />
-      </button>
-
-      {/* DROPDOWN MENU */}
-      {activeMenuId === session.id && (
-        <div
-          ref={menuRef}
-          className={`absolute right-2 top-12 w-48 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === "dark"
-            ? "bg-[#252525] border-[#545454]"
-            : "bg-white/80 backdrop-blur-md border-[#E8E5E0]"
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveMenuId(activeMenuId === session.id ? null : session.id);
+          }}
+          className={`block p-1 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-[#F0EDE8]"
             }`}
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveMenuId(null);
-            }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+          <MoreHorizontal className="w-3.5 h-3.5 opacity-70" />
+        </button>
+
+        {/* DROPDOWN MENU */}
+        {activeMenuId === session.id && (
+          <div
+            ref={menuRef}
+            className={`absolute right-2 top-11 w-44 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === "dark"
+              ? "bg-[#252525] border-[#545454]"
+              : "bg-white/95 backdrop-blur-md border-[#E8E5E0]"
               }`}
           >
-            <Share className="w-4 h-4 opacity-70" /> Share
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsRenamingId(session.id);
-              setRenameTitle(session.title);
-              setActiveMenuId(null);
-            }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-              }`}
-          >
-            <Edit2 className="w-4 h-4 opacity-70" /> Rename
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTogglePin(session.id, !!session.is_pinned);
-            }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-              }`}
-          >
-            <Pin className="w-4 h-4 opacity-70" />{" "}
-            {session.is_pinned ? "Unpin chat" : "Pin chat"}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleArchive(session.id, !!session.is_archived);
-            }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-              }`}
-          >
-            <Archive className="w-4 h-4 opacity-70" /> Archive
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(session.id);
-            }}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors text-sm ${theme === "dark"
-              ? "text-red-400 hover:bg-[#545454]"
-              : "text-red-600 hover:bg-[#F5F3EF]"
-              }`}
-          >
-            <Trash2 className="w-4 h-4 opacity-70" /> Delete
-          </button>
-        </div>
-      )}
-    </div>
+            <div className={`px-3 py-2 border-b flex items-center gap-2.5 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#545454]" : "border-[#E8E5E0]"}`}>
+              <Clock size={12} />
+              {formatDate(session.created_at)}
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMenuId(null);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Share className="w-3.5 h-3.5 opacity-70" /> Share
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsRenamingId(session.id);
+                setRenameTitle(session.title);
+                setActiveMenuId(null);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Edit2 className="w-3.5 h-3.5 opacity-70" /> Rename
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTogglePin(session.id, !!session.is_pinned);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Pin className="w-3.5 h-3.5 opacity-70" />{" "}
+              {session.is_pinned ? "Unpin chat" : "Pin chat"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleArchive(session.id, !!session.is_archived);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Archive className="w-3.5 h-3.5 opacity-70" /> Archive
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(session.id);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark"
+                ? "text-red-400 hover:bg-[#545454]"
+                : "text-red-600 hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Trash2 className="w-3.5 h-3.5 opacity-70" /> Delete
+            </button>
+          </div>
+        )}
+      </div>
     );
   };
 

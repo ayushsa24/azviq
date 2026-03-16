@@ -97,6 +97,9 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
         k => answers[Number(k)] === questions[Number(k)]?.correctAnswerIndex
     ).length;
 
+    const wrongCount = answeredCount - correctCount;
+    const skippedCount = totalQs - answeredCount;
+
     const computedScore = isSubmitted ? Math.round((correctCount / totalQs) * 100) : null;
     const displayScore = (exercise.score !== null && exercise.score !== undefined)
         ? exercise.score : computedScore;
@@ -176,8 +179,11 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
         const isAnswered = answers[i] !== undefined;
         const isCorrect = isSubmitted && answers[i] === questions[i]?.correctAnswerIndex;
         const isWrong = isSubmitted && isAnswered && answers[i] !== questions[i]?.correctAnswerIndex;
+        const isSkipped = isSubmitted && !isAnswered;
+
         if (isCorrect) return 'bg-green-500 text-white border-green-500';
         if (isWrong) return 'bg-red-500 text-white border-red-500';
+        if (isSkipped && !isActive) return isDark ? 'bg-transparent text-[#7D7D7D] border-[#333]' : 'bg-white text-[#BABABA] border-[#E8E5E0]';
         if (isActive) return isDark ? 'bg-white text-[#252525] border-white' : 'bg-[#252525] text-white border-[#252525]';
         if (isAnswered) return isDark ? 'bg-[#3A3A3A] text-white border-[#545454]' : 'bg-[#E8E5E0] text-[#252525] border-[#D1D1D1]';
         return isDark ? 'bg-transparent text-[#BABABA] border-[#545454] hover:bg-[#252525]' : 'bg-white text-[#545454] border-[#DEDBD6] hover:bg-[#F0EDE8]';
@@ -223,24 +229,27 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                             </p>
                         </div>
 
-                        {/* Stats row */}
-                        <div className="flex gap-3 w-full mt-1">
-                            {answeredCount > 0 && (
+                        <div className="flex gap-2 w-full mt-1">
+                            {isSubmitted && (
                                 <>
                                     <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-200'}`}>
                                         <p className="text-2xl font-black text-green-500">{correctCount}</p>
-                                        <p className="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">Correct</p>
+                                        <p className="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase mt-0.5">Correct</p>
                                     </div>
                                     <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-200'}`}>
-                                        <p className="text-2xl font-black text-red-500">{totalQs - correctCount}</p>
-                                        <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-0.5">Wrong</p>
+                                        <p className="text-2xl font-black text-red-500">{wrongCount}</p>
+                                        <p className="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase mt-0.5">Wrong</p>
+                                    </div>
+                                    <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#7D7D7D]/40'}`}>
+                                        <p className="text-2xl font-black text-[#7D7D7D]">{skippedCount}</p>
+                                        <p className="text-[10px] text-[#7D7D7D] font-bold uppercase mt-0.5">Skipped</p>
                                     </div>
                                 </>
                             )}
-                            <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-[#252525] border-[#545454]' : 'bg-white border-[#7D7D7D]/40'}`}>
+                            <div className={`flex-1 py-3 rounded-xl text-center border ${isDark ? 'bg-[#252525] border-[#333]' : 'bg-white border-[#7D7D7D]/20 shadow-sm'} ${!isSubmitted ? 'w-full' : ''}`}>
                                 <p className="text-xl font-black text-[#252525] dark:text-white">{formatTime(timeTakenRef.current || displayTimeTaken)}</p>
-                                <p className="text-xs text-[#7D7D7D] font-medium mt-0.5 flex items-center justify-center gap-1">
-                                    <Clock size={11} /> Time taken
+                                <p className="text-[10px] text-[#7D7D7D] font-bold uppercase mt-0.5 flex items-center justify-center gap-1">
+                                    <Clock size={11} /> Time
                                 </p>
                             </div>
                         </div>
@@ -319,8 +328,18 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                 Question {currentIndex + 1} of {totalQs}
                             </span>
                             {isSubmitted && (
-                                <span className={`text-xs font-semibold ${answers[currentIndex] === currentQuestion.correctAnswerIndex ? 'text-green-500' : 'text-red-500'}`}>
-                                    {answers[currentIndex] === currentQuestion.correctAnswerIndex ? '✓ Correct' : '✗ Incorrect'}
+                                <span className={`text-xs font-semibold ${
+                                    answers[currentIndex] === undefined 
+                                        ? 'text-[#7D7D7D]' 
+                                        : answers[currentIndex] === currentQuestion.correctAnswerIndex 
+                                            ? 'text-green-500' 
+                                            : 'text-red-500'
+                                }`}>
+                                    {answers[currentIndex] === undefined 
+                                        ? '○ Skipped' 
+                                        : answers[currentIndex] === currentQuestion.correctAnswerIndex 
+                                            ? '✓ Correct' 
+                                            : '✗ Incorrect'}
                                 </span>
                             )}
                         </div>
@@ -360,7 +379,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                                 isSelected ? isDark ? 'border-white bg-white' : 'border-[#252525] bg-[#252525]' :
                                                     isDark ? 'border-[#545454]' : 'border-[#E8E5E0]'
                                             }`}>
-                                            {(isSelected || showCorrect) && <span className="w-2 h-2 rounded-full bg-white" />}
+                                            {isSelected && <span className="w-2 h-2 rounded-full bg-white" />}
                                         </span>
 
                                         {/* Letter */}
@@ -457,13 +476,18 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                                         <p className={`text-3xl font-black leading-none mt-0.5 ${scoreColor(displayScore)}`}>{displayScore}%</p>
                                     </div>
                                 </div>
-                                {answeredCount > 0 && (
-                                    <div className="flex gap-1.5">
-                                        <div className={`flex-1 py-1.5 rounded-lg text-center text-xs font-semibold ${isDark ? 'bg-green-900/20 text-green-400' : 'bg-green-50 text-green-700'}`}>
-                                            ✓ {correctCount} Correct
+                                {isSubmitted && (
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex gap-1">
+                                            <div className={`flex-1 py-1 rounded-lg text-center text-[10px] font-bold ${isDark ? 'bg-green-900/20 text-green-400 border border-green-900/50' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+                                                {correctCount} Correct
+                                            </div>
+                                            <div className={`flex-1 py-1 rounded-lg text-center text-[10px] font-bold ${isDark ? 'bg-red-900/20 text-red-400 border border-red-900/50' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                                                {wrongCount} Wrong
+                                            </div>
                                         </div>
-                                        <div className={`flex-1 py-1.5 rounded-lg text-center text-xs font-semibold ${isDark ? 'bg-red-900/20 text-red-400' : 'bg-red-50 text-red-700'}`}>
-                                            ✗ {totalQs - correctCount} Wrong
+                                        <div className={`w-full py-1 rounded-lg text-center text-[10px] font-bold ${isDark ? 'bg-[#252525] text-[#7D7D7D] border border-[#333]' : 'bg-[#F0EDE8] text-[#7D7D7D] border border-[#E8E5E0]'}`}>
+                                            {skippedCount} Skipped
                                         </div>
                                     </div>
                                 )}
@@ -491,8 +515,9 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     <div className={`px-4 py-2.5 flex flex-wrap gap-x-3 gap-y-1 border-b ${isDark ? 'border-[#2E2E2E]' : 'border-[#7D7D7D]/40'}`}>
                         {isSubmitted ? (
                             <>
-                                <span className="flex items-center gap-1 text-[10px] text-[#7D7D7D]"><span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> Correct</span>
-                                <span className="flex items-center gap-1 text-[10px] text-[#7D7D7D]"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> Wrong</span>
+                                <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tight text-[#7D7D7D]"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Correct</span>
+                                <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tight text-[#7D7D7D]"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Wrong</span>
+                                <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tight text-[#7D7D7D]"><span className="w-2 h-2 rounded-full border border-current opacity-30 inline-block" /> Skipped</span>
                             </>
                         ) : (
                             <>

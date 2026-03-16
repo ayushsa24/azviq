@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Folder, MoreVertical, Pin, Edit2, Trash2 } from "lucide-react";
+import { Folder, MoreVertical, Pin, Edit2, Trash2, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Workspace } from "@/types";
 
@@ -152,8 +152,17 @@ export function WorkspaceCard({
 
                 <div className={`flex items-center text-[#545454] dark:text-[#BABABA] transition-colors ${isList ? "text-xs sm:text-sm gap-2 shrink-0" : "justify-between text-[10px] w-full"
                     }`}>
-                    <span className="whitespace-nowrap">
-                        {formatDistanceToNow(new Date(workspace.created_at), { addSuffix: true })}
+                    <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Clock size={10} className="shrink-0" />
+                        {(() => {
+                            const date = new Date(workspace.created_at);
+                            const now = new Date();
+                            const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+                            if (diffInDays < 3) {
+                                return formatDistanceToNow(date, { addSuffix: true });
+                            }
+                            return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        })()}
                     </span>
 
                     <div ref={menuRef} className="relative">

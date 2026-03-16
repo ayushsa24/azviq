@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useUser } from "@/contexts/UserContext";
 import { signOut } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import {
@@ -45,8 +46,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const isDark = theme === "dark";
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
-
-  const [profile, setProfile] = useState<{ name?: string; email?: string; avatar_url?: string } | null>(null);
+  const { user: profile } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
@@ -66,14 +66,6 @@ export default function Sidebar({
     fetchRecentItems();
   }, [pathname]);
 
-  useEffect(() => {
-    const userId = localStorage.getItem("userId");
-    if (!userId) return;
-    fetch(`/api/profile`, { headers: { "x-user-id": userId } })
-      .then(r => r.json())
-      .then(d => { if (d) setProfile(d); })
-      .catch(() => { });
-  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

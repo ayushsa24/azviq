@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BookOpen, Trash2, Clock, FileText, HelpCircle, Key, Search } from "lucide-react";
 
+import { formatDistanceToNow } from "date-fns";
+
 interface RevisionTabProps {
     search?: string;
     onNeedCreate?: () => void;
@@ -13,7 +15,14 @@ interface RevisionTabProps {
 }
 
 function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    if (!iso) return "Unknown date";
+    const date = new Date(iso);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffInDays < 3) {
+        return formatDistanceToNow(date, { addSuffix: true });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onOpenRevision, viewMode = "grid" }: RevisionTabProps) {
@@ -180,11 +189,9 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                         <span>{formatDate(rev.created_at)}</span>
                                     </div>
                                 </div>
-                                <button
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm transition-all active:scale-95 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white border border-[#252525] dark:border-white`}
-                                >
-                                    Open →
-                                </button>
+                                    <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[#BABABA] group-hover:text-black dark:group-hover:text-white transition-colors">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                                    </div>
                             </div>
                         </>
                     )}

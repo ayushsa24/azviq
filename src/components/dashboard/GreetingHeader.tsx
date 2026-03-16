@@ -17,25 +17,25 @@ const MOTIVATION_QUOTES = [
 ];
 
 export default function GreetingHeader({ userName, children }: { userName: string, children?: React.ReactNode }) {
-    const [greeting, setGreeting] = useState("Hello");
-    const [quote, setQuote] = useState(MOTIVATION_QUOTES[0]);
-    const [dateStr, setDateStr] = useState("");
-
-    useEffect(() => {
-        // Set greeting based on local time
+    const [greeting] = useState(() => {
         const hour = new Date().getHours();
-        if (hour < 12) setGreeting("Good morning");
-        else if (hour < 18) setGreeting("Good afternoon");
-        else setGreeting("Good evening");
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
+    });
 
-        // Set today's date formatted as "Tuesday • 18 March"
-        setDateStr(format(new Date(), "EEEE • d MMMM"));
-
-        // Pick a random quote daily
+    const [quote] = useState(() => {
         const dayOfYear = Math.floor(
             (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
         );
-        setQuote(MOTIVATION_QUOTES[dayOfYear % MOTIVATION_QUOTES.length]);
+        return MOTIVATION_QUOTES[dayOfYear % MOTIVATION_QUOTES.length];
+    });
+
+    const [dateStr] = useState(() => format(new Date(), "EEEE • d MMMM"));
+
+    useEffect(() => {
+        // This is now purely for client-only updates if needed, 
+        // but since we compute above, it's stable on hydration for the specific user's session.
     }, []);
 
     return (

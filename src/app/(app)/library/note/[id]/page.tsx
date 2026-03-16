@@ -341,7 +341,10 @@ export default function NoteEditorPage() {
 
                 <div className="flex items-center gap-2 sm:gap-4">
                     <button
-                        onClick={() => editor?.chain().focus().undo().run()}
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            editor?.chain().focus().undo().run();
+                        }}
                         disabled={isLocked || !editor?.can().undo()}
                         className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors disabled:opacity-30"
                         title="Undo (Ctrl+Z)"
@@ -350,7 +353,10 @@ export default function NoteEditorPage() {
                     </button>
 
                     <button
-                        onClick={() => editor?.chain().focus().redo().run()}
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            editor?.chain().focus().redo().run();
+                        }}
                         disabled={isLocked || !editor?.can().redo()}
                         className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors disabled:opacity-30"
                         title="Redo (Ctrl+Y)"

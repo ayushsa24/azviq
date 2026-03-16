@@ -71,11 +71,11 @@ export async function POST() {
 
         const totalMinutesToday = todaySummary?.total_minutes ?? 0;
 
-        if (totalMinutesToday < 25) {
+        if (totalMinutesToday < 60) {
             if (await createNotif(supabase, userId, {
                 type: "study_reminder",
                 title: "Time to Study",
-                message: "Study 25+ min today to keep your streak.",
+                message: "Study 60+ min today to keep your streak.",
             })) {
                 generated.push("study_reminder");
             }
@@ -118,13 +118,13 @@ export async function POST() {
             .gte("created_at", fiveDaysAgo);
 
         const weakTopics = new Map<string, any>();
-        
+
         for (const res of (recentLowScores ?? [])) {
             const accuracy = ((res.correct_answers || 0) / (res.total_questions || 1)) * 100;
             if (accuracy < 60) {
                 // Use search prefix to handle dynamic topics seamlessly
                 const identifier = `search:${res.topic}`;
-                
+
                 // Track oldest low score within the window to guarantee trigger on day 3
                 if (!weakTopics.has(identifier) || new Date(res.created_at) < new Date(weakTopics.get(identifier).created_at)) {
                     weakTopics.set(identifier, { ...res, accuracy, identifier });
@@ -142,17 +142,17 @@ export async function POST() {
                 .eq("related_topic", identifier)
                 .limit(1);
 
-            if ((pastNotif?.length ?? 0) > 0) continue; 
+            if ((pastNotif?.length ?? 0) > 0) continue;
 
             // Calculate days elapsed (0 to 5+)
             const daysSince = Math.floor((Date.now() - new Date(stats.created_at).getTime()) / (1000 * 60 * 60 * 24));
-            
+
             // Wait at least 2 full days before notifying
             if (daysSince < 2) continue;
-            
+
             // Random chance to notify. Guarantees notification by day 4.
             const shouldNotify = daysSince >= 4 || Math.random() < 0.4; // 40% chance per day after day 2
-            
+
             if (shouldNotify) {
                 if (await createNotif(supabase, userId, {
                     type: "weak_subject",
@@ -194,13 +194,13 @@ export async function POST() {
             if ((pastNotif?.length ?? 0) > 0) continue;
 
             const daysSince = Math.floor((Date.now() - new Date(note.created_at).getTime()) / (1000 * 60 * 60 * 24));
-            
+
             // Wait at least 7 full days before notifying
             if (daysSince < 7) continue;
-            
+
             // Random chance to notify. Guarantees notification by day 9.
             const shouldNotify = daysSince >= 9 || Math.random() < 0.4; // 40% chance per day after day 7
-            
+
             if (shouldNotify) {
                 if (await createNotif(supabase, userId, {
                     type: "revision_reminder",

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { FileText, Plus, Trash2, Clock, Search } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface ExerciseTabProps {
     search?: string;
@@ -10,6 +11,17 @@ interface ExerciseTabProps {
     refreshKey?: number;
     onStartExercise?: (exercise: any) => void;
     viewMode?: "grid" | "list";
+}
+
+function formatDate(iso: string) {
+    if (!iso) return "Unknown date";
+    const date = new Date(iso);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffInDays < 3) {
+        return formatDistanceToNow(date, { addSuffix: true });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, onStartExercise, viewMode = "grid" }: ExerciseTabProps) {
@@ -122,7 +134,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                         {ex.title}
                                     </h3>
                                     <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
-                                        <span className="flex items-center gap-1"><Clock size={10} /> {ex.questions?.length || 5} qns</span>
+                                        <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(ex.created_at)}</span>
                                         <span className={`font-bold ${getStatusStyle(ex.status)}`}>
                                             {ex.status} {ex.score !== null && ex.score !== undefined && `· ${ex.score}%`}
                                         </span>
@@ -177,15 +189,12 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                         </p>
                                         <div className="flex items-center gap-1 mt-0.5 text-[10px] text-[#BABABA]">
                                             <Clock size={10} />
-                                            <span>{ex.questions?.length || 5} questions</span>
+                                            <span>{formatDate(ex.created_at)}</span>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); onStartExercise?.(ex); }}
-                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm transition-all active:scale-95 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white border border-[#252525] dark:border-white`}
-                                    >
-                                        {ex.status === 'Not Started' ? 'Start →' : ex.status === 'Completed' ? 'Review →' : 'Continue →'}
-                                    </button>
+                                    <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${isDark ? 'bg-white/5 border-white/10 text-[#BABABA]' : 'bg-[#F0EDE8] border-[#7D7D7D]/20 text-[#545454]'}`}>
+                                        {ex.questions?.length || 5} Qns
+                                    </div>
                                 </div>
                             </>
                         )}

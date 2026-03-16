@@ -134,157 +134,161 @@ export default function PreparationPage() {
         router.push("/preparation");
         setActiveExercise(null);
         setActiveRevision(null);
-        setRefreshKey(k => k + 1);
+        // Removed setRefreshKey increment to prevent re-loading when just going back
     };
-
-    // If a revision is active, show TakeRevisionPage full-page
-    if (activeRevision) {
-        return (
-            <TakeRevisionPage
-                revision={activeRevision}
-                onBack={handleBack}
-            />
-        );
-    }
-
-    // If an exercise is active, show the full-page quiz
-    if (activeExercise) {
-        return (
-            <TakeExercisePage
-                exercise={activeExercise}
-                onBack={handleBack}
-                onComplete={() => {
-                    setRefreshKey(k => k + 1);
-                }}
-            />
-        );
-    }
 
     const isExerciseTab = activeTab === "exercise";
     const isRevisionTab = activeTab === "revision";
+    const isFullPageOpen = !!activeExercise || !!activeRevision;
 
     return (
-        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden">
-            {/* Fixed Header Section (Title + Search + Tabs) */}
-            <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
-                {/* Title Section */}
-                <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
-                    <SidebarToggleButton />
-                    <div>
-                        <h1 className="text-[23px] sm:text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white">
-                            Preparation
-                        </h1>
-                        <p className="text-xs text-[#7D7D7D] dark:text-[#BABABA] mt-0.5">Practice exercises &amp; revision</p>
-                    </div>
+        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden relative">
+            {/* Full-page views rendered as absolute overlays to keep main list mounted */}
+            {activeRevision && (
+                <div className="absolute inset-0 z-[100] bg-white dark:bg-[#1A1A1A]">
+                    <TakeRevisionPage
+                        revision={activeRevision}
+                        onBack={handleBack}
+                    />
                 </div>
-                {/* Search & Actions Row */}
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 md:mb-4">
-                    {/* Search Bar */}
-                    <div className="relative flex-1 sm:w-80 md:max-w-md transition-all">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#BABABA]" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
-                        />
-                    </div>
+            )}
+            {activeExercise && (
+                <div className="absolute inset-0 z-[100] bg-white dark:bg-[#1A1A1A]">
+                    <TakeExercisePage
+                        exercise={activeExercise}
+                        onBack={handleBack}
+                        onComplete={() => {
+                            setRefreshKey(k => k + 1);
+                        }}
+                    />
+                </div>
+            )}
 
-                    {/* Mobile Action Buttons */}
-                    {isExerciseTab && (
-                        <div className="flex md:hidden items-center">
+            <div className={`flex h-full flex-col ${isFullPageOpen ? 'hidden' : 'flex'}`}>
+                {/* Fixed Header Section (Title + Search + Tabs) */}
+                <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
+                    {/* Title Section */}
+                    <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
+                        <SidebarToggleButton />
+                        <div>
+                            <h1 className="text-[23px] sm:text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white">
+                                Preparation
+                            </h1>
+                            <p className="text-xs text-[#7D7D7D] dark:text-[#BABABA] mt-0.5">Practice exercises &amp; revision</p>
+                        </div>
+                    </div>
+                    {/* Search & Actions Row */}
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2 md:mb-4">
+                        {/* Search Bar */}
+                        <div className="relative flex-1 sm:w-80 md:max-w-md transition-all">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#BABABA]" size={16} />
+                            <input
+                                type="text"
+                                placeholder={
+                                    activeTab === "exercise" ? "Search Exercise" :
+                                    activeTab === "revision" ? "Search Revision" :
+                                    "Search Personal AI"
+                                }
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#545454] rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#BABABA] transition-all text-[#252525] dark:text-white placeholder-[#9E9E9E]"
+                            />
+                        </div>
+
+                        {/* Mobile Action Buttons */}
+                        {isExerciseTab && (
+                            <div className="flex md:hidden items-center">
+                                <button
+                                    onClick={() => setIsGenerateOpen(true)}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
+                                >
+                                    <Sparkles size={14} />
+                                    <span>Generate</span>
+                                </button>
+                            </div>
+                        )}
+                        {isRevisionTab && (
+                            <div className="flex md:hidden items-center">
+                                <button
+                                    onClick={() => setIsCreateRevisionOpen(true)}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
+                                >
+                                    <Sparkles size={14} />
+                                    <span>Create</span>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Desktop Pill Buttons */}
+                        {isExerciseTab && (
                             <button
                                 onClick={() => setIsGenerateOpen(true)}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
+                                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-white active:scale-[0.98] transition-all shadow-md ml-auto"
                             >
-                                <Sparkles size={14} />
-                                <span>Generate</span>
+                                <Sparkles className="w-4 h-4" />
+                                <span>Generate Exercise</span>
                             </button>
-                        </div>
-                    )}
-                    {isRevisionTab && (
-                        <div className="flex md:hidden items-center">
+                        )}
+                        {isRevisionTab && (
                             <button
                                 onClick={() => setIsCreateRevisionOpen(true)}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
+                                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-white active:scale-[0.98] transition-all shadow-md ml-auto"
                             >
-                                <Sparkles size={14} />
-                                <span>Create</span>
+                                <Sparkles className="w-4 h-4" />
+                                <span>Create Revision</span>
                             </button>
-                        </div>
-                    )}
-
-                    {/* Desktop Pill Buttons */}
-                    {isExerciseTab && (
-                        <button
-                            onClick={() => setIsGenerateOpen(true)}
-                            className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-white active:scale-[0.98] transition-all shadow-md ml-auto"
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            <span>Generate Exercise</span>
-                        </button>
-                    )}
-                    {isRevisionTab && (
-                        <button
-                            onClick={() => setIsCreateRevisionOpen(true)}
-                            className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-white active:scale-[0.98] transition-all shadow-md ml-auto"
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            <span>Create Revision</span>
-                        </button>
-                    )}
-                </div>
-
-                {/* Tab nav */}
-                <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-2 justify-between items-end">
-                    <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
-                        {TABS.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={tabCls(activeTab === tab.id)}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
+                        )}
                     </div>
 
-                    {/* View Mode Toggle */}
-                    {(activeTab === "exercise" || activeTab === "revision") && (
-                        <div className="flex gap-1 pb-1.5 shrink-0">
-                            <button
-                                onClick={() => setViewMode("grid")}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === "grid"
-                                    ? "bg-[#252525]/5 dark:bg-white/10 text-[#252525] dark:text-white"
-                                    : "text-[#BABABA] hover:bg-[#252525]/5 dark:hover:bg-white/5"
-                                    }`}
-                                title="Grid View"
-                            >
-                                <LayoutGrid size={17} />
-                            </button>
-                            <button
-                                onClick={() => setViewMode("list")}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
-                                    ? "bg-[#252525]/5 dark:bg-white/10 text-[#252525] dark:text-white"
-                                    : "text-[#BABABA] hover:bg-[#252525]/5 dark:hover:bg-white/5"
-                                    }`}
-                                title="List View"
-                            >
-                                <ListIcon size={17} />
-                            </button>
+                    {/* Tab nav */}
+                    <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-2 justify-between items-end">
+                        <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
+                            {TABS.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={tabCls(activeTab === tab.id)}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
-                    )}
-                </div>
-            </div>
 
-            {/* Scrollable Content Area */}
-            <div
-                ref={scrollContentRef}
-                className="flex-1 overflow-y-auto px-4 sm:px-6 pb-0 mt-2 scrollbar-hide"
-            >
-                {/* Tab content */}
-                {activeTab === "exercise" && (
+                        {/* View Mode Toggle */}
+                        {(activeTab === "exercise" || activeTab === "revision") && (
+                            <div className="flex gap-1 pb-1.5 shrink-0">
+                                <button
+                                    onClick={() => setViewMode("grid")}
+                                    className={`p-1.5 rounded-lg transition-all ${viewMode === "grid"
+                                        ? "bg-[#252525]/5 dark:bg-white/10 text-[#252525] dark:text-white"
+                                        : "text-[#BABABA] hover:bg-[#252525]/5 dark:hover:bg-white/5"
+                                        }`}
+                                    title="Grid View"
+                                >
+                                    <LayoutGrid size={17} />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode("list")}
+                                    className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
+                                        ? "bg-[#252525]/5 dark:bg-white/10 text-[#252525] dark:text-white"
+                                        : "text-[#BABABA] hover:bg-[#252525]/5 dark:hover:bg-white/5"
+                                        }`}
+                                    title="List View"
+                                >
+                                    <ListIcon size={17} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Scrollable Content Area */}
+                <div
+                    ref={scrollContentRef}
+                    className="flex-1 overflow-y-auto px-4 sm:px-6 pb-0 mt-2 scrollbar-hide"
+                >
+                    {/* Tab content - rendered always but hidden when inactive to preserve state/prevent re-loads */}
+                <div className={activeTab === "exercise" ? "block" : "hidden"}>
                     <ExerciseTab
                         search={search}
                         onNeedGenerate={() => setIsGenerateOpen(true)}
@@ -294,8 +298,8 @@ export default function PreparationPage() {
                         }}
                         viewMode={viewMode}
                     />
-                )}
-                {activeTab === "revision" && (
+                </div>
+                <div className={activeTab === "revision" ? "block" : "hidden"}>
                     <RevisionTab
                         search={search}
                         refreshKey={refreshKey}
@@ -304,8 +308,9 @@ export default function PreparationPage() {
                         }}
                         viewMode={viewMode}
                     />
-                )}
+                </div>
                 {activeTab === "personal_ai" && <PersonalAITab />}
+            </div>
             </div>
 
             {/* Modals */}
@@ -330,6 +335,6 @@ export default function PreparationPage() {
                     setActiveRevision(revision);
                 }}
             />
-        </div >
+        </div>
     );
 }

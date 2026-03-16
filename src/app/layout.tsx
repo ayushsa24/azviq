@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ZoomProvider } from "@/contexts/ZoomContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider } from "@/contexts/AuthProvider";
+import { UserProvider } from "@/contexts/UserContext";
 import AppShell from "@/components/layout/AppShell";
 
 const geistSans = Geist({
@@ -28,6 +29,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -56,13 +58,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <ZoomProvider>
-            <ThemeProvider>
-              <NotificationProvider>
-                {children}
-              </NotificationProvider>
-            </ThemeProvider>
-          </ZoomProvider>
+          <UserProvider>
+            <ZoomProvider>
+              <ThemeProvider>
+                <NotificationProvider>
+                  {children}
+                </NotificationProvider>
+              </ThemeProvider>
+            </ZoomProvider>
+          </UserProvider>
         </AuthProvider>
       </body>
     </html>

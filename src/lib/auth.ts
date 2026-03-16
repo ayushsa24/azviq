@@ -1,11 +1,17 @@
 import { getServerSession } from "next-auth";
 import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcrypt";
 import { supabase } from "@/lib/supabase";
+import { randomUUID } from "crypto";
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    }),
     Credentials({
       name: "Credentials",
       credentials: {
@@ -37,21 +43,80 @@ export const authOptions: NextAuthOptions = {
           id: data.id,
           email: data.email,
           name: data.name || null,
+          image: data.avatar_url || null,
         };
       },
     }),
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.name = user.name;
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        const email = user.email;
+        if (!email) return false;
+
+        // Check if user exists in Supabase
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("id, is_onboarded")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (!existingUser) {
+          // Create new user in Supabase
+          const { error } = await supabase
+            .from("users")
+            .insert([
+              {
+                id: randomUUID(),
+                email: email,
+                name: user.name || null,
+                avatar_url: user.image || null,
+                password_hash: "OAUTH_USER", // Required by DB but not used for Google users
+                is_onboarded: false,
+              },
+            ]);
+          
+          if (error) {
+            console.error("Error creating Google user in Supabase:", error);
+            return false;
+          }
+        }
       }
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.image = user.image;
+      }
+      
+      // Always fetch the latest is_onboarded status from Supabase to avoid stale sessions
+      if (token.email) {
+        const { data: dbUser } = await supabase
+          .from("users")
+          .select("id, is_onboarded")
+          .eq("email", token.email)
+          .maybeSingle();
+
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.is_onboarded = dbUser.is_onboarded;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.name = (token.name as string) || null;
+        session.user.image = (token.image as string) || null;
+        // @ts-ignore
+        session.user.id = (token.id as string) || null;
+        // @ts-ignore
+        session.user.is_onboarded = !!token.is_onboarded;
       }
       return session;
     },

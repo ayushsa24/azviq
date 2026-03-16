@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSession } from "next-auth/react";
 import { User, LogIn, Camera, Upload, Trash2 } from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -23,37 +25,43 @@ export default function ProfilePage() {
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // 🔹 Get user ID from localStorage (set during signup)
-  //   const {
-  //   data: { user },
-  // } = await supabase.auth.getUser();
-
-// const userId = user?.id;
-
   // FETCH PROFILE
   useEffect(() => {
-    // Get userId from localStorage
-    const storedUserId = localStorage.getItem('userId');
-    if (!storedUserId) {
-      // If no userId found, redirect to signup
+    // Priority: Session ID (for Google), then localStorage (for manual)
+    // @ts-ignore
+    const currentUserId = session?.user?.id || localStorage.getItem('userId');
+    
+    if (session === null && !localStorage.getItem('userId')) {
       router.push('/signup');
       return;
     }
     
-    setUserId(storedUserId);
+    if (currentUserId) {
+      setUserId(currentUserId);
+      
+      const fetchProfile = async () => {
+        try {
+          const res = await fetch("/api/profile", {
+            headers: { "x-user-id": currentUserId },
+          });
 
-    async function fetchProfile() {
-      const res = await fetch("/api/profile", {
-        headers: { "x-user-id": storedUserId as string },
-      });
+          if (res.ok) {
+            const data = await res.json();
+            if (data) setForm(prev => ({ ...prev, ...data }));
+          }
+        } catch (error) {
+          console.error("Fetch profile error:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-      const data = await res.json();
-      if (data) setForm(data);
+      fetchProfile();
+    } else if (session !== undefined) {
+      // If session is loaded but no ID found yet (might happen on slow loads)
       setLoading(false);
     }
-
-    fetchProfile();
-  }, []);
+  }, [session]);
 
   // HANDLE CHANGE
   const handleChange = (e: any) => {
@@ -64,7 +72,6 @@ export default function ProfilePage() {
   const handleAvatarChange = (e: any) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (limit to 2MB)
       if (file.size > 2 * 1024 * 1024) {
         alert("Image size should be less than 2MB");
         return;
@@ -94,7 +101,6 @@ export default function ProfilePage() {
       return;
     }
 
-    // First save the profile to Supabase
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
@@ -108,8 +114,8 @@ export default function ProfilePage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Profile saved successfully, now redirect to dashboard
-        router.push("/dashboard");
+        // Profile saved successfully, force reload to refresh session status
+        window.location.href = "/dashboard";
       } else {
         alert(`Failed to save profile: ${data.error || 'Unknown error'}`);
       }
@@ -119,22 +125,28 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  if (loading) return (
+    <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#161514] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-4 border-t-transparent border-blue-500 rounded-full animate-spin" />
+        <span className="text-sm font-medium opacity-70">Loading profile...</span>
+      </div>
+    </div>
+  );
 
   return (
-    <div className={`min-h-screen flex items-center justify-center transition-all duration-300 p-4 ${
+    <div className={`fixed inset-0 flex items-center justify-center transition-all duration-300 p-4 overflow-y-auto ${
       theme === 'dark' 
         ? 'bg-gradient-to-br from-[#252525] via-[#545454]/20 to-[#252525]' 
         : 'bg-gradient-to-br from-[#CFCFCF] via-[#7D7D7D]/20 to-[#CFCFCF]'
     }`}>
       
-      <div className={`w-full max-w-md p-4 rounded-2xl shadow-2xl backdrop-blur-xl transition-all duration-300 border ${
+      <div className={`w-full max-w-sm p-5 rounded-3xl shadow-2xl backdrop-blur-xl transition-all duration-300 border ${
         theme === 'dark' 
           ? 'bg-[#252525]/60 border-[#545454]/50' 
           : 'bg-white/90 border-[#7D7D7D]/50'
       }`}>
 
-        {/* Logo and Title */}
         <div className="flex flex-col items-center mb-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg mb-2 transition-all duration-300 ${
             theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#545454] text-white'
@@ -153,29 +165,27 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        {/* AVATAR UPLOAD */}
         <div className="flex justify-center mb-4">
           <div className="relative">
             {avatarPreview || form.avatar_url ? (
               <img
                 src={avatarPreview || form.avatar_url}
                 alt="Avatar"
-                className="w-20 h-20 rounded-full object-cover border-3 border-[#7D7D7D]"
+                className="w-16 h-16 rounded-full object-cover border-2 border-[#7D7D7D]/30"
               />
             ) : (
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center border-3 ${
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 border-dashed ${
                 theme === 'dark' 
-                  ? 'bg-[#545454] border-[#7D7D7D]' 
-                  : 'bg-[#CFCFCF] border-[#7D7D7D]'
+                  ? 'bg-[#545454]/50 border-[#7D7D7D]/50' 
+                  : 'bg-gray-100 border-[#7D7D7D]/50'
               }`}>
-                <User className="w-8 h-8 text-[#7D7D7D]" />
+                <User className="w-6 h-6 text-[#7D7D7D]" />
               </div>
             )}
             
-            {/* Camera Icon - Bottom Right */}
-            <label className={`absolute bottom-0 right-0 p-1.5 rounded-full cursor-pointer ${
-              theme === 'dark' ? 'bg-[#7D7D7D]' : 'bg-[#545454]'
-            } text-white`}>
+            <label className={`absolute bottom-0 right-0 p-1 rounded-full cursor-pointer shadow-lg transform transition-transform hover:scale-110 ${
+              theme === 'dark' ? 'bg-[#7D7D7D] text-white hover:bg-[#8D8D8D]' : 'bg-[#545454] text-white hover:bg-[#646464]'
+            }`}>
               <Camera className="w-3 h-3" />
               <input
                 type="file"
@@ -185,47 +195,37 @@ export default function ProfilePage() {
               />
             </label>
             
-            {/* Remove Icon - Above Camera */}
             {(avatarPreview || form.avatar_url) && (
-              <div className="absolute bottom-8 right-0 transform translate-x-1">
-                <button
-                  onClick={handleAvatarRemove}
-                  className="bg-red-600 text-white p-1.5 rounded-full cursor-pointer hover:bg-red-700 transition-colors duration-200 shadow-lg border border-white"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
+              <button
+                onClick={handleAvatarRemove}
+                className="absolute -top-0.5 -right-0.5 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-all shadow-md"
+              >
+                <Trash2 className="w-2.5 h-2.5" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* FORM FIELDS IN GRID */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          {/* NAME */}
           <div className="col-span-2">
-            <label className={`block text-xs font-medium mb-1 transition-colors ${
-              theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
-              Name
+            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${theme === 'dark' ? 'text-[#BABABA]' : 'text-[#545454]'}`}>
+              Full Name
             </label>
             <input
               name="name"
               placeholder="Your name"
               value={form.name || ""}
               onChange={handleChange}
-              className={`w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 transition-all duration-200 ${
+              className={`w-full px-3 py-1.5 rounded-lg border focus:ring-1 focus:outline-none transition-all text-xs ${
                 theme === 'dark' 
-                  ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70' 
-                  : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
+                  ? 'bg-[#545454]/40 border-[#7D7D7D]/40 text-white placeholder-[#777] focus:ring-[#7D7D7D]/30' 
+                  : 'bg-white border-[#7D7D7D]/20 text-[#252525] placeholder-[#BBB] focus:ring-[#545454]/20'
               }`}
             />
           </div>
 
-          {/* USERNAME */}
           <div>
-            <label className={`block text-xs font-medium mb-1 transition-colors ${
-              theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${theme === 'dark' ? 'text-[#BABABA]' : 'text-[#545454]'}`}>
               Username
             </label>
             <input
@@ -233,19 +233,16 @@ export default function ProfilePage() {
               placeholder="@username"
               value={form.username || ""}
               onChange={handleChange}
-              className={`w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 transition-all duration-200 ${
+              className={`w-full px-3 py-1.5 rounded-lg border focus:ring-1 focus:outline-none transition-all text-xs ${
                 theme === 'dark' 
-                  ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70' 
-                  : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
+                  ? 'bg-[#545454]/40 border-[#7D7D7D]/40 text-white placeholder-[#777] focus:ring-[#7D7D7D]/30' 
+                  : 'bg-white border-[#7D7D7D]/20 text-[#252525] placeholder-[#BBB] focus:ring-[#545454]/20'
               }`}
             />
           </div>
 
-          {/* CITY */}
           <div>
-            <label className={`block text-xs font-medium mb-1 transition-colors ${
-              theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${theme === 'dark' ? 'text-[#BABABA]' : 'text-[#545454]'}`}>
               City
             </label>
             <input
@@ -253,49 +250,43 @@ export default function ProfilePage() {
               placeholder="Your city"
               value={form.city || ""}
               onChange={handleChange}
-              className={`w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 transition-all duration-200 ${
+              className={`w-full px-3 py-1.5 rounded-lg border focus:ring-1 focus:outline-none transition-all text-xs ${
                 theme === 'dark' 
-                  ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70' 
-                  : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
+                  ? 'bg-[#545454]/40 border-[#7D7D7D]/40 text-white placeholder-[#777] focus:ring-[#7D7D7D]/30' 
+                  : 'bg-white border-[#7D7D7D]/20 text-[#252525] placeholder-[#BBB] focus:ring-[#545454]/20'
               }`}
             />
           </div>
 
-          {/* MOBILE */}
           <div>
-            <label className={`block text-xs font-medium mb-1 transition-colors ${
-              theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${theme === 'dark' ? 'text-[#BABABA]' : 'text-[#545454]'}`}>
               Mobile
             </label>
             <input
               name="mobile_no"
-              placeholder="Mobile number"
+              placeholder="Phone"
               value={form.mobile_no || ""}
               onChange={handleChange}
-              className={`w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 transition-all duration-200 ${
+              className={`w-full px-3 py-1.5 rounded-lg border focus:ring-1 focus:outline-none transition-all text-xs ${
                 theme === 'dark' 
-                  ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70' 
-                  : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
+                  ? 'bg-[#545454]/40 border-[#7D7D7D]/40 text-white placeholder-[#777] focus:ring-[#7D7D7D]/30' 
+                  : 'bg-white border-[#7D7D7D]/20 text-[#252525] placeholder-[#BBB] focus:ring-[#545454]/20'
               }`}
             />
           </div>
 
-          {/* PRONOUNS */}
           <div>
-            <label className={`block text-xs font-medium mb-1 transition-colors ${
-              theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${theme === 'dark' ? 'text-[#BABABA]' : 'text-[#545454]'}`}>
               Pronouns
             </label>
             <select
               name="pronouns"
               value={form.pronouns || ""}
               onChange={handleChange}
-              className={`w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 transition-all duration-200 ${
+              className={`w-full px-3 py-1.5 rounded-lg border focus:ring-1 focus:outline-none transition-all appearance-none text-xs ${
                 theme === 'dark' 
-                  ? 'bg-[#545454]/50 border-[#7D7D7D] text-white focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70' 
-                  : 'bg-white border-[#7D7D7D] text-[#252525] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
+                  ? 'bg-[#545454]/40 border-[#7D7D7D]/40 text-white focus:ring-[#7D7D7D]/30' 
+                  : 'bg-white border-[#7D7D7D]/20 text-[#252525] focus:ring-[#545454]/20'
               }`}
             >
               <option value="">Select</option>
@@ -306,38 +297,34 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* BIO */}
         <div className="mb-4">
-          <label className={`block text-xs font-medium mb-1 transition-colors ${
-            theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-          }`}>
+          <label className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${theme === 'dark' ? 'text-[#BABABA]' : 'text-[#545454]'}`}>
             Bio
           </label>
           <textarea
             name="bio"
-            placeholder="Tell us about yourself"
+            placeholder="Tell us about yourself..."
             value={form.bio || ""}
             onChange={handleChange}
             rows={2}
-            className={`w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 transition-all duration-200 ${
+            className={`w-full px-3 py-1.5 rounded-lg border focus:ring-1 focus:outline-none transition-all resize-none text-xs ${
               theme === 'dark' 
-                ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70' 
-                : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
+                ? 'bg-[#545454]/40 border-[#7D7D7D]/40 text-white placeholder-[#777] focus:ring-[#7D7D7D]/30' 
+                : 'bg-white border-[#7D7D7D]/20 text-[#252525] placeholder-[#BBB] focus:ring-[#545454]/20'
             }`}
           />
         </div>
 
-        {/* LOGIN BUTTON */}
         <button
           onClick={handleLogin}
-          className={`w-full py-2.5 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm ${
+          className={`w-full py-2.5 px-4 rounded-xl font-bold transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-lg flex items-center justify-center gap-2 text-xs ${
             theme === 'dark'
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : 'bg-green-600 hover:bg-green-700 text-white'
+              ? 'bg-[#7D7D7D] hover:bg-[#8D8D8D] text-white shadow-[#000]/10'
+              : 'bg-[#545454] hover:bg-[#333] text-white shadow-[#545454]/10'
           }`}
         >
-          <LogIn className="w-4 h-4" />
-          Continue to Dashboard
+          <LogIn className="w-3.5 h-3.5" />
+          Complete Setup
         </button>
       </div>
     </div>

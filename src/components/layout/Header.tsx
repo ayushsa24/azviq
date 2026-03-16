@@ -5,34 +5,19 @@ import Link from "next/link";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useUser } from "@/contexts/UserContext";
 import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 export default function Header({ onMenuClick, open }: { onMenuClick: () => void; open: boolean }) {
+  const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, zoomIn, zoomOut, resetZoom } = useZoom();
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { user } = useUser();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const userId = localStorage.getItem('userId');
-    if (userId) {
-      fetch(`/api/profile`, {
-        headers: { "x-user-id": userId }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.avatar_url) {
-            setAvatarUrl(data.avatar_url);
-          }
-        })
-        .catch(() => {
-          // Silently fail if can't fetch avatar
-        });
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -120,9 +105,9 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
                 ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
                 : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'
               }`}>
-            {avatarUrl ? (
+            {user?.avatar_url || session?.user?.image ? (
               <img
-                src={avatarUrl}
+                src={user?.avatar_url || session?.user?.image || ""}
                 alt="Profile"
                 className="w-8 h-8 rounded-full object-cover"
               />

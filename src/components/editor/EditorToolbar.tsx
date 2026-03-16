@@ -25,6 +25,48 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { AiPopover } from "./AiPopover";
+ 
+interface FormattingButtonProps {
+    editor: Editor;
+    type: string;
+    icon: React.ElementType;
+    onClick?: () => void;
+}
+ 
+function FormattingButton({ editor, type, icon: Icon, onClick }: FormattingButtonProps) {
+    const [, setUpdateCount] = useState(0);
+ 
+    useEffect(() => {
+        const update = () => setUpdateCount(v => v + 1);
+        editor.on('selectionUpdate', update);
+        editor.on('update', update);
+        return () => {
+            editor.off('selectionUpdate', update);
+            editor.off('update', update);
+        };
+    }, [editor]);
+ 
+    const isActive = editor.isActive(type);
+ 
+    return (
+        <button
+            onMouseDown={(e) => {
+                e.preventDefault();
+                if (onClick) {
+                    onClick();
+                } else {
+                    (editor.chain().focus() as any)[`toggle${type.charAt(0).toUpperCase() + type.slice(1)}`]().run();
+                }
+            }}
+            className={`p-1.5 rounded-md transition-all ${isActive
+                ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525] scale-110 shadow-sm"
+                : "text-[#545454] dark:text-[#BABABA] md:hover:bg-[#F0EDE8] md:dark:hover:bg-[#1A1A1A] md:hover:text-[#252525] md:dark:hover:text-white"
+                }`}
+        >
+            <Icon size={16} />
+        </button>
+    );
+}
 
 interface EditorToolbarProps {
     editor: Editor | null;
@@ -35,7 +77,19 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
     const [aiCoords, setAiCoords] = useState<{ top: number, left: number } | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const isGeneratingRef = useRef(false);
-
+    const [, setUpdateCount] = useState(0);
+ 
+    useEffect(() => {
+        if (!editor) return;
+        const update = () => setUpdateCount(v => v + 1);
+        editor.on('selectionUpdate', update);
+        editor.on('update', update);
+        return () => {
+            editor.off('selectionUpdate', update);
+            editor.off('update', update);
+        };
+    }, [editor]);
+ 
     const handleOpenAi = () => {
         if (!editor) return;
         const { from } = editor.state.selection;
@@ -79,7 +133,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
             <BubbleMenu
                 editor={editor}
                 pluginKey="mainBubbleMenu"
-                updateDelay={100}
+                updateDelay={250}
                 appendTo={() => document.body}
                 shouldShow={({ editor, state, from, to }) => {
                     // Hide the standard bubble toolbar if AI menu is open
@@ -91,7 +145,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
                     return editor.isEditable && !empty && !isEmptyTextBlock;
                 }}
-                className="z-[1000] flex items-center gap-1 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 backdrop-blur-md"
+                className="z-[1000] flex items-center gap-1 bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5"
             >
                 <button
                     onClick={handleOpenAi}
@@ -104,33 +158,9 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
                 <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
 
-                <button
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("bold")
-                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
-                        }`}
-                >
-                    <Bold size={16} />
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("italic")
-                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
-                        }`}
-                >
-                    <Italic size={16} />
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleUnderline().run()}
-                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("underline")
-                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
-                        }`}
-                >
-                    <Underline size={16} />
-                </button>
+                <FormattingButton editor={editor} type="bold" icon={Bold} />
+                <FormattingButton editor={editor} type="italic" icon={Italic} />
+                <FormattingButton editor={editor} type="underline" icon={Underline} />
 
                 <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
 
@@ -156,10 +186,13 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 </button>
 
                 <button
-                    onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run()}
-                    className={`p-1.5 rounded-md transition-colors ${editor.isActive("highlight")
-                        ? "bg-[#F0EDE8] dark:bg-[#3A3A3A] text-[#252525] dark:text-white"
-                        : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white"
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run();
+                    }}
+                    className={`p-1.5 rounded-md transition-all ${editor.isActive("highlight")
+                        ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525] scale-110 shadow-sm"
+                        : "text-[#545454] dark:text-[#BABABA] md:hover:bg-[#F0EDE8] md:dark:hover:bg-[#1A1A1A] md:hover:text-[#252525] md:dark:hover:text-white"
                         }`}
                 >
                     <Highlighter size={16} />
@@ -194,7 +227,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     const { empty } = selection;
                     return editor.isEditable && editor.isActive('table') && empty;
                 }}
-                className="flex items-center gap-1 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-lg px-2 py-1 backdrop-blur-md"
+                className="flex items-center gap-1 bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-lg px-2 py-1"
             >
                 <div className="flex items-center gap-0.5 border-r border-[#E8E5E0] dark:border-[#3A3A3A] pr-1 mr-1">
                     <button

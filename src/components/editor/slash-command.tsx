@@ -134,26 +134,29 @@ export const CommandList = forwardRef((props: any, ref) => {
     }
 
     return (
-        <div className="flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden py-2 min-w-[280px]">
-            <div className="px-3 pb-2 text-xs font-semibold text-[#7D7D7D] uppercase tracking-wider border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+        <div className="flex flex-col bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden py-1.5 min-w-[220px]">
+            <div className="px-3 py-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase tracking-widest border-b border-[#E8E5E0] dark:border-[#3A3A3A] bg-[#F9F8F6] dark:bg-[#1A1A1A]">
                 Basic Blocks
             </div>
-            <div className="flex flex-col max-h-[300px] overflow-y-auto mt-1 p-1">
+            <div className="flex flex-col max-h-[300px] overflow-y-auto mt-0.5 p-1 gap-0.5">
                 {props.items.map((item: any, index: number) => (
                     <button
                         key={index}
-                        className={`flex items-center gap-3 px-3 py-2 text-left rounded-lg transition-colors ${index === selectedIndex
+                        className={`flex items-center gap-2.5 px-2 py-1.5 text-left rounded-lg transition-all ${index === selectedIndex
                             ? 'bg-[#F0EDE8] dark:bg-[#1A1A1A] text-[#252525] dark:text-white'
                             : 'text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A]'
                             }`}
                         onClick={() => selectItem(index)}
                     >
-                        <div className="flex items-center justify-center w-8 h-8 rounded-md bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#252525] dark:text-white">
+                        <div className={`flex items-center justify-center w-7 h-7 rounded-md border transition-colors ${index === selectedIndex
+                            ? 'bg-white dark:bg-[#252525] border-[#D1CEC8] dark:border-[#545454] text-[#252525] dark:text-white'
+                            : 'bg-[#F9F8F6] dark:bg-white/5 border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-[#7D7D7D]'
+                            }`}>
                             {item.icon}
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium">{item.title}</span>
-                            <span className="text-xs text-[#7D7D7D]">{item.description}</span>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold truncate">{item.title}</span>
+                            <span className="text-[10px] text-[#7D7D7D] dark:text-[#888] truncate">{item.description}</span>
                         </div>
                     </button>
                 ))}

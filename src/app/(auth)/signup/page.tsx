@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import PasswordInput from "@/components/PasswordInput";
-import { Mail, Lock, Eye, EyeOff, UserPlus, Check, X } from "lucide-react";
+import { Mail, UserPlus, Check, X, Bot } from "lucide-react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { signIn as nextAuthSignIn } from "next-auth/react";
 
 export default function Signup() {
   const router = useRouter();
@@ -14,48 +14,30 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
-
-    if (password.length < 8) {
-      errors.push("Password must be at least 8 characters");
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      errors.push("Password must contain at least one capital letter");
-    }
-
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/\?]/.test(password)) {
-      errors.push("Password must contain at least one symbol");
-    }
-
+    if (password.length < 8) errors.push("Min 8 chars");
+    if (!/[A-Z]/.test(password)) errors.push("Need uppercase");
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/\?]/.test(password)) errors.push("Need symbol");
     return errors;
   };
 
   async function handleSignup() {
     const newErrors: { [key: string]: string } = {};
-
-    // Email Regex Pattern
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!email) {
-      newErrors.email = "Email is required";
-    } else if (!emailPattern.test(email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
+    if (!email) newErrors.email = "Required";
+    else if (!emailPattern.test(email)) newErrors.email = "Invalid email";
 
     const passwordErrors = validatePassword(password);
-    if (passwordErrors.length > 0) {
-      newErrors.password = passwordErrors.join(", ");
-    }
+    if (passwordErrors.length > 0) newErrors.password = passwordErrors[0];
 
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
+    if (!confirmPassword) newErrors.confirmPassword = "Required";
+    else if (password !== confirmPassword) newErrors.confirmPassword = "Mismatch";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -63,172 +45,141 @@ export default function Signup() {
     }
 
     setErrors({});
+    setIsVerifying(true);
 
     try {
       const res = await fetch("/api/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
-
       if (data.success) {
-        // Automatically log them in so they have a valid session for the /api/profile call
-        const loginRes = await signIn("credentials", {
-          redirect: false,
-          email,
-          password,
-        });
-
-        if (loginRes?.error) {
-          alert("Account created, but failed to log in automatically. Please head to login.");
-        } else {
-          // ✅ Store user ID in localStorage and redirect to onboarding
-          localStorage.setItem('userId', data.user.id);
-          router.push("/onboarding");
-        }
+        setSuccessMessage(data.message || "Verify your email!");
       } else {
         alert(data.error || "Signup failed");
+        setIsVerifying(false);
       }
     } catch (err) {
       alert("Something went wrong");
+      setIsVerifying(false);
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSignup();
-    }
-  };
-
   return (
-    <div
-      className={`min-h-screen flex items-center justify-center transition-all duration-300 p-4 ${theme === 'dark'
-        ? 'bg-gradient-to-br from-[#252525] via-[#545454]/20 to-[#252525]'
-        : 'bg-gradient-to-br from-[#CFCFCF] via-[#7D7D7D]/20 to-[#CFCFCF]'
-        }`}
-    >
+    <div className={`fixed inset-0 flex items-center justify-center p-4 overflow-y-auto ${theme === 'dark'
+      ? 'bg-gradient-to-br from-[#1A1A1A] via-[#2A2A2A] to-[#1A1A1A]'
+      : 'bg-gradient-to-br from-[#EAEAEA] via-[#FFFFFF] to-[#EAEAEA]'}`}>
 
-      <div className={`w-full max-w-sm p-6 rounded-3xl shadow-2xl backdrop-blur-xl transition-all duration-300 border ${theme === 'dark'
-        ? 'bg-[#252525]/60 border-[#545454]/50'
-        : 'bg-white/90 border-[#7D7D7D]/50'
-        }`}>
+      <div className={`w-full max-w-sm p-5 rounded-3xl shadow-xl backdrop-blur-md transition-all border ${theme === 'dark'
+        ? 'bg-[#252525]/80 border-[#444]/50'
+        : 'bg-white/90 border-[#DDD]/50'}`}>
 
-        {/* Logo and Title */}
-        <div className="flex flex-col items-center mb-6">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl mb-3 transition-all duration-300 ${theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#545454] text-white'
-            }`}>
+        <div className="flex flex-col items-center mb-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg mb-2 ${theme === 'dark' ? 'bg-[#444] text-white' : 'bg-[#DDD] text-[#252525]'}`}>
             A
           </div>
-          <h1 className={`text-2xl font-bold mb-2 transition-colors ${theme === 'dark' ? 'text-white' : 'text-[#252525]'
-            }`}>
-            Create Account
+          <h1 className={`text-xl font-bold mb-0.5 ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
+            {successMessage ? "Check Inbox" : "Join Ascend"}
           </h1>
-          <p className={`text-center transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-            }`}>
-            Start your journey with Ascend.ai
+          <p className={`text-[11px] text-center opacity-70 ${theme === 'dark' ? 'text-white' : 'text-[#545454]'}`}>
+            {successMessage || "Enter details to create account"}
           </p>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }}>
-          {/* Email Input */}
-          <div className="mb-4">
-            <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-              }`}>
-              Email
-            </label>
-            <div className="relative">
-              <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-                }`} />
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none focus:ring-2 transition-all duration-200
-                  ${theme === 'dark'
-                    ? 'bg-[#545454]/50 border-[#7D7D7D] text-white placeholder-[#CFCFCF] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#545454]/70'
-                    : 'bg-white border-[#7D7D7D] text-[#252525] placeholder-[#545454] focus:ring-[#7D7D7D]/50 focus:border-[#7D7D7D]/50 hover:bg-[#CFCFCF]/50'
-                  } ${errors.email ? 'border-red-500 focus:ring-red-500/50' : ''}`}
-                autoComplete="email"
+        {successMessage ? (
+          <div className="flex flex-col items-center py-2">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${theme === 'dark' ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-600'}`}>
+              <Check className="w-6 h-6" />
+            </div>
+            <p className="text-xs text-center mb-6 px-4 opacity-80">{successMessage}</p>
+            <Link 
+              href="/login"
+              className={`w-full py-2.5 rounded-xl font-bold text-center text-xs transition-all ${theme === 'dark' ? 'bg-[#444] text-white hover:bg-[#555]' : 'bg-[#DDD] text-[#252525] hover:bg-[#CCC]'}`}
+            >
+              Back to Login
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }}>
+            <div className="mb-3">
+              <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40" />
+                <input
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full pl-9 pr-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-all
+                    ${theme === 'dark'
+                      ? 'bg-[#1A1A1A]/50 border-[#444] text-white focus:ring-[#666]'
+                      : 'bg-white border-[#DDD] text-[#252525] focus:ring-[#999]'
+                    } ${errors.email ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+                />
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Create Password</label>
+              <PasswordInput
+                placeholder="••••••••"
+                value={password}
+                onChange={setPassword}
+                className={`py-2 text-xs ${errors.password ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+              />
+              {errors.password && <p className="text-[10px] text-red-500 mt-1">{errors.password}</p>}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Confirm Password</label>
+              <PasswordInput
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                className={`py-2 text-xs ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500/30' : ''}`}
               />
             </div>
-            {errors.email && (
-              <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-                <X className="w-4 h-4" />
-                <span>{errors.email}</span>
-              </div>
-            )}
-          </div>
 
-          {/* Password Input */}
-          <div className="mb-4">
-            <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-              }`}>
-              Password
-            </label>
-            <PasswordInput
-              placeholder="Create a password"
-              value={password}
-              onChange={setPassword}
-              className={`${errors.password ? 'border-red-500 focus:ring-red-500/50' : ''}`}
-              autoComplete="new-password"
-            />
-            {errors.password && (
-              <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-                <X className="w-4 h-4" />
-                <span>{errors.password}</span>
-              </div>
-            )}
-          </div>
+            <button
+              type="submit"
+              disabled={isVerifying}
+              className={`w-full py-2.5 rounded-xl font-bold text-xs shadow-lg transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2
+                ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#252525] text-white hover:bg-[#333]'}`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              {isVerifying ? "Processing..." : "Create Account"}
+            </button>
 
-          {/* Confirm Password Input */}
-          <div className="mb-6">
-            <label className={`block text-sm font-medium mb-2 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-              }`}>
-              Confirm Password
-            </label>
-            <PasswordInput
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={setConfirmPassword}
-              className={`${errors.confirmPassword ? 'border-red-500 focus:ring-red-500/50' : ''}`}
-              autoComplete="new-password"
-            />
-            {errors.confirmPassword && (
-              <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-                <X className="w-4 h-4" />
-                <span>{errors.confirmPassword}</span>
-              </div>
-            )}
-          </div>
+            <div className="relative my-4">
+              <div className={`absolute inset-0 flex items-center ${theme === 'dark' ? 'opacity-10' : 'opacity-20'}`}><div className="w-full border-t border-current"></div></div>
+              <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest"><span className={`${theme === 'dark' ? 'bg-[#252525] px-2 text-gray-400' : 'bg-white px-2 text-gray-500'}`}>Or continue with</span></div>
+            </div>
 
-          {/* Sign Up Button */}
-          <button
-            type="submit"
-            className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2
-              ${theme === 'dark'
-                ? 'bg-[#7D7D7D] hover:bg-[#545454] text-white'
-                : 'bg-[#7D7D7D] hover:bg-[#545454] text-white'
-              }`}
-          >
-            <UserPlus className="w-5 h-5" />
-            Sign Up
-          </button>
-        </form>
+            <button
+              type="button"
+              onClick={() => nextAuthSignIn("google", { 
+              callbackUrl: "/dashboard",
+              prompt: "select_account",
+            })}
+              className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-2
+                ${theme === 'dark'
+                  ? 'bg-transparent border-[#444] text-white hover:bg-white/5'
+                  : 'bg-white border-[#DDD] text-[#252525] hover:bg-gray-50'}`}
+            >
+              <Bot className="w-3.5 h-3.5" />
+              Sign up with Google
+            </button>
+          </form>
+        )}
 
-        {/* Login Link */}
-        <p className={`text-center mt-4 transition-colors ${theme === 'dark' ? 'text-[#CFCFCF]' : 'text-[#545454]'
-          }`}>
-          Already have an account?{" "}
-          <Link href="/login" className="text-[#7D7D7D] hover:text-[#545454] font-medium transition-colors duration-200">
-            Login
+        <p className="text-center mt-4 text-[11px] opacity-70">
+          Have an account?{" "}
+          <Link href="/login" className="font-bold underline cursor-pointer hover:opacity-100 transition-opacity">
+            Login here
           </Link>
         </p>
-
       </div>
     </div>
   );

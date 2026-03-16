@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2 } from "lucide-react";
+import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2, Clock } from "lucide-react";
 
 export interface NoteItem {
     id: string;
@@ -188,10 +188,19 @@ export function NoteCard({
                     </h3>
                 </div>
 
-                <div className={`flex items-center text-[#545454] dark:text-[#BABABA] transition-colors ${isList ? "text-xs sm:text-sm gap-2 shrink-0" : "justify-between text-xs w-full"
+                <div className={`flex items-center text-[#545454] dark:text-[#BABABA] transition-colors ${isList ? "text-[11px] sm:text-xs gap-2 shrink-0" : "justify-between text-[10px] w-full"
                     }`}>
-                    <span className="whitespace-nowrap">
-                        {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                    <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Clock size={10} className="shrink-0" />
+                        {(() => {
+                            const date = new Date(note.created_at);
+                            const now = new Date();
+                            const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+                            if (diffInDays < 3) {
+                                return formatDistanceToNow(date, { addSuffix: true });
+                            }
+                            return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        })()}
                     </span>
 
                     <div ref={menuRef} className="relative">

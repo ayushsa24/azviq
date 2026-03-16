@@ -238,58 +238,58 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
     return (
         <div
-            className="flex flex-col md:w-[260px] w-[220px] max-w-[calc(100vw-32px)] bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
+            className="flex flex-col md:w-[220px] w-[200px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
             onMouseDown={(e) => e.stopPropagation()}
         >
-            <div className="flex items-center gap-2 p-2.5 bg-[#252525]/10 dark:bg-[#CFCFCF]/10 border-b border-[#E0E0E0] dark:border-[#3A3A3A]">
-                <Sparkles size={14} className="text-[#252525] dark:text-[#CFCFCF]" />
-                <span className="text-xs font-semibold text-[#252525] dark:text-[#CFCFCF]">AI Commands</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#F9F8F6] dark:bg-[#1A1A1A] border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                <Sparkles size={13} className="text-[#252525] dark:text-[#BABABA]" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D] dark:text-[#BABABA]">AI Commands</span>
             </div>
 
-            <div className="p-1.5 grid grid-cols-2 md:flex md:flex-col gap-1 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div className="p-1 grid grid-cols-2 md:flex md:flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
                 <>
                     <button
                         onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}
-                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
-                        <FileText size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <FileText size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">{selectedText ? "Summarize" : "Summarize Note"}</span>
                     </button>
                     <button
                         onClick={() => handleSubmit(selectedText ? "Explain this" : "Explain content")}
-                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
-                        <Wand2 size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <Wand2 size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">{selectedText ? "Explain" : "Explain Content"}</span>
                     </button>
                     <button
                         onClick={() => handleSubmit("Improve writing")}
-                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
-                        <Sparkles size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <Sparkles size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">Improve Writing</span>
                     </button>
                     <button
                         onClick={() => handleSubmit("Make it shorter")}
-                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
-                        <Minimize2 size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <Minimize2 size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">Make Shorter</span>
                     </button>
                     <button
                         onClick={() => handleSubmit("Fix grammar")}
-                        className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
-                        <CheckCheck size={16} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-[#CFCFCF] shrink-0" />
+                        <CheckCheck size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">Fix Grammar</span>
                     </button>
 
                     {selectedText && (
                         <button
                             onClick={() => handleSubmit("Answer this")}
-                            className="flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 hover:bg-[#252525]/5 dark:hover:bg-[#CFCFCF]/5 text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-sm font-semibold rounded-lg transition-colors group col-span-2 md:col-span-1"
+                            className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group col-span-2 md:col-span-1 border border-[#252525] dark:border-white"
                         >
-                            <ArrowRight size={16} className="text-[#252525] dark:text-[#CFCFCF] shrink-0" />
+                            <ArrowRight size={14} className="shrink-0" />
                             <span className="truncate">Answer Selection</span>
                         </button>
                     )}

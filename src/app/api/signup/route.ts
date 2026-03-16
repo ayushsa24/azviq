@@ -30,12 +30,28 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user
+    // 1. Sign up with Supabase Auth (This sends the confirmation email)
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${process.env.NEXTAUTH_URL}/onboarding`,
+      }
+    });
+
+    if (authError) {
+      return NextResponse.json(
+        { error: authError.message },
+        { status: 400 }
+      );
+    }
+
+    // 2. Insert into public.users for the app to function
     const { data, error } = await supabase
       .from("users")
       .insert([
         {
-          id: randomUUID(),
+          id: authData.user?.id || randomUUID(),
           email,
           password_hash: hashedPassword,
           is_onboarded: false,
@@ -54,6 +70,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      message: "Check your email for a confirmation link!",
       user: { id: data.id, email: data.email },
     });
 
