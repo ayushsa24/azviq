@@ -12,12 +12,12 @@ import { RenameWorkspaceModal } from "@/components/notes/RenameWorkspaceModal";
 import { RenameNoteModal } from "@/components/notes/RenameNoteModal";
 import { MoveNoteModal } from "@/components/notes/MoveNoteModal";
 import { Workspace } from "@/types";
-import { useLibrary } from "@/contexts/LibraryContext";
 
 export default function NotesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { notes, workspaces, isLoading, fetchLibraryData } = useLibrary();
+  const [notes, setNotes] = useState<NoteItem[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
   const [viewMode, setViewModeState] = useState<"grid" | "list">(
@@ -66,11 +66,38 @@ export default function NotesPage() {
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
   const [selectedWorkspaceForRename, setSelectedWorkspaceForRename] = useState<Workspace | null>(null);
-  useEffect(() => {
-    fetchLibraryData(activeWorkspace?.id);
-  }, [activeWorkspace, fetchLibraryData]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleRefresh = () => fetchLibraryData(activeWorkspace?.id);
+  const fetchNotesAndWorkspaces = async () => {
+    try {
+      setIsLoading(true);
+
+      const wsUrl = new URL("/api/workspaces", window.location.origin);
+      const wsRes = await fetch(wsUrl.toString());
+      if (wsRes.ok) {
+        const wsData = await wsRes.json();
+        setWorkspaces(wsData.workspaces || []);
+      }
+
+      const notesUrl = new URL("/api/notes", window.location.origin);
+      if (activeWorkspace) {
+        notesUrl.searchParams.set("workspace_id", activeWorkspace.id);
+      }
+      const res = await fetch(notesUrl.toString());
+      if (res.ok) {
+        const data = await res.json();
+        setNotes(data.notes || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotesAndWorkspaces();
+  }, [activeWorkspace]);
 
   const filteredNotes = useMemo(() => {
     let filtered = notes;
@@ -185,7 +212,7 @@ export default function NotesPage() {
       try {
         const res = await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Failed to delete note");
-        handleRefresh();
+        fetchNotesAndWorkspaces();
       } catch (err) {
         console.error(err);
         alert("Could not delete the note.");
@@ -201,7 +228,7 @@ export default function NotesPage() {
         body: JSON.stringify({ is_favourite: !note.is_favourite }),
       });
       if (!res.ok) throw new Error("Failed to toggle favourite");
-      handleRefresh();
+      fetchNotesAndWorkspaces();
     } catch (err) {
       console.error(err);
       alert("Could not update the note.");
@@ -221,7 +248,7 @@ export default function NotesPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to toggle pin");
-      handleRefresh();
+      fetchNotesAndWorkspaces();
     } catch (err) {
       console.error(err);
       alert("Could not update the note.");
@@ -267,7 +294,7 @@ export default function NotesPage() {
           router.push("/library", { scroll: false });
         }
 
-        handleRefresh();
+        fetchNotesAndWorkspaces();
       } catch (err) {
         console.error(err);
         alert("Could not delete the workspace.");
@@ -283,7 +310,7 @@ export default function NotesPage() {
         body: JSON.stringify({ is_pinned: !workspace.is_pinned }),
       });
       if (!res.ok) throw new Error("Failed to toggle pin");
-      handleRefresh();
+      fetchNotesAndWorkspaces();
     } catch (err) {
       console.error(err);
       alert("Could not update the workspace.");
@@ -560,30 +587,30 @@ export default function NotesPage() {
       <UploadNoteModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onSuccess={handleRefresh}
+        onSuccess={fetchNotesAndWorkspaces}
         workspaceId={activeWorkspace?.id}
       />
       <CreateWorkspaceModal
         isOpen={isWorkspaceModalOpen}
         onClose={() => setIsWorkspaceModalOpen(false)}
-        onSuccess={handleRefresh}
+        onSuccess={fetchNotesAndWorkspaces}
       />
       <RenameWorkspaceModal
         isOpen={isRenameWorkspaceModalOpen}
         onClose={() => setIsRenameWorkspaceModalOpen(false)}
-        onSuccess={handleRefresh}
+        onSuccess={fetchNotesAndWorkspaces}
         workspace={selectedWorkspaceForRename}
       />
       <RenameNoteModal
         isOpen={isRenameModalOpen}
         onClose={() => setIsRenameModalOpen(false)}
-        onSuccess={handleRefresh}
+        onSuccess={fetchNotesAndWorkspaces}
         note={selectedNote}
       />
       <MoveNoteModal
         isOpen={isMoveModalOpen}
         onClose={() => setIsMoveModalOpen(false)}
-        onSuccess={handleRefresh}
+        onSuccess={fetchNotesAndWorkspaces}
         note={selectedNote}
         workspaces={workspaces}
       />

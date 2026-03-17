@@ -7,7 +7,6 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
 import NotificationPanel from "./NotificationPanel";
-import { LibraryProvider } from "@/contexts/LibraryContext";
 import { useState } from "react";
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -107,11 +106,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <LibraryProvider>
-        <Suspense fallback={null}>
-          <AppShellInner>{children}</AppShellInner>
-        </Suspense>
-      </LibraryProvider>
+      <Suspense fallback={null}>
+        <AppShellInner>{children}</AppShellInner>
+      </Suspense>
     </SidebarProvider>
   );
 }
