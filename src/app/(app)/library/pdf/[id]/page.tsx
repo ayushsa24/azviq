@@ -587,10 +587,7 @@ export default function PdfEditorPage() {
 
                     {/* Always visible Back button */}
                     <button
-                        onClick={() => {
-                            const workspaceParam = note?.workspace_id ? `workspace=${note.workspace_id}&` : "";
-                            router.push(`/library?${workspaceParam}tab=pdfs`);
-                        }}
+                        onClick={() => router.back()}
                         className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                         title="Back"
                     >

@@ -324,10 +324,7 @@ export default function NoteEditorPage() {
 
                     {/* Always visible Back button */}
                     <button
-                        onClick={() => {
-                            const wsParam = workspaceId ? `workspace=${workspaceId}&` : "";
-                            router.push(`/library?${wsParam}tab=notes`);
-                        }}
+                        onClick={() => router.back()}
                         className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
                         title="Back"
                     >
