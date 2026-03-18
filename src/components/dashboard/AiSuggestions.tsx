@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Sparkles, ArrowRight, Loader2, Target, CalendarDays, BrainCircuit, Clock, CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 // Define the suggestion type based on what we return from the API
 interface AiSuggestion {
@@ -21,8 +24,9 @@ interface AiSuggestion {
 export default function AiSuggestions() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
-    const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data, isLoading: suggestionsLoading } = useSWR("/api/suggestions", fetcher);
+    const suggestions = (data?.suggestions || []) as AiSuggestion[];
+    const isLoading = suggestionsLoading;
     const [completedIds, setCompletedIds] = useState<string[]>([]);
     const [dismissedSubActions, setDismissedSubActions] = useState<string[]>([]);
 
@@ -30,8 +34,8 @@ export default function AiSuggestions() {
     useEffect(() => {
         const savedCompleted = localStorage.getItem("ai_suggestions_completed");
         const savedDismissed = localStorage.getItem("ai_suggestions_dismissed_subactions");
-        if (savedCompleted) setCompletedIds(JSON.parse(savedCompleted));
-        if (savedDismissed) setDismissedSubActions(JSON.parse(savedDismissed));
+        if (savedCompleted) setTimeout(() => setCompletedIds(JSON.parse(savedCompleted)), 0);
+        if (savedDismissed) setTimeout(() => setDismissedSubActions(JSON.parse(savedDismissed)), 0);
     }, []);
 
     // Persist to localStorage whenever state changes
@@ -74,24 +78,6 @@ export default function AiSuggestions() {
 
         return true;
     });
-
-    useEffect(() => {
-        const fetchSuggestions = async () => {
-            try {
-                const res = await fetch("/api/suggestions");
-                if (res.ok) {
-                    const data = await res.json();
-                    setSuggestions(data.suggestions || []);
-                }
-            } catch (err) {
-                console.error("Failed to fetch suggestions:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchSuggestions();
-    }, []);
 
     if (isLoading) {
         return (

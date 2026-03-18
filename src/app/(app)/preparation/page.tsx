@@ -13,6 +13,9 @@ import CreateRevisionModal from "@/components/preparation/CreateRevisionModal";
 import TakeExercisePage from "@/components/preparation/TakeExercisePage";
 import TakeRevisionPage from "@/components/preparation/TakeRevisionPage";
 import { logRecentActivity } from "@/lib/logRecentActivity";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 type TabType = "exercise" | "revision" | "personal_ai";
 
@@ -52,6 +55,7 @@ export default function PreparationPage() {
     const [activeExercise, setActiveExercise] = useState<any | null>(null);
     // Full-page revision state
     const [activeRevision, setActiveRevision] = useState<any | null>(null);
+    const [isAutoLoading, setIsAutoLoading] = useState(false);
     const processedIdRef = useRef<string | null>(null);
 
     const scrollContentRef = useRef<HTMLDivElement>(null);
@@ -77,10 +81,13 @@ export default function PreparationPage() {
         }
 
         // Clear existing views so the new one can take over
-        setActiveExercise(null);
-        setActiveRevision(null);
+        if (!activeExercise || activeExercise.id !== idParam) setActiveExercise(null);
+        if (!activeRevision || activeRevision.id !== idParam) setActiveRevision(null);
 
         async function autoOpen() {
+            if (activeExercise?.id === idParam || activeRevision?.id === idParam) return;
+            
+            setIsAutoLoading(true);
             if (tabParam === "exercise") {
                 try {
                     const res = await fetch(`/api/exercises/${idParam}`);
@@ -114,6 +121,7 @@ export default function PreparationPage() {
                     }
                 } catch (e) { console.error("Failed to load revision", e); }
             }
+            setIsAutoLoading(false);
         }
 
         autoOpen();
@@ -129,17 +137,33 @@ export default function PreparationPage() {
     // URL sync happens via the useEffect deep-link logic at the top.
     // Standard router navigation now handles hardware back buttons.
 
+    const handleStartExercise = (ex: any) => {
+        setActiveExercise(ex);
+        processedIdRef.current = ex.id;
+        router.push(`/preparation?tab=exercise&id=${ex.id}`);
+    };
+
+    const handleOpenRevision = (rev: any) => {
+        setActiveRevision(rev);
+        processedIdRef.current = rev.id;
+        router.push(`/preparation?tab=revision&id=${rev.id}`);
+    };
+
     const handleBack = () => {
-        // Clear parameters to return to main list
-        router.push("/preparation");
-        setActiveExercise(null);
-        setActiveRevision(null);
-        // Removed setRefreshKey increment to prevent re-loading when just going back
+        if (typeof window !== "undefined" && window.history.length > 1) {
+            router.back();
+        } else {
+            // Fallback to main list if opened directly or in new tab
+            router.push("/preparation");
+            setActiveExercise(null);
+            setActiveRevision(null);
+            processedIdRef.current = null;
+        }
     };
 
     const isExerciseTab = activeTab === "exercise";
     const isRevisionTab = activeTab === "revision";
-    const isFullPageOpen = !!activeExercise || !!activeRevision;
+    const isFullPageOpen = !!activeExercise || !!activeRevision || !!searchParams.get("id");
 
     return (
         <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden relative">
@@ -161,6 +185,52 @@ export default function PreparationPage() {
                             setRefreshKey(k => k + 1);
                         }}
                     />
+                </div>
+            )}
+
+            {/* Deep-link Loading Skeleton Overlays */}
+            {(isAutoLoading || (!!searchParams.get("id") && !activeExercise)) && searchParams.get("tab") === "exercise" && (
+                <div className="absolute inset-0 z-[101] bg-white dark:bg-[#1A1A1A] animate-pulse">
+                    <div className="flex flex-col h-full">
+                        <div className="h-16 border-b border-gray-100 dark:border-white/5 flex items-center px-6 gap-4">
+                            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5" />
+                            <div className="h-4 w-48 bg-gray-100 dark:bg-white/5 rounded" />
+                        </div>
+                        <div className="flex-1 p-8 max-w-2xl">
+                            <div className="h-4 w-32 bg-gray-100 dark:bg-white/5 rounded mb-4" />
+                            <div className="h-8 w-full bg-gray-100 dark:bg-white/5 rounded mb-8" />
+                            <div className="space-y-4">
+                                {[1,2,3,4].map(i => (
+                                    <div key={i} className="h-14 w-full border border-gray-100 dark:border-white/5 rounded-xl bg-gray-50/50 dark:bg-white/5" />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {(isAutoLoading || (!!searchParams.get("id") && !activeRevision)) && searchParams.get("tab") === "revision" && (
+                <div className="absolute inset-0 z-[101] bg-white dark:bg-[#1A1A1A] animate-pulse">
+                    <div className="flex flex-col h-full">
+                        <div className="h-16 border-b border-gray-100 dark:border-white/5 flex items-center px-6 gap-4">
+                            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5" />
+                            <div className="h-4 w-48 bg-gray-100 dark:bg-white/5 rounded" />
+                        </div>
+                        <div className="flex-1 p-8 space-y-8">
+                            <div className="h-10 w-full bg-gray-100 dark:bg-white/5 rounded max-w-3xl" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <div className="h-6 w-32 bg-gray-100 dark:bg-white/5 rounded" />
+                                    <div className="h-32 w-full bg-gray-100 dark:bg-white/5 rounded-2xl" />
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="h-6 w-32 bg-gray-100 dark:bg-white/5 rounded" />
+                                    <div className="h-24 w-full bg-gray-100 dark:bg-white/5 rounded-2xl" />
+                                    <div className="h-24 w-full bg-gray-100 dark:bg-white/5 rounded-2xl" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -293,9 +363,7 @@ export default function PreparationPage() {
                         search={search}
                         onNeedGenerate={() => setIsGenerateOpen(true)}
                         refreshKey={refreshKey}
-                        onStartExercise={(ex) => {
-                            router.push(`/preparation?tab=exercise&id=${ex.id}`);
-                        }}
+                        onStartExercise={handleStartExercise}
                         viewMode={viewMode}
                     />
                 </div>
@@ -303,9 +371,7 @@ export default function PreparationPage() {
                     <RevisionTab
                         search={search}
                         refreshKey={refreshKey}
-                        onOpenRevision={(rev) => {
-                            router.push(`/preparation?tab=revision&id=${rev.id}`);
-                        }}
+                        onOpenRevision={handleOpenRevision}
                         viewMode={viewMode}
                     />
                 </div>

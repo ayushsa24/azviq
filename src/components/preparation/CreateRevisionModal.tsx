@@ -106,17 +106,40 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                 {/* Error */}
                 {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
+                {/* Generating Skeleton Screen */}
+                {isGenerating && (
+                    <div className="flex flex-col items-center text-center space-y-5 py-4 animate-pulse">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${isDark ? "bg-white/5" : "bg-gray-100"}`}>
+                            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700" />
+                        </div>
+                        <div className="space-y-2 w-full flex flex-col items-center">
+                            <div className={`h-6 w-32 rounded-lg ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
+                            <div className={`h-4 w-48 rounded-lg ${isDark ? "bg-white/5" : "bg-gray-100"}`} />
+                        </div>
+                        <div className={`w-full p-4 rounded-xl border text-left flex items-start gap-3 ${isDark ? "bg-[#1A1A1A] border-[#333]" : "bg-[#F5F3EF] border-[#E8E5E0]"}`}>
+                            <div className={`w-9 h-9 rounded-xl shrink-0 ${isDark ? "bg-white/5" : "bg-white/50"}`} />
+                            <div className="space-y-2 flex-1">
+                                <div className={`h-4 w-3/4 rounded-md ${isDark ? "bg-white/5" : "bg-gray-200"}`} />
+                                <div className={`h-3 w-1/2 rounded-md ${isDark ? "bg-white/5" : "bg-gray-200"}`} />
+                            </div>
+                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#BABABA] animate-pulse mt-2">AI is analyzing and summarizing...</p>
+                    </div>
+                )}
+
                 {/* Submit */}
-                <button
-                    onClick={handleGenerate}
-                    disabled={!selectedNoteId || isGenerating || isFetchingNotes}
-                    className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${selectedNoteId && !isGenerating && !isFetchingNotes
-                        ? isDark ? "bg-white text-[#252525] hover:bg-white/90" : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
-                        : isDark ? "bg-[#252525] text-[#545454] cursor-not-allowed" : "bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed"
-                        }`}
-                >
-                    {isGenerating ? <><Loader2 size={16} className="animate-spin" /> Generating Revision…</> : "Generate Revision"}
-                </button>
+                {!isGenerating && (
+                    <button
+                        onClick={handleGenerate}
+                        disabled={!selectedNoteId || isGenerating || isFetchingNotes}
+                        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${selectedNoteId && !isGenerating && !isFetchingNotes
+                            ? isDark ? "bg-white text-[#252525] hover:bg-white/90" : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
+                            : isDark ? "bg-[#252525] text-[#545454] cursor-not-allowed" : "bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed"
+                            }`}
+                    >
+                        {isGenerating ? <><Loader2 size={16} className="animate-spin" /> Generating Revision…</> : "Generate Revision"}
+                    </button>
+                )}
             </div>
         </Modal>
     );

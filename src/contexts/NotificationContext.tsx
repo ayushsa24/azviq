@@ -1,6 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from "react";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export interface Notification {
     id: string;
@@ -32,8 +35,10 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const GENERATE_COOLDOWN_KEY = "notif_generate_last_date";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const { data, mutate, isLoading } = useSWR("/api/notifications", fetcher, {
+        refreshInterval: 300000, // 5 minutes
+    });
+    const notifications: Notification[] = data?.notifications ?? [];
     const [panelOpen, setPanelOpen] = useState(false);
     const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">("default");
     const notifiedRef = useRef<Set<string>>(new Set());
@@ -57,18 +62,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const unreadCount = notifications.filter((n) => !n.is_read).length;
 
     const fetchNotifications = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const res = await fetch("/api/notifications");
-            if (!res.ok) return;
-            const data = await res.json();
-            setNotifications(data.notifications ?? []);
-        } catch (e) {
-            console.error("Failed to fetch notifications", e);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+        await mutate();
+    }, [mutate]);
 
     const triggerGenerate = useCallback(async () => {
         // Fire once per day (first time app is opened each day)
@@ -118,48 +113,70 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // On mount — fetch notifications and trigger daily generate
     useEffect(() => {
-        fetchNotifications();
         triggerGenerate();
-    }, []);
+    }, [triggerGenerate]);
 
     // Poll every 5 minutes for notifications and daily generation
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchNotifications();
             triggerGenerate();
         }, 5 * 60 * 1000);
         return () => clearInterval(interval);
-    }, [fetchNotifications, triggerGenerate]);
+    }, [triggerGenerate]);
 
     const markAsRead = useCallback(async (id: string) => {
         // Optimistic update
-        setNotifications((prev) =>
-            prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+        mutate(
+            (prev: any) => ({
+                ...prev,
+                notifications: prev.notifications.map((n: any) =>
+                    n.id === id ? { ...n, is_read: true } : n
+                ),
+            }),
+            false
         );
         try {
             await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+            mutate();
         } catch (e) {
             console.error("Failed to mark as read", e);
+            mutate();
         }
-    }, []);
+    }, [mutate]);
 
     const markAllAsRead = useCallback(async () => {
-        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        mutate(
+            (prev: any) => ({
+                ...prev,
+                notifications: prev.notifications.map((n: any) => ({ ...n, is_read: true })),
+            }),
+            false
+        );
         try {
             await fetch("/api/notifications/mark-all-read", { method: "POST" });
+            mutate();
         } catch (e) {
             console.error("Failed to mark all as read", e);
+            mutate();
         }
-    }, []);
+    }, [mutate]);
 
     const deleteNotification = useCallback(async (id: string) => {
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        mutate(
+            (prev: any) => ({
+                ...prev,
+                notifications: prev.notifications.filter((n: any) => n.id !== id),
+            }),
+            false
+        );
         try {
             await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+            mutate();
         } catch (e) {
             console.error("Failed to delete notification", e);
+            mutate();
         }
-    }, []);
+    }, [mutate]);
 
     // Global To-Do Reminder Watcher
     useEffect(() => {

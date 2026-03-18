@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { FileText, Plus, Trash2, Clock, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface ExerciseTabProps {
     search?: string;
@@ -26,41 +29,40 @@ function formatDate(iso: string) {
 
 export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, onStartExercise, viewMode = "grid" }: ExerciseTabProps) {
     const { theme } = useTheme();
-    const [exercises, setExercises] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data, mutate, isLoading } = useSWR("/api/exercises", fetcher);
+    
+    const exercises = data?.exercises || [];
     const isDark = theme === 'dark';
     const isList = viewMode === "list";
 
-    const fetchExercises = async () => {
-        try {
-            setIsLoading(true);
-            const res = await fetch("/api/exercises");
-            if (res.ok) {
-                const data = await res.json();
-                setExercises(data.exercises || []);
-            }
-        } catch (error) {
-            console.error("Failed to fetch exercises:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => { fetchExercises(); }, [refreshKey]);
-
-    // Expose fetchExercises so parent can call after generate
+    // Re-sync when refreshKey changes (e.g. after modal success)
     useEffect(() => {
-        (window as any).__refetchExercises = fetchExercises;
+        mutate();
+    }, [refreshKey, mutate]);
+
+
+    // Expose mutate so parent can call after generate
+    useEffect(() => {
+        (window as any).__refetchExercises = () => mutate();
         return () => { delete (window as any).__refetchExercises; };
-    }, []);
+    }, [mutate]);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this exercise?")) return;
+        
+        // Optimistic update
+        mutate((current: any) => ({
+            ...current,
+            exercises: current.exercises.filter((ex: any) => ex.id !== id)
+        }), false);
+
         try {
             const res = await fetch(`/api/exercises/${id}`, { method: "DELETE" });
-            if (res.ok) setExercises(prev => prev.filter(ex => ex.id !== id));
+            if (!res.ok) throw new Error("Delete failed");
+            mutate();
         } catch (error) {
             console.error("Failed to delete exercise:", error);
+            mutate(); // Rollback
         }
     };
 
@@ -79,7 +81,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
         }
     };
 
-    const filtered = exercises.filter(ex =>
+    const filtered = exercises.filter((ex: any) =>
         !search || ex.title?.toLowerCase().includes(search.toLowerCase()) || ex.notes?.title?.toLowerCase().includes(search.toLowerCase())
     );
 

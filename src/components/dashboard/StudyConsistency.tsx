@@ -4,6 +4,9 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { useTheme } from "@/contexts/ThemeContext";
 import { format, eachDayOfInterval, startOfYear, endOfYear, getDay, isSameDay, subDays, differenceInCalendarDays, startOfDay } from 'date-fns';
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface DailySummary {
     id: string;
@@ -36,31 +39,14 @@ export default function StudyConsistency() {
     const isDark = theme === "dark";
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [summaries, setSummaries] = useState<DailySummary[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: summariesData, isLoading: summariesLoading } = useSWR(`/api/study/summary?year=${selectedYear}`, fetcher);
+    const summaries = (summariesData?.summaries || []) as DailySummary[];
+    const isLoading = summariesLoading;
     const [hoveredDay, setHoveredDay] = useState<{ date: Date, summary?: DailySummary, x: number, y: number } | null>(null);
     const tooltipRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const years = [currentYear];
-
-    useEffect(() => {
-        const fetchSummaries = async () => {
-            setIsLoading(true);
-            try {
-                const res = await fetch(`/api/study/summary?year=${selectedYear}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setSummaries(data.summaries || []);
-                }
-            } catch (error) {
-                console.error("Failed to fetch study summaries", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchSummaries();
-    }, [selectedYear]);
 
     // Generate grid data
     const { days, stats, weeks } = useMemo(() => {

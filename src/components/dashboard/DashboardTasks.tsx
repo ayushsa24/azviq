@@ -5,58 +5,52 @@ import { Plus, CheckCircle2, Circle, Trash2, CalendarDays, ChevronDown } from "l
 import { useTheme } from "@/contexts/ThemeContext";
 import { format } from "date-fns";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface Task {
+    id: string;
+    title: string;
+    status: string;
+    due_date?: string | null;
+    project_id?: string | null;
+    linked_document_id?: string | null;
+    [key: string]: unknown;
+}
 
 export default function DashboardTasks() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
-    const [tasks, setTasks] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
-    const [workspaces, setWorkspaces] = useState<any[]>([]);
-    const [notes, setNotes] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [newTaskTitle, setNewTaskTitle] = useState("");
     const [isCreating, setIsCreating] = useState(false);
 
     // Selected task state for the detail modal
-    const [selectedTask, setSelectedTask] = useState<any>(null);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [filterRange, setFilterRange] = useState<"today" | "overdue" | "1week" | "2weeks" | "1month">("today");
 
+    const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR<{ tasks: Task[] }>("/api/tasks", fetcher);
+    const { data: projectsData, isLoading: projectsLoading, mutate: mutateProjects } = useSWR("/api/projects", fetcher);
+    const { data: workspacesData, isLoading: workspacesLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
+    const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR("/api/notes", fetcher);
+
+    const tasks = tasksData?.tasks || [];
+    const projects = projectsData?.projects || [];
+    const workspaces = workspacesData?.workspaces || [];
+    const notes = notesData?.notes || [];
+    const isLoading = tasksLoading && !tasksData;
+    const isMetadataLoading = projectsLoading || workspacesLoading || notesLoading;
+
     useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
-        try {
-            setIsLoading(true);
-            const [tasksRes, projectsRes, workspacesRes, notesRes] = await Promise.all([
-                fetch("/api/tasks", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-                fetch("/api/projects", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-                fetch("/api/workspaces", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-                fetch("/api/notes", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-            ]);
-
-            if (tasksRes.ok) {
-                const tasksData = await tasksRes.json();
-                setTasks(tasksData.tasks || []);
-            }
-            if (projectsRes.ok) {
-                const projectsData = await projectsRes.json();
-                setProjects(projectsData.projects || []);
-            }
-            if (workspacesRes.ok) {
-                const workspacesData = await workspacesRes.json();
-                setWorkspaces(workspacesData.workspaces || []);
-            }
-            if (notesRes.ok) {
-                const notesData = await notesRes.json();
-                setNotes(notesData.notes || []);
-            }
-        } catch (error) {
-            console.error("Failed to load dashboard data");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        const handleTaskUpdated = () => {
+            mutateTasks();
+            mutateProjects();
+            mutateWorkspaces();
+            mutateNotes();
+        };
+        window.addEventListener("task-updated", handleTaskUpdated);
+        return () => window.removeEventListener("task-updated", handleTaskUpdated);
+    }, [mutateTasks, mutateProjects, mutateWorkspaces, mutateNotes]);
 
     const handleCreateTask = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -76,7 +70,10 @@ export default function DashboardTasks() {
 
             if (res.ok) {
                 const { task } = await res.json();
-                setTasks((prev) => [task, ...prev]);
+                mutateTasks((currentData: { tasks: Task[] } | undefined) => ({
+                    ...currentData,
+                    tasks: [task, ...(currentData?.tasks || [])]
+                }) as { tasks: Task[] }, false);
                 setNewTaskTitle("");
                 window.dispatchEvent(new Event("task-updated"));
             }
@@ -87,14 +84,15 @@ export default function DashboardTasks() {
         }
     };
 
-    const toggleTaskStatus = async (task: any, e?: React.SyntheticEvent) => {
+    const toggleTaskStatus = async (task: Task, e?: React.SyntheticEvent) => {
         if (e) e.stopPropagation();
         const newStatus = task.status === "done" ? "not_started" : "done";
 
         // Optimistic update
-        setTasks((prev) =>
-            prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
-        );
+        mutateTasks((currentData: { tasks: Task[] } | undefined) => ({
+            ...currentData,
+            tasks: (currentData?.tasks || []).map((t: Task) => t.id === task.id ? { ...t, status: newStatus } : t)
+        }) as { tasks: Task[] }, false);
 
         try {
             await fetch(`/api/tasks/${task.id}`, {
@@ -105,30 +103,34 @@ export default function DashboardTasks() {
             window.dispatchEvent(new Event("task-updated"));
         } catch (err) {
             console.error("Failed to update status");
-            fetchData(); // revert
+            mutateTasks(); // revert
         }
     };
 
     const deleteTask = async (taskId: string, e?: React.SyntheticEvent) => {
         if (e) e.stopPropagation();
         // Optimistic update
-        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+        mutateTasks((currentData: { tasks: Task[] } | undefined) => ({
+            ...currentData,
+            tasks: (currentData?.tasks || []).filter((t: Task) => t.id !== taskId)
+        }) as { tasks: Task[] }, false);
         try {
             await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
             window.dispatchEvent(new Event("task-updated"));
         } catch (err) {
             console.error("Failed to delete task");
-            fetchData(); // revert
+            mutateTasks(); // revert
         }
     };
 
-    const handleTaskUpdated = (updatedTask?: any) => {
+    const handleTaskUpdated = (updatedTask?: Task) => {
         if (updatedTask) {
-            setTasks((prev) =>
-                prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
-            );
+            mutateTasks((currentData: { tasks: Task[] } | undefined) => ({
+                ...currentData,
+                tasks: (currentData?.tasks || []).map((t: Task) => t.id === updatedTask.id ? updatedTask : t)
+            }) as { tasks: Task[] }, false);
         }
-        fetchData(); // Re-sync in background to be safe
+        mutateTasks(); // Re-sync in background to be safe
         window.dispatchEvent(new Event("task-updated"));
     };
 
@@ -258,7 +260,17 @@ export default function DashboardTasks() {
     );
 }
 
-function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTaskStatus, deleteTask }: any) {
+interface TaskRowProps {
+    task: Task;
+    projects: any[];
+    workspaces: any[];
+    notes: any[];
+    setSelectedTask: (task: Task) => void;
+    toggleTaskStatus: (task: Task, e?: React.SyntheticEvent) => void;
+    deleteTask: (taskId: string, e?: React.SyntheticEvent) => void;
+}
+
+function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTaskStatus, deleteTask }: TaskRowProps) {
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
     const [swipeOffset, setSwipeOffset] = useState(0);
 

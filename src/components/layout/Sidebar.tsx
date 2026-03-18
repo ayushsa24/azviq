@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type RecentItem = {
   id: string;
@@ -49,24 +52,19 @@ export default function Sidebar({
   const { user: profile } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
+  const { data: recentData, mutate: mutateRecent } = useSWR("/api/recent-activity", fetcher, {
+    revalidateOnFocus: true,
+  });
+  const recentItems: RecentItem[] = (recentData?.items || []).slice(0, 8);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function fetchRecentItems() {
-      try {
-        const res = await fetch("/api/recent-activity");
-        if (!res.ok) return;
-        const data = await res.json();
-        setRecentItems((data.items || []).slice(0, 8));
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    fetchRecentItems();
-  }, [pathname]);
+    const handleUpdate = () => mutateRecent();
+    window.addEventListener("recentActivityUpdated", handleUpdate);
+    return () => window.removeEventListener("recentActivityUpdated", handleUpdate);
+  }, [mutateRecent]);
 
-
+  // Close menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {

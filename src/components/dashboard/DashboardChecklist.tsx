@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type RepeatType = "today" | "daily" | "weekdays" | "weekends" | "custom";
 
@@ -53,36 +56,20 @@ const defaultForm = () => ({
     custom_days: [] as number[],
 });
 
+
 export default function DashboardChecklist() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const { fetchNotifications } = useNotifications();
-    const [items, setItems] = useState<TodoItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: todosData, isLoading: todosLoading, mutate: mutateTodos } = useSWR("/api/todos", fetcher);
+    const [showAll, setShowAll] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState(defaultForm());
-    const [showAll, setShowAll] = useState(false);
 
-    const fetchTodos = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const res = await fetch("/api/todos", { cache: "no-store" });
-            if (res.ok) {
-                const data = await res.json();
-                setItems(data.todos || []);
-            }
-        } catch (e) {
-            console.error("Failed to fetch todos:", e);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { fetchTodos(); }, [fetchTodos]);
-
-    useEffect(() => { fetchTodos(); }, [fetchTodos]);
+    const items = (todosData?.todos || []) as TodoItem[];
+    const isLoading = todosLoading && !todosData;
 
     const openAdd = () => {
         setEditingId(null);
@@ -120,8 +107,11 @@ export default function DashboardChecklist() {
                 });
                 if (res.ok) {
                     const { todo } = await res.json();
-                    setItems(prev => prev.map(i => i.id === editingId ? todo : i));
-                    fetchTodos(); // Force refresh
+                    mutateTodos((currentData: { todos: TodoItem[] } | undefined) => ({
+                        ...currentData,
+                        todos: (currentData?.todos || []).map((i: TodoItem) => i.id === editingId ? todo : i)
+                    }), false);
+                    mutateTodos(); // Force background refresh
                 }
             } else {
                 const res = await fetch("/api/todos", {
@@ -137,8 +127,11 @@ export default function DashboardChecklist() {
                 });
                 if (res.ok) {
                     const { todo } = await res.json();
-                    setItems(prev => [todo, ...prev]);
-                    fetchTodos(); // Force refresh
+                    mutateTodos((currentData: { todos: TodoItem[] } | undefined) => ({
+                        ...currentData,
+                        todos: [todo, ...(currentData?.todos || [])]
+                    }), false);
+                    mutateTodos(); // Force background refresh
                 }
             }
             setShowModal(false);
@@ -149,8 +142,12 @@ export default function DashboardChecklist() {
         }
     };
 
+
     const toggleDone = async (id: string, current: boolean) => {
-        setItems(prev => prev.map(i => i.id === id ? { ...i, done: !current } : i));
+        mutateTodos((currentData: { todos: TodoItem[] } | undefined) => ({
+            ...currentData,
+            todos: (currentData?.todos || []).map((i: TodoItem) => i.id === id ? { ...i, done: !current } : i)
+        }), false);
         try {
             await fetch(`/api/todos/${id}`, {
                 method: "PATCH",
@@ -158,17 +155,20 @@ export default function DashboardChecklist() {
                 body: JSON.stringify({ done: !current }),
             });
         } catch (e) {
-            setItems(prev => prev.map(i => i.id === id ? { ...i, done: current } : i));
+            mutateTodos(); // Revert
         }
     };
 
     const deleteItem = async (id: string) => {
-        setItems(prev => prev.filter(i => i.id !== id));
+        mutateTodos((currentData: { todos: TodoItem[] } | undefined) => ({
+            ...currentData,
+            todos: (currentData?.todos || []).filter((i: TodoItem) => i.id !== id)
+        }), false);
         setShowModal(false);
         try {
             await fetch(`/api/todos/${id}`, { method: "DELETE" });
         } catch (e) {
-            fetchTodos();
+            mutateTodos(); // Revert
         }
     };
 

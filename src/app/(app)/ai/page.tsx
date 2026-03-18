@@ -43,6 +43,9 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type Message = {
   id?: string;
@@ -67,7 +70,12 @@ function AiChatCore() {
 
   useStudyTracker({ activityType: 'ai_teacher', isEnabled: true });
 
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+  const { data: sessionData, mutate: mutateSessions } = useSWR(
+    userId ? `/api/chat/history?userId=${userId}` : null,
+    fetcher
+  );
+
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -211,27 +219,18 @@ function AiChatCore() {
 
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
-  // 1. Fetch History on Mount
+  // Derive sessions directly from cached SWR data
+  const sessions: ChatSession[] = sessionData?.chats || [];
+
+  // Update historyLoaded when SWR has finished its initial data gathering block
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
+    if (sessionData && !historyLoaded) {
+      setHistoryLoaded(true);
+    }
     if (!userId) {
       router.push("/login");
-      return;
     }
-
-    fetch(`/api/chat/history?userId=${userId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.chats) {
-          setSessions(data.chats);
-        }
-        setHistoryLoaded(true);
-      })
-      .catch((err) => {
-        console.error("Failed to load history", err);
-        setHistoryLoaded(true);
-      });
-  }, [router]);
+  }, [sessionData, historyLoaded, router, userId]);
 
   const pendingQueryRef = useRef<string | null>(null);
 
@@ -303,25 +302,46 @@ function AiChatCore() {
       return;
     }
 
-    const userId = localStorage.getItem("userId");
-    if (!userId) return;
+    const currentUserId = localStorage.getItem("userId");
+    if (!currentUserId) return;
+
+    // Optimistically create locally
+    const optimisticId = `temp-${Date.now()}`;
+    const newChatSession: ChatSession = {
+      id: optimisticId,
+      title: "New Chat",
+      messages: [],
+      created_at: new Date().toISOString()
+    };
+    
+    mutateSessions(
+      (current: { chats: ChatSession[] } | undefined) => ({
+        ...current,
+        chats: [newChatSession, ...(current?.chats || [])]
+      }) as { chats: ChatSession[] },
+      false
+    );
+
+    setActiveChatId(optimisticId);
+    setMessages([]);
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
 
     try {
       const res = await fetch("/api/chat/history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, title: "New Chat" }),
+        body: JSON.stringify({ userId: currentUserId, title: "New Chat" }),
       });
       const data = await res.json();
 
       if (data.chat) {
-        setSessions((prev) => [data.chat, ...prev]);
+        // Swap out optimistic chat for real one
+        mutateSessions();
         setActiveChatId(data.chat.id);
-        setMessages([]);
-        if (window.innerWidth < 768) setIsSidebarOpen(false);
       }
     } catch (err) {
       console.error("Failed to create chat");
+      mutateSessions(); // Revert
     }
   };
 
@@ -377,24 +397,27 @@ function AiChatCore() {
         ? messages.slice(0, cutHistoryAtIndex)
         : messages;
 
-    // Optimistic UI Update
+    // Optimistic UI Update for internal messages
     setMessages([...previousMessages, newMsg]);
     setInput("");
     setEditingMessageIdx(null);
     setIsLoading(true);
     setIsActuallySending(true);
 
-    // Immediately move this chat to the top and ensure it's marked as non-empty optimistically
-    setSessions((prev) => {
-      const current = prev.find((s) => s.id === activeChatId);
-      if (!current) return prev;
+    // Immediately move this chat to the top within SWR and ensure it's marked as non-empty
+    mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+      if (!currentData) return currentData;
+      const current = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
+      if (!current) return currentData;
+      
       const updatedCurrent = {
         ...current,
         messages: [...(current.messages || []), newMsg],
       };
-      const others = prev.filter((s) => s.id !== activeChatId);
-      return [updatedCurrent, ...others];
-    });
+      const others = currentData.chats.filter((s: ChatSession) => s.id !== activeChatId);
+      
+      return { ...currentData, chats: [updatedCurrent, ...others] };
+    }, false);
 
     let aiResponseText = "";
     let topicTitle: string | null = null;
@@ -456,10 +479,11 @@ function AiChatCore() {
         }
       }
 
-      // Update sidebar session explicitly at the end and move it to the top
-      setSessions((prev) => {
-        const updatedChat = prev.find((s) => s.id === activeChatId);
-        if (!updatedChat) return prev;
+      // Update sidebar session explicitly at the end and move it to the top in SWR
+      mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+        if (!currentData) return currentData;
+        const updatedChat = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
+        if (!updatedChat) return currentData;
 
         const updated: ChatSession = {
           ...updatedChat,
@@ -471,9 +495,9 @@ function AiChatCore() {
           ],
         };
 
-        const others = prev.filter((s) => s.id !== activeChatId);
-        return [updated, ...others];
-      });
+        const others = currentData.chats.filter((s: ChatSession) => s.id !== activeChatId);
+        return { ...currentData, chats: [updated, ...others] };
+      }, false);
     } catch (error: any) {
       if (error.name === "AbortError") {
         console.log("User aborted the generation");
@@ -505,10 +529,19 @@ function AiChatCore() {
       setIsRenamingId(null);
       return;
     }
+    
+    // Optimistic Update
+    mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        chats: currentData.chats.map((s: ChatSession) => 
+          s.id === chatId ? { ...s, title: renameTitle } : s
+        )
+      };
+    }, false);
+    
     try {
-      setSessions((prev) =>
-        prev.map((s) => (s.id === chatId ? { ...s, title: renameTitle } : s)),
-      );
       setIsRenamingId(null);
       setActiveMenuId(null);
       await fetch(`/api/chat/history/${chatId}`, {
@@ -516,34 +549,41 @@ function AiChatCore() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: renameTitle }),
       });
+      mutateSessions();
     } catch (e) {
       console.error(e);
+      mutateSessions(); // Revert
     }
   };
 
   const handleTogglePin = async (chatId: string, currentPinStatus: boolean) => {
-    try {
-      const newStatus = !currentPinStatus;
-      setSessions((prev) => {
-        const updated = prev.map((s) =>
-          s.id === chatId ? { ...s, is_pinned: newStatus } : s,
-        );
-        return updated.sort((a, b) => {
-          if (a.is_pinned && !b.is_pinned) return -1;
-          if (!a.is_pinned && b.is_pinned) return 1;
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        });
+    const newStatus = !currentPinStatus;
+    
+    // Optimistic Update
+    mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+      if (!currentData) return currentData;
+      const updated = currentData.chats.map((s: ChatSession) =>
+        s.id === chatId ? { ...s, is_pinned: newStatus } : s
+      );
+      const sorted = updated.sort((a: ChatSession, b: ChatSession) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
+      return { ...currentData, chats: sorted };
+    }, false);
+    
+    try {
       setActiveMenuId(null);
       await fetch(`/api/chat/history/${chatId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_pinned: newStatus }),
       });
+      mutateSessions();
     } catch (e) {
       console.error(e);
+      mutateSessions(); // Revert
     }
   };
 
@@ -551,13 +591,20 @@ function AiChatCore() {
     chatId: string,
     currentArchiveStatus: boolean,
   ) => {
+    const newStatus = !currentArchiveStatus;
+    
+    // Optimistic Update
+    mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        chats: currentData.chats.map((s: ChatSession) =>
+          s.id === chatId ? { ...s, is_archived: newStatus } : s
+        )
+      };
+    }, false);
+    
     try {
-      const newStatus = !currentArchiveStatus;
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === chatId ? { ...s, is_archived: newStatus } : s,
-        ),
-      );
       setActiveMenuId(null);
 
       if (activeChatId === chatId && newStatus) {
@@ -573,14 +620,24 @@ function AiChatCore() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_archived: newStatus }),
       });
+      mutateSessions();
     } catch (e) {
       console.error(e);
+      mutateSessions(); // Revert
     }
   };
 
   const handleDelete = async (chatId: string) => {
+    // Optimistic Update
+    mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        chats: currentData.chats.filter((s: ChatSession) => s.id !== chatId)
+      };
+    }, false);
+    
     try {
-      setSessions((prev) => prev.filter((s) => s.id !== chatId));
       setActiveMenuId(null);
 
       if (activeChatId === chatId) {
@@ -594,8 +651,10 @@ function AiChatCore() {
       await fetch(`/api/chat/history/${chatId}`, {
         method: "DELETE",
       });
+      mutateSessions();
     } catch (e) {
       console.error(e);
+      mutateSessions(); // Revert
     }
   };
 

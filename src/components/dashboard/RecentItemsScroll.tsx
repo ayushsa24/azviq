@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, File as FileIcon, Clock, BookOpen, FlaskConical, ArrowRight } from "lucide-react";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type RecentItem = {
     id: string;
@@ -33,26 +36,10 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function RecentItemsScroll() {
-    const [items, setItems] = useState<RecentItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data, isLoading } = useSWR("/api/recent-activity", fetcher);
+    const items = (data?.items || []) as RecentItem[];
     const [navigatingId, setNavigatingId] = useState<string | null>(null);
     const router = useRouter();
-
-    useEffect(() => {
-        async function fetchRecentItems() {
-            try {
-                const res = await fetch("/api/recent-activity");
-                if (!res.ok) throw new Error("Failed to fetch recent activity");
-                const data = await res.json();
-                setItems(data.items || []);
-            } catch (err) {
-                console.error("Error fetching recent items:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        fetchRecentItems();
-    }, []);
 
     const handleClick = (item: RecentItem) => {
         setNavigatingId(item.id);

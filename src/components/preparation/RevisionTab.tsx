@@ -5,6 +5,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { BookOpen, Trash2, Clock, FileText, HelpCircle, Key, Search } from "lucide-react";
 
 import { formatDistanceToNow } from "date-fns";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface RevisionTabProps {
     search?: string;
@@ -30,33 +33,34 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
     const isDark = theme === "dark";
     const isList = viewMode === "list";
 
-    const [revisions, setRevisions] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data, mutate, isLoading } = useSWR("/api/revision", fetcher);
+    const revisions = data?.revisions || [];
 
-    const fetchRevisions = async () => {
-        try {
-            setIsLoading(true);
-            const res = await fetch("/api/revision");
-            if (res.ok) {
-                const data = await res.json();
-                setRevisions(data.revisions || []);
-            }
-        } catch (e) {
-            console.error("Failed to fetch revisions:", e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    useEffect(() => {
+        mutate();
+    }, [refreshKey, mutate]);
 
-    useEffect(() => { fetchRevisions(); }, [refreshKey]);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this revision?")) return;
-        const res = await fetch(`/api/revision/${id}`, { method: "DELETE" });
-        if (res.ok) setRevisions(prev => prev.filter(r => r.id !== id));
+
+        // Optimistic update
+        mutate((current: any) => ({
+            ...current,
+            revisions: current.revisions.filter((r: any) => r.id !== id)
+        }), false);
+
+        try {
+            const res = await fetch(`/api/revision/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Delete failed");
+            mutate();
+        } catch (e) {
+            console.error("Failed to delete revision:", e);
+            mutate(); // Rollback
+        }
     };
 
-    const filtered = revisions.filter(r =>
+    const filtered = revisions.filter((r: any) =>
         !search || r.title?.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -112,7 +116,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
 
     return (
         <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
-            {filtered.map((rev) => (
+            {filtered.map((rev: any) => (
                 <div
                     key={rev.id}
                     onClick={() => onOpenRevision?.(rev)}

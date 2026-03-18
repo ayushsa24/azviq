@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Clock, CheckCircle2, BookOpen, Play, Pause, RotateCcw, X } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function DashboardStats() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const [tasksDue, setTasksDue] = useState(0);
     const [revisionsDue, setRevisionsDue] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
 
     // Study Time State
     const getTodayString = () => new Date().toISOString().split('T')[0];
@@ -25,54 +27,53 @@ export default function DashboardStats() {
     const [pickerHours, setPickerHours] = useState(0);
     const [pickerMins, setPickerMins] = useState(0);
 
+    const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR('/api/tasks', fetcher);
+    const { data: revData, isLoading: revLoading, mutate: mutateRevs } = useSWR('/api/revision', fetcher);
+
+    const isLoading = (tasksLoading && !tasksData) || (revLoading && !revData);
+
     // Load from Local Storage and API
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStr = today.toISOString().split('T')[0];
+        const calculateStats = () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-                // Fetch tasks due today (not done)
-                const tasksRes = await fetch("/api/tasks", { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
-                if (tasksRes.ok) {
-                    const data = await tasksRes.json();
+            if (tasksData?.tasks) {
+                const dueTodayCount = (tasksData.tasks || []).filter((t: any) => {
+                    if (t.status === "done" || t.status === "archived") return false;
+                    if (!t.due_date) return false;
+                    const dueDate = new Date(t.due_date);
+                    dueDate.setHours(0, 0, 0, 0);
+                    return dueDate.getTime() <= today.getTime();
+                }).length;
+                setTasksDue(dueTodayCount);
+            }
 
-                    const dueTodayCount = (data.tasks || []).filter((t: any) => {
-                        if (t.status === "done" || t.status === "archived") return false;
-                        if (!t.due_date) return false;
-                        const dueDate = new Date(t.due_date);
-                        dueDate.setHours(0, 0, 0, 0);
-                        return dueDate.getTime() <= today.getTime(); // overdue or today
-                    }).length;
+            if (revData?.revisions) {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                sevenDaysAgo.setHours(0, 0, 0, 0);
 
-                    setTasksDue(dueTodayCount);
-                }
-
-                // Fetch revisions due for review (created within last 7 days)
-                const revRes = await fetch("/api/revision", { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
-                if (revRes.ok) {
-                    const data = await revRes.json();
-                    const sevenDaysAgo = new Date();
-                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                    sevenDaysAgo.setHours(0, 0, 0, 0);
-
-                    const dueRevisions = (data.revisions || []).filter((r: any) => {
-                        const created = new Date(r.created_at);
-                        return created >= sevenDaysAgo;
-                    }).length;
-
-                    setRevisionsDue(dueRevisions);
-                }
-            } catch (error) {
-                console.error("Failed to load dashboard stats", error);
-            } finally {
-                setIsLoading(false);
+                const dueRevisions = (revData.revisions || []).filter((r: any) => {
+                    const created = new Date(r.created_at);
+                    return created >= sevenDaysAgo;
+                }).length;
+                setRevisionsDue(dueRevisions);
             }
         };
 
-        fetchStats();
+        calculateStats();
 
+        const handleTaskUpdated = () => {
+            mutateTasks();
+            mutateRevs();
+        };
+
+        window.addEventListener("task-updated", handleTaskUpdated);
+        return () => window.removeEventListener("task-updated", handleTaskUpdated);
+    }, [tasksData, revData, mutateTasks, mutateRevs]);
+
+    useEffect(() => {
         // Load Study Data
         const savedStudy = localStorage.getItem("dashboard_study_data");
         if (savedStudy) {
@@ -80,16 +81,13 @@ export default function DashboardStats() {
                 const parsed = JSON.parse(savedStudy);
                 const today = getTodayString();
                 if (parsed.date === today) {
-                    setStudyData(parsed);
+                    setTimeout(() => setStudyData(parsed), 0);
                 } else {
                     // New day, reset local storage effectively
-                    setStudyData({ date: today, elapsedSeconds: 0, targetMinutes: null });
+                    setTimeout(() => setStudyData({ date: today, elapsedSeconds: 0, targetMinutes: null }), 0);
                 }
             } catch (e) { }
         }
-
-        window.addEventListener("task-updated", fetchStats);
-        return () => window.removeEventListener("task-updated", fetchStats);
     }, []);
 
     // Timer interval logic
@@ -167,10 +165,11 @@ export default function DashboardStats() {
 
     if (isLoading) {
         return (
-            <div className="flex gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-2">
                 {[1, 2, 3].map(i => (
-                    <div key={i} className="flex-1 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse"></div>
+                    <div key={i} className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse ${i === 2 || i === 3 ? "hidden sm:block" : ""}`}></div>
                 ))}
+                <div className="sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse"></div>
             </div>
         );
     }

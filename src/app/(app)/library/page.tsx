@@ -12,12 +12,13 @@ import { RenameWorkspaceModal } from "@/components/notes/RenameWorkspaceModal";
 import { RenameNoteModal } from "@/components/notes/RenameNoteModal";
 import { MoveNoteModal } from "@/components/notes/MoveNoteModal";
 import { Workspace } from "@/types";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function NotesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [notes, setNotes] = useState<NoteItem[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
   const [viewMode, setViewModeState] = useState<"grid" | "list">(
@@ -66,38 +67,20 @@ export default function NotesPage() {
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
   const [selectedWorkspaceForRename, setSelectedWorkspaceForRename] = useState<Workspace | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchNotesAndWorkspaces = async () => {
-    try {
-      setIsLoading(true);
+  const { data: wsData, isLoading: wsLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
+  const workspaces: Workspace[] = wsData?.workspaces || [];
 
-      const wsUrl = new URL("/api/workspaces", window.location.origin);
-      const wsRes = await fetch(wsUrl.toString());
-      if (wsRes.ok) {
-        const wsData = await wsRes.json();
-        setWorkspaces(wsData.workspaces || []);
-      }
+  const notesUrl = activeWorkspace ? `/api/notes?workspace_id=${activeWorkspace.id}` : "/api/notes";
+  const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR(notesUrl, fetcher);
+  const notes: NoteItem[] = notesData?.notes || [];
 
-      const notesUrl = new URL("/api/notes", window.location.origin);
-      if (activeWorkspace) {
-        notesUrl.searchParams.set("workspace_id", activeWorkspace.id);
-      }
-      const res = await fetch(notesUrl.toString());
-      if (res.ok) {
-        const data = await res.json();
-        setNotes(data.notes || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const isLoading = wsLoading || notesLoading;
+
+  const refetchData = () => {
+    mutateWorkspaces();
+    mutateNotes();
   };
-
-  useEffect(() => {
-    fetchNotesAndWorkspaces();
-  }, [activeWorkspace]);
 
   const filteredNotes = useMemo(() => {
     let filtered = notes;
@@ -209,18 +192,33 @@ export default function NotesPage() {
 
   const handleDeleteClick = async (note: NoteItem) => {
     if (window.confirm("Are you sure you want to delete this note?")) {
+      // Optimistic update
+      mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
+        ...currentData,
+        notes: (currentData?.notes || []).filter((n: NoteItem) => n.id !== note.id)
+      }) as { notes: NoteItem[] }, false);
+      
       try {
         const res = await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Failed to delete note");
-        fetchNotesAndWorkspaces();
+        mutateNotes();
       } catch (err) {
         console.error(err);
         alert("Could not delete the note.");
+        mutateNotes(); // Revert on failure
       }
     }
   };
 
   const handleToggleFavourite = async (note: NoteItem) => {
+    // Optimistic update
+    mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
+      ...currentData,
+      notes: (currentData?.notes || []).map((n: NoteItem) => 
+        n.id === note.id ? { ...n, is_favourite: !note.is_favourite } : n
+      )
+    }) as { notes: NoteItem[] }, false);
+    
     try {
       const res = await fetch(`/api/notes/${note.id}`, {
         method: "PATCH",
@@ -228,16 +226,29 @@ export default function NotesPage() {
         body: JSON.stringify({ is_favourite: !note.is_favourite }),
       });
       if (!res.ok) throw new Error("Failed to toggle favourite");
-      fetchNotesAndWorkspaces();
+      mutateNotes();
     } catch (err) {
       console.error(err);
       alert("Could not update the note.");
+      mutateNotes(); // Revert on failure
     }
   };
 
   const handleTogglePin = async (note: NoteItem) => {
+    const isFavTab = activeTab === "favourites";
+    
+    // Optimistic update
+    mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
+      ...currentData,
+      notes: (currentData?.notes || []).map((n: NoteItem) => 
+        n.id === note.id ? { 
+          ...n, 
+          ...(isFavTab ? { is_pinned_in_favourites: !note.is_pinned_in_favourites } : { is_pinned: !note.is_pinned })
+        } : n
+      )
+    }) as { notes: NoteItem[] }, false);
+    
     try {
-      const isFavTab = activeTab === "favourites";
       const body = isFavTab
         ? { is_pinned_in_favourites: !note.is_pinned_in_favourites }
         : { is_pinned: !note.is_pinned };
@@ -248,10 +259,11 @@ export default function NotesPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to toggle pin");
-      fetchNotesAndWorkspaces();
+      mutateNotes();
     } catch (err) {
       console.error(err);
       alert("Could not update the note.");
+      mutateNotes(); // Revert on failure
     }
   };
 
@@ -284,6 +296,12 @@ export default function NotesPage() {
 
   const handleDeleteWorkspaceClick = async (workspace: Workspace) => {
     if (window.confirm(`Are you sure you want to delete the "${workspace.name}" workspace? This will ALSO DELETE ALL FILES inside it.`)) {
+      // Optimistic update
+      mutateWorkspaces((currentData: { workspaces: Workspace[] } | undefined) => ({
+        ...currentData,
+        workspaces: (currentData?.workspaces || []).filter((w: Workspace) => w.id !== workspace.id)
+      }) as { workspaces: Workspace[] }, false);
+      
       try {
         const res = await fetch(`/api/workspaces/${workspace.id}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Failed to delete workspace");
@@ -294,15 +312,24 @@ export default function NotesPage() {
           router.push("/library", { scroll: false });
         }
 
-        fetchNotesAndWorkspaces();
+        refetchData();
       } catch (err) {
         console.error(err);
         alert("Could not delete the workspace.");
+        mutateWorkspaces(); // Revert on failure
       }
     }
   };
 
   const handleTogglePinWorkspace = async (workspace: Workspace) => {
+    // Optimistic update
+    mutateWorkspaces((currentData: { workspaces: Workspace[] } | undefined) => ({
+      ...currentData,
+      workspaces: (currentData?.workspaces || []).map((w: Workspace) => 
+        w.id === workspace.id ? { ...w, is_pinned: !workspace.is_pinned } : w
+      )
+    }) as { workspaces: Workspace[] }, false);
+    
     try {
       const res = await fetch(`/api/workspaces/${workspace.id}`, {
         method: "PATCH",
@@ -310,10 +337,11 @@ export default function NotesPage() {
         body: JSON.stringify({ is_pinned: !workspace.is_pinned }),
       });
       if (!res.ok) throw new Error("Failed to toggle pin");
-      fetchNotesAndWorkspaces();
+      mutateWorkspaces();
     } catch (err) {
       console.error(err);
       alert("Could not update the workspace.");
+      mutateWorkspaces(); // Revert on failure
     }
   };
 
@@ -587,30 +615,30 @@ export default function NotesPage() {
       <UploadNoteModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onSuccess={fetchNotesAndWorkspaces}
+        onSuccess={refetchData}
         workspaceId={activeWorkspace?.id}
       />
       <CreateWorkspaceModal
         isOpen={isWorkspaceModalOpen}
         onClose={() => setIsWorkspaceModalOpen(false)}
-        onSuccess={fetchNotesAndWorkspaces}
+        onSuccess={refetchData}
       />
       <RenameWorkspaceModal
         isOpen={isRenameWorkspaceModalOpen}
         onClose={() => setIsRenameWorkspaceModalOpen(false)}
-        onSuccess={fetchNotesAndWorkspaces}
+        onSuccess={refetchData}
         workspace={selectedWorkspaceForRename}
       />
       <RenameNoteModal
         isOpen={isRenameModalOpen}
         onClose={() => setIsRenameModalOpen(false)}
-        onSuccess={fetchNotesAndWorkspaces}
+        onSuccess={refetchData}
         note={selectedNote}
       />
       <MoveNoteModal
         isOpen={isMoveModalOpen}
         onClose={() => setIsMoveModalOpen(false)}
-        onSuccess={fetchNotesAndWorkspaces}
+        onSuccess={refetchData}
         note={selectedNote}
         workspaces={workspaces}
       />

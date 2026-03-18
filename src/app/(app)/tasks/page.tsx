@@ -20,18 +20,28 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import useSWR from "swr";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
 import { AITaskModal } from "@/components/tasks/AITaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [notes, setNotes] = useState<any[]>([]);
-  const [workspaces, setWorkspaces] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: tasksData, mutate: mutateTasks, isLoading: isTasksLoading } = useSWR("/api/tasks", fetcher);
+  const { data: projectsData, mutate: mutateProjects, isLoading: isProjectsLoading } = useSWR("/api/projects", fetcher);
+  const { data: notesData, mutate: mutateNotes, isLoading: isNotesLoading } = useSWR("/api/notes?all=true", fetcher);
+  const { data: workspacesData, mutate: mutateWorkspaces, isLoading: isWorkspacesLoading } = useSWR("/api/workspaces", fetcher);
+
+  const tasks = tasksData?.tasks || [];
+  const projects = projectsData?.projects || [];
+  const notes = notesData?.notes || [];
+  const workspaces = workspacesData?.workspaces || [];
+
+  const isLoading = isTasksLoading || isProjectsLoading || isNotesLoading || isWorkspacesLoading;
+
   const [projectSearch, setProjectSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<"all" | "in_progress" | "done" | "archived" | "not_started">("all");
@@ -60,106 +70,31 @@ export default function TasksPage() {
   const [showProjectFavorites, setShowProjectFavorites] = useState(false);
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Remove the old manual fetchData effect
+  // useEffect(() => {
+  //   fetchData();
+  // }, []);
 
-  // Deep-link: auto-open task from URL param
-  useEffect(() => {
-    const taskId = searchParams.get("id");
-    if (taskId && tasks.length > 0) {
-      const task = tasks.find((t) => t.id === taskId);
-      if (task && selectedTask?.id !== taskId) {
-        setSelectedTask(task);
-      }
-    }
-  }, [searchParams, tasks]);
+  // Removed manual fetchData function as SWR handles it automatically.
+  // Replaced manual calls to fetchData() with SWR mutate calls.
 
-  // ── Phone back button: single centralized handler for all modal levels ──
-  // Push a history entry whenever the top-most modal changes
-  useEffect(() => {
-    if (selectedProjectTask) {
-      // Deepest level: task inside a project
-      window.history.pushState({ modal: 'project-task' }, "");
-    } else if (selectedProject) {
-      // Middle level: project modal
-      window.history.pushState({ modal: 'project' }, "");
-    } else if (selectedTask) {
-      // Task opened directly from task list
-      window.history.pushState({ modal: 'task' }, "");
-    }
-  }, [selectedProject, selectedTask, selectedProjectTask]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      // Close the innermost open modal first
-      if (selectedProjectTask) {
-        setSelectedProjectTask(null);   // go back to project view
-      } else if (selectedProject) {
-        setSelectedProject(null);       // go back to tasks page from project
-      } else if (selectedTask) {
-        setSelectedTask(null);          // go back to tasks page from standalone task
-      }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [selectedProjectTask, selectedProject, selectedTask]);
-
-  // Close menus on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.context-menu') && !target.closest('.context-menu-button')) {
-        setOpenMenuId(null);
-        setMoveMenuId(null);
-        setMenuPosition(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      const [tasksRes, projectsRes, notesRes, workspacesRes] = await Promise.all([
-        fetch("/api/tasks", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-        fetch("/api/projects", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-        fetch("/api/notes?all=true", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-        fetch("/api/workspaces", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }),
-      ]);
-
-      if (tasksRes.ok) {
-        const tasksData = await tasksRes.json();
-        setTasks(tasksData.tasks || []);
-      }
-
-      if (projectsRes.ok) {
-        const projectsData = await projectsRes.json();
-        setProjects(projectsData.projects || []);
-      }
-
-      if (notesRes.ok) {
-        const notesData = await notesRes.json();
-        setNotes(notesData.notes || []);
-      }
-
-      if (workspacesRes.ok) {
-        const workspacesData = await workspacesRes.json();
-        setWorkspaces(workspacesData.workspaces || []);
-      }
-    } catch (error) {
-      console.error("Failed to load tasks and projects");
-    } finally {
-      setIsLoading(false);
-    }
+  const refetchData = () => {
+    mutateTasks();
+    mutateProjects();
+    mutateNotes();
+    mutateWorkspaces();
   };
+
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     // Optimistic update
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
-    );
+    mutateTasks((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        tasks: currentData.tasks.map((t: any) => (t.id === taskId ? { ...t, status: newStatus } : t))
+      };
+    }, false);
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -167,22 +102,43 @@ export default function TasksPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
+      mutateTasks();
     } catch (e) {
       console.error("Failed to update status");
-      fetchData(); // Revert on failure
+      mutateTasks(); // Revert on failure
     }
   };
 
   const handleTaskUpdated = (updatedTask?: any) => {
     if (updatedTask) {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
-      );
+      mutateTasks((currentData: any) => {
+        if (!currentData) return currentData;
+        return {
+          ...currentData,
+          tasks: currentData.tasks.map((t: any) => (t.id === updatedTask.id ? updatedTask : t))
+        };
+      }, false);
     }
-    fetchData(); // Re-sync in background to be safe
+    mutateTasks(); // Re-sync in background to be safe
   };
 
   const handleQuickCreateTask = async (status: string) => {
+    // Optimistically create locally
+    const optimisticId = `temp-${Date.now()}`;
+    const newTask = {
+      id: optimisticId,
+      title: "Untitled Task",
+      status,
+      created_at: new Date().toISOString()
+    };
+    
+    mutateTasks((currentData: any) => {
+      if (!currentData) return { tasks: [newTask] };
+      return { ...currentData, tasks: [newTask, ...currentData.tasks] };
+    }, false);
+    
+    setSelectedTask(newTask); // Open it immediately
+
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
@@ -195,15 +151,32 @@ export default function TasksPage() {
 
       if (res.ok) {
         const { task } = await res.json();
-        setTasks((prev) => [task, ...prev]);
-        setSelectedTask(task); // Open it immediately
+        setSelectedTask(task); // Update to the real one
+        mutateTasks();
       }
     } catch (e) {
       console.error("Failed to create task", e);
+      mutateTasks(); // Revert
     }
   };
 
   const handleQuickCreateProject = async () => {
+    // Optimistically create locally
+    const optimisticId = `temp-proj-${Date.now()}`;
+    const newProject = {
+      id: optimisticId,
+      title: "Untitled Project",
+      status: "not_started",
+      created_at: new Date().toISOString()
+    };
+    
+    mutateProjects((currentData: any) => {
+      if (!currentData) return { projects: [newProject] };
+      return { ...currentData, projects: [newProject, ...currentData.projects] };
+    }, false);
+    
+    setSelectedProject(newProject); // Open it immediately
+
     try {
       const res = await fetch("/api/projects", {
         method: "POST",
@@ -216,85 +189,150 @@ export default function TasksPage() {
 
       if (res.ok) {
         const { project } = await res.json();
-        setProjects((prev) => [project, ...prev]);
-        setSelectedProject(project); // Open it immediately
+        setSelectedProject(project); // Update to the real one
+        mutateProjects();
       }
     } catch (e) {
       console.error("Failed to create project", e);
+      mutateProjects(); // Revert
     }
   };
 
   const handleProjectUpdated = (updatedProject: any) => {
-    setProjects((prev: any) =>
-      prev.map((p: any) => (p.id === updatedProject.id ? updatedProject : p))
-    );
-    fetchData();
+    if (updatedProject) {
+      mutateProjects((currentData: any) => {
+        if (!currentData) return currentData;
+        return {
+          ...currentData,
+          projects: currentData.projects.map((p: any) => (p.id === updatedProject.id ? updatedProject : p))
+        };
+      }, false);
+    }
+    mutateProjects(); // Re-sync
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    mutateTasks((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        tasks: currentData.tasks.filter((t: any) => t.id !== taskId)
+      };
+    }, false);
     setOpenMenuId(null);
     try {
       await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+      mutateTasks();
     } catch (e) {
       console.error("Failed to delete task", e);
-      fetchData();
+      mutateTasks(); // Revert
     }
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    setProjects((prev: any) => prev.filter((p: any) => p.id !== projectId));
+    mutateProjects((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        projects: currentData.projects.filter((p: any) => p.id !== projectId)
+      };
+    }, false);
     setOpenMenuId(null);
     try {
       await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+      mutateProjects();
     } catch (e) {
       console.error("Failed to delete project", e);
-      fetchData();
+      mutateProjects(); // Revert
     }
   };
 
   const handleToggleTaskPin = async (task: any) => {
     const updated = { ...task, is_pinned: !task.is_pinned };
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+    mutateTasks((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        tasks: currentData.tasks.map((t: any) => (t.id === task.id ? updated : t))
+      };
+    }, false);
     setOpenMenuId(null);
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_pinned: updated.is_pinned }),
-    });
+    try {
+      await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: updated.is_pinned }),
+      });
+      mutateTasks();
+    } catch (e) {
+      mutateTasks(); // Revert
+    }
   };
 
   const handleToggleTaskFavorite = async (task: any) => {
     const updated = { ...task, is_favorite: !task.is_favorite };
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+    mutateTasks((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        tasks: currentData.tasks.map((t: any) => (t.id === task.id ? updated : t))
+      };
+    }, false);
     setOpenMenuId(null);
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_favorite: updated.is_favorite }),
-    });
+    try {
+      await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_favorite: updated.is_favorite }),
+      });
+      mutateTasks();
+    } catch (e) {
+      mutateTasks(); // Revert
+    }
   };
 
   const handleToggleProjectPin = async (project: any) => {
     const updated = { ...project, is_pinned: !project.is_pinned };
-    setProjects((prev: any) => prev.map((p: any) => (p.id === project.id ? updated : p)));
+    mutateProjects((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        projects: currentData.projects.map((p: any) => (p.id === project.id ? updated : p))
+      };
+    }, false);
     setOpenMenuId(null);
-    await fetch(`/api/projects/${project.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_pinned: updated.is_pinned }),
-    });
+    try {
+      await fetch(`/api/projects/${project.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: updated.is_pinned }),
+      });
+      mutateProjects();
+    } catch(e) {
+      mutateProjects(); // Revert
+    }
   };
 
   const handleToggleProjectFavorite = async (project: any) => {
     const updated = { ...project, is_favorite: !project.is_favorite };
-    setProjects((prev: any) => prev.map((p: any) => (p.id === project.id ? updated : p)));
+    mutateProjects((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        projects: currentData.projects.map((p: any) => (p.id === project.id ? updated : p))
+      };
+    }, false);
     setOpenMenuId(null);
-    await fetch(`/api/projects/${project.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_favorite: updated.is_favorite }),
-    });
+    try {
+      await fetch(`/api/projects/${project.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_favorite: updated.is_favorite }),
+      });
+      mutateProjects();
+    } catch (e) {
+      mutateProjects(); // Revert
+    }
   };
 
   const handleMoveTaskStatus = async (taskId: string, newStatus: string) => {
@@ -319,7 +357,7 @@ export default function TasksPage() {
     e.preventDefault();
   };
 
-  const filteredTasks = tasks.filter((t) => {
+  const filteredTasks = tasks.filter((t: any) => {
     const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFav = !showTaskFavorites || t.is_favorite;
     return matchesSearch && matchesFav;
@@ -453,8 +491,8 @@ export default function TasksPage() {
                 <p className="text-sm text-[#545454] dark:text-[#7D7D7D] py-6">No projects found.</p>
               ) : (
                 filteredProjects.map((p: any) => {
-                  const projTasks = tasks.filter((t) => t.project_id === p.id);
-                  const doneTasks = projTasks.filter((t) => t.status === "done" || t.status === "archived").length;
+                  const projTasks = tasks.filter((t: any) => t.project_id === p.id);
+                  const doneTasks = projTasks.filter((t: any) => t.status === "done" || t.status === "archived").length;
                   return (
                     <div
                       key={p.id}
@@ -602,13 +640,13 @@ export default function TasksPage() {
                           {status.replace("_", " ")}
                         </div>
                         <span className="text-xs bg-gray-200 dark:bg-[#333] text-gray-600 dark:text-gray-400 px-2 rounded-full">
-                          {filteredTasks.filter((t) => t.status === status).length}
+                          {filteredTasks.filter((t: any) => t.status === status).length}
                         </span>
                       </h3>
                       {filteredTasks
-                        .filter((t) => t.status === status)
+                        .filter((t: any) => t.status === status)
                         .sort((a: any, b: any) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0))
-                        .map((t) => (
+                        .map((t: any) => (
                           <div
                             key={t.id}
                             draggable
@@ -807,13 +845,13 @@ export default function TasksPage() {
       <CreateProjectModal
         isOpen={isProjectModalOpen}
         onClose={() => setIsProjectModalOpen(false)}
-        onSuccess={fetchData}
+        onSuccess={refetchData}
       />
 
       <AITaskModal
         isOpen={isAIModalOpen}
         onClose={() => setIsAIModalOpen(false)}
-        onSuccess={fetchData}
+        onSuccess={refetchData}
         projects={projects}
       />
 
@@ -833,7 +871,7 @@ export default function TasksPage() {
         notes={notes}
         workspaces={workspaces}
         onProjectUpdated={handleProjectUpdated}
-        onTaskUpdated={fetchData}
+        onTaskUpdated={refetchData}
         selectedTask={selectedProjectTask}
         onSelectTask={setSelectedProjectTask}
       />
