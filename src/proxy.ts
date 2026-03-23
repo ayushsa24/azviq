@@ -12,17 +12,17 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
       })
     : null;
 
-// Tier 1: AI & Expensive (Strict)
+// Tier 1: AI & Expensive (Increased for better user flow)
 const aiRateLimit = redis ? new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(20, "1 m"),
+    limiter: Ratelimit.slidingWindow(60, "1 m"),
     analytics: true,
 }) : null;
 
-// Tier 2: Auth & Sensitive (Very Strict)
+// Tier 2: Auth & Sensitive (Relaxed to avoid lockout)
 const authRateLimit = redis ? new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    limiter: Ratelimit.slidingWindow(100, "1 m"),
     analytics: true,
 }) : null;
 
@@ -49,13 +49,13 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
         if (!redis) return NextResponse.next();
 
         // Get Client IP (Vercel provides x-forwarded-for, local provides req.ip)
-        const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "127.0.0.1";
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "127.0.0.1";
         let limitResult;
 
         try {
-            if (path.startsWith("/api/ai") || path.startsWith("/api/chat") || path.startsWith("/api/summarize")) {
+            if ((path.startsWith("/api/ai") || path.startsWith("/api/chat") || path.startsWith("/api/summarize")) && !path.startsWith("/api/chat/history")) {
                 limitResult = await aiRateLimit?.limit(ip);
-            } else if (path.startsWith("/api/auth") || path.startsWith("/api/signup") || path.startsWith("/api/profile")) {
+            } else if (path.startsWith("/api/signup") || path.startsWith("/api/profile") || path.includes("/api/auth/callback") || path.includes("/api/auth/signin")) {
                 limitResult = await authRateLimit?.limit(ip);
             } else {
                 limitResult = await standardRateLimit?.limit(ip);

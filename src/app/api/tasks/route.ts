@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing title" }, { status: 400 });
     }
 
-    const insertData: any = {
+    const insertData: Record<string, unknown> = {
       user_id: user.id,
       title,
       status: status || "not_started",

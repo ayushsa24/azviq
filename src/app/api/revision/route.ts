@@ -3,20 +3,31 @@ import { supabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { apiError } from "@/lib/api";
+import { z } from "zod";
+import { checkAiDailyQuota } from "@/lib/ai-tracking";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const apiKey = process.env.GEMINI_API_KEY || "";
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+
+// --- Zod Schema for POST ---
+const RevisionSchema = z.object({
+    noteId: z.string().uuid("noteId must be a valid UUID"),
+});
 
 // GET: Fetch all revisions for the current user
 export async function GET() {
     try {
         const session = await getServerSession(authOptions);
         if (!session || !session.user?.email)
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return apiError("Unauthorized", 401, "UNAUTHORIZED");
 
         const { data: user } = await supabase
             .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
 
         const { data: revisions, error } = await supabase
             .from("revisions")
@@ -26,26 +37,41 @@ export async function GET() {
 
         if (error) throw error;
         return NextResponse.json({ revisions });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("GET revisions error:", error);
-        return NextResponse.json({ error: "Failed to fetch revisions" }, { status: 500 });
+        return apiError("Failed to fetch revisions", 500, "INTERNAL_SERVER_ERROR");
     }
 }
 
-// POST: Generate + save a new revision
+// POST: Generate + save a new revision using Gemini
 export async function POST(req: Request) {
     try {
+        // 1. Auth check
         const session = await getServerSession(authOptions);
         if (!session || !session.user?.email)
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return apiError("Unauthorized", 401, "UNAUTHORIZED");
 
-        const { noteId } = await req.json();
-        if (!noteId) return NextResponse.json({ error: "noteId is required" }, { status: 400 });
+        // 2. Parse and validate input
+        let body: unknown;
+        try {
+            body = await req.json();
+        } catch {
+            return apiError("Invalid JSON body", 400, "INVALID_JSON");
+        }
 
+        const validation = RevisionSchema.safeParse(body);
+        if (!validation.success) {
+            return apiError("Invalid request data", 400, "VALIDATION_ERROR", validation.error.flatten());
+        }
+
+        const { noteId } = validation.data;
+
+        // 3. Get authenticated user
         const { data: user } = await supabase
             .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
 
+        // 4. Fetch the note (ownership-verified)
         const { data: note, error: noteError } = await supabase
             .from("notes")
             .select("id, title, content, file_url")
@@ -54,14 +80,21 @@ export async function POST(req: Request) {
             .single();
 
         if (noteError || !note)
-            return NextResponse.json({ error: "Note not found" }, { status: 404 });
+            return apiError("Note not found", 404, "NOTE_NOT_FOUND");
 
-        const isPdf = !!(note.file_url && (!note.content || note.content.trim() === ""));
+        const isPdf = !!(note.file_url && (!note.content || (note.content as string).trim() === ""));
 
         if (!isPdf && !note.content)
-            return NextResponse.json({ error: "Note has no content" }, { status: 400 });
+            return apiError("Note has no content to generate a revision from.", 400, "EMPTY_NOTE");
 
-        if (!genAI) return NextResponse.json({ error: "AI service not configured" }, { status: 500 });
+        // 5. AI service & Quota check
+        if (!genAI)
+            return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
+
+        const quota = await checkAiDailyQuota(user.id);
+        if (!quota.success) {
+            return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
+        }
 
         const systemInstruction = `You are an expert revision tutor. Based on the provided note, produce a structured JSON object with exactly these three fields:
 {
@@ -86,47 +119,50 @@ For "qa_pairs": 6-10 items.
 
 Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
-            systemInstruction,
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
 
-        let response;
+        // 6. Generate content with explicit error handling
+        let revisionText: string;
+        try {
+            let response;
+            if (isPdf) {
+                const pdfRes = await fetch(note.file_url as string);
+                if (!pdfRes.ok)
+                    return apiError("Failed to fetch PDF file for processing.", 502, "PDF_FETCH_ERROR");
 
-        if (isPdf) {
-            // Fetch PDF bytes from the public URL
-            const pdfRes = await fetch(note.file_url);
-            if (!pdfRes.ok) {
-                return NextResponse.json({ error: "Failed to fetch PDF file" }, { status: 502 });
+                const pdfBuffer = await pdfRes.arrayBuffer();
+                const pdfBase64 = Buffer.from(pdfBuffer).toString("base64");
+
+                response = await model.generateContent([
+                    { inlineData: { mimeType: "application/pdf", data: pdfBase64 } },
+                    `Note Title: ${note.title as string}\n\nThis is a PDF document. Generate the revision object covering all topics in the PDF.`,
+                ]);
+            } else {
+                const prompt = `Note Title: ${note.title as string}\n\nContent:\n${note.content as string}\n\nGenerate the revision object.`;
+                response = await model.generateContent(prompt);
             }
-            const pdfBuffer = await pdfRes.arrayBuffer();
-            const pdfBase64 = Buffer.from(pdfBuffer).toString("base64");
-
-            response = await model.generateContent([
-                {
-                    inlineData: {
-                        mimeType: "application/pdf",
-                        data: pdfBase64,
-                    }
-                },
-                `Note Title: ${note.title}\n\nThis is a PDF document. Generate the revision object covering all topics in the PDF.`,
-            ]);
-        } else {
-            const prompt = `Note Title: ${note.title}\n\nContent:\n${note.content}\n\nGenerate the revision object.`;
-            response = await model.generateContent(prompt);
+            revisionText = response.response.text().trim()
+                .replace(/^```json\s*/m, "").replace(/^```\s*/m, "").replace(/```\s*$/m, "").trim();
+        } catch {
+            return apiError("AI revision generation failed. Please try again.", 502, "AI_SERVICE_ERROR");
         }
 
-        let text = response.response.text().trim()
-            .replace(/^```json/, "").replace(/^```/, "").replace(/```$/, "").trim();
+        // 7. Safely parse AI response
+        let parsed: { summary?: string; keywords?: unknown[]; qa_pairs?: unknown[] };
+        try {
+            parsed = JSON.parse(revisionText) as typeof parsed;
+        } catch {
+            console.error("Revision: AI returned invalid JSON:", revisionText);
+            return apiError("AI returned an unexpected response. Please try again.", 502, "AI_PARSE_ERROR");
+        }
 
-        const parsed = JSON.parse(text);
-
+        // 8. Save to database
         const { data: revision, error: insertError } = await supabase
             .from("revisions")
             .insert({
                 user_id: user.id,
                 note_id: note.id,
-                title: `Revision: ${note.title}`,
+                title: `Revision: ${note.title as string}`,
                 summary: parsed.summary || "",
                 keywords: parsed.keywords || [],
                 qa_pairs: parsed.qa_pairs || [],
@@ -137,8 +173,8 @@ Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
         if (insertError) throw insertError;
 
         return NextResponse.json({ revision });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("POST revision error:", error);
-        return NextResponse.json({ error: "Failed to generate revision" }, { status: 500 });
+        return apiError("Failed to generate revision. Please try again.", 500, "INTERNAL_SERVER_ERROR");
     }
 }

@@ -32,7 +32,7 @@ export async function PUT(req: Request, context: { params: Promise<{ chatId: str
             return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const updates: any = {};
+        const updates: Record<string, unknown> = {};
         if (title !== undefined) updates.title = title;
         if (is_pinned !== undefined) updates.is_pinned = is_pinned;
         if (is_archived !== undefined) updates.is_archived = is_archived;

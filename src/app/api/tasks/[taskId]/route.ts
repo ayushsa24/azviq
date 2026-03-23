@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 export async function PUT(
     req: Request,
-    context: any
+    context: { params: Record<string, string> }
 ) {
     const params = await context.params;
     try {
@@ -25,7 +25,7 @@ export async function PUT(
         }
 
         const body = await req.json();
-        const updateData: any = { updated_at: new Date().toISOString() };
+        const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
         const allowedFields = [
             "title",
@@ -65,7 +65,7 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    context: any
+    context: { params: Record<string, string> }
 ) {
     const params = await context.params;
     try {

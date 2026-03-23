@@ -38,10 +38,10 @@ export async function GET() {
         if (error) throw error;
 
         return NextResponse.json({ workspaces });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Fetch workspaces error:", error);
         return NextResponse.json(
-            { error: error.message || "Failed to fetch workspaces" },
+            { error: (error instanceof Error ? error.message : String(error)) || "Failed to fetch workspaces" },
             { status: 500 }
         );
     }
@@ -95,10 +95,10 @@ export async function POST(req: Request) {
         if (error) throw error;
 
         return NextResponse.json({ workspace }, { status: 201 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Create workspace error:", error);
         return NextResponse.json(
-            { error: error.message || "Failed to create workspace" },
+            { error: (error instanceof Error ? error.message : String(error)) || "Failed to create workspace" },
             { status: 500 }
         );
     }

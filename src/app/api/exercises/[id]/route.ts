@@ -58,7 +58,7 @@ export async function PATCH(
         }
 
         // Only update allowed fields
-        const updates: any = {};
+        const updates: Record<string, unknown> = {};
         if (status !== undefined) updates.status = status;
         if (score !== undefined) updates.score = score;
         if (time_taken !== undefined) updates.time_taken = time_taken;
@@ -72,9 +72,10 @@ export async function PATCH(
             .eq("user_id", user.id);
 
         // If time_taken column doesn't exist yet, retry without it (column still needs migration)
-        if (updateError && (updateError as any).code === "PGRST204" && updates.time_taken !== undefined) {
+        if (updateError && (updateError as { code?: string }).code === "PGRST204" && updates.time_taken !== undefined) {
             console.warn("time_taken column missing — retrying without it. Run: ALTER TABLE exercises ADD COLUMN time_taken integer;");
-            const { time_taken: _removed, ...updatesWithout } = updates;
+            const updatesWithout = { ...updates };
+            delete updatesWithout.time_taken;
             const { error: retryError } = await supabase
                 .from("exercises")
                 .update(updatesWithout)

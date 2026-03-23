@@ -1,47 +1,62 @@
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { apiError } from "@/lib/api";
+import { z } from "zod";
+import { checkAiDailyQuota } from "@/lib/ai-tracking";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+// --- Zod Schema: Validate the exact shape of incoming requests ---
+const MessageSchema = z.object({
+  role: z.enum(["user", "model", "system", "assistant"]),
+  content: z.string().min(1, "Message content cannot be empty").max(20000, "Message too long"),
+});
+
+const ChatRequestSchema = z.object({
+  chatId: z.string().min(1, "chatId is required"),
+  messages: z.array(MessageSchema).min(1, "At least one message is required").max(200, "Too many messages in history"),
+});
+
 export async function POST(req: Request) {
   try {
-    const { chatId, userId, messages } = await req.json();
-
-    if (!chatId || !userId || !messages || !Array.isArray(messages)) {
-      return Response.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
+    // 1. Parse and validate request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return apiError("Invalid JSON body", 400, "INVALID_JSON");
     }
 
-    // ✅ SECURITY CHECK: Verify the request is made by an authenticated user
+    const validation = ChatRequestSchema.safeParse(body);
+    if (!validation.success) {
+      return apiError("Invalid request data", 400, "VALIDATION_ERROR", validation.error.flatten());
+    }
+
+    const { chatId, messages } = validation.data;
+
+    // 2. Authenticate the request
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    // ✅ SECURITY CHECK: Verify the provided userId actually belongs to the logged-in email!
-    const { data: dbUser } = await supabase
+    // 3. Verify userId belongs to authenticated user
+    const { data: dbUser, error: dbError } = await supabase
       .from("users")
       .select("id")
       .eq("email", session.user.email)
       .single();
 
-    if (!dbUser || dbUser.id !== userId) {
-      return Response.json(
-        {
-          error:
-            "Forbidden: You do not have permission to perform this action.",
-        },
-        { status: 403 },
-      );
+    if (dbError || !dbUser) {
+      return apiError("Forbidden: You do not have permission to perform this action.", 403, "FORBIDDEN");
     }
+    const userId = dbUser.id;
 
     const latestUserMessage = messages[messages.length - 1];
 
-    // 1. Save user message to Supabase (Skip if temporary)
+    // 4. Save user message to Supabase (Skip if temporary)
     if (chatId !== "temp-chat") {
       const { error: insertUserError } = await supabase
         .from("messages")
@@ -55,34 +70,43 @@ export async function POST(req: Request) {
       if (insertUserError) throw insertUserError;
     }
 
-    // 2. Generate Ollama Response
-    // We format the messages for Ollama (it expects role and content)
-    const formattedMessages = messages.map((m: any) => ({
+    // --- AI Daily Quota Check ---
+    const quota = await checkAiDailyQuota(userId);
+    if (!quota.success) {
+      return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
+    }
+
+    // 5. Format messages for Ollama
+    const formattedMessages = messages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    // Add a system instruction as the very first message
     formattedMessages.unshift({
       role: "system",
       content:
         "You are Ascend AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted, and educational.",
     });
 
-    // Call the local Ollama API - Enable Streaming!
-    const response = await fetch("http://localhost:11434/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama3.2",
-        messages: formattedMessages,
-        stream: true, // Changed to stream: true
-      }),
-    });
+    // 6. Call the local Ollama API with streaming
+    let response: Response;
+    try {
+      response = await fetch("http://localhost:11434/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama3.2",
+          messages: formattedMessages,
+          stream: true,
+        }),
+      });
+    } catch {
+      return apiError("AI service is unavailable. Please try again later.", 503, "AI_SERVICE_UNAVAILABLE");
+    }
 
     if (!response.ok) {
       console.error("Ollama error:", await response.text());
-      throw new Error(`Ollama API error. Is Ollama running?`);
+      return apiError("AI service returned an error. Is Ollama running?", 502, "AI_SERVICE_ERROR");
     }
 
     const encoder = new TextEncoder();
@@ -90,7 +114,7 @@ export async function POST(req: Request) {
     let fullContent = "";
     let titlePromise: Promise<string | null> | null = null;
 
-    // 3a. Generate elegant title if first message & not temporary (Does NOT block streaming tokens!)
+    // 7. Generate a title on the first message (non-blocking)
     if (messages.length === 1 && chatId !== "temp-chat") {
       titlePromise = fetch("http://localhost:11434/api/generate", {
         method: "POST",
@@ -103,7 +127,7 @@ export async function POST(req: Request) {
       })
         .then(async (res) => {
           if (res.ok) {
-            const titleData = await res.json();
+            const titleData = await res.json() as { response: string };
             const newTitle = titleData.response.trim().replace(/['"]/g, "");
             await supabase
               .from("chats")
@@ -119,24 +143,25 @@ export async function POST(req: Request) {
         });
     }
 
-    // 4. Return Streaming Web Response
+    // 8. Return Streaming Response
     const transformStream = new TransformStream({
       async transform(chunk, controller) {
         const text = decoder.decode(chunk, { stream: true });
         const lines = text.split("\n").filter(Boolean);
         for (const line of lines) {
           try {
-            const parsed = JSON.parse(line);
+            const parsed = JSON.parse(line) as { message?: { content?: string } };
             if (parsed.message?.content) {
               fullContent += parsed.message.content;
             }
-          } catch (e) {}
+          } catch {
+            // Ignore non-JSON lines in the stream
+          }
         }
-        // Pass raw chunk directly to client
         controller.enqueue(chunk);
       },
       async flush(controller) {
-        // 3. Save full AI response to Supabase ONLY when stream finishes
+        // Save the complete AI response after stream ends
         if (chatId !== "temp-chat" && fullContent.trim().length > 0) {
           await supabase.from("messages").insert({
             chat_id: chatId,
@@ -147,7 +172,7 @@ export async function POST(req: Request) {
           });
         }
 
-        // Alert client to what the title updated to
+        // Alert client to the updated title
         if (titlePromise) {
           const resolvedTitle = await titlePromise;
           if (resolvedTitle) {
@@ -171,9 +196,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Chat API Error:", error);
-    return Response.json(
-      { error: "Something went wrong! Is Ollama installed and running?" },
-      { status: 500 },
-    );
+    return apiError("Something went wrong. Please try again later.", 500, "INTERNAL_SERVER_ERROR");
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -7,11 +7,11 @@ function getSupabase() {
     return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
-async function getUserId(session: any, supabase: any) {
+async function getUserId(session: { user?: { email?: string | null } }, supabase: SupabaseClient) {
     const { data: user } = await supabase
         .from("users")
         .select("id")
-        .eq("email", session.user.email)
+        .eq("email", session?.user?.email)
         .single();
     return user?.id ?? null;
 }

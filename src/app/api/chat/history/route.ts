@@ -3,13 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
-
-  if (!userId) {
-    return Response.json({ error: "Missing userId" }, { status: 400 });
-  }
-
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
@@ -22,9 +15,11 @@ export async function GET(req: Request) {
       .eq("email", session.user.email)
       .single();
 
-    if (!dbUser || dbUser.id !== userId) {
+    if (!dbUser) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+    
+    const userId = dbUser.id;
 
     // Fetch all chats for the user, ordered by pinned first, then newest first
     const { data: chats, error } = await supabase
@@ -41,7 +36,7 @@ export async function GET(req: Request) {
       ...chat,
       messages: chat.messages
         ? chat.messages.sort(
-            (a: any, b: any) =>
+            (a: { created_at: string }, b: { created_at: string }) =>
               new Date(a.created_at).getTime() -
               new Date(b.created_at).getTime(),
           )
@@ -76,11 +71,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   // Use POST to create a new chat session explicitly
   try {
-    const { userId, title } = await req.json();
-
-    if (!userId) {
-      return Response.json({ error: "Missing userId" }, { status: 400 });
-    }
+    const { title } = await req.json();
 
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
@@ -89,26 +80,22 @@ export async function POST(req: Request) {
 
     const { data: authDbUser } = await supabase
       .from("users")
-      .select("id")
+      .select("id, username")
       .eq("email", session.user.email)
       .single();
 
-    if (!authDbUser || authDbUser.id !== userId) {
+    if (!authDbUser) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: userRecord } = await supabase
-      .from("users")
-      .select("username")
-      .eq("id", userId)
-      .single();
+    const userId = authDbUser.id;
 
     const { data, error } = await supabase
       .from("chats")
       .insert({
         user_id: userId,
         title: title || "New Chat",
-        username: userRecord?.username || null,
+        username: authDbUser.username || null,
       })
       .select()
       .single();

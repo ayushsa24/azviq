@@ -3,15 +3,35 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/db";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { apiError } from "@/lib/api";
+import { z } from "zod";
+import { checkAiDailyQuota } from "@/lib/ai-tracking";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const apiKey = process.env.GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(apiKey);
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-export async function GET(req: Request) {
+// --- Zod Schema ---
+const ExercisePostSchema = z.object({
+    noteId: z.string().uuid("noteId must be a valid UUID"),
+    count: z.number().int().min(2).max(20).optional().default(5),
+});
+
+interface QuizQuestion {
+    question: string;
+    options: string[];
+    correctAnswerIndex: number;
+    explanation: string;
+}
+
+// GET: Fetch all exercises for current user
+export async function GET() {
     try {
         const session = await getServerSession(authOptions);
         if (!session || !session.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
         const { data: user, error: userError } = await supabase
@@ -21,55 +41,58 @@ export async function GET(req: Request) {
             .single();
 
         if (userError || !user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+            return apiError("User not found", 404, "USER_NOT_FOUND");
         }
 
-        // Fetch exercises, order by most recent
         const { data: exercises, error: exercisesError } = await supabase
             .from("exercises")
-            .select(`
-        *,
-        notes ( title, file_url )
-      `)
+            .select(`*, notes ( title, file_url )`)
             .eq("user_id", user.id)
             .order("created_at", { ascending: false });
 
-        if (exercisesError) {
-            throw exercisesError;
-        }
+        if (exercisesError) throw exercisesError;
 
         return NextResponse.json({ exercises });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("GET exercises error:", error);
-        return NextResponse.json({ error: "Failed to fetch exercises" }, { status: 500 });
+        return apiError("Failed to fetch exercises", 500, "INTERNAL_SERVER_ERROR");
     }
 }
 
+// POST: Generate a new exercise with Gemini
 export async function POST(req: Request) {
     try {
+        // 1. Auth check
         const session = await getServerSession(authOptions);
         if (!session || !session.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
-        const { noteId, count } = await req.json();
-        const questionCount = Math.min(Math.max(parseInt(count) || 5, 2), 20); // range 2-20
-
-        if (!noteId) {
-            return NextResponse.json({ error: "noteId is required" }, { status: 400 });
+        // 2. Parse and validate input
+        let body: unknown;
+        try {
+            body = await req.json();
+        } catch {
+            return apiError("Invalid JSON body", 400, "INVALID_JSON");
         }
 
+        const validation = ExercisePostSchema.safeParse(body);
+        if (!validation.success) {
+            return apiError("Invalid request data", 400, "VALIDATION_ERROR", validation.error.flatten());
+        }
+
+        const { noteId, count } = validation.data;
+        const questionCount = count;
+
+        // 3. Get authenticated user
         const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
+            .from("users").select("id").eq("email", session.user.email).single();
 
         if (userError || !user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+            return apiError("User not found", 404, "USER_NOT_FOUND");
         }
 
-        // 1. Fetch the note content to use as context
+        // 4. Fetch note (ownership-verified)
         const { data: note, error: noteError } = await supabase
             .from("notes")
             .select("id, title, content, file_url")
@@ -78,17 +101,27 @@ export async function POST(req: Request) {
             .single();
 
         if (noteError || !note) {
-            return NextResponse.json({ error: "Note not found or unauthorized" }, { status: 404 });
+            return apiError("Note not found or unauthorized", 404, "NOTE_NOT_FOUND");
         }
 
-        // In a real robust system, if it's a PDF, we'd extract text from the file_url.
-        // For now, we will use the `content` field which is populated for text notes.
-        const noteContext = note.content || "Use general knowledge about this topic.";
+        // 5. AI service check & Quota check
+        if (!genAI) {
+            return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
+        }
 
-        // 2. Generate questions with Gemini
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
-            systemInstruction: `You are an expert tutor. Create a ${questionCount}-question multiple-choice quiz based on the user's provided text.
+        const quota = await checkAiDailyQuota(user.id);
+        if (!quota.success) {
+            return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
+        }
+
+        const noteContext = (note.content as string | null) || "Use general knowledge about this topic.";
+
+        // 6. Generate questions with Gemini
+        let questionsText: string;
+        try {
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.5-flash",
+                systemInstruction: `You are an expert tutor. Create a ${questionCount}-question multiple-choice quiz based on the user's provided text.
 Return ONLY a raw JSON array of objects. Do not wrap it in markdown codeblocks like \`\`\`json\`\`\`.
 Each object MUST have the following structure:
 {
@@ -97,40 +130,37 @@ Each object MUST have the following structure:
   "correctAnswerIndex": 0,
   "explanation": "Why this is correct."
 }`,
-        });
+            });
 
-        const prompt = `Topic/Title: ${note.title}\n\nContent:\n${noteContext}\n\nGenerate the quiz.`;
-
-        const response = await model.generateContent(prompt);
-        let text = response.response.text().trim();
-
-        if (text.startsWith("```json")) {
-            text = text.replace(/^```json/, "");
-        }
-        if (text.startsWith("```")) {
-            text = text.replace(/^```/, "");
-        }
-        if (text.endsWith("```")) {
-            text = text.replace(/```$/, "");
+            const prompt = `Topic/Title: ${note.title as string}\n\nContent:\n${noteContext}\n\nGenerate the quiz.`;
+            const response = await model.generateContent(prompt);
+            questionsText = response.response.text().trim()
+                .replace(/^```json\s*/m, "").replace(/^```\s*/m, "").replace(/```\s*$/m, "").trim();
+        } catch {
+            return apiError("AI exercise generation failed. Please try again.", 502, "AI_SERVICE_ERROR");
         }
 
-        const questions = JSON.parse(text);
+        // 7. Safely parse AI JSON response
+        let questions: QuizQuestion[];
+        try {
+            questions = JSON.parse(questionsText) as QuizQuestion[];
+        } catch {
+            console.error("Exercise: AI returned invalid JSON:", questionsText);
+            return apiError("AI returned an unexpected response format. Please try again.", 502, "AI_PARSE_ERROR");
+        }
 
         if (!Array.isArray(questions)) {
-            throw new Error("AI did not return an array");
+            return apiError("AI returned an unexpected response format. Please try again.", 502, "AI_PARSE_ERROR");
         }
 
-        // 3. Insert into database
-        const title = `Exercise: ${note.title}`;
-        const difficulty = "Medium"; // Defaulting or could ask AI to judge
-
+        // 8. Insert into database
         const { data: exercise, error: insertError } = await supabase
             .from("exercises")
             .insert({
                 user_id: user.id,
                 note_id: note.id,
-                title,
-                difficulty,
+                title: `Exercise: ${note.title as string}`,
+                difficulty: "Medium",
                 status: "Not Started",
                 score: null,
                 questions,
@@ -138,13 +168,11 @@ Each object MUST have the following structure:
             .select()
             .single();
 
-        if (insertError) {
-            throw insertError;
-        }
+        if (insertError) throw insertError;
 
         return NextResponse.json({ exercise });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("POST exercises error:", error);
-        return NextResponse.json({ error: "Failed to generate exercise" }, { status: 500 });
+        return apiError("Failed to generate exercise. Please try again.", 500, "INTERNAL_SERVER_ERROR");
     }
 }

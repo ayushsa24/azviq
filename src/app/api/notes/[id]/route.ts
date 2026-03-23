@@ -38,9 +38,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         return NextResponse.json({ note });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("GET note error:", error);
-        return NextResponse.json({ error: error.message || "Failed to fetch note" }, { status: 500 });
+        return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to fetch note" }, { status: 500 });
     }
 }
 
@@ -69,7 +69,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
 
         const body = await req.json();
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
 
         if (body.title !== undefined) updateData.title = body.title;
         if (body.workspace_id !== undefined) updateData.workspace_id = body.workspace_id;
@@ -94,9 +94,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (error) throw error;
 
         return NextResponse.json({ note });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("PATCH notes error:", error);
-        return NextResponse.json({ error: error.message || "Failed to update note" }, { status: 500 });
+        return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to update note" }, { status: 500 });
     }
 }
 
@@ -164,8 +164,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             .eq("user_id", user.id);
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("DELETE notes error:", error);
-        return NextResponse.json({ error: error.message || "Failed to delete note" }, { status: 500 });
+        return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to delete note" }, { status: 500 });
     }
 }

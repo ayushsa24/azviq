@@ -1,20 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import bcrypt from "bcrypt";
 import { supabase } from "@/lib/supabase";
 import { randomUUID } from "crypto";
+import { apiError, apiSuccess } from "@/lib/api";
+import { z } from "zod";
+
+// --- Zod Schema: Strict signup validation ---
+const SignupSchema = z.object({
+  email: z.string()
+    .email("A valid email address is required")
+    .max(255, "Email is too long"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password is too long"),
+});
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password required" },
-        { status: 400 }
-      );
+    // 1. Parse and validate
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return apiError("Invalid JSON body", 400, "INVALID_JSON");
     }
 
-    // Check existing user
+    const validation = SignupSchema.safeParse(body);
+    if (!validation.success) {
+      return apiError("Invalid signup data", 400, "VALIDATION_ERROR", validation.error.flatten());
+    }
+
+    const { email, password } = validation.data;
+
+    // 2. Check existing user
     const { data: existingUser } = await supabase
       .from("users")
       .select("id")
@@ -22,15 +40,12 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
+      return apiError("An account with this email already exists.", 400, "USER_ALREADY_EXISTS");
     }
 
+    // 3. Hash password and create Supabase Auth user
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 1. Sign up with Supabase Auth (This sends the confirmation email)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -40,13 +55,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (authError) {
-      return NextResponse.json(
-        { error: authError.message },
-        { status: 400 }
-      );
+      return apiError(authError.message, 400, "AUTH_SIGNUP_ERROR");
     }
 
-    // 2. Insert into public.users for the app to function
+    // 4. Insert into public.users
     const { data, error } = await supabase
       .from("users")
       .insert([
@@ -61,23 +73,17 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error(error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      console.error("User insert error:", error);
+      return apiError("Failed to create account. Please try again.", 500, "DB_INSERT_ERROR");
     }
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       message: "Check your email for a confirmation link!",
       user: { id: data.id, email: data.email },
-    });
+    }, 201);
 
-  } catch (err) {
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    console.error("Signup error:", error);
+    return apiError("Server error. Please try again.", 500, "INTERNAL_SERVER_ERROR");
   }
 }

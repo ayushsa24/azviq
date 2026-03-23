@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const handler = (req: Request, ctx: any) => {
+const handler = (req: Request, ctx: Record<string, unknown>) => {
   // Dynamically set NEXTAUTH_URL for mobile testing via Cloudflare Tunnel
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const proto = req.headers.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");

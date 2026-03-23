@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { apiError } from "@/lib/api";
+
+interface WeakTopicStat {
+    id: string;
+    subject: string;
+    topic: string;
+    created_at: string;
+    total_questions: number;
+    correct_answers: number;
+    accuracy: number;
+    identifier: string;
+}
 
 function getSupabase() {
     return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -13,7 +25,7 @@ function today() {
 }
 
 // Helper: check if a notification of given type already exists for this user recently (last 24h)
-async function notifExistsRecently(supabase: any, userId: string, type: string, relatedTopic?: string) {
+async function notifExistsRecently(supabase: SupabaseClient, userId: string, type: string, relatedTopic?: string) {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     let query = supabase
@@ -32,7 +44,7 @@ async function notifExistsRecently(supabase: any, userId: string, type: string, 
 }
 
 // Helper: insert a notification
-async function createNotif(supabase: any, userId: string, payload: {
+async function createNotif(supabase: SupabaseClient, userId: string, payload: {
     type: string; title: string; message: string;
     related_subject?: string; related_topic?: string;
 }) {
@@ -48,12 +60,12 @@ async function createNotif(supabase: any, userId: string, payload: {
 export async function POST() {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (!session?.user?.email) return apiError("Unauthorized", 401, "UNAUTHORIZED");
 
         const supabase = getSupabase();
         const { data: user } = await supabase
             .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
 
         const userId = user.id;
         const todayStr = today();
@@ -117,7 +129,7 @@ export async function POST() {
             .eq("user_id", userId)
             .gte("created_at", fiveDaysAgo);
 
-        const weakTopics = new Map<string, any>();
+        const weakTopics = new Map<string, WeakTopicStat>();
 
         for (const res of (recentLowScores ?? [])) {
             const accuracy = ((res.correct_answers || 0) / (res.total_questions || 1)) * 100;
@@ -126,8 +138,8 @@ export async function POST() {
                 const identifier = `search:${res.topic}`;
 
                 // Track oldest low score within the window to guarantee trigger on day 3
-                if (!weakTopics.has(identifier) || new Date(res.created_at) < new Date(weakTopics.get(identifier).created_at)) {
-                    weakTopics.set(identifier, { ...res, accuracy, identifier });
+                if (!weakTopics.has(identifier) || new Date(res.created_at as string) < new Date((weakTopics.get(identifier) as WeakTopicStat).created_at)) {
+                    weakTopics.set(identifier, { ...res, accuracy, identifier } as WeakTopicStat);
                 }
             }
         }
@@ -260,7 +272,7 @@ export async function POST() {
                 .gte("created_at", weekAgo);
 
             const totalHours = ((weeklySessions ?? []).reduce(
-                (sum: number, s: any) => sum + (s.duration_minutes ?? 0), 0
+                (sum: number, s: { duration_minutes?: number }) => sum + (s.duration_minutes ?? 0), 0
             ) / 60).toFixed(1);
 
             if (await createNotif(supabase, userId, {
@@ -273,8 +285,8 @@ export async function POST() {
         }
 
         return NextResponse.json({ success: true, generated });
-    } catch (err) {
+    } catch (err: unknown) {
         console.error("Generate notifications error:", err);
-        return NextResponse.json({ error: "Failed to generate notifications" }, { status: 500 });
+        return apiError("Failed to generate notifications", 500, "INTERNAL_SERVER_ERROR");
     }
 }

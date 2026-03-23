@@ -43,9 +43,19 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
+import { useSession } from "next-auth/react";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const error = new Error('An error occurred while fetching the data.') as any;
+    error.info = await res.json().catch(() => ({}));
+    error.status = res.status;
+    throw error;
+  }
+  return res.json();
+};
 
 type Message = {
   id?: string;
@@ -70,9 +80,9 @@ function AiChatCore() {
 
   useStudyTracker({ activityType: 'ai_teacher', isEnabled: true });
 
-  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-  const { data: sessionData, mutate: mutateSessions } = useSWR(
-    userId ? `/api/chat/history?userId=${userId}` : null,
+  const { data: session, status } = useSession();
+  const { data: sessionData, mutate: mutateSessions, error: sessionError } = useSWR(
+    status === "authenticated" ? `/api/chat/history` : null,
     fetcher
   );
 
@@ -98,6 +108,7 @@ function AiChatCore() {
     number | null
   >(null);
   const [ratings, setRatings] = useState<Record<number, "good" | "bad">>({});
+  const [apiError, setApiError] = useState<string | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [isActuallySending, setIsActuallySending] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -227,10 +238,10 @@ function AiChatCore() {
     if (sessionData && !historyLoaded) {
       setHistoryLoaded(true);
     }
-    if (!userId) {
+    if (status === "unauthenticated") {
       router.push("/login");
     }
-  }, [sessionData, historyLoaded, router, userId]);
+  }, [sessionData, historyLoaded, router, status]);
 
   const pendingQueryRef = useRef<string | null>(null);
 
@@ -302,8 +313,7 @@ function AiChatCore() {
       return;
     }
 
-    const currentUserId = localStorage.getItem("userId");
-    if (!currentUserId) return;
+    if (status !== "authenticated") return;
 
     // Optimistically create locally
     const optimisticId = `temp-${Date.now()}`;
@@ -330,7 +340,7 @@ function AiChatCore() {
       const res = await fetch("/api/chat/history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: currentUserId, title: "New Chat" }),
+        body: JSON.stringify({ title: "New Chat" }),
       });
       const data = await res.json();
 
@@ -381,12 +391,12 @@ function AiChatCore() {
     cutHistoryAtIndex?: number,
   ) => {
     if (isSendingRef.current) return;
+    setApiError(null);
 
     const textToSend = overrideText || input;
     if (!textToSend.trim() || !activeChatId) return;
 
-    const userId = localStorage.getItem("userId");
-    if (!userId) return;
+    if (status !== "authenticated") return;
 
     isSendingRef.current = true;
     const newMsg: Message = { role: "user", content: textToSend };
@@ -406,7 +416,7 @@ function AiChatCore() {
 
     // Immediately move this chat to the top within SWR and ensure it's marked as non-empty
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
-      if (!currentData) return currentData;
+      if (!currentData || !currentData.chats) return currentData;
       const current = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
       if (!current) return currentData;
       
@@ -425,7 +435,6 @@ function AiChatCore() {
     try {
       const payload = {
         chatId: activeChatId,
-        userId: userId,
         messages: [...previousMessages, newMsg], // send full history context
       };
 
@@ -440,7 +449,16 @@ function AiChatCore() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "API stream error");
+        const rawError = errorData.error;
+        let finalError = "API stream error";
+        
+        if (typeof rawError === "object" && rawError !== null) {
+          finalError = rawError.message || JSON.stringify(rawError);
+        } else if (typeof rawError === "string") {
+          finalError = rawError;
+        }
+        
+        throw new Error(finalError);
       }
       if (!res.body) throw new Error("No response body");
 
@@ -481,7 +499,7 @@ function AiChatCore() {
 
       // Update sidebar session explicitly at the end and move it to the top in SWR
       mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
-        if (!currentData) return currentData;
+        if (!currentData || !currentData.chats) return currentData;
         const updatedChat = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
         if (!updatedChat) return currentData;
 
@@ -508,7 +526,6 @@ function AiChatCore() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chatId: activeChatId,
-              userId: userId,
               role: "model",
               content: aiResponseText,
             }),
@@ -516,6 +533,7 @@ function AiChatCore() {
         }
       } else {
         console.error("Error sending message", error);
+        setApiError(error.message || "Something went wrong. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -532,7 +550,7 @@ function AiChatCore() {
     
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
-      if (!currentData) return currentData;
+      if (!currentData || !currentData.chats) return currentData;
       return {
         ...currentData,
         chats: currentData.chats.map((s: ChatSession) => 
@@ -561,7 +579,7 @@ function AiChatCore() {
     
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
-      if (!currentData) return currentData;
+      if (!currentData || !currentData.chats) return currentData;
       const updated = currentData.chats.map((s: ChatSession) =>
         s.id === chatId ? { ...s, is_pinned: newStatus } : s
       );
@@ -595,7 +613,7 @@ function AiChatCore() {
     
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
-      if (!currentData) return currentData;
+      if (!currentData || !currentData.chats) return currentData;
       return {
         ...currentData,
         chats: currentData.chats.map((s: ChatSession) =>
@@ -630,7 +648,7 @@ function AiChatCore() {
   const handleDelete = async (chatId: string) => {
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
-      if (!currentData) return currentData;
+      if (!currentData || !currentData.chats) return currentData;
       return {
         ...currentData,
         chats: currentData.chats.filter((s: ChatSession) => s.id !== chatId)
@@ -945,7 +963,14 @@ function AiChatCore() {
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
-          {activeChats.length === 0 && (
+          {sessionError && (
+            <div className={`p-3 text-center text-xs rounded-lg mb-3 ${theme === "dark" ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}>
+              {sessionError.status === 429 
+                ? "Slow down! You're refreshing too fast. History will reappear in a moment." 
+                : "Failed to load chat history."}
+            </div>
+          )}
+          {activeChats.length === 0 && !sessionError && (
             <p
               className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#BABABA]" : "text-gray-400"}`}
             >
@@ -1470,6 +1495,21 @@ function AiChatCore() {
 
         {/* Input Dock */}
         <div className={`relative px-3 md:px-5 md:pb-2 pt-0 mt-2 ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
+          {apiError && (
+            <div className={`max-w-3xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
+              <div className="flex items-center gap-2 text-sm">
+                <Bot className="w-4 h-4 shrink-0" />
+                <span>{apiError}</span>
+              </div>
+              <button 
+                onClick={() => setApiError(null)}
+                className="p-1 hover:bg-black/5 rounded-full transition-colors"
+                title="Dismiss error"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           {/* Scroll To Bottom Button */}
           {showScrollDown && (
             <div className="absolute bottom-full left-0 right-0 flex justify-center pb-3 z-20">

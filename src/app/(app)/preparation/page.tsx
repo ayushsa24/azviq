@@ -140,12 +140,24 @@ export default function PreparationPage() {
     const handleStartExercise = (ex: any) => {
         setActiveExercise(ex);
         processedIdRef.current = ex.id;
+        logRecentActivity({
+            item_id: ex.id,
+            item_type: "exercise",
+            title: ex.title || "Untitled Exercise",
+            href: `/preparation?tab=exercise&id=${ex.id}`,
+        });
         router.push(`/preparation?tab=exercise&id=${ex.id}`);
     };
 
     const handleOpenRevision = (rev: any) => {
         setActiveRevision(rev);
         processedIdRef.current = rev.id;
+        logRecentActivity({
+            item_id: rev.id,
+            item_type: "revision",
+            title: rev.title || "Untitled Revision",
+            href: `/preparation?tab=revision&id=${rev.id}`,
+        });
         router.push(`/preparation?tab=revision&id=${rev.id}`);
     };
 
@@ -387,7 +399,15 @@ export default function PreparationPage() {
                     setIsGenerateOpen(false);
                     setActiveTab("exercise");
                     setRefreshKey(k => k + 1);
-                    if (newExercise) setActiveExercise(newExercise);
+                    if (newExercise) {
+                        setActiveExercise(newExercise);
+                        logRecentActivity({
+                            item_id: newExercise.id,
+                            item_type: "exercise",
+                            title: newExercise.title || "Untitled Exercise",
+                            href: `/preparation?tab=exercise&id=${newExercise.id}`,
+                        });
+                    }
                 }}
             />
             <CreateRevisionModal
@@ -399,6 +419,12 @@ export default function PreparationPage() {
                     setRefreshKey(k => k + 1);
                     // Immediately open the new revision full-page
                     setActiveRevision(revision);
+                    logRecentActivity({
+                        item_id: revision.id,
+                        item_type: "revision",
+                        title: revision.title || "Untitled Revision",
+                        href: `/preparation?tab=revision&id=${revision.id}`,
+                    });
                 }}
             />
         </div>

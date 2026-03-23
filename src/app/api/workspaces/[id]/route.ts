@@ -27,7 +27,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
 
         const body = await req.json();
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
 
         if (body.name !== undefined) updateData.name = body.name;
         if (body.description !== undefined) updateData.description = body.description;
@@ -44,9 +44,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (error) throw error;
 
         return NextResponse.json({ workspace });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("PATCH workspace error:", error);
-        return NextResponse.json({ error: error.message || "Failed to update workspace" }, { status: 500 });
+        return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to update workspace" }, { status: 500 });
     }
 }
 
@@ -114,8 +114,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         if (deleteError) throw deleteError;
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("DELETE workspace error:", error);
-        return NextResponse.json({ error: error.message || "Failed to delete workspace" }, { status: 500 });
+        return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to delete workspace" }, { status: 500 });
     }
 }

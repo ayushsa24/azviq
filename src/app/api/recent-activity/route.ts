@@ -30,7 +30,7 @@ export async function GET() {
 
         if (error) {
             console.error("Error fetching recent activity:", error);
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
         }
 
         return NextResponse.json({ items: items || [] });
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
         if (error) {
             console.error("Error logging recent activity:", error);
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
