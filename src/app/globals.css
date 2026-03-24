@@ -39,6 +39,12 @@
 }
 
 /* Base styles */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 250ms;
+}
+
 html {
   font-size: 14px;
   /* Scales down all rem-based Tailwind sizes (padding, text, etc.) to make the entire UI more compact */

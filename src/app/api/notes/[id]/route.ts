@@ -77,6 +77,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (body.is_pinned !== undefined) updateData.is_pinned = body.is_pinned;
         if (body.is_pinned_in_favourites !== undefined) updateData.is_pinned_in_favourites = body.is_pinned_in_favourites;
         if (body.content !== undefined) updateData.content = body.content;
+        if (body.is_public !== undefined) updateData.is_public = body.is_public;
+        if (body.share_mode !== undefined) updateData.share_mode = body.share_mode;
 
         // Spaced repetition fields
         if (body.retention_score !== undefined) updateData.retention_score = body.retention_score;

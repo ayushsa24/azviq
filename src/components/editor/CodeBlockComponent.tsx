@@ -57,7 +57,7 @@ export function CodeBlockComponent({ node: { attrs }, updateAttributes, extensio
                     <span className="sr-only sm:not-sr-only sm:inline-block capitalize tracking-normal">{copied ? 'Copied!' : 'Copy'}</span>
                 </button>
             </div>
-            <pre className="!m-0 !mt-0 !bg-transparent p-4 overflow-x-auto text-[#D4D4D4] text-[13px] leading-relaxed">
+            <pre spellCheck={false} className="!m-0 !mt-0 !bg-transparent pt-4 pb-4 pl-8 pr-4 overflow-x-auto text-[#D4D4D4] text-[13px] leading-relaxed">
                 <NodeViewContent as={"code" as any} className="!bg-transparent font-mono" />
             </pre>
         </NodeViewWrapper>

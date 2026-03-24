@@ -73,8 +73,8 @@ export default function Signup() {
       : 'bg-gradient-to-br from-[#EAEAEA] via-[#FFFFFF] to-[#EAEAEA]'}`}>
 
       <div className={`w-full max-w-sm p-5 rounded-3xl shadow-xl backdrop-blur-md transition-all border ${theme === 'dark'
-        ? 'bg-[#252525]/80 border-[#444]/50'
-        : 'bg-white/90 border-[#DDD]/50'}`}>
+        ? 'bg-[#252525]/80 border-[#444]/50 text-white'
+        : 'bg-white/90 border-[#DDD]/50 text-[#252525]'}`}>
 
         <div className="flex flex-col items-center mb-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg mb-2 ${theme === 'dark' ? 'bg-[#444] text-white' : 'bg-[#DDD] text-[#252525]'}`}>
@@ -159,10 +159,13 @@ export default function Signup() {
 
             <button
               type="button"
-              onClick={() => nextAuthSignIn("google", { 
-              callbackUrl: "/dashboard",
-              prompt: "select_account",
-            })}
+              onClick={() => {
+                document.cookie = "auth_intent_v2=signup; path=/; max-age=300";
+                nextAuthSignIn("google", { 
+                  callbackUrl: "/dashboard",
+                  prompt: "select_account",
+                });
+              }}
               className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center justify-center gap-2
                 ${theme === 'dark'
                   ? 'bg-transparent border-[#444] text-white hover:bg-white/5'

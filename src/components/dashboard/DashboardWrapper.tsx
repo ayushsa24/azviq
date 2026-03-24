@@ -13,19 +13,23 @@ import StudyConsistency from "./StudyConsistency";
 import { Session } from "next-auth";
 
 export default function DashboardWrapper({ session }: { session: Session }) {
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
+  
+  if (isLoading) return null; // Or a skeleton
 
   // Extract first name: 
-  // 1. Prioritize database name from UserContext
+  // 1. Prioritize database full name from UserContext
   // 2. Fall back to session name
   // 3. Fall back to email prefix
   const userFullName = user?.name || session.user?.name || "";
   const email = session.user?.email || "";
   let userName = "Guest";
 
-  if (userFullName) {
+  if (userFullName && userFullName.trim() !== "") {
     userName = userFullName.split(' ')[0];
   } else if (email) {
+    // If the email prefix is suspiciously short or generic, we can improve this,
+    // but usually taking the first part of the email is the standard fallback.
     userName = email.split('@')[0];
   }
 

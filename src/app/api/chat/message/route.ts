@@ -27,23 +27,24 @@ export async function POST(req: Request) {
             return apiError("Invalid JSON body", 400, "INVALID_JSON");
         }
 
-        const validation = MessageSchema.safeParse(body);
+        const validation = MessageSchema.partial({ userId: true }).safeParse(body);
         if (!validation.success) {
             return apiError("Invalid request data", 400, "VALIDATION_ERROR", validation.error.flatten());
         }
 
-        const { chatId, userId, role, content } = validation.data;
+        const { chatId, role, content } = validation.data;
 
-        // 3. Verify ownership
+        // 3. Verify ownership & get userId
         const { data: dbUser } = await supabase
             .from("users")
             .select("id")
             .eq("email", session.user.email)
             .single();
 
-        if (!dbUser || dbUser.id !== userId) {
-            return apiError("Forbidden", 403, "FORBIDDEN");
+        if (!dbUser) {
+            return apiError("User not found", 404, "NOT_FOUND");
         }
+        const userId = dbUser.id;
 
         // 4. Save message (skip for temporary chats)
         if (chatId !== "temp-chat" && content.trim().length > 0) {

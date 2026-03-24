@@ -151,23 +151,12 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
 
                 {/* STEP: GENERATING */}
                 {step === "generating" && (
-                    <div className="flex flex-col items-center text-center space-y-5 py-4 animate-pulse">
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700" />
+                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <div className="relative">
+                            <div className={`w-12 h-12 rounded-full border-2 border-t-transparent animate-spin ${isDark ? 'border-white/20 border-t-white' : 'border-[#252525]/10 border-t-[#252525]'}`} />
+                            <Sparkles className={`w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${isDark ? 'text-white' : 'text-[#252525]'}`} />
                         </div>
-                        <div className="space-y-2 w-full flex flex-col items-center">
-                            <div className={`h-6 w-32 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-100'}`} />
-                            <div className={`h-4 w-48 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-100'}`} />
-                        </div>
-                        <div className={`w-full p-4 rounded-xl border text-left flex items-start gap-3 ${isDark ? 'bg-[#1A1A1A] border-[#333]' : 'bg-[#F5F3EF] border-[#E8E5E0]'}`}>
-                            <div className={`w-9 h-9 rounded-xl shrink-0 ${isDark ? 'bg-white/5' : 'bg-white/50'}`} />
-                            <div className="space-y-2 flex-1">
-                                <div className={`h-4 w-3/4 rounded-md ${isDark ? 'bg-white/5' : 'bg-gray-200'}`} />
-                                <div className={`h-3 w-1/2 rounded-md ${isDark ? 'bg-white/5' : 'bg-gray-200'}`} />
-                            </div>
-                        </div>
-                        <div className={`w-full h-11 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-100'}`} />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#BABABA] animate-pulse mt-2">AI is crafting your quiz...</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[#BABABA] animate-pulse">AI is crafting your quiz...</p>
                     </div>
                 )}
 

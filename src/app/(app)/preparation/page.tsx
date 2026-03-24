@@ -162,14 +162,23 @@ export default function PreparationPage() {
     };
 
     const handleBack = () => {
-        if (typeof window !== "undefined" && window.history.length > 1) {
-            router.back();
-        } else {
-            // Fallback to main list if opened directly or in new tab
-            router.push("/preparation");
+        // If we are in a full-page view, simply close it and return to the list
+        if (activeExercise || activeRevision || searchParams.get("id")) {
             setActiveExercise(null);
             setActiveRevision(null);
             processedIdRef.current = null;
+            // Also clean up the URL if there was an ID param
+            if (searchParams.get("id")) {
+                router.push("/preparation", { scroll: false });
+            }
+            return;
+        }
+
+        // Standard fallback for general navigation
+        if (typeof window !== "undefined" && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push("/preparation");
         }
     };
 
@@ -181,7 +190,7 @@ export default function PreparationPage() {
         <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden relative">
             {/* Full-page views rendered as absolute overlays to keep main list mounted */}
             {activeRevision && (
-                <div className="absolute inset-0 z-[100] bg-white dark:bg-[#1A1A1A]">
+                <div className="absolute inset-0 z-50 bg-white dark:bg-[#1A1A1A]">
                     <TakeRevisionPage
                         revision={activeRevision}
                         onBack={handleBack}
@@ -189,7 +198,7 @@ export default function PreparationPage() {
                 </div>
             )}
             {activeExercise && (
-                <div className="absolute inset-0 z-[100] bg-white dark:bg-[#1A1A1A]">
+                <div className="absolute inset-0 z-50 bg-white dark:bg-[#1A1A1A]">
                     <TakeExercisePage
                         exercise={activeExercise}
                         onBack={handleBack}
@@ -200,49 +209,16 @@ export default function PreparationPage() {
                 </div>
             )}
 
-            {/* Deep-link Loading Skeleton Overlays */}
-            {(isAutoLoading || (!!searchParams.get("id") && !activeExercise)) && searchParams.get("tab") === "exercise" && (
-                <div className="absolute inset-0 z-[101] bg-white dark:bg-[#1A1A1A] animate-pulse">
-                    <div className="flex flex-col h-full">
-                        <div className="h-16 border-b border-gray-100 dark:border-white/5 flex items-center px-6 gap-4">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5" />
-                            <div className="h-4 w-48 bg-gray-100 dark:bg-white/5 rounded" />
-                        </div>
-                        <div className="flex-1 p-8 max-w-2xl">
-                            <div className="h-4 w-32 bg-gray-100 dark:bg-white/5 rounded mb-4" />
-                            <div className="h-8 w-full bg-gray-100 dark:bg-white/5 rounded mb-8" />
-                            <div className="space-y-4">
-                                {[1,2,3,4].map(i => (
-                                    <div key={i} className="h-14 w-full border border-gray-100 dark:border-white/5 rounded-xl bg-gray-50/50 dark:bg-white/5" />
-                                ))}
-                            </div>
-                        </div>
+            {/* Deep-link Loading Loader Overlays */}
+            {isAutoLoading && (
+                <div className="absolute inset-0 z-[101] bg-white dark:bg-[#1A1A1A] flex flex-col items-center justify-center space-y-4">
+                    <div className="relative">
+                        <div className={`w-12 h-12 rounded-full border-2 border-t-transparent animate-spin ${activeRevision ? 'border-white/20 border-t-white' : 'border-[#252525]/10 border-t-[#252525]'}`} />
+                        <Sparkles className={`w-5 h-5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${activeRevision ? 'text-white' : 'text-[#252525] dark:text-white'}`} />
                     </div>
-                </div>
-            )}
-
-            {(isAutoLoading || (!!searchParams.get("id") && !activeRevision)) && searchParams.get("tab") === "revision" && (
-                <div className="absolute inset-0 z-[101] bg-white dark:bg-[#1A1A1A] animate-pulse">
-                    <div className="flex flex-col h-full">
-                        <div className="h-16 border-b border-gray-100 dark:border-white/5 flex items-center px-6 gap-4">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5" />
-                            <div className="h-4 w-48 bg-gray-100 dark:bg-white/5 rounded" />
-                        </div>
-                        <div className="flex-1 p-8 space-y-8">
-                            <div className="h-10 w-full bg-gray-100 dark:bg-white/5 rounded max-w-3xl" />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <div className="h-6 w-32 bg-gray-100 dark:bg-white/5 rounded" />
-                                    <div className="h-32 w-full bg-gray-100 dark:bg-white/5 rounded-2xl" />
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="h-6 w-32 bg-gray-100 dark:bg-white/5 rounded" />
-                                    <div className="h-24 w-full bg-gray-100 dark:bg-white/5 rounded-2xl" />
-                                    <div className="h-24 w-full bg-gray-100 dark:bg-white/5 rounded-2xl" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#BABABA] animate-pulse">
+                        {searchParams.get("tab") === "exercise" ? "Preparing Exercise..." : "Preparing Revision..."}
+                    </p>
                 </div>
             )}
 

@@ -15,7 +15,7 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
 // Tier 1: AI & Expensive (Increased for better user flow)
 const aiRateLimit = redis ? new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(60, "1 m"),
+    limiter: Ratelimit.slidingWindow(180, "1 m"),
     analytics: true,
 }) : null;
 
@@ -98,6 +98,8 @@ export const config = {
         "/tasks/:path*",
         "/settings/:path*",
         "/onboarding/:path*",
-        "/api/:path*" // Added standard APIs to the middleware matcher so they get rate limited
+        "/api/:path*", // Added standard APIs to the middleware matcher so they get rate limited
+        // Share pages are public — they must NOT be in the auth matcher
+        // so they are intentionally excluded here
     ],
 };

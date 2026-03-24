@@ -5,6 +5,7 @@ import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcrypt";
 import { supabase } from "@/lib/supabase";
 import { randomUUID } from "crypto";
+import { cookies } from "next/headers";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -62,7 +63,14 @@ export const authOptions: NextAuthOptions = {
           .eq("email", email)
           .maybeSingle();
 
+        const cookieStore = await cookies();
+        const authIntent = cookieStore.get("auth_intent_v2")?.value;
+
         if (!existingUser) {
+          if (authIntent === "login") {
+            return "/login?error=AccountNotFound";
+          }
+
           // Create new user in Supabase
           const { error } = await supabase
             .from("users")
@@ -76,7 +84,7 @@ export const authOptions: NextAuthOptions = {
                 is_onboarded: false,
               },
             ]);
-          
+
           if (error) {
             console.error("Error creating Google user in Supabase:", error);
             return false;
@@ -92,7 +100,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;
         token.image = user.image;
       }
-      
+
       // Always fetch the latest is_onboarded status from Supabase to avoid stale sessions
       if (token.email) {
         const { data: dbUser } = await supabase
@@ -126,7 +134,24 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt" as const,
   },
 
-  useSecureCookies: process.env.NODE_ENV === "production",
+  // ⚠️ DO NOT REMOVE — This is required for both localhost AND Cloudflare tunnel login to work.
+  // Localhost (http://):  useSecureCookies=false, no __Secure- prefix → plain cookie, works on HTTP
+  // Cloudflare (https://): useSecureCookies=true, __Secure- prefix + sameSite:none → works on HTTPS
+  useSecureCookies: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
+
+  cookies: process.env.NEXTAUTH_URL?.startsWith("https://")
+    ? {
+        sessionToken: {
+          name: `__Secure-next-auth.session-token`,
+          options: {
+            httpOnly: true,
+            sameSite: "none" as const,
+            path: "/",
+            secure: true,
+          },
+        },
+      }
+    : undefined,
 
   pages: {
     signIn: "/login",

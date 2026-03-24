@@ -83,7 +83,12 @@ function AiChatCore() {
   const { data: session, status } = useSession();
   const { data: sessionData, mutate: mutateSessions, error: sessionError } = useSWR(
     status === "authenticated" ? `/api/chat/history` : null,
-    fetcher
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 10000, // 10 seconds deduping
+    }
   );
 
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -112,6 +117,12 @@ function AiChatCore() {
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [isActuallySending, setIsActuallySending] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [generatingChatIds, setGeneratingChatIds] = useState<Set<string>>(new Set());
+  const [sharingChatId, setSharingChatId] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharedLinkCopied, setSharedLinkCopied] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const activeStreamingTextRef = useRef<Record<string, string>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -121,7 +132,23 @@ function AiChatCore() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isMobileApp, setIsMobileApp] = useState(false);
+  const currentChatIdRef = useRef(activeChatId);
 
+  // Synchronize ref with current state for async callbacks
+  useEffect(() => {
+    currentChatIdRef.current = activeChatId;
+  }, [activeChatId]);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Initialize Mobile App Check
   useEffect(() => {
     if (typeof window !== "undefined") {
       const checkIsPWA =
@@ -132,6 +159,7 @@ function AiChatCore() {
     }
   }, []);
 
+  // Keyboard open/close detection
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
@@ -155,8 +183,6 @@ function AiChatCore() {
 
   // Auto-focus input when chat changes or on load
   useEffect(() => {
-    // Only auto-focus on non-mobile screens (>= 768px width)
-    // to prevent the keyboard from popping up automatically on phones
     if (inputRef.current && window.innerWidth >= 768) {
       inputRef.current.focus();
     }
@@ -245,14 +271,14 @@ function AiChatCore() {
 
   const pendingQueryRef = useRef<string | null>(null);
 
-  // 2. Once history is loaded, open a new chat. If there's a ?q= query, store it for later.
   useEffect(() => {
     if (!historyLoaded) return;
     const query = new URLSearchParams(window.location.search).get("q");
     if (query) {
       pendingQueryRef.current = query;
     }
-    if (!activeChatId) {
+    const hasImport = !!localStorage.getItem("import_shared_chat");
+    if (!activeChatId && !hasImport) {
       startNewChat();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -329,7 +355,7 @@ function AiChatCore() {
         ...current,
         chats: [newChatSession, ...(current?.chats || [])]
       }) as { chats: ChatSession[] },
-      false
+      { revalidate: false }
     );
 
     setActiveChatId(optimisticId);
@@ -369,7 +395,14 @@ function AiChatCore() {
     setActiveChatId(chatId);
     const session = sessions.find((s) => s.id === chatId);
     if (session) {
-      setMessages(session.messages || []);
+      const baseMessages = session.messages || [];
+      const partialText = activeStreamingTextRef.current[chatId];
+      
+      if (partialText) {
+        setMessages([...baseMessages, { role: "model", content: partialText }]);
+      } else {
+        setMessages(baseMessages);
+      }
     }
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
@@ -393,8 +426,9 @@ function AiChatCore() {
     if (isSendingRef.current) return;
     setApiError(null);
 
+    const chatIdOfRequest = activeChatId;
     const textToSend = overrideText || input;
-    if (!textToSend.trim() || !activeChatId) return;
+    if (!textToSend.trim() || !chatIdOfRequest) return;
 
     if (status !== "authenticated") return;
 
@@ -413,21 +447,23 @@ function AiChatCore() {
     setEditingMessageIdx(null);
     setIsLoading(true);
     setIsActuallySending(true);
+    
+    setGeneratingChatIds(prev => new Set(prev).add(chatIdOfRequest));
 
     // Immediately move this chat to the top within SWR and ensure it's marked as non-empty
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
       if (!currentData || !currentData.chats) return currentData;
-      const current = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
+      const current = currentData.chats.find((s: ChatSession) => s.id === chatIdOfRequest);
       if (!current) return currentData;
       
       const updatedCurrent = {
         ...current,
         messages: [...(current.messages || []), newMsg],
       };
-      const others = currentData.chats.filter((s: ChatSession) => s.id !== activeChatId);
+      const others = currentData.chats.filter((s: ChatSession) => s.id !== chatIdOfRequest);
       
       return { ...currentData, chats: [updatedCurrent, ...others] };
-    }, false);
+    }, { revalidate: false });
 
     let aiResponseText = "";
     let topicTitle: string | null = null;
@@ -480,15 +516,21 @@ function AiChatCore() {
           try {
             const parsed = JSON.parse(line);
             if (parsed.message?.content) {
-              aiResponseText += parsed.message.content;
-              setMessages((prev) => {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  role: "model",
-                  content: aiResponseText,
-                };
-                return updated;
-              });
+              const chunkText = parsed.message.content;
+              aiResponseText += chunkText;
+              activeStreamingTextRef.current[chatIdOfRequest] = aiResponseText;
+
+              // Only update local messages state if we are still viewing this chat
+              if (currentChatIdRef.current === chatIdOfRequest) {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    role: "model",
+                    content: aiResponseText,
+                  };
+                  return updated;
+                });
+              }
             }
             if (parsed.__generatedTitle) {
               topicTitle = parsed.__generatedTitle;
@@ -519,25 +561,57 @@ function AiChatCore() {
     } catch (error: any) {
       if (error.name === "AbortError") {
         console.log("User aborted the generation");
-        // Save the partial message to DB
-        if (activeChatId !== "temp-chat" && aiResponseText.trim().length > 0) {
-          fetch("/api/chat/message", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chatId: activeChatId,
-              role: "model",
-              content: aiResponseText,
-            }),
-          }).catch((e) => console.error("Failed to save partial message", e));
+        
+        // Optimistically update the SWR cache with the partial response so it survives chat switching
+        if (aiResponseText.trim().length > 0) {
+          mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+            if (!currentData || !currentData.chats) return currentData;
+            const updatedChat = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
+            if (!updatedChat) return currentData;
+
+            const updated: ChatSession = {
+              ...updatedChat,
+              messages: [
+                ...previousMessages,
+                newMsg,
+                { role: "model" as const, content: aiResponseText },
+              ],
+            };
+
+            const others = currentData.chats.filter((s: ChatSession) => s.id !== activeChatId);
+            return { ...currentData, chats: [updated, ...others] };
+          }, false);
+
+          // Save the partial message to the database
+          if (activeChatId !== "temp-chat") {
+            fetch("/api/chat/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chatId: activeChatId,
+                role: "model",
+                content: aiResponseText,
+              }),
+            }).catch((e) => console.error("Failed to save partial message", e));
+          }
         }
       } else {
         console.error("Error sending message", error);
         setApiError(error.message || "Something went wrong. Please try again.");
       }
     } finally {
-      setIsLoading(false);
-      setIsActuallySending(false);
+      // Remove from generating set and clear streaming ref
+      setGeneratingChatIds(prev => {
+        const next = new Set(prev);
+        next.delete(chatIdOfRequest);
+        return next;
+      });
+      delete activeStreamingTextRef.current[chatIdOfRequest];
+
+      if (currentChatIdRef.current === chatIdOfRequest) {
+        setIsLoading(false);
+        setIsActuallySending(false);
+      }
       isSendingRef.current = false;
     }
   };
@@ -557,7 +631,7 @@ function AiChatCore() {
           s.id === chatId ? { ...s, title: renameTitle } : s
         )
       };
-    }, false);
+    }, { revalidate: false });
     
     try {
       setIsRenamingId(null);
@@ -567,7 +641,6 @@ function AiChatCore() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: renameTitle }),
       });
-      mutateSessions();
     } catch (e) {
       console.error(e);
       mutateSessions(); // Revert
@@ -589,7 +662,7 @@ function AiChatCore() {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
       return { ...currentData, chats: sorted };
-    }, false);
+    }, { revalidate: false });
     
     try {
       setActiveMenuId(null);
@@ -598,7 +671,6 @@ function AiChatCore() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_pinned: newStatus }),
       });
-      mutateSessions();
     } catch (e) {
       console.error(e);
       mutateSessions(); // Revert
@@ -620,7 +692,7 @@ function AiChatCore() {
           s.id === chatId ? { ...s, is_archived: newStatus } : s
         )
       };
-    }, false);
+    }, { revalidate: false });
     
     try {
       setActiveMenuId(null);
@@ -638,7 +710,6 @@ function AiChatCore() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_archived: newStatus }),
       });
-      mutateSessions();
     } catch (e) {
       console.error(e);
       mutateSessions(); // Revert
@@ -653,7 +724,7 @@ function AiChatCore() {
         ...currentData,
         chats: currentData.chats.filter((s: ChatSession) => s.id !== chatId)
       };
-    }, false);
+    }, { revalidate: false });
     
     try {
       setActiveMenuId(null);
@@ -675,6 +746,85 @@ function AiChatCore() {
       mutateSessions(); // Revert
     }
   };
+
+  const handleShareChat = async (session: ChatSession) => {
+    if (!session.messages || session.messages.length === 0) return;
+    setSharingChatId(session.id);
+    setActiveMenuId(null);
+    try {
+      const res = await fetch("/api/share/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatId: session.id,
+          title: session.title,
+          messages: session.messages,
+        }),
+      });
+      const data = await res.json();
+      if (data.id) {
+        const link = `${window.location.origin}/share/chat/${data.id}`;
+        setShareUrl(link);
+      }
+    } catch (e) {
+      console.error("Failed to share chat", e);
+    } finally {
+      setSharingChatId(null);
+    }
+  };
+
+  // Import a shared chat
+  useEffect(() => {
+    if (!historyLoaded || status !== "authenticated") return;
+
+    const raw = localStorage.getItem("import_shared_chat");
+    if (!raw) return;
+    localStorage.removeItem("import_shared_chat");
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("from_share")) {
+      router.replace("/ai", { scroll: false });
+    }
+
+    let importData: { title: string; messages: Message[] } | null = null;
+    try { importData = JSON.parse(raw); } catch { return; }
+    if (!importData || !importData.messages?.length) return;
+
+    const doImport = async () => {
+      try {
+        setIsImporting(true);
+        // Create a new chat with the original title
+        const res = await fetch("/api/chat/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: importData!.title || "Shared Chat" }),
+        });
+        const data = await res.json();
+        if (!data.chat?.id) return;
+        const newChatId = data.chat.id;
+
+        // Bulk-insert all messages from the shared chat
+        for (const msg of importData!.messages) {
+          await fetch("/api/chat/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chatId: newChatId, role: msg.role, content: msg.content }),
+          });
+        }
+
+        await mutateSessions();
+        setActiveChatId(newChatId);
+        setMessages(importData!.messages);
+      } catch (e) {
+        console.error("Failed to import shared chat", e);
+      } finally {
+        setIsImporting(false);
+      }
+    };
+
+    doImport();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyLoaded, status]);
 
   // Organize chats based on search query
   const filteredSessions = sessions.filter(session =>
@@ -762,9 +912,18 @@ function AiChatCore() {
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="truncate text-[13px] font-semibold text-left w-full leading-tight">
-                {session.title}
-              </span>
+              <div className="flex items-center gap-2 min-w-0 w-full">
+                <span className="truncate text-[13px] font-semibold text-left leading-tight">
+                  {session.title}
+                </span>
+                {generatingChatIds.has(session.id) && (
+                  <div className="flex gap-0.5 shrink-0">
+                    <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           {session.is_pinned && (
@@ -797,14 +956,20 @@ function AiChatCore() {
               {formatDate(session.created_at)}
             </div>
             <button
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
-                setActiveMenuId(null);
+                await handleShareChat(session);
               }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-                }`}
+              disabled={sharingChatId === session.id}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"}`}
             >
-              <Share className="w-3.5 h-3.5 opacity-70" /> Share
+              {sharingChatId === session.id
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin opacity-70" />
+                : sharedLinkCopied === session.id
+                  ? <Check className="w-3.5 h-3.5 text-green-500" />
+                  : <Share className="w-3.5 h-3.5 opacity-70" />
+              }
+              {sharedLinkCopied === session.id ? "Link copied!" : "Share"}
             </button>
             <button
               onClick={(e) => {
@@ -1122,7 +1287,19 @@ function AiChatCore() {
         >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
-              {activeChatId === "temp-chat" ? (
+              {isImporting ? (
+                <div className="flex flex-col items-center animate-pulse">
+                  <div className={`w-16 h-16 mb-4 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-[#2A2A2A]" : "bg-[#F0EDE8]"}`}>
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2">
+                    Importing your chat...
+                  </h2>
+                  <p className="max-w-md text-sm">
+                    Please wait while your messages are securely restored.
+                  </p>
+                </div>
+              ) : activeChatId === "temp-chat" ? (
                 <>
                   <Ghost className="w-16 h-16 mb-4 text-red-500 opacity-80" />
                   <h2 className="text-2xl font-bold mb-2">
@@ -1605,6 +1782,51 @@ function AiChatCore() {
           </p>
         </div>
       </div>
+      {/* ── Share Modal ── */}
+      {shareUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
+            onClick={() => { setShareUrl(null); setSharedLinkCopied(null); }}
+          />
+          <div className={`relative w-full max-w-sm rounded-2xl shadow-2xl p-6 border transform transition-all animate-in zoom-in-95 fade-in duration-200 ${theme === 'dark' ? 'bg-[#1A1A1A] border-[#333]' : 'bg-white border-[#EEE]'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider opacity-60">Share Link</h3>
+              <button 
+                onClick={() => { setShareUrl(null); setSharedLinkCopied(null); }}
+                className={`p-1.5 rounded-full transition-colors ${theme === 'dark' ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-[#F5F3EF] text-gray-500'}`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <p className="text-[10px] opacity-60 mb-3">Anyone with this link can view the conversation snapshot.</p>
+
+            <div className={`p-1.5 rounded-xl border flex items-center gap-2 mb-4 group ${theme === 'dark' ? 'bg-[#252525] border-[#444]' : 'bg-[#FAFAFA] border-[#DDD]'}`}>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-xs truncate px-2 opacity-80 select-all">{shareUrl}</p>
+              </div>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(shareUrl);
+                  setSharedLinkCopied("modal");
+                  setTimeout(() => setSharedLinkCopied(null), 2000);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all shrink-0 ${
+                  sharedLinkCopied === "modal"
+                    ? "bg-green-500 text-white"
+                    : theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#252525] text-white hover:bg-[#444]'
+                }`}
+              >
+                {sharedLinkCopied === "modal" ? <Check size={12} /> : <Copy size={12} />}
+                {sharedLinkCopied === "modal" ? "Copied" : "Copy"}
+              </button>
+            </div>
+
+            <p className="text-[10px] text-center opacity-40 italic">Note: Only people you share the link with can see the chat.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2, SmilePlus, PanelLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2, SmilePlus, PanelLeft, Globe, EyeOff, Copy, Check, Pencil } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import dynamic from 'next/dynamic';
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
@@ -44,6 +44,10 @@ export default function NoteEditorPage() {
     const [saveError, setSaveError] = useState("");
     const [mounted, setMounted] = useState(false);
     const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [showSharePanel, setShowSharePanel] = useState(false);
+    const [shareMode, setShareMode] = useState<'private' | 'view' | 'edit'>('private');
+    const [isTogglingShare, setIsTogglingShare] = useState(false);
+    const [linkCopied, setLinkCopied] = useState(false);
     const [workspaceId, setWorkspaceId] = useState<string | null>(null);
     const moreMenuRef = React.useRef<HTMLDivElement>(null);
 
@@ -187,6 +191,24 @@ export default function NoteEditorPage() {
         }
     }, [isLocked, editor]);
 
+    // Handle clicks outside the more menu / share panel
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+                setShowMoreMenu(false);
+                setShowSharePanel(false);
+            }
+        }
+        if (showMoreMenu || showSharePanel) {
+            document.addEventListener("mousedown", handleClickOutside);
+        } else {
+            document.removeEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showMoreMenu, showSharePanel]);
+
     const handleDownload = () => {
         if (!editor) return;
         const content = editor.getText();
@@ -210,6 +232,7 @@ export default function NoteEditorPage() {
                 titleRef.current = note.title;
                 setTitle(note.title);
                 setWorkspaceId(note.workspace_id);
+                setShareMode(note.share_mode ?? 'private');
                 if (editor && note.content) {
                     editor.commands.setContent(note.content, { emitUpdate: false });
                 }
@@ -264,11 +287,38 @@ export default function NoteEditorPage() {
     }, 1000);
 
     const handleShare = () => {
-        if (typeof window === "undefined") return;
-        const url = window.location.href;
-        navigator.clipboard.writeText(url);
-        alert("Note link copied to clipboard!");
+        setShowSharePanel(true);
         setShowMoreMenu(false);
+    };
+
+    const handleSetShareMode = async (mode: 'private' | 'view' | 'edit') => {
+        setIsTogglingShare(true);
+        try {
+            const res = await fetch(`/api/notes/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ share_mode: mode }),
+            });
+            if (res.status === 401) {
+                alert("Session expired. Please log out and log back in, then try again.");
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to update");
+            setShareMode(mode);
+        } catch (err) {
+            console.error("[share] Failed to set share_mode:", err);
+            alert("Failed to update sharing settings. Please try again.");
+        } finally {
+            setIsTogglingShare(false);
+        }
+    };
+
+    const handleCopyLink = () => {
+        if (typeof window === "undefined") return;
+        const shareUrl = `${window.location.origin}/share/note/${id}`;
+        navigator.clipboard.writeText(shareUrl);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
     };
 
     const handleDelete = async () => {
@@ -392,7 +442,7 @@ export default function NoteEditorPage() {
                                     className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
                                 >
                                     <Share2 size={16} />
-                                    Share Note
+                                    Share &amp; Publish
                                 </button>
                                 <button
                                     onClick={handleDownload}
@@ -402,13 +452,69 @@ export default function NoteEditorPage() {
                                     Download as Text
                                 </button>
                                 <div className="h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
-                                <div className="h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
                                 <button
                                     onClick={handleDelete}
                                     className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                                 >
                                     <Trash2 size={16} />
                                     Remove Note
+                                </button>
+                            </div>
+                        )}
+
+                        {/* SHARE PANEL - Now inside the moreMenuRef container */}
+                        {showSharePanel && (
+                            <div className="absolute right-0 top-12 w-60 bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#2A2A2A] shadow-2xl rounded-2xl z-[80] p-2 flex flex-col gap-2">
+                                <div className="px-1">
+                                    <h3 className="font-bold text-xs text-[#252525] dark:text-white leading-tight">Share Note</h3>
+                                    <p className="text-[9px] text-[#7D7D7D]">Control access via a public link.</p>
+                                </div>
+
+                                {/* Permission options - Compact List */}
+                                <div className="flex flex-col gap-1">
+                                    {[
+                                        { id: 'private', label: 'Private', desc: 'Only you can access', icon: EyeOff },
+                                        { id: 'view', label: 'View Only', desc: 'Anyone can read', icon: Globe },
+                                        { id: 'edit', label: 'Can Edit', desc: 'Anyone can edit', icon: Pencil }
+                                    ].map((mode) => {
+                                        const Icon = mode.icon;
+                                        const isActive = shareMode === mode.id;
+                                        return (
+                                            <button
+                                                key={mode.id}
+                                                onClick={() => handleSetShareMode(mode.id as any)}
+                                                disabled={isTogglingShare}
+                                                className={`flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all ${
+                                                    isActive 
+                                                        ? 'bg-[#252525] border-[#252525] dark:bg-white dark:border-white' 
+                                                        : 'bg-transparent border-transparent hover:bg-[#F5F3EF] dark:hover:bg-[#252525] hover:border-[#E8E5E0] dark:hover:border-[#3A3A3A]'
+                                                }`}
+                                            >
+                                                <Icon size={12} className={isActive ? 'text-white dark:text-[#252525]' : 'text-[#7D7D7D]'} />
+                                                <div className="flex-1">
+                                                    <p className={`text-[11px] font-semibold ${isActive ? 'text-white dark:text-[#252525]' : 'text-[#252525] dark:text-white'}`}>{mode.label}</p>
+                                                    <p className={`text-[8px] ${isActive ? 'text-white/60 dark:text-[#252525]/60' : 'text-[#BABABA]'}`}>{mode.desc}</p>
+                                                </div>
+                                                {isActive && !isTogglingShare && <Check size={10} className="text-white dark:text-[#252525]" />}
+                                                {isActive && isTogglingShare && <Loader2 size={10} className="animate-spin text-white dark:text-[#252525]" />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="h-px bg-[#E8E5E0] dark:bg-[#2A2A2A] mx-1" />
+
+                                {/* Copy Link */}
+                                <button
+                                    onClick={handleCopyLink}
+                                    disabled={shareMode === 'private'}
+                                    className={`flex items-center justify-center gap-2 w-full py-1.5 rounded-xl text-[11px] font-semibold transition-all ${
+                                        shareMode !== 'private'
+                                            ? 'bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:opacity-90 active:scale-95'
+                                            : 'bg-[#E8E5E0] dark:bg-[#252525] text-[#BABABA] cursor-not-allowed'
+                                    }`}
+                                >
+                                    {linkCopied ? <><Check size={10} /> Copied!</> : <><Copy size={10} /> Copy Share Link</>}
                                 </button>
                             </div>
                         )}

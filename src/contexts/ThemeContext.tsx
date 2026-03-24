@@ -11,46 +11,60 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // ✅ Default LIGHT (important)
-  const [theme, setTheme] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
+// Instantly apply the .dark class without CSS transitions firing (prevents flash)
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
 
-  // Load saved theme
+  // Temporarily disable all transitions so the class-swap is instantaneous
+  const style = document.createElement("style");
+  style.id = "__theme-transition-disable";
+  style.textContent = "*, *::before, *::after { transition: none !important; }";
+  document.head.appendChild(style);
+
+  if (theme === "dark") {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
+
+  // Re-enable transitions after one paint
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const el = document.getElementById("__theme-transition-disable");
+      if (el) el.remove();
+    });
+  });
+
+  localStorage.setItem("theme", theme);
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>("light");
+
+  // On mount: read saved preference and apply without any flash
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as Theme | null;
+    let resolved: Theme = "light";
 
     if (savedTheme === "light" || savedTheme === "dark") {
-      setTheme(savedTheme);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme("dark");
+      resolved = savedTheme;
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      resolved = "dark";
     }
 
-    setMounted(true);
+    setTheme(resolved);
+    // The inline script in layout.tsx already set the class — no need to re-apply here
+    // but we sync localStorage just in case
+    localStorage.setItem("theme", resolved);
   }, []);
 
-  // Apply theme
-  useEffect(() => {
-    if (!mounted) return;
-
-    const root = document.documentElement;
-
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-
-    localStorage.setItem("theme", theme);
-  }, [theme, mounted]);
-
   const toggleTheme = () => {
-    setTheme(prev => (prev === "dark" ? "light" : "dark"));
+    setTheme(prev => {
+      const next = prev === "dark" ? "light" : "dark";
+      applyTheme(next);
+      return next;
+    });
   };
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

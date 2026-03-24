@@ -1,18 +1,20 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import PasswordInput from "@/components/PasswordInput";
 import { Mail, LogIn, Bot } from "lucide-react";
 import Link from "next/link";
 import { useSession, signIn as nextAuthSignIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Login() {
+function LoginForm() {
   const { status } = useSession();
   const router = useRouter();
   const { theme } = useTheme();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,12 +23,15 @@ export default function Login() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/dashboard");
+      router.push(callbackUrl);
     }
-  }, [status, router]);
+  }, [status, router, callbackUrl]);
+
+  const urlError = searchParams.get("error");
 
   const handleGoogleSignIn = () => {
-    nextAuthSignIn("google", { callbackUrl: "/dashboard" });
+    document.cookie = "auth_intent_v2=login; path=/; max-age=300";
+    nextAuthSignIn("google", { callbackUrl });
   };
 
   async function handleLogin() {
@@ -63,7 +68,7 @@ export default function Login() {
         const data = await res.json();
         if (data.user?.id) {
           localStorage.setItem('userId', data.user.id);
-          window.location.href = "/dashboard";
+          window.location.href = callbackUrl;
         } else {
           alert("Login failed");
           setLoading(false);
@@ -81,8 +86,8 @@ export default function Login() {
       : 'bg-gradient-to-br from-[#EAEAEA] via-[#FFFFFF] to-[#EAEAEA]'}`}>
 
       <div className={`w-full max-w-sm p-5 rounded-3xl shadow-xl backdrop-blur-md transition-all border ${theme === 'dark'
-        ? 'bg-[#252525]/80 border-[#444]/50'
-        : 'bg-white/90 border-[#DDD]/50'}`}>
+        ? 'bg-[#252525]/80 border-[#444]/50 text-white'
+        : 'bg-white/90 border-[#DDD]/50 text-[#252525]'}`}>
 
         <div className="flex flex-col items-center mb-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg mb-2 ${theme === 'dark' ? 'bg-[#444] text-white' : 'bg-[#DDD] text-[#252525]'}`}>
@@ -95,6 +100,14 @@ export default function Login() {
             Login to continue your journey
           </p>
         </div>
+
+        {urlError && (
+          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs text-center">
+            {urlError === "OAuthAccountNotLinked" || urlError === "AccountNotFound" 
+              ? "Account not found. Please sign up first." 
+              : "An error occurred during sign in."}
+          </div>
+        )}
 
         <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
           <div className="mb-3">
@@ -161,5 +174,17 @@ export default function Login() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center bg-[#1A1A1A]">
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

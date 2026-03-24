@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, Suspense } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import Header from "./Header";
@@ -12,9 +13,20 @@ import { useState } from "react";
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const { open, toggle } = useSidebar();
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const { theme } = useTheme();
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      // @ts-ignore
+      if (session.user.is_onboarded === false) {
+        router.push("/onboarding");
+      }
+    }
+  }, [status, session, router]);
 
   const isDashboard = pathname === "/dashboard";
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -76,7 +88,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       {!open && (
         <div
-          className={`fixed left-0 top-0 w-3 h-full z-[55] ${isFullPageLayer ? 'hidden' : 'flex'} md:flex items-center group`}
+          className="fixed left-0 top-0 w-3 h-full z-[55] flex md:flex items-center group"
           onMouseEnter={() => setIsSidebarHovered(true)}
         >
           {/* Thin visual indicator — slides right on hover */}

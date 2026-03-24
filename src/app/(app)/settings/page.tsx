@@ -150,9 +150,8 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <div className={`mt-3 flex items-center justify-between gap-4 p-4 rounded-xl border ${
-            isDark ? "bg-[#252525] border-[#2E2E2E]" : "bg-[#F5F3EF] border-[#E8E5E0]"
-          }`}>
+          <div className={`mt-3 flex items-center justify-between gap-4 p-4 rounded-xl border ${isDark ? "bg-[#252525] border-[#2E2E2E]" : "bg-[#F5F3EF] border-[#E8E5E0]"
+            }`}>
             <div className="flex items-center gap-3">
               <CalendarClock className={`w-5 h-5 shrink-0 ${isDark ? "text-[#C2A27A]" : "text-[#C2A27A]"}`} />
               <div>
@@ -162,11 +161,10 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
-            <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-              pushPermission === "granted"
+            <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${pushPermission === "granted"
                 ? isDark ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-700"
                 : isDark ? "bg-[#333] text-[#7D7D7D]" : "bg-[#F0EDE8] text-[#9E9E9E]"
-            }`}>
+              }`}>
               {pushPermission === "granted" ? "Active" : "Needs Push Enabled"}
             </span>
           </div>
@@ -211,15 +209,15 @@ export default function SettingsPage() {
                     To confirm, please type your email address: <span className="font-bold underline text-red-500">{session?.user?.email}</span>
                   </p>
                 </div>
-                
+
                 <input
                   type="text"
                   placeholder="Enter your email"
                   value={deleteEmail}
                   onChange={(e) => setDeleteEmail(e.target.value)}
                   className={`w-full px-3 py-2 rounded-lg border text-xs mb-3 focus:outline-none focus:ring-1 transition-all
-                    ${isDark 
-                      ? "bg-[#252525] border-red-900/30 text-white focus:ring-red-500/50" 
+                    ${isDark
+                      ? "bg-[#252525] border-red-900/30 text-white focus:ring-red-500/50"
                       : "bg-white border-red-100 text-[#252525] focus:ring-red-500/50"}`}
                 />
 
@@ -239,9 +237,8 @@ export default function SettingsPage() {
                       setDeleteEmail("");
                       setError("");
                     }}
-                    className={`flex-1 py-2 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
-                      isDark ? "bg-[#2E2E2E] hover:bg-[#3A3A3A] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    }`}
+                    className={`flex-1 py-2 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${isDark ? "bg-[#2E2E2E] hover:bg-[#3A3A3A] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      }`}
                   >
                     Cancel
                   </button>
