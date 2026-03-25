@@ -172,7 +172,7 @@ export function WorkspaceCard({
                                     e.stopPropagation();
                                     setIsMenuOpen(!isMenuOpen);
                                 }}
-                                className={`p-1.5 rounded-md hover:bg-[#E0E0E0] dark:hover:bg-[#545454] transition-colors ${isMenuOpen ? "bg-[#E0E0E0] dark:bg-[#545454] opacity-100" : "opacity-0 group-hover:opacity-100"
+                                className={`p-1.5 rounded-md hover:bg-[#E0E0E0] dark:hover:bg-[#545454] transition-colors ${isMenuOpen ? "bg-[#E0E0E0] dark:bg-[#545454] opacity-100" : "lg:opacity-0 lg:group-hover:opacity-100"
                                     }`}
                             >
                                 <MoreVertical size={16} className="text-[#545454] dark:text-white" />

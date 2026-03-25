@@ -145,7 +145,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                 <div className="flex items-center gap-2 pr-2">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleDelete(ex.id); }}
-                                        className="text-[#7D7D7D] hover:text-red-500 transition-all p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                                     >
                                         <Trash2 size={13} />
                                     </button>
@@ -163,7 +163,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                     </span>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleDelete(ex.id); }}
-                                        className="opacity-0 group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                                     >
                                         <Trash2 size={13} />
                                     </button>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 import ExerciseTab from "@/components/preparation/ExerciseTab";
 import RevisionTab from "@/components/preparation/RevisionTab";
@@ -162,24 +163,25 @@ export default function PreparationPage() {
     };
 
     const handleBack = () => {
-        // If we are in a full-page view, simply close it and return to the list
+        // If we have history (like coming from Dashboard/Recent Activity), go back there!
+        // This handles the user requirement "where to i come there i go"
+        if (typeof window !== "undefined" && window.history.length > 1) {
+            router.back();
+            return;
+        }
+
+        // Local state cleanup fallback if no history
         if (activeExercise || activeRevision || searchParams.get("id")) {
             setActiveExercise(null);
             setActiveRevision(null);
             processedIdRef.current = null;
-            // Also clean up the URL if there was an ID param
             if (searchParams.get("id")) {
                 router.push("/preparation", { scroll: false });
             }
             return;
         }
 
-        // Standard fallback for general navigation
-        if (typeof window !== "undefined" && window.history.length > 1) {
-            router.back();
-        } else {
-            router.push("/preparation");
-        }
+        router.push("/preparation");
     };
 
     const isExerciseTab = activeTab === "exercise";
@@ -209,16 +211,44 @@ export default function PreparationPage() {
                 </div>
             )}
 
-            {/* Deep-link Loading Loader Overlays */}
+            {/* Deep-link Loading Skeleton Overlays */}
             {isAutoLoading && (
-                <div className="absolute inset-0 z-[101] bg-white dark:bg-[#1A1A1A] flex flex-col items-center justify-center space-y-4">
-                    <div className="relative">
-                        <div className={`w-12 h-12 rounded-full border-2 border-t-transparent animate-spin ${activeRevision ? 'border-white/20 border-t-white' : 'border-[#252525]/10 border-t-[#252525]'}`} />
-                        <Sparkles className={`w-5 h-5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${activeRevision ? 'text-white' : 'text-[#252525] dark:text-white'}`} />
+                <div className="absolute inset-0 z-[101] bg-[#F5F3EF] dark:bg-[#1A1A1A] flex flex-col transition-colors">
+                    {/* Header Skeleton */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E5E0] dark:border-[#2A2A2A] bg-white/50 dark:bg-white/5">
+                        <div className="flex items-center gap-4">
+                            <Skeleton className="w-10 h-10 rounded-full" />
+                            <Skeleton className="w-48 h-6 rounded-md" />
+                        </div>
+                        <Skeleton className="w-24 h-9 rounded-full" />
                     </div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-[#BABABA] animate-pulse">
-                        {searchParams.get("tab") === "exercise" ? "Preparing Exercise..." : "Preparing Revision..."}
-                    </p>
+
+                    {/* Content Skeleton */}
+                    <div className="flex-1 max-w-5xl mx-auto w-full p-6 sm:p-10 space-y-8">
+                        <div className="space-y-4">
+                            <Skeleton className="w-1/3 h-4 rounded-md opacity-60" />
+                            <Skeleton className="w-full h-12 rounded-xl" />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4 p-6 rounded-2xl border border-dashed border-[#E8E5E0] dark:border-[#3A3A3A]">
+                                <Skeleton className="w-1/2 h-6 rounded-md mb-4" />
+                                <Skeleton className="w-full h-4 rounded-md" />
+                                <Skeleton className="w-full h-4 rounded-md" />
+                                <Skeleton className="w-3/4 h-4 rounded-md" />
+                            </div>
+                            <div className="space-y-4 p-6 rounded-2xl border border-dashed border-[#E8E5E0] dark:border-[#3A3A3A]">
+                                <Skeleton className="w-1/2 h-6 rounded-md mb-4" />
+                                <Skeleton className="w-full h-4 rounded-md" />
+                                <Skeleton className="w-full h-4 rounded-md" />
+                                <Skeleton className="w-3/4 h-4 rounded-md" />
+                            </div>
+                        </div>
+
+                        <div className="mt-10 space-y-4">
+                            <Skeleton className="w-full h-32 rounded-2xl" />
+                        </div>
+                    </div>
                 </div>
             )}
 

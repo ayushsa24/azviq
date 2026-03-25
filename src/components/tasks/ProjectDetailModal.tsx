@@ -230,16 +230,9 @@ export function ProjectDetailModal({
             >
                 {/* Top Control Bar */}
                 <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 sm:bg-[#F5F3EF]/95 sm:dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] sm:border-[#E8E5E0] dark:border-[#3A3A3A]">
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={onClose}
-                            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-[#3A3A3A] transition-colors"
-                            title={`Back to ${breadcrumb}`}
-                        >
-                            <ArrowLeft size={16} />
-                        </button>
-                        {/* Breadcrumb */}
-                        <div className="flex items-center gap-1 text-xs text-gray-400 font-medium">
+                    <div className="flex items-center gap-2 min-w-0 pr-4">
+                        {/* Breadcrumb Base */}
+                        <div className="flex items-center gap-1 text-xs text-gray-400 font-medium ml-1 flex-shrink-0">
                             <span
                                 onClick={onClose}
                                 className="cursor-pointer hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
@@ -247,10 +240,17 @@ export function ProjectDetailModal({
                                 {breadcrumb}
                             </span>
                             <span className="text-gray-300 dark:text-gray-600">›</span>
-                            <span className="text-gray-700 dark:text-gray-200 truncate max-w-[180px]">
-                                {localProject?.title || "Project"}
-                            </span>
                         </div>
+                        {/* Title Display */}
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate max-w-[150px] sm:max-w-[300px]">
+                            {localProject.title || "Untitled Project"}
+                        </span>
+                        {/* Unsaved Badge */}
+                        {hasChanged && (
+                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider">
+                                Unsaved
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-3">
                         {hasChanged && (

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
     ArrowLeft, BookOpen, Key, HelpCircle, ChevronDown, ChevronUp,
-    ArrowRight, Eye, EyeOff, FileText, Clock, PanelLeft
+    ArrowRight, Eye, EyeOff, FileText, Clock, PanelLeft, X
 } from "lucide-react";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -154,6 +154,14 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
 
             {/* Top bar */}
             <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? "border-[#333] bg-[#1A1A1A]" : "border-[#E8E5E0] bg-[#F5F3EF]"}`}>
+                <button
+                    onClick={onBack}
+                    title="Back"
+                    className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors active:scale-95 shrink-0"
+                >
+                    <ArrowLeft size={20} />
+                </button>
+
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}
@@ -163,20 +171,14 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
                         <PanelLeft size={18} />
                     </button>
                 )}
-                <button
-                    onClick={onBack}
-                    title="Back"
-                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 shrink-0 ${isDark ? "border-[#545454] text-[#7D7D7D] hover:bg-white hover:text-[#252525]" : "border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"}`}
-                >
-                    <ArrowLeft size={14} />
-                </button>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
                     <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{revision.title}</p>
-                    <p className="text-[10px] text-[#7D7D7D] dark:text-[#BABABA] flex items-center gap-1">
-                        <FileText size={10} /> {revision.notes?.title || "Unknown source"}
-                        <span className="mx-1">·</span>
-                        <Clock size={10} /> {formatDate(revision.created_at)}
-                    </p>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8E5E0] dark:bg-[#333] shrink-0">
+                        <Clock size={11} className="text-[#7D7D7D]" />
+                        <span className="text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase tracking-wider">
+                            {formatDate(revision.created_at)}
+                        </span>
+                    </div>
                 </div>
             </div>
 

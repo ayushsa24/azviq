@@ -352,10 +352,10 @@ export default function NotesPage() {
         {activeWorkspace && (
           <button
             onClick={handleBackToWorkspaces}
-            className="text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors bg-[#F0EDE8] dark:bg-[#545454] p-2 rounded-lg"
+            className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
             title="Back to Workspaces"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={20} />
           </button>
         )}
         <div>

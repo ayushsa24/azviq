@@ -295,9 +295,9 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 <button
                     onClick={onBack}
                     title="Back"
-                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 shrink-0 ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-white hover:text-[#252525]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
+                    className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors active:scale-95 shrink-0"
                 >
-                    <ArrowLeft size={14} />
+                    <ArrowLeft size={20} />
                 </button>
 
                 <div className="flex-1 min-w-0">

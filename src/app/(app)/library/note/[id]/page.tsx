@@ -10,6 +10,7 @@ import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2, SmilePlus, PanelLeft, Globe, EyeOff, Copy, Check, Pencil } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useDebouncedCallback } from "use-debounce";
 import dynamic from 'next/dynamic';
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
@@ -349,8 +350,42 @@ export default function NoteEditorPage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-[#F5F3EF] dark:bg-[#1A1A1A]">
-                <Loader2 className="animate-spin text-[#545454] dark:text-[#7D7D7D]" size={32} />
+            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] transition-colors">
+                {/* Skeleton Header */}
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A]">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <Skeleton className="w-24 h-4 rounded-md" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+                        <Skeleton className="w-20 h-8 rounded-md" />
+                    </div>
+                </div>
+
+                {/* Skeleton Body */}
+                <div className="flex-1 max-w-4xl mx-auto w-full px-6 pt-12 sm:pt-16 pb-32">
+                    <div className="flex items-center justify-between mb-8">
+                        <Skeleton className="w-3/4 h-12 sm:h-16 rounded-xl" />
+                        <Skeleton className="w-12 h-12 rounded-full" />
+                    </div>
+                    <div className="space-y-4">
+                        <Skeleton className="w-full h-4 rounded-md" />
+                        <Skeleton className="w-11/12 h-4 rounded-md" />
+                        <Skeleton className="w-full h-4 rounded-md" />
+                        <Skeleton className="w-10/12 h-4 rounded-md" />
+                        <div className="py-4" />
+                        <Skeleton className="w-full h-32 rounded-xl" />
+                        <div className="py-4" />
+                        <Skeleton className="w-full h-4 rounded-md" />
+                        <Skeleton className="w-full h-4 rounded-md" />
+                        <Skeleton className="w-3/4 h-4 rounded-md" />
+                    </div>
+                </div>
             </div>
         );
     }

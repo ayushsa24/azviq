@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
-import { FileText, Sparkles, Loader2 } from "lucide-react";
+import { FileText, Sparkles, Loader2, Search, Check, ChevronDown } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 interface CreateRevisionModalProps {
@@ -20,24 +20,34 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
     const [selectedNoteId, setSelectedNoteId] = useState<string>("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [workspaces, setWorkspaces] = useState<any[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             setSelectedNoteId("");
             setError("");
-            const fetchNotes = async () => {
+            const fetchData = async () => {
                 setIsFetchingNotes(true);
                 try {
-                    const res = await fetch("/api/notes");
-                    if (res.ok) {
-                        const data = await res.json();
+                    const [notesRes, wsRes] = await Promise.all([
+                        fetch("/api/notes?all=true"),
+                        fetch("/api/workspaces")
+                    ]);
+                    if (notesRes.ok) {
+                        const data = await notesRes.json();
                         setNotes(data.notes || []);
+                    }
+                    if (wsRes.ok) {
+                        const wsData = await wsRes.json();
+                        setWorkspaces(wsData.workspaces || []);
                     }
                 } catch { /* ignore */ } finally {
                     setIsFetchingNotes(false);
                 }
             };
-            fetchNotes();
+            fetchData();
         }
     }, [isOpen]);
 
@@ -79,26 +89,79 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                 <div>
                     <label className="block text-xs font-semibold mb-2 uppercase tracking-widest text-[#545454] dark:text-[#BABABA]">Source Note or PDF</label>
                     <div className="relative">
-                        <select
-                            value={selectedNoteId}
-                            onChange={(e) => setSelectedNoteId(e.target.value)}
-                            className={`w-full appearance-none px-4 py-3 pr-10 rounded-xl border outline-none font-medium text-sm transition-all focus:border-white ${isDark ? "bg-[#1A1A1A] border-[#545454] text-white" : "bg-[#F0EDE8] border-[#E8E5E0] text-[#252525]"}`}
+                        <button
+                            type="button"
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border outline-none font-medium text-sm transition-all ${isDark 
+                                ? "bg-[#1A1A1A] border-[#333] text-white hover:bg-[#252525]" 
+                                : "bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] hover:bg-[#E8E5E1]"}`}
                         >
-                            <option value="" disabled>
-                                {isFetchingNotes ? "Loading…" : "Choose a Note or PDF"}
-                            </option>
-                            {notes.map((n: any) => {
-                                const isPdf = !!(n.file_url && (!n.content || n.content.trim() === ""));
-                                return (
-                                    <option key={n.id} value={n.id}>
-                                        {isPdf ? "📄 " : "📝 "}{n.title}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <FileText size={16} className="text-[#BABABA]" />
-                        </div>
+                            <span className="truncate">
+                                {selectedNoteId ? (() => {
+                                    const fact = notes.find(n => n.id === selectedNoteId);
+                                    if (!fact) return "Empty";
+                                    const ws = workspaces.find(w => w.id === fact.workspace_id);
+                                    const isPdf = !!(fact.file_url && (!fact.content || fact.content.trim() === ""));
+                                    return `${isPdf ? "📄 " : "📝 "}${ws ? `[${ws.name}] ` : ""}${fact.title}`;
+                                })() : "Choose a Note or PDF"}
+                            </span>
+                            <ChevronDown className="w-4 h-4 text-[#BABABA] ml-2" />
+                        </button>
+
+                        {isDropdownOpen && (
+                            <div className="absolute top-12 left-0 w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[110] flex flex-col max-h-[400px] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                <div className="p-2 border-b border-[#E8E5E0] dark:border-[#444] bg-gray-50/50 dark:bg-[#1A1A1A]/50">
+                                    <div className="relative">
+                                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold" />
+                                        <input
+                                            type="text"
+                                            autoFocus
+                                            placeholder="Search material..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#444] rounded-lg text-sm py-2 pl-9 pr-3 outline-none transition-all text-black dark:text-white"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
+                                    {notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase())).map((n) => {
+                                        const ws = workspaces.find((w) => w.id === n.workspace_id);
+                                        const isPdf = !!(n.file_url && (!n.content || n.content.trim() === ""));
+                                        const isSelected = selectedNoteId === n.id;
+                                        return (
+                                            <button
+                                                key={n.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedNoteId(n.id);
+                                                    setIsDropdownOpen(false);
+                                                    setSearchQuery("");
+                                                }}
+                                                className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525] font-bold" : "text-gray-700 dark:text-gray-300 hover:bg-[#F0EDE8] dark:hover:bg-[#1A1A1A]"}`}
+                                            >
+                                                <div className="flex flex-col min-w-0 pr-2">
+                                                    <span className="truncate">
+                                                        {isPdf ? "📄 " : "📝 "}{n.title}
+                                                    </span>
+                                                    <span className={`text-[10px] truncate mt-0.5 flex gap-1 ${isSelected ? 'text-white/70 dark:text-black/70' : 'text-gray-500'}`}>
+                                                        {ws && <span className="font-bold">[{ws.name}]</span>}
+                                                        <span>{isPdf ? 'PDF Document' : 'Note'}</span>
+                                                    </span>
+                                                </div>
+                                                {isSelected && <Check className="w-4 h-4 flex-shrink-0" />}
+                                            </button>
+                                        )
+                                    })}
+                                    {notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                        <div className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            No material found
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <p className="text-xs text-[#BABABA] mt-2">Supports both text notes (📝) and PDF files (📄).</p>
                 </div>

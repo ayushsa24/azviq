@@ -14,6 +14,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { logRecentActivity } from "@/lib/logRecentActivity";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -546,8 +547,39 @@ export default function PdfEditorPage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-full bg-[#F5F3EF] dark:bg-[#1A1A1A]">
-                <Loader2 className="animate-spin text-[#545454] dark:text-[#7D7D7D]" size={32} />
+            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
+                {/* Skeleton Header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A]">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <Skeleton className="w-32 h-5 rounded-md" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <div className="w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+                        <Skeleton className="w-24 h-9 rounded-md" />
+                        <Skeleton className="w-20 h-9 rounded-md" />
+                    </div>
+                </div>
+
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Skeleton Sidebar */}
+                    <div className="hidden sm:flex flex-col w-40 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-4">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="flex flex-col gap-2">
+                                <Skeleton className="w-full h-32 rounded-lg" />
+                                <Skeleton className="w-1/2 h-3 mx-auto rounded-md" />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Skeleton Main View */}
+                    <div className="flex-1 bg-[#E8E5E0] dark:bg-[#161514] p-8 sm:p-12 overflow-hidden flex justify-center">
+                        <Skeleton className="w-full max-w-3xl h-full rounded-sm" />
+                    </div>
+                </div>
             </div>
         );
     }
