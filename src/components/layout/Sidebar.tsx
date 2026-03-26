@@ -11,10 +11,13 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell, HelpCircle, Trash2
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
+import { useSettings } from "@/contexts/SettingsContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { translations } from "@/utils/translations";
 import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -38,13 +41,17 @@ const TYPE_CONFIG: Record<string, { icon: any }> = {
 export default function Sidebar({
   open,
   isHovered = false,
-  onMouseLeave
+  onMouseLeave,
+  onTrashClick
 }: {
   open: boolean;
   isHovered?: boolean;
   onMouseLeave?: () => void;
+  onTrashClick?: () => void;
 }) {
   const { theme, toggleTheme } = useTheme();
+  const { language } = useLanguage();
+  const { openSettings } = useSettings();
   const { toggle } = useSidebar();
   const pathname = usePathname();
   const isDark = theme === "dark";
@@ -81,11 +88,11 @@ export default function Sidebar({
   };
 
   const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/library", label: "Library", icon: Library },
-    { href: "/ai", label: "AI Chat", icon: MessageCircle },
-    { href: "/tasks", label: "Tasks", icon: CheckSquare },
-    { href: "/preparation", label: "Preparation", icon: Sparkles },
+    { href: "/dashboard", label: translations[language].dashboard, icon: Home },
+    { href: "/library", label: translations[language].library, icon: Library },
+    { href: "/ai", label: translations[language].ai_chat, icon: MessageCircle },
+    { href: "/tasks", label: translations[language].tasks, icon: CheckSquare },
+    { href: "/preparation", label: translations[language].preparation, icon: Sparkles },
   ];
 
   const visible = open || isHovered;
@@ -147,7 +154,7 @@ export default function Sidebar({
         </div>
 
         {/* ── NAV ITEMS ── */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-hide">
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1.5 scrollbar-hide">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -161,8 +168,8 @@ export default function Sidebar({
                 href={item.href}
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium
                   ${isActive
-                    ? isDark ? "bg-[#2E2E2E] text-white" : "bg-[#F0EDE8] text-[#252525]"
-                    : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#CFCFCF] hover:text-[#252525]"
+                    ? isDark ? "bg-[#2E2E2E] text-white shadow-sm" : "bg-[#E8E5E0] text-[#252525] shadow-sm"
+                    : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"
                   }`}
               >
                 <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`} />
@@ -189,8 +196,8 @@ export default function Sidebar({
                       href={item.href}
                       className={`group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 text-[13px] font-medium
                         ${isActive
-                          ? isDark ? "bg-[#2E2E2E] text-white" : "bg-[#F0EDE8] text-[#252525]"
-                          : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#CFCFCF] hover:text-[#252525]"
+                          ? isDark ? "bg-[#2E2E2E] text-white" : "bg-[#E8E5E0] text-[#252525]"
+                          : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"
                         }`}
                       title={item.title}
                     >
@@ -227,22 +234,30 @@ export default function Sidebar({
               </button>
 
               {/* Settings */}
-              <Link
-                href="/settings"
-                onClick={() => setMenuOpen(false)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
-                  ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
-              >
-                <Settings className="w-4 h-4" /> Settings
-              </Link>
-
-              {/* Dark / Light mode */}
               <button
-                onClick={toggleTheme}
+                onClick={() => { setMenuOpen(false); openSettings(); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
                   ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >
-                {isDark ? <><Sun className="w-4 h-4" /> Light Mode</> : <><Moon className="w-4 h-4" /> Dark Mode</>}
+                <Settings className="w-4 h-4" /> {translations[language].settings}
+              </button>
+
+              {/* Trash (Added here as well) */}
+              <button
+                onClick={() => { setMenuOpen(false); onTrashClick?.(); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
+                  ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
+              >
+                <Trash2 className="w-4 h-4" /> Trash
+              </button>
+
+
+              {/* Help & Support */}
+              <button
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
+                  ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
+              >
+                <HelpCircle className="w-4 h-4" /> Help & Support
               </button>
 
               <div className={`border-t ${isDark ? "border-[#3A3A3A]" : "border-[#F0EDE8]"}`} />
@@ -253,7 +268,7 @@ export default function Sidebar({
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
                   ${isDark ? "text-red-400 hover:bg-[#333]" : "text-red-600 hover:bg-red-50"}`}
               >
-                <LogOut className="w-4 h-4" /> Log out
+                <LogOut className="w-4 h-4" /> {translations[language].logout}
               </button>
             </div>
           )}
@@ -263,8 +278,8 @@ export default function Sidebar({
             onClick={() => setMenuOpen(o => !o)}
             className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all duration-200 text-left
               ${menuOpen
-                ? isDark ? "bg-[#2E2E2E]" : "bg-[#F0EDE8]"
-                : isDark ? "hover:bg-[#252525]" : "hover:bg-[#CFCFCF]"
+                ? isDark ? "bg-[#2E2E2E]" : "bg-[#E8E5E0]"
+                : isDark ? "hover:bg-[#252525]" : "hover:bg-[#F0EDE8]"
               }`}
           >
             {profile?.avatar_url ? (

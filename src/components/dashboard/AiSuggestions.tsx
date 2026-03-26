@@ -6,7 +6,6 @@ import { Sparkles, ArrowRight, Loader2, Target, CalendarDays, BrainCircuit, Cloc
 import Link from "next/link";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 // Define the suggestion type based on what we return from the API
 interface AiSuggestion {
@@ -24,7 +23,7 @@ interface AiSuggestion {
 export default function AiSuggestions() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
-    const { data, isLoading: suggestionsLoading } = useSWR("/api/suggestions", fetcher);
+    const { data, isLoading: suggestionsLoading } = useSWR("/api/suggestions");
     const suggestions = (data?.suggestions || []) as AiSuggestion[];
     const isLoading = suggestionsLoading;
     const [completedIds, setCompletedIds] = useState<string[]>([]);

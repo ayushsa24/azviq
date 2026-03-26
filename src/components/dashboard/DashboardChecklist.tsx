@@ -9,7 +9,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type RepeatType = "today" | "daily" | "weekdays" | "weekends" | "custom";
 
@@ -61,7 +60,7 @@ export default function DashboardChecklist() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const { fetchNotifications } = useNotifications();
-    const { data: todosData, isLoading: todosLoading, mutate: mutateTodos } = useSWR("/api/todos", fetcher);
+    const { data: todosData, isLoading: todosLoading, mutate: mutateTodos } = useSWR("/api/todos");
     const [showAll, setShowAll] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showModal, setShowModal] = useState(false);

@@ -6,6 +6,7 @@ type ZoomContextType = {
     zoomLevel: number;
     zoomIn: () => void;
     zoomOut: () => void;
+    setZoom: (value: number) => void;
     resetZoom: () => void;
 };
 
@@ -41,12 +42,16 @@ export function ZoomProvider({ children }: { children: React.ReactNode }) {
         setZoomLevel((prev) => Math.max(prev - 2, MIN_ZOOM));
     };
 
+    const setZoom = (value: number) => {
+        setZoomLevel(Math.min(Math.max(value, MIN_ZOOM), MAX_ZOOM));
+    };
+
     const resetZoom = () => {
         setZoomLevel(DEFAULT_ZOOM);
     };
 
     return (
-        <ZoomContext.Provider value={{ zoomLevel, zoomIn, zoomOut, resetZoom }}>
+        <ZoomContext.Provider value={{ zoomLevel, zoomIn, zoomOut, setZoom, resetZoom }}>
             {children}
         </ZoomContext.Provider>
     );

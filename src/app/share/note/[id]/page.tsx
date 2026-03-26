@@ -23,6 +23,7 @@ import { AiInlineInput } from "@/components/editor/AiInlineInput";
 import { all, createLowlight } from "lowlight";
 import "highlight.js/styles/atom-one-dark.css";
 import { useDebouncedCallback } from "use-debounce";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Loader2, Lock, FileText, Pencil, Eye, Check, Sun, Moon } from "lucide-react";
 
 const lowlight = createLowlight(all);
@@ -172,8 +173,48 @@ export default function SharedNotePage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-[#F5F3EF] dark:bg-[#161514]">
-                <Loader2 className="animate-spin text-[#545454] dark:text-[#BABABA]" size={36} />
+            <div className="flex flex-col h-full min-h-screen bg-[#F5F3EF] dark:bg-[#161514] transition-colors">
+                {/* Skeleton Header */}
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-8 py-3 bg-[#F5F3EF]/80 dark:bg-[#161514]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2E2A26]">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                        <Skeleton className="w-32 h-4 rounded-md" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="w-20 h-6 rounded-full" />
+                        <Skeleton className="w-8 h-8 rounded-full" />
+                    </div>
+                </div>
+
+                {/* Skeleton Content */}
+                <div className="flex flex-col items-center w-full">
+                    <div className="w-full max-w-3xl px-4 sm:px-8 pt-10 pb-24">
+                        {/* Title Skeleton */}
+                        <Skeleton className="w-3/4 h-12 sm:h-16 rounded-xl mb-8" />
+                        
+                        {/* Toolbar Placeholder */}
+                        <div className="mb-6 flex gap-2">
+                            <Skeleton className="w-10 h-8 rounded-md" />
+                            <Skeleton className="w-10 h-8 rounded-md" />
+                            <Skeleton className="w-10 h-8 rounded-md" />
+                            <Skeleton className="w-24 h-8 rounded-md ml-auto" />
+                        </div>
+                        
+                        {/* Content Skeleton */}
+                        <div className="space-y-4">
+                            <Skeleton className="w-full h-4 rounded-md" />
+                            <Skeleton className="w-11/12 h-4 rounded-md" />
+                            <Skeleton className="w-full h-4 rounded-md" />
+                            <Skeleton className="w-10/12 h-4 rounded-md" />
+                            <div className="py-2" />
+                            <Skeleton className="w-full h-40 rounded-xl" />
+                            <div className="py-2" />
+                            <Skeleton className="w-full h-4 rounded-md" />
+                            <Skeleton className="w-full h-4 rounded-md" />
+                            <Skeleton className="w-3/4 h-4 rounded-md" />
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

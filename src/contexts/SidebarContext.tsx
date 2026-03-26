@@ -15,11 +15,7 @@ const SidebarContext = createContext<SidebarContextType>({
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const [open, setOpen] = useState(pathname !== "/ai");
-
-    useEffect(() => {
-        if (pathname === "/ai") setOpen(false);
-    }, [pathname]);
+    const [open, setOpen] = useState(true);
 
     const toggle = () => setOpen(o => !o);
 

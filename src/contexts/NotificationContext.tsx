@@ -3,8 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from "react";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export interface Notification {
     id: string;
     type: string;
@@ -35,7 +33,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const GENERATE_COOLDOWN_KEY = "notif_generate_last_date";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-    const { data, mutate, isLoading } = useSWR("/api/notifications", fetcher, {
+    const { data, mutate, isLoading } = useSWR("/api/notifications", {
         refreshInterval: 300000, // 5 minutes
     });
     const notifications: Notification[] = data?.notifications ?? [];
@@ -258,20 +256,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             }
         };
 
-        const interval = setInterval(checkToDos, 25000); // Check every 25s
+        const interval = setInterval(checkToDos, 60000); // Check every 60s
         
-        // Check immediately when tab becomes visible
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === "visible") checkToDos();
-        };
-        
-        document.addEventListener("visibilitychange", handleVisibilityChange);
         checkToDos();
-
-        return () => {
-            clearInterval(interval);
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-        };
+        return () => clearInterval(interval);
     }, [fetchNotifications]);
 
     // Task Deadline Watcher — fires once per day at 9:00 AM
@@ -333,7 +321,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             }
         };
 
-        const interval = setInterval(checkTaskDeadlines, 25000);
+        const interval = setInterval(checkTaskDeadlines, 300000); // Check every 5 mins
         checkTaskDeadlines();
         return () => clearInterval(interval);
     }, [fetchNotifications]);

@@ -5,8 +5,6 @@ import { Clock, CheckCircle2, BookOpen, Play, Pause, RotateCcw, X } from "lucide
 import { useTheme } from "@/contexts/ThemeContext";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export default function DashboardStats() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -27,8 +25,8 @@ export default function DashboardStats() {
     const [pickerHours, setPickerHours] = useState(0);
     const [pickerMins, setPickerMins] = useState(0);
 
-    const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR('/api/tasks', fetcher);
-    const { data: revData, isLoading: revLoading, mutate: mutateRevs } = useSWR('/api/revision', fetcher);
+    const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR('/api/tasks');
+    const { data: revData, isLoading: revLoading, mutate: mutateRevs } = useSWR('/api/revision');
 
     const isLoading = (tasksLoading && !tasksData) || (revLoading && !revData);
 

@@ -165,7 +165,8 @@ button {
   opacity: 1;
 }
 
-.tiptap .tableWrapper {
+.tiptap .tableWrapper,
+.tableWrapper {
   overflow-x: auto !important;
   max-width: 100%;
   -webkit-overflow-scrolling: touch;
@@ -263,9 +264,8 @@ button {
   .prose table,
   .tiptap table,
   .ai-response-content table {
-    min-width: 600px !important;
-    /* Force width to be larger than screen to guarantee scrollbar appears */
-    width: max-content !important;
+    width: 100% !important;
+    table-layout: auto !important;
   }
 
   .prose td,

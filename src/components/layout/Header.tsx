@@ -6,15 +6,17 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useUser } from "@/contexts/UserContext";
-import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings } from "lucide-react";
+import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings, Trash2 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { useSettings } from "@/contexts/SettingsContext";
 
-export default function Header({ onMenuClick, open }: { onMenuClick: () => void; open: boolean }) {
+export default function Header({ onMenuClick, open, onTrashClick, onProfileClick }: { onMenuClick: () => void; open: boolean; onTrashClick?: () => void; onProfileClick?: () => void }) {
   const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, zoomIn, zoomOut, resetZoom } = useZoom();
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
   const { user } = useUser();
+  const { openSettings } = useSettings();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -72,14 +74,6 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
 
       {/* RIGHT */}
       <div className="flex items-center gap-2">
-        <button className={`p-2 rounded-xl transition-all duration-200 hover:scale-105
-          ${theme === 'dark'
-            ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
-            : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
-          }`}>
-          <Bot className="w-5 h-5" />
-        </button>
-
         <button
           data-notification-bell
           onClick={() => setPanelOpen(!panelOpen)}
@@ -124,9 +118,8 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
               ? 'bg-[#252525] border-[#545454]'
               : 'bg-white border-[#E8E5E0]'
               }`}>
-              <Link href="/profile">
                 <button
-                  onClick={() => setDropdownOpen(false)}
+                  onClick={() => { setDropdownOpen(false); onProfileClick?.(); }}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${theme === 'dark'
                     ? 'text-[#CFCFCF] hover:bg-[#545454]'
                     : 'text-[#545454] hover:bg-[#F0EDE8]'
@@ -134,55 +127,26 @@ export default function Header({ onMenuClick, open }: { onMenuClick: () => void;
                   <User className="w-4 h-4" />
                   My Profile
                 </button>
-              </Link>
-              <Link href="/settings">
-                <button
-                  onClick={() => setDropdownOpen(false)}
-                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
-                    ? 'text-[#CFCFCF] hover:bg-[#545454]'
-                    : 'text-[#545454] hover:bg-[#F0EDE8]'
-                    }`}>
-                  <Settings className="w-4 h-4" />
-                  Settings
-                </button>
-              </Link>
-
               <button
-                onClick={() => {
-                  toggleTheme();
-                  setDropdownOpen(false);
-                }}
+                onClick={() => { setDropdownOpen(false); onTrashClick?.(); }}
                 className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
                   ? 'text-[#CFCFCF] hover:bg-[#545454]'
-                  : 'text-[#545454] hover:bg-[#CFCFCF]'
+                  : 'text-[#545454] hover:bg-[#F0EDE8]'
                   }`}>
-                {theme === 'dark' ? (
-                  <>
-                    <Sun className="w-4 h-4" />
-                    Light Mode
-                  </>
-                ) : (
-                  <>
-                    <Moon className="w-4 h-4" />
-                    Dark Mode
-                  </>
-                )}
+                <Trash2 className="w-4 h-4" />
+                Trash Bin
+              </button>
+              <button
+                onClick={() => { setDropdownOpen(false); openSettings(); }}
+                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
+                  ? 'text-[#CFCFCF] hover:bg-[#545454]'
+                  : 'text-[#545454] hover:bg-[#F0EDE8]'
+                  }`}>
+                <Settings className="w-4 h-4" />
+                Settings
               </button>
 
-              <div className={`px-4 py-2 border-t border-b flex items-center justify-between ${theme === 'dark' ? 'border-[#545454] text-[#CFCFCF]' : 'border-[#E8E5E0] text-[#545454]'}`}>
-                <span className="text-sm font-medium">Zoom</span>
-                <div className="flex items-center gap-2">
-                  <button onClick={zoomOut} className={`p-1 rounded hover:bg-[#7D7D7D] hover:text-white transition-colors`}>
-                    <ZoomOut className="w-4 h-4" />
-                  </button>
-                  <button onClick={resetZoom} className={`p-1 rounded hover:bg-[#7D7D7D] hover:text-white transition-colors`} title="Reset Zoom">
-                    <span className="text-xs font-bold leading-none">{Math.round((zoomLevel / 16) * 100)}%</span>
-                  </button>
-                  <button onClick={zoomIn} className={`p-1 rounded hover:bg-[#7D7D7D] hover:text-white transition-colors`}>
-                    <ZoomIn className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+
 
               <button
                 onClick={handleLogout}

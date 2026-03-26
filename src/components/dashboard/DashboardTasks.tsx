@@ -7,7 +7,6 @@ import { format } from "date-fns";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface Task {
     id: string;
@@ -29,10 +28,10 @@ export default function DashboardTasks() {
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [filterRange, setFilterRange] = useState<"today" | "overdue" | "1week" | "2weeks" | "1month">("today");
 
-    const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR<{ tasks: Task[] }>("/api/tasks", fetcher);
-    const { data: projectsData, isLoading: projectsLoading, mutate: mutateProjects } = useSWR("/api/projects", fetcher);
-    const { data: workspacesData, isLoading: workspacesLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
-    const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR("/api/notes", fetcher);
+    const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR<{ tasks: Task[] }>("/api/tasks");
+    const { data: projectsData, isLoading: projectsLoading, mutate: mutateProjects } = useSWR("/api/projects");
+    const { data: workspacesData, isLoading: workspacesLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces");
+    const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR("/api/notes");
 
     const tasks = tasksData?.tasks || [];
     const projects = projectsData?.projects || [];

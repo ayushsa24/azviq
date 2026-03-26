@@ -3,10 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ZoomProvider } from "@/contexts/ZoomContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { UserProvider } from "@/contexts/UserContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import AppShell from "@/components/layout/AppShell";
 
 const geistSans = Geist({
@@ -59,13 +61,17 @@ export default function RootLayout({
       >
         <AuthProvider>
           <UserProvider>
-            <ZoomProvider>
-              <ThemeProvider>
-                <NotificationProvider>
-                  {children}
-                </NotificationProvider>
-              </ThemeProvider>
-            </ZoomProvider>
+            <LanguageProvider>
+              <ZoomProvider>
+                <ThemeProvider>
+                  <NotificationProvider>
+                    <SettingsProvider>
+                      {children}
+                    </SettingsProvider>
+                  </NotificationProvider>
+                </ThemeProvider>
+              </ZoomProvider>
+            </LanguageProvider>
           </UserProvider>
         </AuthProvider>
       </body>

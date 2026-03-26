@@ -8,6 +8,9 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
 import NotificationPanel from "./NotificationPanel";
+import SettingsModal from "./SettingsModal";
+import TrashModal from "./TrashModal";
+import ProfileModal from "./ProfileModal";
 import { useState } from "react";
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -30,6 +33,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   const isDashboard = pathname === "/dashboard";
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
@@ -63,7 +68,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       {/* Header: mobile only on Dashboard, hidden on desktop */}
       {isDashboard && (
         <div className="md:hidden">
-          <Header open={open} onMenuClick={toggle} />
+          <Header open={open} onMenuClick={toggle} onTrashClick={() => setIsTrashOpen(true)} onProfileClick={() => setIsProfileOpen(true)} />
         </div>
       )}
 
@@ -72,6 +77,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           open={open}
           isHovered={isSidebarHovered}
           onMouseLeave={() => setIsSidebarHovered(false)}
+          onTrashClick={() => setIsTrashOpen(true)}
         />
       ) : (
         <div className="hidden md:contents">
@@ -79,12 +85,22 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             open={open}
             isHovered={isSidebarHovered}
             onMouseLeave={() => setIsSidebarHovered(false)}
+            onTrashClick={() => setIsTrashOpen(true)}
           />
         </div>
       )}
 
       {/* Global Notification Panel */}
       <NotificationPanel />
+
+      {/* Global Setting Popup */}
+      <SettingsModal />
+
+      {/* Global Trash Popup */}
+      <TrashModal isOpen={isTrashOpen} onClose={() => setIsTrashOpen(false)} />
+
+      {/* Global Profile Popup */}
+      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
       {!open && (
         <div

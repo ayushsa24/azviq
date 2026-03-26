@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { FileText, File as FileIcon, Clock, BookOpen, FlaskConical, ArrowRight } from "lucide-react";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type RecentItem = {
     id: string;
@@ -36,7 +35,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function RecentItemsScroll() {
-    const { data, isLoading } = useSWR("/api/recent-activity", fetcher);
+    const { data, isLoading } = useSWR("/api/recent-activity");
     const items = (data?.items || []) as RecentItem[];
     const [navigatingId, setNavigatingId] = useState<string | null>(null);
     const router = useRouter();
