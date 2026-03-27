@@ -1,7 +1,36 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Bell, ShieldAlert, User, Moon, Sun, Settings, LogOut, CheckCircle, XCircle, AlertCircle, BellOff, CalendarClock, AlertTriangle, Globe, Trash2, ZoomIn, ZoomOut, RotateCcw, FileText, CheckSquare } from "lucide-react";
+import useSWR from "swr";
+import { 
+  X, 
+  Bell, 
+  ShieldAlert, 
+  User, 
+  Moon, 
+  Sun, 
+  Settings, 
+  LogOut, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  BellOff, 
+  CalendarClock, 
+  AlertTriangle, 
+  Globe, 
+  Trash2, 
+  ZoomIn, 
+  ZoomOut, 
+  RotateCcw, 
+  FileText, 
+  CheckSquare, 
+  Plus, 
+  Loader2,
+  Info,
+  Check,
+  Clock,
+  ExternalLink
+} from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -39,9 +68,96 @@ export default function SettingsModal() {
   const [aiAlerts, setAiAlerts] = useState(true);
   const [doNotDisturb, setDoNotDisturb] = useState(false);
   const [notificationSound, setNotificationSound] = useState("chime");
-  const [parentControlEnabled, setParentControlEnabled] = useState(false);
-  const [restrictedMode, setRestrictedMode] = useState(true);
-  const [usageLimit, setUsageLimit] = useState("unlimited");
+
+  // Parent control — live data from API
+  const { data: pcData, mutate: mutatePC } = useSWR(
+    activeTab === "parent_control" ? "/api/parent-control" : null
+  );
+  const pcEntries: { id: string; family_email: string; daily_target_hours: number | null; restricted_mode: boolean; control_enabled: boolean; report_time: string }[] = pcData?.entries || [];
+  const pcSettings = pcEntries[0] ?? null;
+
+  const [newFamilyEmail, setNewFamilyEmail] = useState("");
+  const [addingEmail, setAddingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [localTarget, setLocalTarget] = useState("unlimited");
+  const [customTarget, setCustomTarget] = useState("");
+  const [localControlEnabled, setLocalControlEnabled] = useState(true);
+  const [localRestrictedMode, setLocalRestrictedMode] = useState(true);
+  const [localReportTime, setLocalReportTime] = useState("20:00");
+  const [isCustomTime, setIsCustomTime] = useState(false);
+
+  useEffect(() => {
+    if (pcSettings) {
+      const target = pcSettings.daily_target_hours;
+      const presets = ["1", "3", "5", "8"];
+      if (target === null) {
+        setLocalTarget("unlimited");
+      } else if (presets.includes(String(target))) {
+        setLocalTarget(String(target));
+      } else {
+        setLocalTarget("custom");
+        setCustomTarget(String(target));
+      }
+      setLocalControlEnabled(pcSettings.control_enabled);
+      setLocalRestrictedMode(pcSettings.restricted_mode);
+      setLocalReportTime(pcSettings.report_time || "20:00");
+    }
+  }, [pcSettings]);
+
+  const handleAddFamilyEmail = async () => {
+    if (!newFamilyEmail.trim()) return;
+    setAddingEmail(true);
+    setEmailError("");
+    try {
+      const res = await fetch("/api/parent-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ family_email: newFamilyEmail.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setEmailError(json.error || "Failed to add email"); }
+      else { setNewFamilyEmail(""); mutatePC(); }
+    } catch { setEmailError("An error occurred."); }
+    finally { setAddingEmail(false); }
+  };
+
+  const handleRemoveFamilyEmail = async (id: string) => {
+    setRemovingId(id);
+    try {
+      await fetch("/api/parent-control", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      mutatePC();
+    } finally { setRemovingId(null); }
+  };
+
+  const handleSaveParentSettings = async () => {
+    setSavingSettings(true);
+    let target = null;
+    if (localTarget === "custom") {
+      target = parseFloat(customTarget) || 0;
+    } else if (localTarget !== "unlimited") {
+      target = parseFloat(localTarget);
+    }
+
+    try {
+      await fetch("/api/parent-control", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          daily_target_hours: target,
+          restricted_mode: localRestrictedMode,
+          control_enabled: localControlEnabled,
+          report_time: localReportTime,
+        }),
+      });
+      mutatePC();
+    } finally { setSavingSettings(false); }
+  };
 
   if (!isOpen) return null;
 
@@ -110,7 +226,7 @@ export default function SettingsModal() {
       />
 
       {/* Modal Container */}
-      <div className={`relative w-full h-full sm:h-[600px] sm:max-w-3xl flex flex-col sm:flex-row rounded-none sm:rounded-2xl shadow-2xl overflow-hidden transition-colors border-0 sm:border animate-in zoom-in-95 duration-200 ${
+      <div className={`relative w-full h-full sm:h-[600px] sm:max-w-3xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 sm:border animate-in zoom-in-95 duration-200 ${
         isDark ? "bg-[#1A1A1A] text-white border-[#3A3A3A]" : "bg-white text-[#252525] border-[#E8E5E0]"
       }`}>
 
@@ -151,8 +267,8 @@ export default function SettingsModal() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 scrollbar-hide">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 overscroll-contain">
             
             {activeTab === "general" && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
@@ -458,71 +574,259 @@ export default function SettingsModal() {
                     )}
                 </div>
               </div>
-            )}
+            )}            {activeTab === "parent_control" && (
+              <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
 
-            {activeTab === "parent_control" && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                {/* Master Controls */}
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold">Parental Control Mode</h3>
-                    <p className="text-xs text-[#7D7D7D]">Enable additional safety features and monitoring</p>
+                    <p className="text-xs text-[#7D7D7D]">Enable monitoring and safety features</p>
                   </div>
                   <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                    parentControlEnabled 
-                      ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                    localControlEnabled
+                      ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]"
                       : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                  }`} onClick={() => setParentControlEnabled(!parentControlEnabled)}>
+                  }`} onClick={() => setLocalControlEnabled(!localControlEnabled)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                        parentControlEnabled ? "right-1" : "left-1"
+                        localControlEnabled ? "right-1" : "left-1"
                       }`} />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-5 pt-6 border-t border-black/5 dark:border-white/5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-semibold">Restricted AI Content</h3>
-                            <p className="text-xs text-[#7D7D7D]">Filter AI responses for younger audiences</p>
-                        </div>
-                        <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                            restrictedMode 
-                                ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
-                                : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                            }`} onClick={() => setRestrictedMode(!restrictedMode)}>
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                                restrictedMode ? "right-1" : "left-1"
-                            }`} />
-                        </div>
-                    </div>
+                <div className="h-px bg-black/5 dark:bg-white/5" />
 
-                    <div className="flex flex-col gap-2">
-                        <h3 className="text-sm font-semibold">Daily Usage Limit</h3>
-                        <p className="text-xs text-[#7D7D7D] mb-1">Set maximum study time per day</p>
-                        <select 
-                            value={usageLimit}
-                            onChange={(e) => setUsageLimit(e.target.value)}
-                            className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
-                                ${isDark 
-                                ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]" 
-                                : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
-                            `}
+                {/* Family Members */}
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-1">Family Members</h3>
+                    <p className="text-xs text-[#7D7D7D]">These emails receive a daily study report every evening at 8 PM</p>
+                  </div>
+
+                  {/* Existing emails */}
+                  <div className="flex flex-col gap-2">
+                    {pcEntries.length === 0 && (
+                      <p className="text-xs text-[#BABABA] dark:text-[#545454] py-2 text-center">No family members added yet</p>
+                    )}
+                    {pcEntries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${
+                          isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-[#F7F7F8] border-[#E8E5E0]"
+                        }`}
+                      >
+                        <span className="text-sm truncate flex-1">{entry.family_email}</span>
+                        <button
+                          onClick={() => handleRemoveFamilyEmail(entry.id)}
+                          disabled={removingId === entry.id}
+                          className="ml-2 p-1 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
                         >
-                            <option value="unlimited">Unlimited</option>
-                            <option value="1">1 Hour</option>
-                            <option value="2">2 Hours</option>
-                            <option value="4">4 Hours</option>
-                        </select>
-                    </div>
+                          {removingId === entry.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <X className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
 
-                    <div className="pt-4 p-4 rounded-2xl bg-[#C2A27A]/10 border border-[#C2A27A]/20">
-                        <div className="flex items-center gap-2 mb-2 font-bold text-sm text-[#C2A27A]">
-                            <ShieldAlert size={16} /> Child Safety Information
-                        </div>
-                        <p className="text-[11px] leading-relaxed opacity-80">
-                            Enabling parent control allows you to monitor search history, restrict certain library items, and manage linked educational accounts. Changes require password confirmation.
-                        </p>
+                  {/* Add email input */}
+                  {pcEntries.length < 5 && (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={newFamilyEmail}
+                          onChange={(e) => { setNewFamilyEmail(e.target.value); setEmailError(""); }}
+                          onKeyDown={(e) => e.key === "Enter" && handleAddFamilyEmail()}
+                          placeholder="parent@example.com"
+                          className={`flex-1 px-3 py-2.5 rounded-xl border text-sm outline-none transition-all
+                            ${isDark
+                              ? "bg-[#252525] border-[#3A3A3A] text-white placeholder-[#545454] focus:border-[#545454]"
+                              : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] placeholder-[#BABABA] focus:border-[#D1D1D1]"}
+                          `}
+                        />
+                        <button
+                          onClick={handleAddFamilyEmail}
+                          disabled={addingEmail || !newFamilyEmail.trim()}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center gap-1.5 ${
+                            isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"
+                          } disabled:opacity-40`}
+                        >
+                          {addingEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                          Add
+                        </button>
+                      </div>
+                      {emailError && <p className="text-[11px] text-red-500">{emailError}</p>}
                     </div>
+                  )}
                 </div>
+
+                <div className="flex flex-col gap-4 pt-5 border-t border-black/5 dark:border-white/5">
+
+                  {/* Restricted AI */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold">Restricted AI Content</h3>
+                      <p className="text-xs text-[#7D7D7D]">Filter AI responses for younger audiences</p>
+                    </div>
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
+                      localRestrictedMode
+                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]"
+                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      }`} onClick={() => setLocalRestrictedMode(!localRestrictedMode)}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
+                        localRestrictedMode ? "right-1" : "left-1"
+                      }`} />
+                    </div>
+                  </div>
+
+                  {/* Daily Study Target */}
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold">Daily Study Target</h3>
+                    <p className="text-xs text-[#7D7D7D] mb-1">Set a minimum study time for your child — tracked in the Study Consistency graph</p>
+                    <div className="relative">
+                      {localTarget !== "custom" ? (
+                        <select
+                          value={localTarget}
+                          onChange={(e) => setLocalTarget(e.target.value)}
+                          className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
+                            ${isDark
+                              ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]"
+                              : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
+                          `}
+                        >
+                          <option value="unlimited">No target set</option>
+                          <option value="1">1 Hour</option>
+                          <option value="3">3 Hours</option>
+                          <option value="5">5 Hours</option>
+                          <option value="8">8 Hours</option>
+                          <option value="custom">Custom Goal</option>
+                        </select>
+                      ) : (
+                        <div className="flex items-stretch gap-6 sm:gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="flex-1 min-w-0 relative">
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0.5"
+                              max="24"
+                              value={customTarget}
+                              onChange={(e) => setCustomTarget(e.target.value)}
+                              placeholder="Enter hours (e.g. 2.5)"
+                              className={`w-full p-3 pr-16 rounded-xl border text-sm outline-none transition-all
+                                ${isDark
+                                  ? "bg-[#252525] border-[#3A3A3A] text-white focus:border-[#545454]"
+                                  : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] focus:border-[#D1D1D1]"}
+                              `}
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#7D7D7D] pointer-events-none">
+                              Hours
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setLocalTarget("unlimited")}
+                            className={`flex-shrink-0 px-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center
+                              ${isDark 
+                                ? "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10" 
+                                : "bg-black/5 border-black/5 text-black/70 hover:text-black hover:bg-black/10"}
+                            `}
+                            title="Reset to No Target"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Report Delivery Time */}
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold">Report Delivery Time</h3>
+                    <p className="text-xs text-[#7D7D7D] mb-1">Scheduled time for family reports (IST)</p>
+                    
+                    <div className="relative">
+                      {(!isCustomTime && localReportTime === "20:00") ? (
+                        <select
+                          value="default"
+                          onChange={(e) => {
+                            if (e.target.value === "custom") {
+                              setIsCustomTime(true);
+                            }
+                          }}
+                          className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
+                            ${isDark
+                              ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]"
+                              : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
+                          `}
+                        >
+                          <option value="default">Default (8:00 PM)</option>
+                          <option value="custom">Set Custom Time...</option>
+                        </select>
+                      ) : (
+                        <div className="flex items-stretch gap-6 sm:gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="time"
+                              value={localReportTime}
+                              onChange={(e) => setLocalReportTime(e.target.value)}
+                              onClick={(e) => (e.target as any).showPicker?.()}
+                              className={`w-full p-3 rounded-xl border text-sm outline-none transition-all cursor-pointer
+                                ${isDark
+                                  ? "bg-[#252525] border-[#3A3A3A] text-white focus:border-[#545454]"
+                                  : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] focus:border-[#D1D1D1]"}
+                              `}
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              setLocalReportTime("20:00");
+                              setIsCustomTime(false);
+                            }}
+                            className={`flex-shrink-0 px-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center
+                              ${isDark 
+                                ? "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10" 
+                                : "bg-black/5 border-black/5 text-black/70 hover:text-black hover:bg-black/10"}
+                            `}
+                            title="Reset to 8:00 PM Default"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Save Settings Button */}
+                  <button
+                    onClick={handleSaveParentSettings}
+                    disabled={savingSettings}
+                    className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                      isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"
+                    }`}
+                  >
+                    {savingSettings && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Save Settings
+                  </button>
+
+                  {/* Info box */}
+                  <div className="mt-4 p-4 rounded-2xl bg-[#C2A27A]/10 border border-[#C2A27A]/20">
+                    <div className="flex items-center gap-2 mb-2 font-bold text-sm text-[#C2A27A]">
+                      <ShieldAlert size={16} /> How it works
+                    </div>
+                    <p className="text-[11px] leading-relaxed opacity-80">
+                      Every day at {
+                        (() => {
+                          const [h, m] = localReportTime.split(":");
+                          const hour = parseInt(h);
+                          const ampm = hour >= 12 ? "PM" : "AM";
+                          const displayHour = hour % 12 || 12;
+                          return `${displayHour}:${m} ${ampm}`;
+                        })()
+                      }, added family members receive an email with your child's study performance summary.
+                    </p>
+                  </div>
+                </div>
+
               </div>
             )}
 

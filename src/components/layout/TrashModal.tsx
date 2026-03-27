@@ -35,7 +35,7 @@ export default function TrashModal({ isOpen, onClose }: TrashModalProps) {
       />
 
       {/* Modal Container - Matched size and style with SettingsModal */}
-      <div className={`relative w-full h-full sm:h-[600px] sm:max-w-3xl flex flex-col sm:flex-row rounded-none sm:rounded-2xl shadow-2xl overflow-hidden transition-colors border-0 sm:border animate-in zoom-in-95 duration-200 ${
+      <div className={`relative w-full h-full sm:h-[600px] sm:max-w-3xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl shadow-2xl overflow-hidden transition-colors border-0 sm:border animate-in zoom-in-95 duration-200 ${
         isDark ? "bg-[#1A1A1A] text-white border-[#3A3A3A]" : "bg-white text-[#252525] border-[#E8E5E0]"
       }`}>
         

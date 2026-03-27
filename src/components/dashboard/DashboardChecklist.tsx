@@ -334,7 +334,8 @@ export default function DashboardChecklist() {
                                     type="time"
                                     value={form.time}
                                     onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
-                                    className="w-full px-3 py-2.5 rounded-xl border border-[#E8E5E0] dark:border-[#545454] bg-white dark:bg-[#1A1A1A] text-[#252525] dark:text-white text-sm outline-none focus:ring-1 focus:ring-[#C2A27A]/30 transition-colors [&::-webkit-datetime-edit-ampm-field]:hidden"
+                                    onClick={(e) => (e.target as any).showPicker?.()}
+                                    className="w-full px-3 py-2.5 rounded-xl border border-[#E8E5E0] dark:border-[#545454] bg-white dark:bg-[#1A1A1A] text-[#252525] dark:text-white text-sm outline-none focus:ring-1 focus:ring-[#C2A27A]/30 transition-colors cursor-pointer [&::-webkit-datetime-edit-ampm-field]:hidden"
                                 />
                             </div>
 
