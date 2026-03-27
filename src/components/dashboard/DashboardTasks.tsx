@@ -1,22 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Plus, CheckCircle2, Circle, Trash2, CalendarDays, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Plus, CheckCircle2, Circle, Trash2, CalendarDays, ChevronDown, ArrowRight } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { format } from "date-fns";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import useSWR from "swr";
-
-
-interface Task {
-    id: string;
-    title: string;
-    status: string;
-    due_date?: string | null;
-    project_id?: string | null;
-    linked_document_id?: string | null;
-    [key: string]: unknown;
-}
 
 export default function DashboardTasks() {
     const { theme } = useTheme();
@@ -38,7 +27,6 @@ export default function DashboardTasks() {
     const workspaces = workspacesData?.workspaces || [];
     const notes = notesData?.notes || [];
     const isLoading = tasksLoading && !tasksData;
-    const isMetadataLoading = projectsLoading || workspacesLoading || notesLoading;
 
     useEffect(() => {
         const handleTaskUpdated = () => {
@@ -134,36 +122,38 @@ export default function DashboardTasks() {
     };
 
     // Filter for tasks based on range
-    const displayTasks = tasks.filter(t => {
-        if (t.status === "done" || t.status === "archived") return false;
-        if (!t.due_date) return false;
+    const displayTasks = useMemo(() => {
+        return tasks.filter(t => {
+            if (t.status === "done" || t.status === "archived") return false;
+            if (!t.due_date) return false;
 
-        const dueDate = new Date(t.due_date);
-        const today = new Date();
-        const maxDate = new Date();
+            const dueDate = new Date(t.due_date);
+            const today = new Date();
+            const maxDate = new Date();
 
-        today.setHours(0, 0, 0, 0);
-        dueDate.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0);
+            dueDate.setHours(0, 0, 0, 0);
 
-        if (filterRange === "today") {
-            return dueDate.toDateString() === today.toDateString();
-        } else if (filterRange === "overdue") {
-            return dueDate.getTime() < today.getTime();
-        } else if (filterRange === "1week") {
-            maxDate.setDate(today.getDate() + 7);
-        } else if (filterRange === "2weeks") {
-            maxDate.setDate(today.getDate() + 14);
-        } else if (filterRange === "1month") {
-            maxDate.setMonth(today.getMonth() + 1);
-        }
+            if (filterRange === "today") {
+                return dueDate.toDateString() === today.toDateString();
+            } else if (filterRange === "overdue") {
+                return dueDate.getTime() < today.getTime();
+            } else if (filterRange === "1week") {
+                maxDate.setDate(today.getDate() + 7);
+            } else if (filterRange === "2weeks") {
+                maxDate.setDate(today.getDate() + 14);
+            } else if (filterRange === "1month") {
+                maxDate.setMonth(today.getMonth() + 1);
+            }
 
-        maxDate.setHours(23, 59, 59, 999);
-        return dueDate.getTime() >= today.getTime() && dueDate.getTime() <= maxDate.getTime();
-    }).sort((a, b) => {
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    }).slice(0, 8);
+            maxDate.setHours(23, 59, 59, 999);
+            return dueDate.getTime() >= today.getTime() && dueDate.getTime() <= maxDate.getTime();
+        }).sort((a, b) => {
+            if (!a.due_date) return 1;
+            if (!b.due_date) return -1;
+            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        });
+    }, [tasks, filterRange]);
 
     const getTitle = () => {
         switch (filterRange) {
@@ -178,11 +168,13 @@ export default function DashboardTasks() {
 
     return (
         <>
-            <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm transition-all duration-200 sm:h-full flex flex-col group/card ${isDark
-                ? "hover:bg-white/10 hover:border-[#444]"
-                : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
-                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
-                <div className="flex items-center justify-between mb-4 gap-2">
+            <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 flex flex-col group/card relative
+                ${displayTasks.length > 5 ? "min-h-[220px] max-h-[365px]" : "h-auto"}
+                ${isDark ? "hover:bg-white/10 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
+                shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
+            `}>
+                {/* Header - Fixed */}
+                <div className="p-4 sm:p-5 flex items-center justify-between gap-2 border-b border-[#E8E5E0] dark:border-[#383838]">
                     <div className="flex items-center gap-2 min-w-0">
                         <CalendarDays className="w-5 h-5 text-[#252525] dark:text-white shrink-0" />
                         <h2 className="text-lg font-bold text-[#252525] dark:text-white truncate">
@@ -206,8 +198,14 @@ export default function DashboardTasks() {
                     </div>
                 </div>
 
-                {/* Task List */}
-                <div className="sm:flex-1 overflow-y-auto space-y-2 sm:min-h-[120px] pr-0.5">
+                {/* Task List - Scrollable */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 pb-12 space-y-2
+                    [&::-webkit-scrollbar]:w-[2px] 
+                    [&::-webkit-scrollbar-track]:bg-transparent 
+                    [&::-webkit-scrollbar-thumb]:bg-[#D1CEC8] dark:[&::-webkit-scrollbar-thumb]:bg-[#444]
+                    [&::-webkit-scrollbar-thumb]:rounded-full
+                    custom-scrollbar-alt
+                ">
                     {isLoading ? (
                         Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-[#E8E5E0] dark:border-[#3C3C3C] bg-white/80 backdrop-blur-md dark:bg-[#252525] animate-pulse">
@@ -220,7 +218,7 @@ export default function DashboardTasks() {
                             </div>
                         ))
                     ) : displayTasks.length === 0 ? (
-                        <div className="text-center py-4 px-4">
+                        <div className="text-center py-8">
                             <p className="text-sm text-[#545454] dark:text-[#7D7D7D]">
                                 {filterRange === "today" ? "All caught up for today! 🎉" :
                                  filterRange === "overdue" ? "No overdue tasks! Great job! 🙌" : 
@@ -228,13 +226,14 @@ export default function DashboardTasks() {
                             </p>
                         </div>
                     ) : (
-                        displayTasks.map((task) => (
+                        displayTasks.slice(0, 15).map((task) => (
                             <TaskRow
                                 key={task.id}
                                 task={task}
                                 projects={projects}
                                 workspaces={workspaces}
                                 notes={notes}
+                                isDark={isDark}
                                 setSelectedTask={setSelectedTask}
                                 toggleTaskStatus={toggleTaskStatus}
                                 deleteTask={deleteTask}
@@ -243,9 +242,17 @@ export default function DashboardTasks() {
                     )}
                 </div>
 
+                {/* Scroll Indicator */}
+                {displayTasks.length > 5 && (
+                    <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none z-20">
+                        <div className={`p-1 rounded-full ${isDark ? "bg-[#252525]/90 text-white" : "bg-white/80 text-[#252525]"} backdrop-blur-md shadow-lg border border-white/10 dark:border-white/5`}>
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Shared Task Detail Modal (re-used from tasks page) */}
+            {/* Shared Task Detail Modal */}
             <TaskDetailModal
                 onClose={() => setSelectedTask(null)}
                 task={selectedTask}
@@ -253,7 +260,6 @@ export default function DashboardTasks() {
                 notes={notes}
                 workspaces={workspaces}
                 onTaskUpdated={handleTaskUpdated}
-            // Instead of onDelete, the UI in DashboardTasks handles deletion before even opening the modal.
             />
         </>
     );
@@ -264,12 +270,13 @@ interface TaskRowProps {
     projects: any[];
     workspaces: any[];
     notes: any[];
+    isDark: boolean;
     setSelectedTask: (task: Task) => void;
     toggleTaskStatus: (task: Task, e?: React.SyntheticEvent) => void;
     deleteTask: (taskId: string, e?: React.SyntheticEvent) => void;
 }
 
-function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTaskStatus, deleteTask }: TaskRowProps) {
+function TaskRow({ task, projects, workspaces, notes, isDark, setSelectedTask, toggleTaskStatus, deleteTask }: TaskRowProps) {
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
     const [swipeOffset, setSwipeOffset] = useState(0);
 
@@ -282,24 +289,23 @@ function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTas
     })() : null;
 
     return (
-        <div className="relative rounded-xl overflow-hidden touch-pan-y group">
+        <div className="relative rounded-xl overflow-hidden touch-pan-y group/item-container">
             {/* Background actions revealed by swipe */}
-            <div className="absolute inset-0 flex items-center justify-between text-white font-medium text-xs">
-                {/* Background for Complete (Swipe Right -> reveals left) */}
-                <div className={`absolute inset-y-0 left-0 flex items-center justify-start px-4 w-1/2 transition-opacity duration-200 ${swipeOffset > 20 ? "opacity-100 bg-[#C2A27A]" : "opacity-0 bg-[#C2A27A]/80"}`}>
+            <div className="absolute inset-0 flex items-center justify-start text-white font-medium text-xs">
+                {/* Background for Complete (Swipe Right) */}
+                <div className={`absolute inset-y-0 left-0 flex items-center justify-start px-4 w-full transition-opacity duration-200 ${swipeOffset > 20 ? "opacity-100 bg-[#C2A27A]" : "opacity-0 bg-[#C2A27A]/80"}`}>
                     <CheckCircle2 className="w-5 h-5 text-white" />
-                </div>
-                {/* Background for Delete (Swipe Left -> reveals right) */}
-                <div className={`absolute inset-y-0 right-0 flex items-center justify-end px-4 w-1/2 transition-opacity duration-200 ${swipeOffset < -20 ? "opacity-100 bg-red-500" : "opacity-0 bg-red-400"}`}>
-                    <Trash2 className="w-5 h-5 text-white" />
                 </div>
             </div>
 
             {/* Foreground Card */}
             <div
-                className={`relative z-10 flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all cursor-pointer shadow-sm
+                className={`relative z-10 flex items-center justify-between px-3 py-2 rounded-xl transition-all cursor-pointer
                     ${swipeOffset === 0 ? "transition-transform duration-300 ease-out" : ""}
-                    bg-white/80 backdrop-blur-md dark:bg-white/5 border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444]
+                    ${isDark
+                        ? "bg-[#1A1A1A] text-white hover:bg-[#333]"
+                        : "bg-[#F5F3EF] text-[#252525] hover:bg-[#E8E5E0]"
+                    }
                 `}
                 style={{ transform: `translateX(${swipeOffset}px)` }}
                 onClick={() => {
@@ -316,8 +322,8 @@ function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTas
                     const deltaX = e.touches[0].clientX - touchStartRef.current.x;
                     const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
 
-                    if (deltaY < 30 && Math.abs(deltaX) > 10) {
-                        setSwipeOffset(Math.max(-100, Math.min(100, deltaX)));
+                    if (deltaY < 30 && deltaX > 10) {
+                        setSwipeOffset(Math.max(0, Math.min(100, deltaX)));
                     }
                 }}
                 onTouchEnd={(e) => {
@@ -326,13 +332,7 @@ function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTas
                         return;
                     }
 
-                    if (swipeOffset < -60) {
-                        if (window.confirm("Are you sure you want to delete this task?")) {
-                            deleteTask(task.id, e);
-                        } else {
-                            setSwipeOffset(0);
-                        }
-                    } else if (swipeOffset > 60) {
+                    if (swipeOffset > 60) {
                         toggleTaskStatus(task, e);
                         setSwipeOffset(0);
                     } else {
@@ -341,25 +341,25 @@ function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTas
                     touchStartRef.current = null;
                 }}
             >
-                <div className="flex items-center gap-3 overflow-hidden">
+                <div className="flex items-center gap-3 overflow-hidden w-full">
                     <button
                         type="button"
                         onClick={(e) => toggleTaskStatus(task, e)}
-                        className="text-[#CFCFCF] dark:text-[#545454] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors flex-shrink-0"
+                        className={`transition-colors flex-shrink-0 ${task.status === "done" ? "text-green-500" : "text-[#CFCFCF] dark:text-[#545454] hover:text-[#252525] dark:hover:text-[#CFCFCF]"}`}
                     >
                         {task.status === "done" ? (
-                            <CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" />
+                            <CheckCircle2 className="w-5 h-5" />
                         ) : (
                             <Circle className="w-5 h-5" />
                         )}
                     </button>
                     <div className="flex flex-col min-w-0">
-                        <span className={`text-sm font-medium truncate ${task.status === "done" ? "text-gray-400 line-through" : "text-[#252525] dark:text-[#CFCFCF]"}`}>
+                        <span className={`text-sm font-medium truncate ${task.status === "done" ? "line-through opacity-50" : ""}`}>
                             {task.title}
                         </span>
                         <div className="flex items-center gap-2 mt-0.5">
                             {workspaceName && (
-                                <span className="text-[10px] text-[#C2A27A] dark:text-[#D4AF37] font-semibold truncate bg-[#C2A27A]/10 dark:bg-white/5 px-1.5 py-0.5 rounded-md">
+                                <span className={`text-[10px] font-semibold truncate px-1.5 py-0.5 rounded-md ${isDark ? "text-[#D4AF37] bg-white/5" : "text-[#C2A27A] bg-[#C2A27A]/10"}`}>
                                     {workspaceName}
                                 </span>
                             )}
@@ -372,21 +372,19 @@ function TaskRow({ task, projects, workspaces, notes, setSelectedTask, toggleTas
                     </div>
                 </div>
 
-                {/* Delete button appears on hover (hidden on mobile to prevent accidental clicks) */}
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm("Are you sure you want to delete this task?")) {
-                            deleteTask(task.id, e);
-                        }
-                    }}
-                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-2 text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#CFCFCF] hover:bg-[#F0EDE8] dark:hover:bg-[#333] rounded-lg transition-all flex-shrink-0 hidden md:block"
-                    title="Delete task"
-                >
-                    <Trash2 size={16} />
-                </button>
+                {/* Arrow indicator (optional, to match Suggestions) */}
+                <ArrowRight className="w-3.5 h-3.5 shrink-0 opacity-40 group-hover/item-container:opacity-100" />
             </div>
         </div>
     );
+}
+
+interface Task {
+    id: string;
+    title: string;
+    status: string;
+    due_date?: string | null;
+    project_id?: string | null;
+    linked_document_id?: string | null;
+    [key: string]: unknown;
 }

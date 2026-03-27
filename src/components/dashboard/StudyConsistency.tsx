@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Calendar, Loader2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { format, eachDayOfInterval, startOfYear, endOfYear, getDay, isSameDay, subDays, differenceInCalendarDays, startOfDay } from 'date-fns';
 import useSWR from "swr";
@@ -220,20 +220,24 @@ export default function StudyConsistency() {
     };
 
     return (
-        <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 sm:p-6 shadow-sm transition-all duration-200 relative group/card ${isDark
-            ? "hover:bg-white/10 hover:border-[#444]"
-            : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
-            } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
-            <div className="flex items-center justify-between mb-6 gap-2">
-                <h3 className="font-bold text-lg text-[#252525] dark:text-white transition-colors">
-                    Study Consistency
-                </h3>
+        <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 relative group/card mb-4 md:mb-0
+            ${isDark ? "hover:bg-white/10 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
+            shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
+        `}>
+            {/* Header - Standardized */}
+            <div className="p-4 sm:p-5 flex items-center justify-between gap-2 border-b border-[#E8E5E0] dark:border-[#383838] mb-4 sm:mb-6">
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#252525] dark:text-white" />
+                    <h3 className="font-bold text-lg text-[#252525] dark:text-white">
+                        Study Consistency
+                    </h3>
+                </div>
 
                 <div className="relative shrink-0">
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(Number(e.target.value))}
-                        className="appearance-none bg-[#F5F3EF] dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#545454] rounded-xl px-3 py-1.5 pr-8 text-xs font-semibold text-[#252525] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C2A27A]/30 cursor-pointer shadow-sm hover:bg-[#E8E5E0] dark:hover:bg-[#333] transition-colors"
+                        className="appearance-none bg-[#F0EDE8] dark:bg-[#383838] hover:bg-[#E8E5E0] dark:hover:bg-[#444] text-xs font-semibold text-[#252525] dark:text-[#CFCFCF] pl-3 pr-7 py-1.5 rounded-full border-none focus:ring-1 focus:ring-[#C2A27A]/30 cursor-pointer transition-colors outline-none shadow-sm"
                     >
                         {years.map(y => (
                             <option key={y} value={y}>{y}</option>
@@ -242,6 +246,8 @@ export default function StudyConsistency() {
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7D7D7D] pointer-events-none" />
                 </div>
             </div>
+
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6">
 
             {isLoading ? (
                 <div className="flex flex-col animate-pulse">
@@ -389,6 +395,7 @@ export default function StudyConsistency() {
                     <div className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[#252525] dark:border-t-[#1A1A1A]"></div>
                 </div>
             )}
+            </div>
         </div>
     );
 }

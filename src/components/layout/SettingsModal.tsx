@@ -11,7 +11,7 @@ import { useLanguage, LanguageCode } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { translations } from "@/utils/translations";
 
-type Tab = "general" | "notifications" | "data" | "account";
+type Tab = "general" | "notifications" | "data" | "account" | "parent_control";
 
 export default function SettingsModal() {
   const { isOpen, closeSettings, initialTab } = useSettings();
@@ -39,6 +39,9 @@ export default function SettingsModal() {
   const [aiAlerts, setAiAlerts] = useState(true);
   const [doNotDisturb, setDoNotDisturb] = useState(false);
   const [notificationSound, setNotificationSound] = useState("chime");
+  const [parentControlEnabled, setParentControlEnabled] = useState(false);
+  const [restrictedMode, setRestrictedMode] = useState(true);
+  const [usageLimit, setUsageLimit] = useState("unlimited");
 
   if (!isOpen) return null;
 
@@ -47,6 +50,7 @@ export default function SettingsModal() {
     { id: "notifications", label: translations[language].notifications, icon: Bell },
     { id: "data", label: translations[language].data_controls, icon: Globe },
     { id: "account", label: translations[language].account, icon: User },
+    { id: "parent_control", label: translations[language].parent_control, icon: ShieldAlert },
   ];
 
   const statusConfig = {
@@ -456,18 +460,76 @@ export default function SettingsModal() {
               </div>
             )}
 
+            {activeTab === "parent_control" && (
+              <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold">Parental Control Mode</h3>
+                    <p className="text-xs text-[#7D7D7D]">Enable additional safety features and monitoring</p>
+                  </div>
+                  <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
+                    parentControlEnabled 
+                      ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                  }`} onClick={() => setParentControlEnabled(!parentControlEnabled)}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
+                        parentControlEnabled ? "right-1" : "left-1"
+                      }`} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-5 pt-6 border-t border-black/5 dark:border-white/5">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-sm font-semibold">Restricted AI Content</h3>
+                            <p className="text-xs text-[#7D7D7D]">Filter AI responses for younger audiences</p>
+                        </div>
+                        <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
+                            restrictedMode 
+                                ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                                : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                            }`} onClick={() => setRestrictedMode(!restrictedMode)}>
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
+                                restrictedMode ? "right-1" : "left-1"
+                            }`} />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <h3 className="text-sm font-semibold">Daily Usage Limit</h3>
+                        <p className="text-xs text-[#7D7D7D] mb-1">Set maximum study time per day</p>
+                        <select 
+                            value={usageLimit}
+                            onChange={(e) => setUsageLimit(e.target.value)}
+                            className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
+                                ${isDark 
+                                ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]" 
+                                : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
+                            `}
+                        >
+                            <option value="unlimited">Unlimited</option>
+                            <option value="1">1 Hour</option>
+                            <option value="2">2 Hours</option>
+                            <option value="4">4 Hours</option>
+                        </select>
+                    </div>
+
+                    <div className="pt-4 p-4 rounded-2xl bg-[#C2A27A]/10 border border-[#C2A27A]/20">
+                        <div className="flex items-center gap-2 mb-2 font-bold text-sm text-[#C2A27A]">
+                            <ShieldAlert size={16} /> Child Safety Information
+                        </div>
+                        <p className="text-[11px] leading-relaxed opacity-80">
+                            Enabling parent control allows you to monitor search history, restrict certain library items, and manage linked educational accounts. Changes require password confirmation.
+                        </p>
+                    </div>
+                </div>
+              </div>
+            )}
+
 
           </div>
 
-          {/* Footer logout - ChatGPT style */}
-          <div className="mt-auto px-6 py-4 border-t border-black/5 dark:border-white/5 sm:hidden">
-              <button 
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-red-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20"
-              >
-                  <LogOut size={16} /> {translations[language].logout}
-              </button>
-          </div>
+          {/* Footer logout - ChatGPT style removed per user request */}
         </div>
       </div>
     </div>

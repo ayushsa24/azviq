@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
     Plus, Trash2, ListTodo, Clock, X,
-    CheckCircle2, Circle, AlarmClock, RotateCcw, Loader2
+    CheckCircle2, Circle, AlarmClock, RotateCcw, Loader2,
+    ChevronDown, ArrowRight
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -186,12 +187,13 @@ export default function DashboardChecklist() {
 
     return (
         <>
-            <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm transition-all duration-200 sm:h-full flex flex-col group/card ${isDark
-                ? "hover:bg-white/10 hover:border-[#444]"
-                : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
-                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}>
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
+            <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 flex flex-col group/card relative
+                ${(pending.length + (done.length > 0 ? done.length + 1 : 0)) > 5 ? "min-h-[220px] max-h-[365px]" : "h-auto"}
+                ${isDark ? "hover:bg-white/10 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
+                shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
+            `}>
+                {/* Header - Fixed */}
+                <div className="p-4 sm:p-5 flex items-center justify-between gap-2 border-b border-[#E8E5E0] dark:border-[#383838]">
                     <div className="flex items-center gap-2">
                         <ListTodo className="w-5 h-5 text-[#252525] dark:text-white" />
                         <h2 className="text-lg font-bold text-[#252525] dark:text-white">To-Do</h2>
@@ -218,26 +220,29 @@ export default function DashboardChecklist() {
                     </div>
                 </div>
 
-                {/* List */}
-                <div className="sm:flex-1 overflow-y-auto space-y-1.5 sm:min-h-[120px] pr-0.5">
+                {/* List - Scrollable */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 pb-12 space-y-1.5
+                    [&::-webkit-scrollbar]:w-[2px] 
+                    [&::-webkit-scrollbar-track]:bg-transparent 
+                    [&::-webkit-scrollbar-thumb]:bg-[#D1CEC8] dark:[&::-webkit-scrollbar-thumb]:bg-[#444]
+                    [&::-webkit-scrollbar-thumb]:rounded-full
+                    custom-scrollbar-alt
+                ">
                     {isLoading ? (
                         <div className="space-y-1.5">
                             {[1, 2, 3].map((i) => (
                                 <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-[#E8E5E0] dark:border-[#3C3C3C] bg-white/80 backdrop-blur-md dark:bg-[#252525] animate-pulse">
-                                    {/* Checkbox circle */}
                                     <div className="w-4 h-4 rounded-full bg-[#E8E5E0] dark:bg-[#383838] flex-shrink-0" />
-                                    {/* Text lines */}
                                     <div className="flex-1 space-y-1.5">
                                         <div className={`h-3 rounded-full bg-[#E8E5E0] dark:bg-[#383838] ${i === 1 ? "w-3/4" : i === 2 ? "w-1/2" : "w-2/3"}`} />
                                         <div className="h-2 rounded-full bg-[#F0EDE8] dark:bg-[#2C2C2C] w-1/3" />
                                     </div>
-                                    {/* Trash placeholder */}
                                     <div className="w-5 h-5 rounded bg-[#F0EDE8] dark:bg-[#2C2C2C] flex-shrink-0" />
                                 </div>
                             ))}
                         </div>
                     ) : visibleItems.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full py-6 gap-2">
+                        <div className="flex flex-col items-center justify-center py-8 gap-2">
                             <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
                                 <ListTodo className="w-5 h-5 text-[#7D7D7D] dark:text-[#BABABA]" />
                             </div>
@@ -246,17 +251,17 @@ export default function DashboardChecklist() {
                     ) : (
                         <>
                             {pending.map(item => (
-                                <TodoRow key={item.id} item={item} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
+                                <TodoRow key={item.id} item={item} isDark={isDark} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
                             ))}
                             {done.length > 0 && (
                                 <>
-                                    <div className="flex items-center gap-2 pt-1 pb-0.5">
+                                    <div className="flex items-center gap-2 pt-2 pb-1">
                                         <div className="h-px flex-1 bg-[#E8E5E0] dark:bg-[#383838]" />
-                                        <span className="text-[10px] text-[#BABABA] font-medium">Completed {done.length}</span>
+                                        <span className="text-[10px] text-[#7D7D7D] dark:text-[#BABABA] font-bold uppercase tracking-wider">Completed {done.length}</span>
                                         <div className="h-px flex-1 bg-[#E8E5E0] dark:bg-[#383838]" />
                                     </div>
                                     {done.map(item => (
-                                        <TodoRow key={item.id} item={item} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
+                                        <TodoRow key={item.id} item={item} isDark={isDark} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
                                     ))}
                                 </>
                             )}
@@ -264,17 +269,28 @@ export default function DashboardChecklist() {
                     )}
                 </div>
 
+                {/* Scroll Indicator */}
+                {(pending.length + (done.length > 0 ? done.length + 1 : 0)) > 5 && (
+                    <div className="absolute bottom-11 left-0 right-0 flex justify-center pointer-events-none z-20">
+                        <div className={`p-1 rounded-full ${isDark ? "bg-[#252525]/90 text-white" : "bg-white/80 text-[#252525]"} backdrop-blur-md shadow-lg border border-white/10 dark:border-white/5`}>
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </div>
+                )}
+
                 {/* Bottom quick-add strip */}
-                <button
-                    onClick={openAdd}
-                    className="mt-2 sm:mt-3 w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[#D1CEC8] dark:border-[#444] text-[#BABABA] dark:text-[#7D7D7D] hover:border-[#7D7D7D] dark:hover:border-[#BABABA] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors text-xs"
-                >
-                    <Plus size={13} />
-                    <span>Add to-do item…</span>
-                </button>
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2">
+                    <button
+                        onClick={openAdd}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[#D1CEC8] dark:border-[#444] text-[#BABABA] dark:text-[#7D7D7D] hover:border-[#7D7D7D] dark:hover:border-[#BABABA] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors text-xs"
+                    >
+                        <Plus size={13} />
+                        <span>Add to-do item…</span>
+                    </button>
+                </div>
             </div>
 
-            {/* ─── Modal ─── */}
+            {/* Modal - Same as before */}
             {showModal && (
                 <div
                     className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
@@ -404,8 +420,9 @@ export default function DashboardChecklist() {
     );
 }
 
-function TodoRow({ item, onToggle, onEdit, onDelete }: {
+function TodoRow({ item, isDark, onToggle, onEdit, onDelete }: {
     item: TodoItem;
+    isDark: boolean;
     onToggle: (id: string, current: boolean) => void;
     onEdit: (item: TodoItem) => void;
     onDelete: (id: string) => void;
@@ -414,27 +431,24 @@ function TodoRow({ item, onToggle, onEdit, onDelete }: {
     const [swipeOffset, setSwipeOffset] = useState(0);
 
     return (
-        <div className="relative rounded-xl overflow-hidden touch-pan-y group">
+        <div className="relative rounded-xl overflow-hidden touch-pan-y group/item-container">
             {/* Background actions revealed by swipe */}
             <div className="absolute inset-0 flex items-center justify-between text-white font-medium text-xs">
                 {/* Background for Complete (Swipe Right -> reveals left) */}
-                <div className={`absolute inset-y-0 left-0 flex items-center justify-start px-4 w-1/2 transition-opacity duration-200 ${swipeOffset > 20 ? "opacity-100 bg-[#C2A27A]" : "opacity-0 bg-[#C2A27A]/80"}`}>
+                <div className={`absolute inset-y-0 left-0 flex items-center justify-start px-4 w-full transition-opacity duration-200 ${swipeOffset > 20 ? "opacity-100 bg-[#C2A27A]" : "opacity-0 bg-[#C2A27A]/80"}`}>
                     <CheckCircle2 className="w-5 h-5 text-white" />
-                </div>
-                {/* Background for Delete (Swipe Left -> reveals right) */}
-                <div className={`absolute inset-y-0 right-0 flex items-center justify-end px-4 w-1/2 transition-opacity duration-200 ${swipeOffset < -20 ? "opacity-100 bg-red-500" : "opacity-0 bg-red-400"}`}>
-                    <Trash2 className="w-5 h-5 text-white" />
                 </div>
             </div>
 
             {/* Foreground Card */}
             <div
-                className={`relative z-10 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all cursor-pointer shadow-sm
+                className={`relative z-10 flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all cursor-pointer shadow-sm
                     ${swipeOffset === 0 ? "transition-transform duration-300 ease-out" : ""}
-                    ${item.done
-                        ? "bg-[#F9F8F6] dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#333] opacity-60"
-                        : "bg-white dark:bg-[#252525] border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md"
-                    }`}
+                    ${isDark
+                        ? "bg-[#1A1A1A] text-white hover:bg-[#333]"
+                        : "bg-[#F5F3EF] text-[#252525] hover:bg-[#E8E5E0]"
+                    }
+                `}
                 style={{
                     transform: `translateX(${swipeOffset}px)`
                 }}
@@ -452,9 +466,8 @@ function TodoRow({ item, onToggle, onEdit, onDelete }: {
                     const deltaX = e.touches[0].clientX - touchStartRef.current.x;
                     const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
 
-                    if (deltaY < 30 && Math.abs(deltaX) > 10) {
-                        // Limit max swipe amount
-                        setSwipeOffset(Math.max(-100, Math.min(100, deltaX)));
+                    if (deltaY < 30 && deltaX > 10) {
+                        setSwipeOffset(Math.max(0, Math.min(100, deltaX)));
                     }
                 }}
                 onTouchEnd={(e) => {
@@ -463,13 +476,7 @@ function TodoRow({ item, onToggle, onEdit, onDelete }: {
                         return;
                     }
 
-                    if (swipeOffset < -60) {
-                        if (window.confirm("Are you sure you want to delete this to-do item?")) {
-                            onDelete(item.id);
-                        } else {
-                            setSwipeOffset(0);
-                        }
-                    } else if (swipeOffset > 60) {
+                    if (swipeOffset > 60) {
                         onToggle(item.id, item.done);
                         setSwipeOffset(0);
                     } else {
@@ -481,43 +488,32 @@ function TodoRow({ item, onToggle, onEdit, onDelete }: {
                 {/* Checkbox */}
                 <button
                     onClick={e => { e.stopPropagation(); onToggle(item.id, item.done); }}
-                    className="flex-shrink-0 text-[#CFCFCF] dark:text-[#545454] hover:text-[#252525] dark:hover:text-[#CFCFCF] transition-colors"
+                    className={`flex-shrink-0 transition-colors ${item.done ? "text-green-500" : "text-[#CFCFCF] dark:text-[#545454] hover:text-white"}`}
                 >
                     {item.done
-                        ? <CheckCircle2 className="w-4 h-4 text-[#545454] dark:text-[#BABABA]" />
-                        : <Circle className="w-4 h-4" />
+                        ? <CheckCircle2 className="w-5 h-5" />
+                        : <Circle className="w-5 h-5" />
                     }
                 </button>
 
                 {/* Text + meta */}
                 <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium truncate ${item.done ? "line-through text-[#BABABA]" : "text-[#252525] dark:text-[#CFCFCF]"}`}>
+                    <span className={`flex-1 text-sm font-medium truncate pr-2 ${item.done ? "line-through text-[#7D7D7D] dark:text-[#BABABA]/80 opacity-60" : "text-[#252525] dark:text-white"}`}>
                         {item.title}
-                    </p>
+                    </span>
                     <div className="flex items-center gap-2 mt-0.5">
                         {item.time && (
-                            <span className="flex items-center gap-0.5 text-[10px] text-[#7D7D7D] dark:text-[#BABABA]">
+                            <span className={`flex items-center gap-0.5 text-[10px] ${item.done ? "opacity-40" : (isDark ? "text-[#BABABA]" : "text-[#7D7D7D]")}`}>
                                 <Clock className="w-2.5 h-2.5" />{item.time}
                             </span>
                         )}
-                        <span className="text-[10px] text-[#BABABA] dark:text-[#545454]">
+                        <span className={`text-[10px] ${item.done ? "opacity-40" : (isDark ? "text-[#545454]" : "text-[#BABABA]")}`}>
                             {REPEAT_LABELS[item.repeat]}
                         </span>
                     </div>
                 </div>
 
-                {/* Delete (only visible on desktop hover) */}
-                <button
-                    onClick={e => {
-                        e.stopPropagation();
-                        if (window.confirm("Are you sure you want to delete this to-do item?")) {
-                            onDelete(item.id);
-                        }
-                    }}
-                    className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-[#7D7D7D] hover:text-[#252525] dark:hover:text-[#BABABA] transition-all flex-shrink-0 hidden md:block"
-                >
-                    <Trash2 size={13} />
-                </button>
+                <ArrowRight className="w-3.5 h-3.5 shrink-0 opacity-40 group-hover/item-container:opacity-100" />
             </div>
         </div>
     );

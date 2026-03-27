@@ -20,6 +20,7 @@ export const translations = {
     user_info: "User Info",
     active: "Active",
     enable: "Enable",
+    parent_control: "Parent Control",
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -42,6 +43,7 @@ export const translations = {
     user_info: "उपयोगकर्ता जानकारी",
     active: "सक्रिय",
     enable: "सक्षम करें",
+    parent_control: "अभिभावक नियंत्रण",
   },
   es: {
     dashboard: "Tablero",
@@ -64,6 +66,7 @@ export const translations = {
     user_info: "Información de usuario",
     active: "Activo",
     enable: "Habilitar",
+    parent_control: "Control parental",
   },
   fr: {
     dashboard: "Tableau de bord",
@@ -86,6 +89,7 @@ export const translations = {
     user_info: "Infos utilisateur",
     active: "Actif",
     enable: "Activer",
+    parent_control: "Contrôle parental",
   },
   kn: {
     dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
@@ -108,6 +112,7 @@ export const translations = {
     user_info: "ಬಳಕೆದಾರರ ಮಾಹಿತಿ",
     active: "ಸಕ್ರಿಯ",
     enable: "ಸಕ್ರಿಯಗೊಳಿಸಿ",
+    parent_control: "ಪೋಷಕರ ನಿಯಂತ್ರಣ",
   },
   ta: {
     dashboard: "டாஷ்போர்டு",
@@ -130,6 +135,7 @@ export const translations = {
     user_info: "பயனர் தகவல்",
     active: "செயலில்",
     enable: "செயல்படுத்து",
+    parent_control: "பெற்றோர் கட்டுப்பாடு",
   },
   te: {
     dashboard: "డాష్‌బోర్డ్",
@@ -152,5 +158,6 @@ export const translations = {
     user_info: "వినియోగదారు సమాచారం",
     active: "క్రియాశీల",
     enable: "ప్రారంభించు",
+    parent_control: "తల్లిదండ్రుల నియంత్రణ",
   }
 };
