@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     formattedMessages.unshift({
       role: "system",
       content:
-        "You are Ascend AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted, and educational.",
+        "You are Avyx AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted, and educational.",
     });
 
     // 6. Call the local Ollama API with streaming

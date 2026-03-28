@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Lexend } from "next/font/google";
 import "./globals.css";
 
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -21,8 +21,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const lexend = Lexend({
+  variable: "--font-lexend",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Ascend.ai",
+  title: "Avyx",
   description: "AI-powered study companion",
 };
 
@@ -57,7 +62,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${lexend.variable} antialiased`}
       >
         <AuthProvider>
           <UserProvider>

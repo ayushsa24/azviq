@@ -60,7 +60,7 @@ const defaultForm = () => ({
 export default function DashboardChecklist() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
-    const { fetchNotifications } = useNotifications();
+    const { fetchNotifications, checkReminders } = useNotifications();
     const { data: todosData, isLoading: todosLoading, mutate: mutateTodos } = useSWR("/api/todos");
     const [showAll, setShowAll] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -112,6 +112,7 @@ export default function DashboardChecklist() {
                         todos: (currentData?.todos || []).map((i: TodoItem) => i.id === editingId ? todo : i)
                     }), false);
                     mutateTodos(); // Force background refresh
+                    checkReminders(); // Check for immediate notifications
                 }
             } else {
                 const res = await fetch("/api/todos", {
@@ -132,6 +133,7 @@ export default function DashboardChecklist() {
                         todos: [todo, ...(currentData?.todos || [])]
                     }), false);
                     mutateTodos(); // Force background refresh
+                    checkReminders(); // Check for immediate notifications
                 }
             }
             setShowModal(false);

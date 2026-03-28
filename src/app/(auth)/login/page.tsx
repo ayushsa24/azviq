@@ -90,10 +90,12 @@ function LoginForm() {
         : 'bg-white/90 border-[#DDD]/50 text-[#252525]'}`}>
 
         <div className="flex flex-col items-center mb-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg mb-2 ${theme === 'dark' ? 'bg-[#444] text-white' : 'bg-[#DDD] text-[#252525]'}`}>
-            A
-          </div>
-          <h1 className={`text-xl font-bold mb-0.5 ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
+          <img 
+            src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
+            alt="Avyx Logo" 
+            className="w-14 h-14 rounded-xl object-cover mb-2" 
+          />
+          <h1 className={`text-3xl font-bold mb-0.5 tracking-tighter font-[var(--font-lexend)] ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
             Welcome Back
           </h1>
           <p className={`text-[11px] text-center opacity-70 ${theme === 'dark' ? 'text-white' : 'text-[#545454]'}`}>

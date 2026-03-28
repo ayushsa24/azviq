@@ -115,12 +115,13 @@ export default function Sidebar({
       >
         {/* ── TOP BRAND HEADER ── */}
         <div className={`flex items-center gap-3 px-4 h-14 shrink-0 border-b ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0
-            ${isDark ? "bg-white text-[#252525]" : "bg-[#252525] text-white"}`}>
-            A
-          </div>
-          <span className={`font-bold text-base tracking-tight flex-1 ${isDark ? "text-white" : "text-[#252525]"}`}>
-            Ascend
+          <img 
+            src={isDark ? "/lavyx_logo.png" : "/davyx_logo.png"} 
+            alt="Avyx Logo" 
+            className="w-10 h-10 rounded-lg object-cover shrink-0" 
+          />
+          <span className={`font-bold text-lg tracking-tighter flex-1 font-[var(--font-lexend)] ${isDark ? "text-white" : "text-[#252525]"}`}>
+            Avyx
           </span>
           <button
             data-notification-bell

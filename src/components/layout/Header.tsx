@@ -52,10 +52,14 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
           {/* LOGO BUTTON */}
           <div
             onClick={onMenuClick}
-            className={`cursor-pointer group flex items-center justify-center w-8 h-8 rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden hover:shadow-[0_0_15px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.15)]
+            className={`cursor-pointer group flex items-center justify-center w-10 h-10 rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden hover:shadow-[0_0_15px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.15)]
               ${theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#252525] text-white'}`}
           >
-            <span className="transition-opacity duration-200 group-hover:opacity-0">A</span>
+            <img 
+              src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
+              alt="Avyx Logo" 
+              className="w-full h-full object-cover transition-opacity duration-200 group-hover:opacity-0" 
+            />
 
             {open ? (
               <PanelLeftClose className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
@@ -65,9 +69,9 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
           </div>
 
           {/* TITLE */}
-          <span className={`font-semibold text-xl transition-colors pl-1 cursor-default
+          <span className={`font-bold text-2xl tracking-tighter transition-colors pl-1 cursor-default font-[var(--font-lexend)]
             ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
-            Ascend
+            Avyx
           </span>
         </div>
       </div>

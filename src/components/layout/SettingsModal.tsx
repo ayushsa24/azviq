@@ -47,7 +47,19 @@ export default function SettingsModal() {
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, setZoom, zoomIn, zoomOut, resetZoom } = useZoom();
   const { language, setLanguage } = useLanguage();
-  const { pushPermission, requestPushPermission } = useNotifications();
+  const { 
+    pushPermission, 
+    requestPushPermission,
+    studyReminders,
+    setStudyReminders,
+    aiAlerts,
+    setAiAlerts,
+    todoReminders,
+    setTodoReminders,
+    taskDueReminders,
+    setTaskDueReminders
+  } = useNotifications();
+
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
@@ -56,6 +68,7 @@ export default function SettingsModal() {
       setActiveTab(initialTab as Tab);
     }
   }, [isOpen, initialTab]);
+
   const isDark = theme === "dark";
 
   // State for Account deletion
@@ -64,8 +77,6 @@ export default function SettingsModal() {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  const [studyReminders, setStudyReminders] = useState(true);
-  const [aiAlerts, setAiAlerts] = useState(true);
   const [doNotDisturb, setDoNotDisturb] = useState(false);
   const [notificationSound, setNotificationSound] = useState("chime");
 
@@ -211,9 +222,9 @@ export default function SettingsModal() {
         requestPushPermission();
         return;
     }
-    new Notification("Ascend.ai", {
+    new Notification("Avyx", {
         body: "This is a test notification. Your alerts are perfectly configured!",
-        icon: "/logo.png"
+        icon: theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"
     });
   };
 
@@ -443,6 +454,38 @@ export default function SettingsModal() {
 
                   <div className="flex items-center justify-between">
                     <div>
+                      <h3 className="text-sm font-semibold">To-Do Reminders</h3>
+                      <p className="text-xs text-[#7D7D7D]">Alerts for scheduled to-do items</p>
+                    </div>
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
+                      todoReminders
+                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                    }`} onClick={() => setTodoReminders(!todoReminders)}>
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
+                          todoReminders ? "right-1" : "left-1"
+                        }`} />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold">Task Deadlines</h3>
+                      <p className="text-xs text-[#7D7D7D]">Alerts when tasks are due today</p>
+                    </div>
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
+                      taskDueReminders
+                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                    }`} onClick={() => setTaskDueReminders(!taskDueReminders)}>
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
+                          taskDueReminders ? "right-1" : "left-1"
+                        }`} />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
                       <h3 className="text-sm font-semibold">Do Not Disturb</h3>
                       <p className="text-xs text-[#7D7D7D]">Silence all alerts for better focus</p>
                     </div>
@@ -507,7 +550,7 @@ export default function SettingsModal() {
                             <AlertTriangle size={16} /> Data Transparency
                         </div>
                         <p className="text-xs leading-relaxed opacity-80">
-                            Your library content (PDFs, Notes) is indexed for AI generation only. Ascend.ai does not sell your private data to third-party advertisers.
+                            Your library content (PDFs, Notes) is indexed for AI generation only. Avyx does not sell your private data to third-party advertisers.
                         </p>
                     </div>
 
