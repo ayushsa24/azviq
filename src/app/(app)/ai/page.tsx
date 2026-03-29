@@ -1734,7 +1734,7 @@ function AiChatCore() {
                     }
                   }
                 }}
-                placeholder="Ask Ascend AI anything..."
+                placeholder="Ask Avyx AI anything..."
                 className="flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-2 text-[14px] outline-none custom-scrollbar"
                 rows={1}
               />
@@ -1777,7 +1777,7 @@ function AiChatCore() {
             </div>
           </div>
           <p className="text-center text-xs opacity-50 mt-1.5 hidden md:block">
-            Ascend AI can make mistakes. Consider verifying critical
+            Avyx AI can make mistakes. Consider verifying critical
             information.
           </p>
         </div>

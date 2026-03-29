@@ -52,8 +52,8 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
           {/* LOGO BUTTON */}
           <div
             onClick={onMenuClick}
-            className={`cursor-pointer group flex items-center justify-center w-10 h-10 rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden hover:shadow-[0_0_15px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.15)]
-              ${theme === 'dark' ? 'bg-[#7D7D7D] text-white' : 'bg-[#252525] text-white'}`}
+            className={`cursor-pointer group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 relative overflow-hidden shrink-0
+              ${theme === 'dark' ? 'hover:bg-[#2E2E2E]' : 'hover:bg-[#F0EDE8]'}`}
           >
             <img 
               src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
