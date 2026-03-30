@@ -31,8 +31,9 @@ export const aiDailyRateLimit = redis
  */
 export async function checkAiDailyQuota(userId: string) {
     if (!aiDailyRateLimit) {
-        // Failsafe: if Redis is not configured, we fail open (allow the request)
-        return { success: true, remaining: 200 };
+        // Fail-Closed: Protect billing if Redis is not configured
+        console.error("AI Daily Rate Limit is not configured.");
+        return { success: false, remaining: 0 };
     }
 
     try {
@@ -40,7 +41,7 @@ export async function checkAiDailyQuota(userId: string) {
         return { success: result.success, remaining: result.remaining };
     } catch (error) {
         console.error("AI Daily Quota Check Failed (Redis Error):", error);
-        // Fail open if Redis crashes temporarily so we don't break the app
-        return { success: true, remaining: 1 };
+        // Fail-Closed: Protect billing if Redis crashes temporarily
+        return { success: false, remaining: 0 };
     }
 }
