@@ -860,8 +860,8 @@ export default function PdfEditorPage() {
                                         <div
                                             className="absolute z-30 flex flex-col items-start gap-1 group pointer-events-auto select-text"
                                             style={{
-                                                left: textInput.x,
-                                                top: textInput.y - textFontSize - 28,
+                                                left: textInput.x * zoomLevel,
+                                                top: (textInput.y - textFontSize) * zoomLevel - (28 * (zoomLevel < 1 ? 1 : zoomLevel)), // Scale toolbar offset proportionally
                                                 transform: `translateX(${textAlign === "center" ? "-50%" : textAlign === "right" ? "-100%" : "0"})`,
                                             }}
                                         >
@@ -905,13 +905,13 @@ export default function PdfEditorPage() {
                                                 className="bg-transparent border-0 border-b-2 border-dashed border-[#3B82F6] focus:border-solid outline-none resize-none overflow-hidden leading-tight p-0 mt-[-4px] select-text pointer-events-auto"
                                                 style={{
                                                     color: currentColor,
-                                                    fontSize: textFontSize,
+                                                    fontSize: textFontSize * zoomLevel,
                                                     fontFamily: textFontFamily,
                                                     fontWeight: textBold ? "bold" : "normal",
                                                     fontStyle: textItalic ? "italic" : "normal",
                                                     textDecoration: textUnderline ? "underline" : "none",
                                                     textAlign: textAlign,
-                                                    minWidth: 120,
+                                                    minWidth: 120 * zoomLevel,
                                                     width: "auto",
                                                     caretColor: currentColor,
                                                 }}
