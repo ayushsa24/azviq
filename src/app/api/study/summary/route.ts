@@ -1,0 +1,54 @@
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+// GET — fetch daily study summaries for a given year
+export async function GET(req: Request) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const yearStr = searchParams.get("year");
+        const parsedYear = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
+        // Guard against NaN or unrealistic years
+        const year =
+            isNaN(parsedYear) || parsedYear < 2000 || parsedYear > 2100
+                ? new Date().getFullYear()
+                : parsedYear;
+
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { data: user } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .maybeSingle();
+
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        const startDate = `${year}-01-01`;
+        const endDate = `${year}-12-31`;
+
+        const { data: summaries, error } = await supabase
+            .from("daily_study_summary")
+            .select("*")
+            .eq("user_id", user.id)
+            .gte("study_date", startDate)
+            .lte("study_date", endDate)
+            .order("study_date", { ascending: true });
+
+        if (error) {
+            console.error("Error fetching daily summaries:", error);
+            return NextResponse.json({ error: "Failed to fetch summaries" }, { status: 500 });
+        }
+
+        return NextResponse.json({ summaries: summaries || [] });
+    } catch (error) {
+        console.error("GET /api/study/summary error:", error);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+}
