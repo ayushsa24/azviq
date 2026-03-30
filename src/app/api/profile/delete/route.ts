@@ -21,9 +21,14 @@ export async function DELETE(req: Request) {
       .from("users")
       .select("id")
       .eq("email", session.user.email)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !dbUser) {
+    if (fetchError) {
+      console.error("Fetch user error:", fetchError);
+      return NextResponse.json({ error: "Failed to verify account" }, { status: 500 });
+    }
+
+    if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
