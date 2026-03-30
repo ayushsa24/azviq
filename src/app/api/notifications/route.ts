@@ -69,12 +69,28 @@ export async function POST(req: Request) {
         const userId = await getUserId(session, supabase);
         if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-        const body = await req.json();
+        let body: any;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+        }
+
+        if (!body || typeof body !== "object") {
+            return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+        }
+
         const { type, title, message, related_subject, related_topic } = body;
 
-        if (!type || !title?.trim() || !message?.trim()) {
+        if (
+            typeof type !== "string" ||
+            typeof title !== "string" ||
+            typeof message !== "string" ||
+            !title.trim() ||
+            !message.trim()
+        ) {
             return NextResponse.json(
-                { error: "type, title, and message are required" },
+                { error: "type (string), title (string), and message (string) are required" },
                 { status: 400 }
             );
         }
@@ -90,8 +106,8 @@ export async function POST(req: Request) {
             .insert({ 
                 user_id: userId, 
                 type, 
-                title, 
-                message, 
+                title: title.trim(), 
+                message: message.trim(), 
                 related_subject, 
                 related_topic,
                 dedupe_key: dedupeKey 
