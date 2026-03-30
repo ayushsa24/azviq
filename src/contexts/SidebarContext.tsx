@@ -8,10 +8,7 @@ interface SidebarContextType {
     toggle: () => void;
 }
 
-const SidebarContext = createContext<SidebarContextType>({
-    open: true,
-    toggle: () => { },
-});
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -27,5 +24,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useSidebar() {
-    return useContext(SidebarContext);
+    const context = useContext(SidebarContext);
+    if (!context) {
+        throw new Error("useSidebar must be used within SidebarProvider");
+    }
+    return context;
 }
