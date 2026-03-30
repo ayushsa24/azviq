@@ -55,7 +55,12 @@ export async function PUT(
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === 'PGRST116') { // No rows returned
+                return NextResponse.json({ error: "Task not found" }, { status: 404 });
+            }
+            throw error;
+        }
         return NextResponse.json({ task });
     } catch (error) {
         console.error("PUT task error:", error);
