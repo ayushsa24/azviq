@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# GSD (Get Shit Done) - local context only
+.gsd-core/
+.planning/
