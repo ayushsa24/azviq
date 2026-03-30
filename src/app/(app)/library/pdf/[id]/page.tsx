@@ -333,9 +333,10 @@ export default function PdfEditorPage() {
             });
             if (filtered.length === (prev[pg] || []).length) return prev;
             const updated = { ...prev, [pg]: filtered };
+            pushHistory(updated);
             return updated;
         });
-    }, [strokeWidth]);
+    }, [strokeWidth, pushHistory]);
 
     const handleTextClick = (pg: number, x: number, y: number) => {
         // Did we hit an existing text annotation?
@@ -378,7 +379,9 @@ export default function PdfEditorPage() {
                 setAnnotsByPage(prev => {
                     const newAnnots = [...(prev[pg] || [])];
                     newAnnots.splice(hitIndex, 1);
-                    return { ...prev, [pg]: newAnnots };
+                    const updated = { ...prev, [pg]: newAnnots };
+                    pushHistory(updated);
+                    return updated;
                 });
                 return;
             }
