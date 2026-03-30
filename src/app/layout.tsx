@@ -9,7 +9,6 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { UserProvider } from "@/contexts/UserContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import AppShell from "@/components/layout/AppShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
