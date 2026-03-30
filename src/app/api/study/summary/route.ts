@@ -8,12 +8,14 @@ export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const yearStr = searchParams.get("year");
-        const parsedYear = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-        // Guard against NaN or unrealistic years
-        const year =
-            isNaN(parsedYear) || parsedYear < 2000 || parsedYear > 2100
-                ? new Date().getFullYear()
-                : parsedYear;
+        const currentYear = new Date().getFullYear();
+        if (yearStr && !/^\d{4}$/.test(yearStr)) {
+            return NextResponse.json({ error: "year must be a 4-digit year" }, { status: 400 });
+        }
+        const year = yearStr ? Number(yearStr) : currentYear;
+        if (year < 2000 || year > 2100) {
+            return NextResponse.json({ error: "year must be between 2000 and 2100" }, { status: 400 });
+        }
 
         const session = await getServerSession(authOptions);
         if (!session?.user?.email) {
