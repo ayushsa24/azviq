@@ -26,7 +26,7 @@ export async function GET(req: Request) {
 
     let query = supabase
       .from("notes")
-      .select("*")
+      .select("id,title,file_url,workspace_id,created_at,is_favourite,is_pinned,is_pinned_in_favourites,share_mode,retention_score,last_reviewed_at,next_review_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
