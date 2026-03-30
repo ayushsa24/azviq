@@ -1,8 +1,12 @@
 {
+<<<<<<< HEAD
+  "crons": []
+=======
   "crons": [
     {
       "path": "/api/parent-control/send-report",
       "schedule": "30 14 * * *"
     }
   ]
+>>>>>>> origin/main
 }

@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
 
+const tunnelDomain = process.env.CLOUDFLARE_TUNNEL_URL
+  ? process.env.CLOUDFLARE_TUNNEL_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")
+  : null;
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      allowedOrigins: [process.env.CLOUDFLARE_TUNNEL_URL || "localhost:3000", "localhost:3000"],
+      allowedOrigins: Array.from(new Set([tunnelDomain, "localhost:3000"].filter(Boolean) as string[])),
     },
   },
 };
