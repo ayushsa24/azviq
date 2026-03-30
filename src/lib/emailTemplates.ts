@@ -47,11 +47,20 @@ export function buildDailyReportEmail({
         return `${m}m`;
     };
 
+    const escapeHtml = (str: string) => {
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const activityRows = Object.entries(activitiesSummary)
         .sort((a, b) => b[1] - a[1])
         .map(([key, mins]) => `
             <tr>
-                <td style="padding: 8px 0; font-size: 14px; color: #545454;">${ACTIVITY_LABELS[key] || key}</td>
+                <td style="padding: 8px 0; font-size: 14px; color: #545454;">${escapeHtml(ACTIVITY_LABELS[key] || key)}</td>
                 <td style="padding: 8px 0; font-size: 14px; color: #252525; font-weight: 600; text-align: right;">${formatTime(mins as number)}</td>
             </tr>
         `).join("");
@@ -91,7 +100,7 @@ export function buildDailyReportEmail({
               <h1 style="font-size:22px;font-weight:700;color:#252525;margin:16px 0 4px;">
                 Daily Study Report
               </h1>
-              <p style="font-size:14px;color:#7D7D7D;margin:0;">${date}</p>
+              <p style="font-size:14px;color:#7D7D7D;margin:0;">${escapeHtml(date)}</p>
             </td>
           </tr>
 
@@ -99,8 +108,8 @@ export function buildDailyReportEmail({
           <tr>
             <td style="background:#fff;border-radius:16px;padding:20px 24px;border:1px solid #E8E5E0;margin-bottom:16px;">
               <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;">Studying As</p>
-              <p style="font-size:16px;font-weight:700;color:#252525;margin:0;">${childName}</p>
-              <p style="font-size:13px;color:#7D7D7D;margin:2px 0 0;">${childEmail}</p>
+              <p style="font-size:16px;font-weight:700;color:#252525;margin:0;">${escapeHtml(childName)}</p>
+              <p style="font-size:13px;color:#7D7D7D;margin:2px 0 0;">${escapeHtml(childEmail)}</p>
             </td>
           </tr>
 
@@ -110,7 +119,7 @@ export function buildDailyReportEmail({
           <tr>
             <td style="background:#fff;border-radius:16px;padding:20px 24px;border:1px solid #E8E5E0;border-left:4px solid ${goalStatusColor};">
               <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 8px;">Study Goal</p>
-              <p style="font-size:20px;font-weight:800;color:${goalStatusColor};margin:0;">${goalStatusIcon} ${goalStatusText}</p>
+              <p style="font-size:20px;font-weight:800;color:${goalStatusColor};margin:0;">${goalStatusIcon} ${escapeHtml(goalStatusText)}</p>
             </td>
           </tr>
 
@@ -172,7 +181,7 @@ export function buildDailyReportEmail({
               ${topActivityLabel ? `
               <div style="margin-top:16px;padding:12px 16px;background:#F5F3EF;border-radius:10px;">
                 <p style="font-size:12px;color:#7D7D7D;margin:0 0 2px;">Most time spent on</p>
-                <p style="font-size:15px;font-weight:700;color:#252525;margin:0;">${topActivityLabel}</p>
+                <p style="font-size:15px;font-weight:700;color:#252525;margin:0;">${escapeHtml(topActivityLabel)}</p>
               </div>` : ""}
             </td>
           </tr>
