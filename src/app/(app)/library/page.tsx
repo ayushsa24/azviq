@@ -71,7 +71,11 @@ export default function NotesPage() {
   const { data: wsData, isLoading: wsLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
   const workspaces: Workspace[] = wsData?.workspaces || [];
 
-  const notesUrl = activeWorkspace ? `/api/notes?workspace_id=${activeWorkspace.id}` : "/api/notes";
+  const notesUrl = activeWorkspace 
+    ? `/api/notes?workspace_id=${activeWorkspace.id}` 
+    : activeTab === "workspaces" 
+      ? "/api/notes" 
+      : "/api/notes?all=true";
   const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR(notesUrl, fetcher);
   const notes: NoteItem[] = notesData?.notes || [];
 
