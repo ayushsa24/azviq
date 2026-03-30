@@ -50,10 +50,14 @@ export async function POST(req: Request) {
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         const body = await req.json();
-        const { title, note, time, repeat, custom_days } = body;
+        const { title, note, time, repeat, custom_days } = body || {};
 
-        if (!title?.trim()) {
-            return NextResponse.json({ error: "Title is required" }, { status: 400 });
+        if (typeof title !== "string" || !title.trim()) {
+            return NextResponse.json({ error: "Title must be a non-empty string" }, { status: 400 });
+        }
+
+        if (custom_days != null && !Array.isArray(custom_days)) {
+            return NextResponse.json({ error: "custom_days must be an array" }, { status: 400 });
         }
 
         const { data: todo, error } = await supabase
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
                 note: note || null,
                 time: time || null,
                 repeat: repeat || "today",
-                custom_days: custom_days || [],
+                custom_days: Array.isArray(custom_days) ? custom_days : [],
                 done: false,
             })
             .select()
