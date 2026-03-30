@@ -97,11 +97,14 @@ export default function TasksPage() {
     }, false);
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
+      if (!res.ok) {
+        throw new Error(`Failed to update: ${res.status}`);
+      }
       mutateTasks();
     } catch (e) {
       console.error("Failed to update status");
