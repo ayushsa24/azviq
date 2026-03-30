@@ -79,23 +79,16 @@ button {
   background: #7D7D7D;
 }
 
-.dark ::-webkit-scrollbar-thumb {
+.dark::-webkit-scrollbar-thumb,
+.dark *::-webkit-scrollbar-thumb {
   background: #545454;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
+.dark::-webkit-scrollbar-thumb:hover,
+.dark *::-webkit-scrollbar-thumb:hover {
   background: #7D7D7D;
 }
 
-/* Tiptap Table Styles */
-.tiptap table {
-  border-collapse: collapse;
-  margin: 1.5rem 0;
-  table-layout: fixed;
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #E0E0E0;
-}
 
 .tiptap table td,
 .tiptap table th {
