@@ -377,7 +377,11 @@ export default function TasksPage() {
 
   // By Date view: group tasks by due_date
   const tasksByDate = filteredTasks.reduce((acc: Record<string, any[]>, t: any) => {
-    const key = t.due_date ? format(new Date(t.due_date), "MMM d, yyyy") : "No due date";
+    let key = "No due date";
+    if (t.due_date) {
+      const date = new Date(t.due_date);
+      key = isNaN(date.getTime()) ? "Invalid date" : format(date, "MMM d, yyyy");
+    }
     if (!acc[key]) acc[key] = [];
     acc[key].push(t);
     return acc;
