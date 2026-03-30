@@ -126,7 +126,9 @@ Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
         try {
             let response;
             if (isPdf) {
-                const pdfRes = await fetch(note.file_url as string);
+                const pdfRes = await fetch(note.file_url as string, {
+                    signal: AbortSignal.timeout(30000), // 30s timeout
+                });
                 if (!pdfRes.ok)
                     return apiError("Failed to fetch PDF file for processing.", 502, "PDF_FETCH_ERROR");
 
