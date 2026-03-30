@@ -143,10 +143,13 @@ export default function NotesPage() {
 
   const handleOpenWorkspace = (workspace: Workspace) => {
     setActiveWorkspace(workspace);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("workspace", workspace.id);
     if (activeTab === "workspaces" || activeTab === "all") {
-      setActiveTab("notes");
+      setActiveTabState("notes");
+      params.set("tab", "notes");
     }
-    router.push(`/library?workspace=${workspace.id}`, { scroll: false });
+    router.push(`/library?${params.toString()}`, { scroll: false });
   };
 
   const handleBackToWorkspaces = () => {
