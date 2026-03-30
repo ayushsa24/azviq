@@ -14,11 +14,12 @@ async function getUserId(
     session: { user?: { email?: string | null } },
     supabase: SupabaseClient
 ) {
-    const { data: user } = await supabase
+    const { data: user, error } = await supabase
         .from("users")
         .select("id")
         .eq("email", session?.user?.email)
         .maybeSingle();
+    if (error) throw error;
     return user?.id ?? null;
 }
 

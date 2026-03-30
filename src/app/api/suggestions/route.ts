@@ -44,7 +44,8 @@ export async function GET() {
             .eq("email", session.user.email)
             .maybeSingle();
 
-        if (userError || !user) {
+        if (userError) throw userError;
+        if (!user) {
             return apiError("User not found", 404, "USER_NOT_FOUND");
         }
 
@@ -237,12 +238,13 @@ export async function PATCH(req: Request) {
             return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
-        const { data: user } = await supabase
+        const { data: user, error: userError } = await supabase
             .from("users")
             .select("id")
             .eq("email", session.user.email)
             .maybeSingle();
 
+        if (userError) throw userError;
         if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
 
         const { itemId, status } = await req.json();

@@ -20,12 +20,13 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { data: user } = await supabase
+        const { data: user, error: userError } = await supabase
             .from("users")
             .select("id")
             .eq("email", session.user.email)
             .maybeSingle();
 
+        if (userError) throw userError;
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }

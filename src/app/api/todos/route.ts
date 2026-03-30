@@ -4,11 +4,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 async function getUserByEmail(email: string) {
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from("users")
         .select("id")
         .eq("email", email)
         .maybeSingle();
+    if (error) throw error;
     return data;
 }
 
