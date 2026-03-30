@@ -78,7 +78,7 @@ export async function PATCH(
             .eq("user_id", user.id);
 
         // If time_taken column doesn't exist yet, retry without it (column still needs migration)
-        if (updateError && (updateError as { code?: string }).code === "PGRST204" && updates.time_taken !== undefined) {
+        if (updateError && (updateError as { code?: string }).code === "42703" && updates.time_taken !== undefined) {
             console.warn("time_taken column missing — retrying without it. Run: ALTER TABLE exercises ADD COLUMN time_taken integer;");
             const updatesWithout = { ...updates };
             delete updatesWithout.time_taken;
