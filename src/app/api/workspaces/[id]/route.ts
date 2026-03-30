@@ -41,12 +41,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+            }
+            throw error;
+        }
 
         return NextResponse.json({ workspace });
     } catch (error: unknown) {
         console.error("PATCH workspace error:", error);
-        return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to update workspace" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to update workspace" }, { status: 500 });
     }
 }
 
@@ -116,6 +121,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         console.error("DELETE workspace error:", error);
-        return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to delete workspace" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to delete workspace" }, { status: 500 });
     }
 }
