@@ -7,7 +7,7 @@ import {
     Pen, Eraser, Highlighter, Type, Layout, MousePointer2, ZoomIn, ZoomOut, PanelLeft
 } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { PdfDrawingOverlay, Annotation } from "@/components/pdf/PdfDrawingOverlay";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -245,6 +245,15 @@ export default function PdfEditorPage() {
                 if (!res.ok) throw new Error("Failed to fetch note");
                 const data = await res.json();
                 setNote(data.note);
+                if (data.note.content) {
+                    try {
+                        const parsed = JSON.parse(data.note.content);
+                        setAnnotsByPage(parsed);
+                        setHistory([parsed]);
+                    } catch (e) {
+                        console.error("Failed to parse annotations", e);
+                    }
+                }
                 logRecentActivity({
                     item_id: id,
                     item_type: "pdf",
@@ -500,12 +509,42 @@ export default function PdfEditorPage() {
                             g = parseInt(ann.color.slice(3, 5), 16) / 255;
                             b = parseInt(ann.color.slice(5, 7), 16) / 255;
                         }
+
+                        // Font mapping
+                        let fontName = StandardFonts.TimesRoman;
+                        const family = ann.fontFamily?.toLowerCase() || "";
+                        if (family.includes("helvetica") || family.includes("arial") || family.includes("sans")) {
+                            fontName = ann.bold ? (ann.italic ? StandardFonts.HelveticaBoldOblique : StandardFonts.HelveticaBold) : (ann.italic ? StandardFonts.HelveticaOblique : StandardFonts.Helvetica);
+                        } else if (family.includes("courier") || family.includes("mono")) {
+                            fontName = ann.bold ? (ann.italic ? StandardFonts.CourierBoldOblique : StandardFonts.CourierBold) : (ann.italic ? StandardFonts.CourierOblique : StandardFonts.Courier);
+                        } else {
+                            fontName = ann.bold ? (ann.italic ? StandardFonts.TimesRomanBoldItalic : StandardFonts.TimesRomanBold) : (ann.italic ? StandardFonts.TimesRomanItalic : StandardFonts.TimesRoman);
+                        }
+                        const font = await pdfDoc.embedFont(fontName);
+                        
+                        const fontSize = ann.fontSize * scaleX;
+                        const textWidth = font.widthOfTextAtSize(ann.text, fontSize);
+                        
+                        let drawX = ann.x * scaleX;
+                        if (ann.textAlign === "center") drawX -= textWidth / 2;
+                        else if (ann.textAlign === "right") drawX -= textWidth;
+
                         page.drawText(ann.text, {
-                            x: ann.x * scaleX,
+                            x: drawX,
                             y: height - ann.y * scaleY,
-                            size: ann.fontSize * scaleX,
+                            size: fontSize,
+                            font,
                             color: rgb(r, g, b),
                         });
+
+                        if (ann.underline) {
+                            page.drawLine({
+                                start: { x: drawX, y: height - ann.y * scaleY - 2 },
+                                end: { x: drawX + textWidth, y: height - ann.y * scaleY - 2 },
+                                thickness: 1 * scaleX,
+                                color: rgb(r, g, b),
+                            });
+                        }
                     }
                 }
             }
@@ -517,6 +556,14 @@ export default function PdfEditorPage() {
 
             const res = await fetch(`/api/notes/${id}/pdf`, { method: "POST", body: formData });
             if (!res.ok) throw new Error("Failed to upload updated PDF");
+            
+            // Also store annotations in the note content for future rehydration
+            await fetch(`/api/notes/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: JSON.stringify(annotsByPage) }),
+            });
+
             const data = await res.json();
             setNote(data.note);
             setAnnotsByPage({});
