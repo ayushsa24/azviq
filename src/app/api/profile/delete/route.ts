@@ -32,7 +32,14 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 2. Delete the user from the public.users table
+    // 2. Delete the user from Supabase Auth (clears the identity)
+    const { error: authError } = await supabase.auth.admin.deleteUser(dbUser.id);
+    if (authError) {
+      console.error("Auth delete error:", authError);
+      // We still proceed if auth deletion fails temporarily, but we log the issue
+    }
+
+    // 3. Delete the user from the public.users table
     // Note: If you have foreign keys with ON DELETE CASCADE, this will delete related data.
     const { error: deleteError } = await supabase
       .from("users")
@@ -44,12 +51,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Failed to delete user profile" }, { status: 500 });
     }
 
-    // 3. Optional: Delete from Supabase Auth if using admin client
-    // Since we are using the standard supabase client which is usually the anon key, 
-    // we cannot delete from auth.users here without the service_role key.
-    // However, deleting from public.users is the main requirement for the app.
-
-    return NextResponse.json({ success: true, message: "Account deleted successfully" });
+    return NextResponse.json({ success: true, message: "Account deleted successfully. Please sign out." });
   } catch (error) {
     console.error("Delete account API error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
