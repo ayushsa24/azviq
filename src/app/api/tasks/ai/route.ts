@@ -107,7 +107,20 @@ Limit to maximum 10 tasks. Be concise and realistic for a student.`,
             return apiError("AI returned an unexpected response format. Please try again.", 502, "AI_PARSE_ERROR");
         }
 
-        return NextResponse.json({ tasks });
+        // Validate each task has required fields
+        const validTasks = tasks.filter(
+            (t): t is GeneratedTask =>
+                typeof t === 'object' &&
+                t !== null &&
+                typeof t.title === 'string' &&
+                typeof t.status === 'string'
+        );
+
+        if (validTasks.length === 0) {
+            return apiError("AI returned no valid tasks. Please try again.", 502, "AI_PARSE_ERROR");
+        }
+
+        return NextResponse.json({ tasks: validTasks });
     } catch (error: unknown) {
         console.error("AI Task Generation Error:", error);
         return apiError("Failed to generate tasks. Please try again.", 500, "INTERNAL_SERVER_ERROR");
