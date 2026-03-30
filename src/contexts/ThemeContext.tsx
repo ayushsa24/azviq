@@ -58,12 +58,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("theme", resolved);
   }, []);
 
+  // Apply theme on change (including mount)
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
   const toggleTheme = () => {
-    setTheme(prev => {
-      const next = prev === "dark" ? "light" : "dark";
-      applyTheme(next);
-      return next;
-    });
+    setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
 
   return (
