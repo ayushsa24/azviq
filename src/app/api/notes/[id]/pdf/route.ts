@@ -33,11 +33,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             return NextResponse.json({ error: "No PDF file provided" }, { status: 400 });
         }
 
-        // Generate a new clean filename to bust caches
+        // 1. Verify note exists and belongs to user BEFORE uploading to storage
+        const { data: existingNote, error: noteError } = await supabase
+            .from("notes")
+            .select("id")
+            .eq("id", id)
+            .eq("user_id", user.id)
+            .single();
+
+        if (noteError || !existingNote) {
+            return NextResponse.json({ error: "Note not found or unauthorized" }, { status: 404 });
+        }
+
+        // 2. Generate a new clean filename to bust caches
         const fileExt = "pdf";
         const fileName = `${user.id}/${Date.now()}_annotated.${fileExt}`;
 
-        // Upload new file directly overriding if needed
+        // 3. Upload new file directly overriding if needed
         const { error: uploadError } = await supabase.storage
             .from("notes")
             .upload(fileName, file, {
@@ -54,7 +66,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             .from("notes")
             .getPublicUrl(fileName);
 
-        // Update Note record with new file_url
+        // 4. Update Note record with new file_url
         const { data: updatedNote, error: updateError } = await supabase
             .from("notes")
             .update({ file_url: urlData.publicUrl })
@@ -63,7 +75,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             .select()
             .single();
 
-        if (updateError) throw updateError;
+        if (updateError) {
+            // Cleanup orphaned file if DB update fails
+            await supabase.storage.from("notes").remove([fileName]);
+            throw updateError;
+        }
 
         return NextResponse.json({ note: updatedNote });
     } catch (error: unknown) {
