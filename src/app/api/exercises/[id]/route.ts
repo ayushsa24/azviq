@@ -45,7 +45,13 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { status, score, time_taken, questions } = await req.json();
+        let body: Record<string, unknown>;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+        }
+        const { status, score, time_taken, questions } = body;
 
         const { data: user, error: userError } = await supabase
             .from("users")
