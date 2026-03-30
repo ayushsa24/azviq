@@ -60,6 +60,8 @@ export default function NoteEditorPage() {
     // Use a ref to keep track of the latest title for editor closures
     const titleRef = React.useRef(title);
     const isFetchingRef = React.useRef(true);
+    const lastSavedVersionRef = React.useRef(0);
+    const pendingVersionRef = React.useRef(0);
 
     useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
 
@@ -182,7 +184,9 @@ export default function NoteEditorPage() {
         },
         onUpdate: ({ editor }) => {
             if (isFetchingRef.current) return;
-            debouncedSave(editor.getHTML(), titleRef.current);
+            const version = Date.now();
+            pendingVersionRef.current = version;
+            debouncedSave(editor.getHTML(), titleRef.current, version);
         },
     });
 
@@ -260,10 +264,13 @@ export default function NoteEditorPage() {
         }
     }, [id, editor]);
 
-    const handleSave = async (contentToSave?: string, titleToSave?: string) => {
+    const handleSave = async (contentToSave?: string, titleToSave?: string, version?: number) => {
         if (!editor) return;
         setIsSaving(true);
         setSaveError("");
+
+        const currentVersion = version || Date.now();
+        if (!version) pendingVersionRef.current = currentVersion;
 
         try {
             const res = await fetch(`/api/notes/${id}`, {
@@ -275,16 +282,27 @@ export default function NoteEditorPage() {
                 }),
             });
             if (!res.ok) throw new Error("Failed to save note");
+
+            // Only update success states if this was the LATEST requested save
+            if (currentVersion >= lastSavedVersionRef.current) {
+                lastSavedVersionRef.current = currentVersion;
+            }
         } catch (err) {
             console.error(err);
-            setSaveError("Failed to save. Please try again.");
+            // Only show error if this was the LATEST requested save
+            if (currentVersion >= lastSavedVersionRef.current) {
+                setSaveError("Failed to save. Please try again.");
+            }
         } finally {
-            setIsSaving(false);
+            // Only hide the saving indicator if no newer saves are pending
+            if (currentVersion === pendingVersionRef.current) {
+                setIsSaving(false);
+            }
         }
     };
 
-    const debouncedSave = useDebouncedCallback((content: string, titleContent: string) => {
-        handleSave(content, titleContent);
+    const debouncedSave = useDebouncedCallback((content: string, titleContent: string, version: number) => {
+        handleSave(content, titleContent, version);
     }, 1000);
 
     const handleShare = () => {
@@ -568,7 +586,9 @@ export default function NoteEditorPage() {
                         onChange={(e) => {
                             setTitle(e.target.value);
                             titleRef.current = e.target.value;
-                            if (editor) debouncedSave(editor.getHTML(), e.target.value);
+                            const version = Date.now();
+                            pendingVersionRef.current = version;
+                            if (editor) debouncedSave(editor.getHTML(), e.target.value, version);
                         }}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
