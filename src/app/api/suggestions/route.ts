@@ -173,7 +173,7 @@ export async function GET() {
                     user_id: userId,
                     suggestion_id: `spaced-revision-${userId}`,
                     item_id: note.id,
-                    item_type: "note",
+                    item_type: note.file_url ? "pdf" : "note",
                     title: note.title,
                     status: "active",
                 }));
