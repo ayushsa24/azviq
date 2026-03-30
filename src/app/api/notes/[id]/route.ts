@@ -33,8 +33,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             .eq("user_id", user.id)
             .single();
 
-        if (error) {
+        if (error || !note) {
             return NextResponse.json({ error: "Note not found" }, { status: 404 });
+        }
+
+        // Generate a signed URL for private annotated PDFs
+        if (note.file_url && !note.file_url.startsWith("http")) {
+            const { data: signedData, error: signedError } = await supabase.storage
+                .from("notes")
+                .createSignedUrl(note.file_url, 3600); // 1 hour
+
+            if (!signedError && signedData?.signedUrl) {
+                note.file_url = signedData.signedUrl;
+            }
         }
 
         return NextResponse.json({ note });

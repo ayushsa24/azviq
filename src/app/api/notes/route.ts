@@ -42,6 +42,28 @@ export async function GET(req: Request) {
 
     if (error) throw error;
 
+    // Batch-sign any private file paths for the listing
+    if (notes && notes.length > 0) {
+      const pathsToSign = notes
+        .filter(n => n.file_url && !n.file_url.startsWith("http"))
+        .map(n => n.file_url);
+
+      if (pathsToSign.length > 0) {
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from("notes")
+          .createSignedUrls(pathsToSign, 3600); // 1 hour
+
+        if (!signedError && signedData) {
+          const urlMap = new Map(signedData.map(s => [s.path, s.signedUrl]));
+          notes.forEach(n => {
+            if (n.file_url && urlMap.has(n.file_url)) {
+              n.file_url = urlMap.get(n.file_url);
+            }
+          });
+        }
+      }
+    }
+
     return NextResponse.json({ notes });
   } catch (error) {
     console.error("GET notes error:", error);
@@ -117,18 +139,13 @@ export async function POST(req: Request) {
       throw uploadError;
     }
 
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from("notes")
-      .getPublicUrl(fileName);
-
-    // Save to Database
+    // Save to Database with the internal KEY (private)
     const { data: note, error } = await supabase
       .from("notes")
       .insert({
         user_id: user.id,
         title,
-        file_url: publicUrlData.publicUrl,
+        file_url: fileName,
         workspace_id: workspaceId || null,
       })
       .select()

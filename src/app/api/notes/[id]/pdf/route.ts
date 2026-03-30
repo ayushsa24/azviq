@@ -62,14 +62,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             throw uploadError;
         }
 
-        const { data: urlData } = supabase.storage
-            .from("notes")
-            .getPublicUrl(fileName);
-
-        // 4. Update Note record with new file_url
+        // 4. Update Note record with the storage PATH instead of a public URL
         const { data: updatedNote, error: updateError } = await supabase
             .from("notes")
-            .update({ file_url: urlData.publicUrl })
+            .update({ file_url: fileName })
             .eq("id", id)
             .eq("user_id", user.id)
             .select()
@@ -79,6 +75,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             // Cleanup orphaned file if DB update fails
             await supabase.storage.from("notes").remove([fileName]);
             throw updateError;
+        }
+
+        // Generate a signed URL to return to the UI for immediate use
+        const { data: signedData, error: signedError } = await supabase.storage
+            .from("notes")
+            .createSignedUrl(fileName, 3600); // 1 hour
+
+        if (signedError) {
+            console.error("Failed to generate signed URL:", signedError);
+        } else {
+            updatedNote.file_url = signedData.signedUrl;
         }
 
         return NextResponse.json({ note: updatedNote });
