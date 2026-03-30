@@ -33,7 +33,10 @@ export async function GET(req: Request) {
     .eq("id", userId)
     .single();
 
-  if (error) return NextResponse.json({ error }, { status: 400 });
+  if (error) {
+    console.error("Profile GET error:", error);
+    return NextResponse.json({ error: "Failed to fetch profile" }, { status: 400 });
+  }
 
   return NextResponse.json(data);
 }
@@ -79,7 +82,10 @@ export async function PUT(req: Request) {
     })
     .eq("id", userId);
 
-  if (error) return NextResponse.json({ error }, { status: 400 });
+  if (error) {
+    console.error("Profile PUT update error:", error);
+    return NextResponse.json({ error: "Failed to update profile" }, { status: 400 });
+  }
 
   return NextResponse.json({ success: true });
 }
