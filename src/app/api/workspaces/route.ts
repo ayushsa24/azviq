@@ -41,7 +41,7 @@ export async function GET() {
     } catch (error: unknown) {
         console.error("Fetch workspaces error:", error);
         return NextResponse.json(
-            { error: (error instanceof Error ? error.message : String(error)) || "Failed to fetch workspaces" },
+            { error: "Failed to fetch workspaces" },
             { status: 500 }
         );
     }
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     } catch (error: unknown) {
         console.error("Create workspace error:", error);
         return NextResponse.json(
-            { error: (error instanceof Error ? error.message : String(error)) || "Failed to create workspace" },
+            { error: "Failed to create workspace" },
             { status: 500 }
         );
     }
