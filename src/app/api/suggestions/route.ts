@@ -211,8 +211,6 @@ export async function GET() {
 
         const topSuggestions = suggestions.slice(0, 4);
 
-        // Persist suggestion cards to ai_suggestions table
-        await supabase.from("ai_suggestions").delete().eq("user_id", userId);
         if (topSuggestions.length > 0) {
             const insertData = topSuggestions.map((s) => ({
                 id: s.id,
@@ -223,8 +221,30 @@ export async function GET() {
                 action_type: s.action_type,
                 related_subject: s.related_subject,
                 related_topic: s.related_topic,
+                action_label: s.action_label,
             }));
-            await supabase.from("ai_suggestions").insert(insertData);
+
+            // Upsert the new suggestions (replace existing or create new)
+            const { error: upsertError } = await supabase
+                .from("ai_suggestions")
+                .upsert(insertData, { onConflict: "id" });
+            if (upsertError) throw upsertError;
+
+            // Delete stale suggestions that were replaced or are no longer in top selection
+            const topSuggestionIds = topSuggestions.map((s) => s.id);
+            const { error: deleteError } = await supabase
+                .from("ai_suggestions")
+                .delete()
+                .eq("user_id", userId)
+                .not("id", "in", `(${topSuggestionIds.map(id => `"${id}"`).join(",")})`);
+            if (deleteError) throw deleteError;
+        } else {
+            // No suggestions available, clear existing ones
+            const { error: clearError } = await supabase
+                .from("ai_suggestions")
+                .delete()
+                .eq("user_id", userId);
+            if (clearError) throw clearError;
         }
 
         return NextResponse.json({ suggestions: topSuggestions });
