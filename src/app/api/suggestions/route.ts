@@ -78,6 +78,10 @@ export async function GET() {
                 .order("created_at", { ascending: true }),
         ]);
 
+        if (dailyResult.error || exercisesResult.error || notesResult.error) {
+            throw dailyResult.error ?? exercisesResult.error ?? notesResult.error;
+        }
+
         const dailySummary = dailyResult.data;
         const exercises = exercisesResult.data;
         const notes = notesResult.data;
