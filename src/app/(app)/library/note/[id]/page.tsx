@@ -238,8 +238,8 @@ export default function NoteEditorPage() {
                 setTitle(note.title);
                 setWorkspaceId(note.workspace_id);
                 setShareMode(note.share_mode ?? 'private');
-                if (editor && note.content) {
-                    editor.commands.setContent(note.content, { emitUpdate: false });
+                if (editor) {
+                    editor.commands.setContent(note.content ?? "", { emitUpdate: false });
                 }
 
                 // Log this note open to recent activity
