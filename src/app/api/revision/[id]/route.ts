@@ -48,13 +48,18 @@ export async function DELETE(
             .from("users").select("id").eq("email", session.user.email).single();
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-        const { error } = await supabase
+        const { data: deleted, error } = await supabase
             .from("revisions")
             .delete()
             .eq("id", id)
-            .eq("user_id", user.id);
+            .eq("user_id", user.id)
+            .select();
 
         if (error) throw error;
+
+        if (!deleted || deleted.length === 0) {
+            return NextResponse.json({ error: "Revision not found" }, { status: 404 });
+        }
 
         // Also remove from recent activity
         await supabase
