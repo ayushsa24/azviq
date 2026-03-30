@@ -124,14 +124,19 @@ export async function DELETE(
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const { error: deleteError } = await supabase
+        const { data: deleteData, error: deleteError } = await supabase
             .from("exercises")
             .delete()
             .eq("id", resolvedParams.id)
-            .eq("user_id", user.id);
+            .eq("user_id", user.id)
+            .select();
 
         if (deleteError) {
             throw deleteError;
+        }
+
+        if (!deleteData || deleteData.length === 0) {
+            return NextResponse.json({ error: "Exercise not found" }, { status: 404 });
         }
 
         // Also remove from recent activity
