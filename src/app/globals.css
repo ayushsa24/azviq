@@ -79,11 +79,13 @@ button {
   background: #7D7D7D;
 }
 
-.dark ::-webkit-scrollbar-thumb {
+.dark::-webkit-scrollbar-thumb,
+.dark *::-webkit-scrollbar-thumb {
   background: #545454;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
+.dark::-webkit-scrollbar-thumb:hover,
+.dark *::-webkit-scrollbar-thumb:hover {
   background: #7D7D7D;
 }
 
