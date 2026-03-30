@@ -14,7 +14,7 @@ export async function GET(req: Request) {
             .from("users")
             .select("id")
             .eq("email", session.user.email)
-            .single();
+            .maybeSingle();
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
             .from("users")
             .select("id")
             .eq("email", session.user.email)
-            .single();
+            .maybeSingle();
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -54,8 +54,8 @@ export async function POST(req: Request) {
 
         const { title, color_theme } = await req.json();
 
-        if (!title) {
-            return NextResponse.json({ error: "Missing title" }, { status: 400 });
+        if (!title?.trim() || title.trim().length > 200) {
+            return NextResponse.json({ error: "Title is required and must be under 200 characters" }, { status: 400 });
         }
 
         const { data: project, error } = await supabase

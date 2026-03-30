@@ -59,7 +59,9 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { type, title, message, related_subject, related_topic } = body;
 
-        // Dedup: If it's a todo_reminder, check if one was created recently
+        if (!type || !title?.trim() || !message?.trim()) {
+            return NextResponse.json({ error: "type, title, and message are required" }, { status: 400 });
+        }
         if (type === "todo_reminder" && related_topic) {
             const { data: existing } = await supabase
                 .from("notifications")

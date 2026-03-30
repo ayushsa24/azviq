@@ -7,7 +7,10 @@ export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const yearStr = searchParams.get('year');
-        const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
+        const parsedYear = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
+        const year = isNaN(parsedYear) || parsedYear < 2000 || parsedYear > 2100
+            ? new Date().getFullYear()
+            : parsedYear;
 
         const session = await getServerSession(authOptions);
         if (!session || !session.user?.email) {

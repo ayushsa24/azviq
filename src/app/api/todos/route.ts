@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 async function getUser(email: string) {
-    const { data } = await supabase.from("users").select("id").eq("email", email).single();
+    const { data } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
     return data;
 }
 
