@@ -78,29 +78,38 @@ export async function POST(req: Request) {
             );
         }
 
-        // Dedup: skip if a todo_reminder for this topic was created in the last 60s
-        if (type === "todo_reminder" && related_topic) {
-            const { data: existing } = await supabase
-                .from("notifications")
-                .select("id")
-                .eq("user_id", userId)
-                .eq("type", "todo_reminder")
-                .eq("related_topic", related_topic)
-                .gt("created_at", new Date(Date.now() - 60000).toISOString())
-                .maybeSingle();
-
-            if (existing) {
-                return NextResponse.json({ success: true, duplicated: true });
-            }
-        }
+        // Dedupe using DB-side idempotency
+        // Calculate a 60-second window bucket key
+        const dedupeKey = type === "todo_reminder" && related_topic 
+            ? `todo_reminder:${related_topic}:${Math.floor(Date.now() / 60000)}`
+            : null;
 
         const { data: notification, error } = await supabase
             .from("notifications")
-            .insert({ user_id: userId, type, title, message, related_subject, related_topic })
+            .insert({ 
+                user_id: userId, 
+                type, 
+                title, 
+                message, 
+                related_subject, 
+                related_topic,
+                dedupe_key: dedupeKey 
+            })
             .select()
-            .single();
+            .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+            // Check for Postgres unique constraint violation (code 23505)
+            if (error.code === "23505") {
+                return NextResponse.json({ success: true, duplicated: true });
+            }
+            throw error;
+        }
+
+        if (!notification && dedupeKey) {
+            return NextResponse.json({ success: true, duplicated: true });
+        }
+
         return NextResponse.json({ notification }, { status: 201 });
     } catch (err) {
         console.error("POST /api/notifications error:", err);
