@@ -1,26 +1,420 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* LIGHT THEME (default) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: light;
+  --background: #F5F3EF;
+  --foreground: #2D2A26;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --card: #FFFFFF;
+  --border: #E8E5E0;
+
+  --accent: #C2A27A;
+  --accent-foreground: #ffffff;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* DARK THEME (when .dark class exists) */
+.dark {
+  color-scheme: dark;
+  --background: #161514;
+  --foreground: #FFFFFF;
+
+  --card: #24221F;
+  --border: #2E2A26;
+
+  --accent: #D2B48C;
+  --accent-foreground: #1A1816;
+}
+
+/* Tailwind theme mapping */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+/* Base styles */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 250ms;
+}
+
+html {
+  font-size: 14px;
+  /* Scales down all rem-based Tailwind sizes (padding, text, etc.) to make the entire UI more compact */
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Custom Scrollbar matching monochrome compact theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CFCFCF;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7D7D7D;
+}
+
+.dark::-webkit-scrollbar-thumb,
+.dark *::-webkit-scrollbar-thumb {
+  background: #545454;
+}
+
+.dark::-webkit-scrollbar-thumb:hover,
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: #7D7D7D;
+}
+
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid #CFCFCF;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 10px 14px;
+  position: relative;
+  vertical-align: top;
+}
+
+.tiptap table th {
+  background-color: #F1F5F9 !important;
+  /* Professional Slate-100 background for the first row */
+  font-weight: 700;
+  text-align: left;
+  color: #1E293B;
+  border-bottom: 2px solid #CBD5E1;
+}
+
+/* If the user uses a regular row as a header, make the first row colored anyway */
+.tiptap table tr:first-child td {
+  background-color: #F8FAFC;
+}
+
+.dark .tiptap table {
+  background-color: transparent;
+  border-color: #334155;
+}
+
+.dark .tiptap table th {
+  background-color: #1E293B !important;
+  /* Deep slate indigo for dark mode */
+  color: #F1F5F9;
+  border-bottom: 2px solid #334155;
+}
+
+.dark .tiptap table tr:first-child td {
+  background-color: #1A1A1A;
+}
+
+.dark .tiptap table td,
+.dark .tiptap table th {
+  border-color: #334155;
+}
+
+/* Dark mode header overrides handled above */
+
+.tiptap table .column-resize-handle {
+  background-color: #7D7D7D;
+  bottom: -2px;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tiptap table:hover .column-resize-handle {
+  opacity: 0.3;
+}
+
+.tiptap table .column-resize-handle:hover {
+  opacity: 1;
+}
+
+.tiptap .tableWrapper,
+.tableWrapper {
+  overflow-x: auto !important;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5rem 0;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+}
+
+.dark .tiptap .tableWrapper {
+  border-color: #3A3A3A;
+}
+
+.tiptap table {
+  border-collapse: collapse;
+  table-layout: auto !important;
+  min-width: 100%;
+  margin: 0 !important;
+  /* margin is handled by wrapper */
+  border: none !important;
+  /* border is handled by wrapper */
+}
+
+/* Tiptap Placeholder Style - shows on every empty line */
+.tiptap .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #A3A3A3;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap table .is-empty::before,
+.tiptap td .is-empty::before,
+.tiptap th .is-empty::before,
+.tiptap .tableWrapper .is-empty::before {
+  content: "" !important;
+  display: none !important;
+  color: transparent !important;
+}
+
+.tiptap .is-empty.is-editor-empty::before {
+  height: auto;
+}
+
+.tiptap table .selectedCell {
+  background-color: rgba(37, 37, 37, 0.05);
+  position: relative;
+}
+
+.dark .tiptap table .selectedCell {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tiptap table .selectedCell:after {
+  background: rgba(37, 37, 37, 0.05);
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+/* Standard HTML tables from AI-generated content (inside prose/editor) */
+.prose table {
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  table-layout: auto;
+  min-width: 100%;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #E0E0E0;
+}
+
+@media (max-width: 768px) {
+
+  /* Tiptap Resizable Table Wrapper */
+  .tiptap .tableWrapper {
+    display: block !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Force AI/Prose tables to scroll if they don't have a wrapper */
+  .prose table {
+    display: block !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prose table,
+  .tiptap table,
+  .ai-response-content table {
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  .prose td,
+  .prose th,
+  .tiptap td,
+  .tiptap th,
+  .ai-response-content td,
+  .ai-response-content th {
+    white-space: nowrap !important;
+    /* Prevent text wrapping so columns expand horizontally */
+    min-width: 120px !important;
+  }
+
+  /* Extreme Side-Scroll for ALL Code Blocks on Mobile */
+  .prose pre,
+  .tiptap pre,
+  .node-codeBlock pre,
+  .ai-response-content pre,
+  pre {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: relative !important;
+  }
+
+  .prose pre code,
+  .tiptap pre code,
+  .node-codeBlock pre code,
+  .ai-response-content pre code,
+  pre code {
+    white-space: pre !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    display: inline-block !important;
+    /* Forces the code to maintain its width */
+    min-width: 100% !important;
+  }
+}
+
+/* Auto-hide scrollbars for Tables and Code Blocks for a cleaner look */
+.tiptap .tableWrapper,
+pre,
+.prose table,
+.ai-response-content .w-full.overflow-x-auto {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow-y: hidden !important;
+  /* Prevent vertical scroll inside table containers */
+}
+
+/* Chrome, Safari, etc. */
+.tiptap .tableWrapper::-webkit-scrollbar,
+pre::-webkit-scrollbar,
+.prose table::-webkit-scrollbar,
+.ai-response-content .w-full.overflow-x-auto::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Ensure the wrapper itself is the one hiding overflow */
+.tiptap .tableWrapper {
+  overflow-x: auto !important;
+  display: block !important;
+}
+
+/* Show scrollbar on hover for desktop */
+@media (hover: hover) {
+
+  .tableWrapper:hover,
+  pre:hover,
+  .prose table:hover,
+  .tiptap table:hover,
+  .ai-response-content table:hover {
+    scrollbar-width: thin;
+  }
+
+  .tableWrapper:hover::-webkit-scrollbar,
+  pre:hover::-webkit-scrollbar,
+  .prose table:hover::-webkit-scrollbar,
+  .tiptap table:hover::-webkit-scrollbar,
+  .ai-response-content table:hover::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+}
+
+.prose table td,
+.prose table th {
+  border: 1px solid #CFCFCF;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 10px 14px;
+  position: relative;
+  vertical-align: top;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.prose table th {
+  background-color: #F8FAFC;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: #475569;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.prose table tr:hover td {
+  background-color: #FAFAFA;
+}
+
+.dark .prose table tr:hover td {
+  background-color: #2D2D2D !important;
+}
+
+.dark .prose table th {
+  background-color: #232D3F;
+  color: #EDEAE6;
+  border-bottom: 2px solid #334155;
+}
+
+.dark .prose table td {
+  color: #EDEAE6;
+}
+
+.dark .prose table {
+  border-color: #3A3A3A;
+}
+
+.dark .prose table td,
+.dark .prose table th {
+  border-color: #3A3A3A;
+}
+
+
+/* Elegant Premium Spinner */
+@keyframes spin-elegant {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner-elegant {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid currentColor;
+  border-radius: 50%;
+  animation: spin-elegant 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.dark .spinner-elegant {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid currentColor;
 }
