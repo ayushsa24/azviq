@@ -40,6 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# gsd artifacts
+# GSD (Get Shit Done) - local context only
 .gsd-core/
 .planning/

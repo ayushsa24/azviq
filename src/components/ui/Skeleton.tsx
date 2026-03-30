@@ -1,15 +1,15 @@
-import { cn } from "@/lib/utils";
+import React from "react";
 
-function Skeleton({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("animate-pulse rounded-md bg-zinc-800/50", className)}
-      {...props}
-    />
-  );
+interface SkeletonProps {
+    className?: string;
+    variant?: "text" | "rect" | "circle";
 }
 
-export { Skeleton };
+export function Skeleton({ className = "", variant = "rect" }: SkeletonProps) {
+    const baseClass = "animate-pulse bg-[#E8E5E0] dark:bg-[#3A3A3A]";
+    const variantClass = variant === "circle" ? "rounded-full" : variant === "text" ? "rounded-md h-4 w-full" : "rounded-xl";
+    
+    return (
+        <div className={`${baseClass} ${variantClass} ${className}`} />
+    );
+}
