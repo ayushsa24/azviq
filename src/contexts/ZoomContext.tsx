@@ -24,7 +24,10 @@ export function ZoomProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const savedZoom = localStorage.getItem("appZoomLevel");
         if (savedZoom) {
-            setZoomLevel(parseInt(savedZoom, 10));
+            const parsed = parseInt(savedZoom, 10);
+            if (!isNaN(parsed)) {
+                setZoomLevel(Math.min(Math.max(parsed, MIN_ZOOM), MAX_ZOOM));
+            }
         }
     }, []);
 
