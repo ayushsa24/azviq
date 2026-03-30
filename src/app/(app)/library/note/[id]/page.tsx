@@ -623,7 +623,9 @@ export default function NoteEditorPage() {
                                             const newTitle = title ? `${title} ${emojiData.emoji}` : emojiData.emoji;
                                             setTitle(newTitle);
                                             titleRef.current = newTitle;
-                                            if (editor) debouncedSave(editor.getHTML(), newTitle);
+                                            const version = Date.now();
+                                            pendingVersionRef.current = version;
+                                            if (editor) debouncedSave(editor.getHTML(), newTitle, version);
                                             setShowEmojiPicker(false);
                                         }}
                                     />
