@@ -2,21 +2,61 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
     ArrowLeft, Save, Download, Loader2, Undo2, Redo2,
     Pen, Eraser, Highlighter, Type, Layout, MousePointer2, ZoomIn, ZoomOut, PanelLeft
 } from "lucide-react";
-import { Document, Page, pdfjs } from "react-pdf";
 import { PDFDocument, rgb } from "pdf-lib";
 import { PdfDrawingOverlay, Annotation } from "@/components/pdf/PdfDrawingOverlay";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { logRecentActivity } from "@/lib/logRecentActivity";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+const PdfSkeleton = () => (
+    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
+        {/* Skeleton Header */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A]">
+            <div className="flex items-center gap-3">
+                <Skeleton className="w-8 h-8 rounded-lg" />
+                <Skeleton className="w-8 h-8 rounded-lg" />
+                <Skeleton className="w-32 h-5 rounded-md" />
+            </div>
+            <div className="flex items-center gap-3">
+                <Skeleton className="w-8 h-8 rounded-lg" />
+                <Skeleton className="w-8 h-8 rounded-lg" />
+                <div className="w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1 hidden sm:block" />
+                <Skeleton className="w-24 h-9 rounded-md hidden sm:block" />
+                <Skeleton className="w-20 h-9 rounded-md hidden sm:block" />
+            </div>
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
+            {/* Skeleton Sidebar - Laptop only */}
+            <div className="hidden sm:flex flex-col w-40 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex flex-col gap-2">
+                        <Skeleton className="w-full h-32 rounded-lg opacity-40 animate-pulse" />
+                        <Skeleton className="w-1/2 h-2 mx-auto rounded-md opacity-30" />
+                    </div>
+                ))}
+            </div>
+
+            {/* Skeleton Main View */}
+            <div className="flex-1 bg-[#E8E5E0] dark:bg-[#161514] p-4 sm:p-12 overflow-hidden flex justify-center">
+                <Skeleton className="w-full max-w-3xl h-full rounded-sm opacity-50 animate-pulse" />
+            </div>
+        </div>
+    </div>
+);
+
+// Dynamically import PdfViewerWrapper to prevent pdfjs-dist from running through
+// Next.js SSR Webpack (which causes the 'Object.defineProperty' crash)
+const PdfViewerWrapper = dynamic(() => import("@/components/pdf/PdfViewerWrapper"), {
+    ssr: false,
+    loading: () => <PdfSkeleton />,
+});
 
 type Tool = "select" | "pen" | "eraser" | "highlight" | "text";
 
@@ -84,6 +124,8 @@ export default function PdfEditorPage() {
     // Ref to the spacer div that compensates for the fixed header height on mobile
     const headerSpacerRef = useRef<HTMLDivElement>(null);
     const thumbnailSidebarRef = useRef<HTMLDivElement>(null); // Ref for thumbnail sidebar to sync scrolling
+
+    // Worker is managed inside PdfViewerWrapper — no setup needed here
 
     // Keep spacer height in sync with actual header height (handles text toolbar appearing/disappearing)
     useEffect(() => {
@@ -546,42 +588,7 @@ export default function PdfEditorPage() {
         </button>;
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
-                {/* Skeleton Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A]">
-                    <div className="flex items-center gap-3">
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <Skeleton className="w-32 h-5 rounded-md" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <div className="w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
-                        <Skeleton className="w-24 h-9 rounded-md" />
-                        <Skeleton className="w-20 h-9 rounded-md" />
-                    </div>
-                </div>
-
-                <div className="flex flex-1 overflow-hidden">
-                    {/* Skeleton Sidebar */}
-                    <div className="hidden sm:flex flex-col w-40 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-4">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="flex flex-col gap-2">
-                                <Skeleton className="w-full h-32 rounded-lg" />
-                                <Skeleton className="w-1/2 h-3 mx-auto rounded-md" />
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Skeleton Main View */}
-                    <div className="flex-1 bg-[#E8E5E0] dark:bg-[#161514] p-8 sm:p-12 overflow-hidden flex justify-center">
-                        <Skeleton className="w-full max-w-3xl h-full rounded-sm" />
-                    </div>
-                </div>
-            </div>
-        );
+        return <PdfSkeleton />;
     }
 
     if (!note || !note.file_url) {
@@ -726,87 +733,50 @@ export default function PdfEditorPage() {
                     flex-col w-40 flex-shrink-0 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors
                     ${showThumbnails ? 'flex absolute top-[calc(env(safe-area-inset-top,0px)+52px)] bottom-0 left-0 z-40 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
                 `}>
-                    <Document file={note.file_url} className="flex flex-col gap-4 items-center">
-                    {Array.from(new Array(numPages), (_, index) => (
-                        <div
-                            key={`thumb_${index + 1}`}
-                            id={`thumb-item-${index + 1}`}
-                            className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 ${(currentPage === index + 1 && typeof window !== 'undefined' && window.innerWidth < 640) ? "border-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.3)] scale-[1.02]" : "border-transparent hover:border-[#E8E5E0] dark:hover:border-[#545454]"}`}
-                            onClick={() => {
-                                document.getElementById(`pdf-page-${index + 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                if (window.innerWidth < 640) setShowThumbnails(false);
-                                
-                                // Reset to select tool when navigating via sidebar to prevent accidental draws
-                                setActiveTool("select");
-                                // If user was typing text, finish it
-                                if (textInput) commitText();
-                            }}
-                        >
-                            <Page pageNumber={index + 1} width={120} renderAnnotationLayer={false} renderTextLayer={false} className="shadow-sm bg-white m-auto" />
-                            <div className={`text-center py-1 text-xs font-medium transition-colors ${(currentPage === index + 1 && typeof window !== 'undefined' && window.innerWidth < 640) ? "text-[#3B82F6] bg-blue-50 dark:bg-blue-900/20" : "text-[#545454] dark:text-[#7D7D7D] bg-[#F5F3EF] dark:bg-[#1A1A1A]"}`}>{index + 1}</div>
-                        </div>
-                    ))}
-                    </Document>
+                    <PdfViewerWrapper
+                        fileUrl={note.file_url}
+                        mode="thumbnails"
+                        currentPage={currentPage}
+                        onNumPagesLoaded={(total) => setNumPages(total)}
+                        onThumbnailClick={(pg) => {
+                            document.getElementById(`pdf-page-${pg}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            if (window.innerWidth < 640) setShowThumbnails(false);
+                            setActiveTool("select");
+                            if (textInput) commitText();
+                        }}
+                    />
                 </div>
 
                 {/* Center Canvas Area - min-w-0 is crucial for flex-1 to not overflow siblings */}
                 <div ref={documentContainerRef} className="flex-1 min-w-0 bg-[#E8E5E0] dark:bg-[#161514] overflow-auto overflow-x-hidden relative flex justify-center p-0 pt-[calc(env(safe-area-inset-top,0px)+52px)] sm:pt-12 sm:px-12 custom-scrollbar">
-                    <Document
-                        file={note.file_url}
-                        onLoadSuccess={onDocumentLoadSuccess}
-                        className="flex flex-col gap-4 sm:gap-8 pb-32 items-center"
-                        loading={
-                            <div className="flex items-center gap-2 text-[#545454] dark:text-[#7D7D7D]">
-                                <Loader2 size={24} className="animate-spin" />
-                                <span>Loading PDF…</span>
-                            </div>
-                        }
-                    >
-                        {Array.from(new Array(numPages), (_, index) => {
-                            const pg = index + 1;
-                            return (
-                                <div
-                                    key={`page_${index + 1}`}
-                                    id={`pdf-page-${index + 1}`}
-                                    ref={(el) => { pageContainerRefs.current[pg] = el; }}
-                                    className="relative bg-white shadow-md sm:shadow-lg transition-all"
-                                >
-                                    <Page
-                                        pageNumber={pg}
-                                        width={containerWidth || undefined}
-                                        scale={zoomLevel}
-                                        className="bg-white pointer-events-none"
-                                        renderAnnotationLayer={false}
-                                        renderTextLayer={false}
-                                        onRenderSuccess={(pageInfo) => {
-                                            if (zoomLevel !== 1) return; // Only capture base layout dimensions at 100%
-                                            setAllPageDims(prev => {
-                                                if (prev[pg]) return prev;
-                                                return {
-                                                    ...prev,
-                                                    [pg]: { width: pageInfo.width, height: pageInfo.height }
-                                                };
-                                            });
-                                        }}
-                                    />
-                                    {allPageDims[pg] && (
-                                        <PdfDrawingOverlay
-                                            width={allPageDims[pg].width * zoomLevel}
-                                            height={allPageDims[pg].height * zoomLevel}
-                                            scale={zoomLevel}
-                                            activeTool={activeTool}
-                                            currentColor={activeTool === "highlight" ? highlightColor : currentColor}
-                                            strokeWidth={strokeWidth}
-                                            annotations={annotsByPage[pg] || []}
-                                            onAnnotationAdd={(ann) => addAnnotation(pg, ann)}
-                                            onEraseAt={(coords) => eraseAt(pg, coords)}
-                                            onTextClick={(x, y) => handleTextClick(pg, x, y)}
-                                            onStrokeWidthChange={(w) => setStrokeWidth(w)}
-                                        />
-                                    )}
-
-                                    {/* Inline text input — rendered directly on the page */}
-                                    {textInput && textInput.pageNum === pg && allPageDims[pg] && (
+                    <PdfViewerWrapper
+                        fileUrl={note.file_url}
+                        mode="full"
+                        scale={zoomLevel}
+                        width={containerWidth || undefined}
+                        onNumPagesLoaded={(total) => setNumPages(total)}
+                        onPageDimLoaded={(pg, dim) => {
+                            setAllPageDims(prev => {
+                                if (prev[pg]) return prev;
+                                return { ...prev, [pg]: dim };
+                            });
+                        }}
+                        renderOverlay={(pg, dim) => (
+                            <>
+                                <PdfDrawingOverlay
+                                    width={dim.width * zoomLevel}
+                                    height={dim.height * zoomLevel}
+                                    scale={zoomLevel}
+                                    activeTool={activeTool}
+                                    currentColor={activeTool === "highlight" ? highlightColor : currentColor}
+                                    strokeWidth={strokeWidth}
+                                    annotations={annotsByPage[pg] || []}
+                                    onAnnotationAdd={(ann) => addAnnotation(pg, ann)}
+                                    onEraseAt={(coords) => eraseAt(pg, coords)}
+                                    onTextClick={(x, y) => handleTextClick(pg, x, y)}
+                                    onStrokeWidthChange={(w) => setStrokeWidth(w)}
+                                />
+                                {textInput && textInput.pageNum === pg && allPageDims[pg] && (
                                         <div
                                             className="absolute z-30 flex flex-col items-start gap-1 group pointer-events-auto select-text"
                                             style={{
@@ -868,10 +838,9 @@ export default function PdfEditorPage() {
                                             />
                                         </div>
                                     )}
-                                </div>
-                            );
-                        })}
-                    </Document>
+                            </>
+                        )}
+                    />
                 </div>
                 {/* Right Sidebar - Tools (Bottom on Mobile, Right on Desktop) */}
                 {/* On mobile, if the keyboard is open, this docks above the keyboard. If closed, docks at bottom. */}

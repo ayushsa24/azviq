@@ -1,10 +1,37 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Transpile react-pdf for ESM compatibility in Next.js 15/16
+  transpilePackages: ["react-pdf"],
   experimental: {
     serverActions: {
       allowedOrigins: ["*.trycloudflare.com", "localhost:3000"],
     },
+    // Safe optimizations to keep the dev server stable and fast
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "@tiptap/react",
+      "date-fns",
+      "swr",
+      "zod",
+      "react-pdf",
+      "pdfjs-dist",
+    ],
+  },
+  // High-performance external packages (bcrypt is natively compiled)
+  serverExternalPackages: ["bcrypt"],
+  // Essential webpack configuration for pdfjs-dist and ESM libraries
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    config.experiments = { ...config.experiments, topLevelAwait: true };
+    return config;
+  },
+  // Enable Turbopack support while keeping webpack for compatibility
+  turbopack: {},
+  // Memory optimization for dev server
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
   },
 };
 

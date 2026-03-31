@@ -45,6 +45,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -81,7 +82,7 @@ function AiChatCore() {
   useStudyTracker({ activityType: 'ai_teacher', isEnabled: true });
 
   const { data: session, status } = useSession();
-  const { data: sessionData, mutate: mutateSessions, error: sessionError } = useSWR(
+  const { data: sessionData, mutate: mutateSessions, error: sessionError, isLoading: isHistoryLoading } = useSWR(
     status === "authenticated" ? `/api/chat/history` : null,
     fetcher,
     {
@@ -1128,6 +1129,12 @@ function AiChatCore() {
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
+          {isHistoryLoading && Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-3 py-2 w-full opacity-60">
+              <Skeleton className="w-4 h-4 shrink-0 rounded-full opacity-30" />
+              <Skeleton className="h-4 flex-1 rounded-md opacity-20" />
+            </div>
+          ))}
           {sessionError && (
             <div className={`p-3 text-center text-xs rounded-lg mb-3 ${theme === "dark" ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}>
               {sessionError.status === 429 
@@ -1135,7 +1142,7 @@ function AiChatCore() {
                 : "Failed to load chat history."}
             </div>
           )}
-          {activeChats.length === 0 && !sessionError && (
+          {activeChats.length === 0 && !sessionError && !isHistoryLoading && (
             <p
               className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#BABABA]" : "text-gray-400"}`}
             >
