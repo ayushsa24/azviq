@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check } from "lucide-react";
 import { Editor } from "@tiptap/react";
 
 interface AiPopoverProps {
@@ -14,6 +14,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     const [hasStartedWriting, setHasStartedWriting] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const fullResponseRef = useRef<string>("");
+    const insertionRangeRef = useRef<{ from: number, to: number } | null>(null);
 
     useEffect(() => {
         onGenerating?.(isLoading || isComplete);
@@ -49,12 +50,23 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
         if (fullResponseRef.current) {
             const { marked } = await import("marked");
             const htmlResult = await marked.parse(fullResponseRef.current);
-
-            // Note: We need to know where we were inserting. 
             // This is handled in the catch block if we use signal.
+        } else {
+            setIsLoading(false);
+            onClose();
         }
+    };
 
-        setIsLoading(false);
+    const handleDiscard = () => {
+        if (insertionRangeRef.current && editor) {
+            editor.chain()
+                .focus()
+                .deleteRange({
+                    from: insertionRangeRef.current.from,
+                    to: insertionRangeRef.current.to
+                })
+                .run();
+        }
         onClose();
     };
 
@@ -65,6 +77,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
         setIsComplete(false);
         setHasStartedWriting(false);
         fullResponseRef.current = "";
+        insertionRangeRef.current = null;
         abortControllerRef.current = new AbortController();
         let insertAt = editor.state.selection.from;
 
@@ -120,6 +133,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                 const lines = buffer.split("\n\n");
                 buffer = lines.pop() || "";
 
+                let chunkBatch = "";
                 for (const line of lines) {
                     if (!line.startsWith("data: ")) continue;
                     const data = line.slice(6);
@@ -129,14 +143,18 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                         const { content } = JSON.parse(data);
                         if (content) {
                             if (!hasStartedWriting) setHasStartedWriting(true);
-                            // Insert chunk for live typing effect
-                            editor.chain().focus().insertContentAt(currentInsertPos, content).run();
-                            currentInsertPos += content.length;
+                            chunkBatch += content;
                             fullResponseRef.current += content;
                         }
                     } catch {
                         // skip malformed
                     }
+                }
+
+                // Batch insertion for performance
+                if (chunkBatch) {
+                    editor.chain().focus().insertContentAt(currentInsertPos, chunkBatch).run();
+                    currentInsertPos += chunkBatch.length;
                 }
             }
 
@@ -147,12 +165,16 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
                 // Select the raw streamed text range and replace with formatted HTML
                 const endPos = startPos + fullResponseRef.current.length;
+                
                 editor.chain()
                     .focus()
                     .setTextSelection({ from: startPos, to: endPos })
                     .deleteSelection()
                     .insertContentAt(startPos, htmlResult)
                     .run();
+
+                const finalEndPos = editor.state.selection.to;
+                insertionRangeRef.current = { from: startPos, to: finalEndPos };
 
                 setIsComplete(true);
             }
@@ -176,10 +198,17 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                         .deleteSelection()
                         .insertContentAt(startPos, htmlResult)
                         .run();
+                    
+                    const finalEndPos = editor.state.selection.to;
+                    insertionRangeRef.current = { from: startPos, to: finalEndPos };
+                    setIsComplete(true);
+                } else {
+                    onClose();
                 }
             } else {
                 console.error(error);
                 alert("Sorry, I encountered an error. Please try again.");
+                onClose();
             }
         } finally {
             setIsLoading(false);
@@ -194,18 +223,22 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2.5">
-                    <div className="relative">
-                        <Sparkles size={16} className={`text-[#252525] dark:text-[#CFCFCF] ${hasStartedWriting ? 'animate-pulse' : 'animate-spin'}`} />
-                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+                    <div className="relative flex items-center justify-center shrink-0">
+                        <Sparkles size={16} className="text-[#252525] dark:text-[#CFCFCF]" />
                     </div>
-                    <span className="text-sm font-bold text-[#252525] dark:text-[#CFCFCF] whitespace-nowrap">
-                        AI is writing...
-                    </span>
+                    <div className="flex items-center gap-1 text-sm font-bold text-[#252525] dark:text-[#CFCFCF] whitespace-nowrap">
+                        <span>AI is thinking</span>
+                        <span className="flex">
+                            <span className="animate-[bounce_1s_infinite_0ms]">.</span>
+                            <span className="animate-[bounce_1s_infinite_200ms]">.</span>
+                            <span className="animate-[bounce_1s_infinite_400ms]">.</span>
+                        </span>
+                    </div>
                 </div>
-                <div className="w-px h-4 bg-[#E0E0E0] dark:bg-[#3A3A3A]" />
+                <div className="w-px h-4 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
                 <button
                     onClick={handleStop}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525]/5 dark:bg-[#CFCFCF]/5 hover:bg-[#252525]/10 dark:hover:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] text-[10px] font-black uppercase tracking-tighter rounded-full transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525]/5 dark:bg-[#CFCFCF]/5 hover:bg-[#252525]/10 dark:hover:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] text-[10px] font-black uppercase tracking-tight rounded-full transition-all"
                 >
                     <Square size={10} className="fill-current" />
                     Stop
@@ -217,21 +250,31 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     if (isComplete) {
         return (
             <div
-                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto"
+                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto min-w-max"
                 onMouseDown={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-green-500/10 rounded-full flex items-center justify-center">
-                        <CheckCheck size={14} className="text-green-600 dark:text-green-400" />
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-5 h-5 bg-green-500/10 rounded-full flex items-center justify-center shrink-0">
+                        <Sparkles size={12} className="text-green-600 dark:text-green-400" />
                     </div>
-                    <span className="text-sm font-bold text-[#252525] dark:text-[#CFCFCF]">Response Ready</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#252525] dark:text-[#CFCFCF] whitespace-nowrap">Keep this response?</span>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="flex items-center gap-1.5 px-4 py-1.5 bg-[#252525] dark:bg-[#CFCFCF] text-white dark:text-[#252525] text-xs font-bold rounded-full hover:opacity-90 transition-all shadow-sm"
-                >
-                    Done
-                </button>
+                <div className="flex items-center gap-1.5 ml-1 shrink-0">
+                    <button
+                        onClick={handleDiscard}
+                        className="p-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                        title="Discard (Remove)"
+                    >
+                        <X size={14} sm-size={16} strokeWidth={3} />
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-full hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+                        title="Accept (Keep)"
+                    >
+                        <Check size={14} sm-size={16} strokeWidth={3} />
+                    </button>
+                </div>
             </div>
         );
     }

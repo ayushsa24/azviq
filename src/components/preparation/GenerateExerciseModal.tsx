@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Modal from "@/components/ui/Modal";
 import { FileText, SearchCode, Sparkles, CheckCircle2, Search, Check, ChevronDown } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -22,6 +22,7 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
     const [searchQuery, setSearchQuery] = useState("");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [workspaces, setWorkspaces] = useState<any[]>([]);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const isDark = theme === 'dark';
 
     useEffect(() => {
@@ -54,24 +55,34 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
     const handleGenerate = async () => {
         if (!selectedFile) return;
         setStep("generating");
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
         try {
             const res = await fetch("/api/exercises", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ noteId: selectedFile, count: questionCount })
+                body: JSON.stringify({ noteId: selectedFile, count: questionCount }),
+                signal: controller.signal
             });
             if (!res.ok) throw new Error("Failed to generate exercise");
             const data = await res.json();
             setCreatedExercise(data.exercise);
             setStep("result");
-        } catch (error) {
+        } catch (error: any) {
+            if (error.name === "AbortError") return;
             console.error(error);
             alert("An error occurred while generating the exercise.");
             setStep("select");
+        } finally {
+            abortControllerRef.current = null;
         }
     };
 
     const handleClose = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
         setStep("select");
         setSelectedFile(null);
         setCreatedExercise(null);

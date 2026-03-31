@@ -21,6 +21,7 @@ export const translations = {
     active: "Active",
     enable: "Enable",
     parent_control: "Parent Control",
+    trash: "Trash",
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -44,6 +45,7 @@ export const translations = {
     active: "सक्रिय",
     enable: "सक्षम करें",
     parent_control: "अभिभावक नियंत्रण",
+    trash: "रद्दी",
   },
   es: {
     dashboard: "Tablero",
@@ -67,6 +69,7 @@ export const translations = {
     active: "Activo",
     enable: "Habilitar",
     parent_control: "Control parental",
+    trash: "Papelera",
   },
   fr: {
     dashboard: "Tableau de bord",
@@ -90,6 +93,7 @@ export const translations = {
     active: "Actif",
     enable: "Activer",
     parent_control: "Contrôle parental",
+    trash: "Corbeille",
   },
   kn: {
     dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
@@ -113,6 +117,7 @@ export const translations = {
     active: "ಸಕ್ರಿಯ",
     enable: "ಸಕ್ರಿಯಗೊಳಿಸಿ",
     parent_control: "ಪೋಷಕರ ನಿಯಂತ್ರಣ",
+    trash: "ಕಸದ ಬುಟ್ಟಿ",
   },
   ta: {
     dashboard: "டாஷ்போர்டு",
@@ -136,6 +141,7 @@ export const translations = {
     active: "செயலில்",
     enable: "செயல்படுத்து",
     parent_control: "பெற்றோர் கட்டுப்பாடு",
+    trash: "குப்பை",
   },
   te: {
     dashboard: "డాష్‌బోర్డ్",
@@ -159,5 +165,6 @@ export const translations = {
     active: "క్రియాశీల",
     enable: "ప్రారంభించు",
     parent_control: "తల్లిదండ్రుల నియంత్రణ",
+    trash: "ట్రాష్",
   }
 };

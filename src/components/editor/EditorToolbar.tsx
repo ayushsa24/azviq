@@ -202,7 +202,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
             {isAiOpen && aiCoords && (
                 <div
                     className={`z-[2000] drop-shadow-2xl ${isGenerating
-                        ? 'fixed bottom-8 left-1/2 -translate-x-1/2'
+                        ? 'fixed bottom-12 left-1/2 -translate-x-1/2'
                         : 'absolute shadow-2xl'
                         }`}
                     style={isGenerating ? {} : {

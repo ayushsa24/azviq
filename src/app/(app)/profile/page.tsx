@@ -111,21 +111,21 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen p-3 mt-[17px]">
+    <div className="min-h-screen p-3 sm:mt-[17px] mt-0">
 
-      <div className={`max-w-2xl mx-auto rounded-2xl p-4 transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#252525]/90 border border-[#545454]' : 'bg-gray-100 border border-gray-300'
+      <div className={`max-w-2xl mx-auto rounded-2xl p-4 transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#24221F] border border-[#2E2E2E]' : 'bg-[#F7F7F8] border border-[#E8E5E0]'
         } shadow-sm`}>
 
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-4">
+        <div className={`flex justify-between items-center pb-2 mb-4 border-b transition-colors duration-300 ${theme === 'dark' ? 'border-[#3A3A3A]/40' : 'border-[#E8E5E0]'}`}>
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="p-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+              className={`p-2 rounded-lg transition-colors duration-200 cursor-pointer ${theme === 'dark' ? 'bg-[#545454] text-white hover:bg-white hover:text-[#252525]' : 'bg-[#252525] text-white hover:bg-[#545454]'}`}
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <h1 className={`text-2xl font-bold transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+            <h1 className={`text-2xl font-bold transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-white' : 'text-[#252525]'
               }`}>
               Profile
             </h1>

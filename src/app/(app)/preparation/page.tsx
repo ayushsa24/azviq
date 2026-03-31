@@ -413,6 +413,8 @@ export default function PreparationPage() {
                             title: newExercise.title || "Untitled Exercise",
                             href: `/preparation?tab=exercise&id=${newExercise.id}`,
                         });
+                        // Update URL so back button works correctly
+                        router.push(`/preparation?tab=exercise&id=${newExercise.id}`);
                     }
                 }}
             />
@@ -431,6 +433,8 @@ export default function PreparationPage() {
                         title: revision.title || "Untitled Revision",
                         href: `/preparation?tab=revision&id=${revision.id}`,
                     });
+                    // Update URL so back button works correctly
+                    router.push(`/preparation?tab=revision&id=${revision.id}`);
                 }}
             />
         </div>

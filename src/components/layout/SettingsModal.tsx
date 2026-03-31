@@ -237,17 +237,17 @@ export default function SettingsModal() {
       />
 
       {/* Modal Container */}
-      <div className={`relative w-full h-full sm:h-[600px] sm:max-w-3xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 sm:border animate-in zoom-in-95 duration-200 ${
-        isDark ? "bg-[#1A1A1A] text-white border-[#3A3A3A]" : "bg-white text-[#252525] border-[#E8E5E0]"
+      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 sm:border animate-in zoom-in-95 duration-200 ${
+        isDark ? "bg-[#0F0F0F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
       }`}>
 
         {/* Sidebar (Desktop) / Top Bar (Mobile) */}
         <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${
-          isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-[#F7F7F8] border-[#E8E5E0]"
-        } ${"w-full sm:w-64"}`}>
+          isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
+        } ${"w-full sm:w-72"}`}>
           
           {/* Header Area */}
-          <div className="flex items-center justify-between px-4 pt-14 pb-4 sm:pt-6 sm:px-6">
+          <div className="flex items-center justify-between px-4 pt-4 pb-2 sm:pt-6 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] bg-[#F5F3EF] dark:bg-transparent dark:border-[#3A3A3A]/40 mb-2 sm:mb-4">
             <h2 className="text-lg font-bold sm:text-2xl">{translations[language].settings}</h2>
             <button onClick={closeSettings} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
                 <X size={20} />
@@ -265,8 +265,8 @@ export default function SettingsModal() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2.5 px-3 py-2 sm:py-2.5 rounded-xl transition-all text-xs sm:text-sm font-medium whitespace-nowrap sm:whitespace-normal shrink-0 sm:shrink outline-none ${
                     isActive
-                      ? isDark ? "bg-[#333] text-white" : "bg-white sm:bg-[#F0F0F0] text-[#252525] shadow-sm sm:shadow-none border border-[#E8E5E0] sm:border-transparent"
-                      : isDark ? "text-[#BABABA] hover:bg-[#252525]" : "text-[#545454] hover:bg-[#E8E5E0]"
+                      ? isDark ? "bg-[#2E2E2E] text-white shadow-sm" : "bg-[#E8E5E0] text-[#252525] shadow-sm sm:shadow-none border-transparent"
+                      : isDark ? "text-[#BABABA] hover:bg-[#252525]" : "text-[#545454] hover:bg-[#F0EDE8]"
                   }`}
                 >
                   <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
@@ -299,7 +299,7 @@ export default function SettingsModal() {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
+                <div className="flex items-center justify-between pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div>
                         <h3 className="text-sm font-semibold">{translations[language].language}</h3>
                         <p className="text-xs text-[#7D7D7D]">Set your preferred interface language</p>
@@ -321,7 +321,7 @@ export default function SettingsModal() {
                     </select>
                 </div>
 
-                <div className="flex flex-col gap-5 pt-6 border-t border-black/5 dark:border-white/5">
+                <div className="flex flex-col gap-5 pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-sm font-semibold">Interface Scale</h3>
@@ -392,7 +392,7 @@ export default function SettingsModal() {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
+                <div className="flex items-center justify-between pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div>
                         <h3 className="text-sm font-semibold">User Info</h3>
                         <p className="text-xs text-[#7D7D7D]">{session?.user?.email || "No email"}</p>
@@ -410,7 +410,7 @@ export default function SettingsModal() {
                   </div>
                   <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                     pushPermission === "granted" 
-                      ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                      ? "bg-[#C2A27A]" 
                       : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                   }`} onClick={requestPushPermission}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
@@ -419,7 +419,7 @@ export default function SettingsModal() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-4 pt-6 border-t border-black/5 dark:border-white/5">
+                <div className="flex flex-col gap-4 pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-semibold">Study Reminders</h3>
@@ -427,7 +427,7 @@ export default function SettingsModal() {
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                       studyReminders
-                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                        ? "bg-[#C2A27A]" 
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                     }`} onClick={() => setStudyReminders(!studyReminders)}>
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
@@ -443,7 +443,7 @@ export default function SettingsModal() {
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                       aiAlerts
-                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                        ? "bg-[#C2A27A]" 
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                     }`} onClick={() => setAiAlerts(!aiAlerts)}>
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
@@ -459,7 +459,7 @@ export default function SettingsModal() {
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                       todoReminders
-                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                        ? "bg-[#C2A27A]" 
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                     }`} onClick={() => setTodoReminders(!todoReminders)}>
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
@@ -475,7 +475,7 @@ export default function SettingsModal() {
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                       taskDueReminders
-                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                        ? "bg-[#C2A27A]" 
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                     }`} onClick={() => setTaskDueReminders(!taskDueReminders)}>
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
@@ -491,7 +491,7 @@ export default function SettingsModal() {
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                       doNotDisturb
-                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]" 
+                        ? "bg-[#C2A27A]" 
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                     }`} onClick={() => setDoNotDisturb(!doNotDisturb)}>
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
@@ -628,7 +628,7 @@ export default function SettingsModal() {
                   </div>
                   <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                     localControlEnabled
-                      ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]"
+                      ? "bg-[#C2A27A]"
                       : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                   }`} onClick={() => setLocalControlEnabled(!localControlEnabled)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
@@ -714,7 +714,7 @@ export default function SettingsModal() {
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
                       localRestrictedMode
-                        ? isDark ? "bg-[#C2A27A]" : "bg-[#252525]"
+                        ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => setLocalRestrictedMode(!localRestrictedMode)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${

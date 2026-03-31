@@ -669,6 +669,14 @@ export default function NoteEditorPage() {
                                     setAiInlinePos(null);
                                 }
                             }}
+                            onDiscard={() => {
+                                if (editor && aiInlinePos) {
+                                    const start = aiInlinePos.from;
+                                    const end = editor.state.selection.to;
+                                    editor.chain().focus().deleteRange({ from: start, to: end }).run();
+                                    setAiInlinePos(null);
+                                }
+                            }}
                             onStreamChunk={(chunk) => {
                                 if (editor) {
                                     editor.chain().insertContent(chunk).scrollIntoView().run();

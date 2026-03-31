@@ -22,13 +22,16 @@ const EditorRequestSchema = z.object({
 
 export async function POST(req: Request) {
     try {
-        // 1. Authenticate the user
-        const session = await getServerSession(authOptions);
+        // 1. Parallel Authenticate and Quota Fetch
+        const sessionPromise = getServerSession(authOptions);
+        
+        // Wait for session first since we need the email for the user ID fetch
+        const session = await sessionPromise;
         if (!session?.user?.email) {
             return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
-        // 2. Fetch user from DB to get ID for quota check
+        // 2. Fetch user and concurrent quota check
         const { data: user } = await supabase
             .from("users")
             .select("id")
@@ -39,7 +42,6 @@ export async function POST(req: Request) {
             return apiError("User not found", 404, "USER_NOT_FOUND");
         }
 
-        // --- AI Daily Quota Check ---
         const quota = await checkAiDailyQuota(user.id);
         if (!quota.success) {
             return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
@@ -95,6 +97,11 @@ export async function POST(req: Request) {
                         { role: "user", content: fullPrompt },
                     ],
                     stream: true,
+                    // Optimization: Tweak Ollama sampling for faster first-token (sometimes)
+                    options: {
+                        temperature: 0.7,
+                        num_predict: 1000,
+                    }
                 }),
             });
         } catch {

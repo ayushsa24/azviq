@@ -432,17 +432,17 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="flex border-b border-[#E8E5E0] dark:border-[#545454] mb-4 transition-colors justify-between items-end gap-2 w-full relative">
+      <div className="flex pb-2 mb-4 transition-colors justify-between items-center gap-3 w-full relative border-b border-[#E8E5E0] dark:border-[#3A3A3A]/40">
         <div className="relative flex-1 overflow-hidden">
           <div
-            className="flex overflow-x-auto flex-nowrap pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x w-full pr-10"
+            className="flex overflow-x-auto flex-nowrap py-1 space-x-1.5 sm:space-x-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x w-full pr-10"
           >
             {!activeWorkspace && (
               <button
                 onClick={() => setActiveTab("workspaces")}
-                className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "workspaces"
-                  ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
-                  : "border-transparent text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
+                className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "workspaces"
+                  ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
+                  : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
                   }`}
               >
                 Workspaces
@@ -450,27 +450,27 @@ export default function NotesPage() {
             )}
             <button
               onClick={() => setActiveTab("notes")}
-              className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "notes"
-                ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
-                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
+              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "notes"
+                ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
+                : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
                 }`}
             >
               Notes
             </button>
             <button
               onClick={() => setActiveTab("pdfs")}
-              className={`px-1 py-2 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${activeTab === "pdfs"
-                ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
-                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
+              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "pdfs"
+                ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
+                : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
                 }`}
             >
               PDFs
             </button>
             <button
               onClick={() => setActiveTab("favourites")}
-              className={`px-1 py-2 border-b-2 font-medium text-sm mr-2 whitespace-nowrap snap-start transition-colors ${activeTab === "favourites"
-                ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
-                : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
+              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "favourites"
+                ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
+                : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
                 }`}
             >
               Favourites
@@ -478,7 +478,7 @@ export default function NotesPage() {
           </div>
 
           {/* Right Scroll Indicator for Mobile */}
-          <div className="absolute right-0 top-0 bottom-1 w-12 bg-gradient-to-l from-[#F5F3EF] dark:from-[#1A1A1A] to-transparent pointer-events-none flex justify-end items-center pr-0 sm:hidden">
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#F5F3EF] dark:from-[#1A1A1A] to-transparent pointer-events-none flex justify-end items-center pr-0 sm:hidden">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7D7D7D] dark:text-[#545454]"><path d="m9 18 6-6-6-6" /></svg>
           </div>
         </div>
