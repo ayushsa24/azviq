@@ -47,7 +47,7 @@ export default function BottomNav() {
     <nav className={`fixed bottom-0 left-0 right-0 z-[100] border-t transition-all duration-300 ease-in-out shadow-2xl md:hidden pb-[env(safe-area-inset-bottom,4px)] pt-1
       ${hidden ? 'translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}
       ${theme === 'dark' ? 'bg-[#1A1A1A] border-[#2E2E2E]' : 'bg-white/80 backdrop-blur-xl border-[#E8E5E0]'}`}>
-      <div className="mx-auto flex max-w-md justify-between px-6 py-2">
+      <div className="mx-auto flex max-w-md justify-between px-6 py-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
@@ -56,7 +56,7 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`relative group flex flex-col items-center justify-center p-2 rounded-2xl transition-all duration-300 active:scale-90
+              className={`relative group flex flex-col items-center justify-center p-1.5 rounded-2xl transition-all duration-300 active:scale-90
                 ${theme === 'dark'
                   ? isActive ? 'text-white' : 'text-[#7D7D7D] hover:text-[#BABABA]'
                   : isActive ? 'text-[#252525]' : 'text-[#7D7D7D] hover:text-[#545454]'

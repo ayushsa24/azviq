@@ -39,14 +39,15 @@ export async function POST(req: Request) {
 
     if (!genAI) return apiError("Gemini API not configured.", 503, "AI_NOT_CONFIGURED");
 
-    // 3. Save User Message to DB (Now with image persistence)
+    // 3. Save User Message to DB (Now with ID-based persistence)
     const lastUserMsg = messages[messages.length - 1];
     if (chatId !== "temp-chat") {
       const contentToSave = image 
         ? JSON.stringify({ text: lastUserMsg.content, image: image })
         : lastUserMsg.content;
 
-      await supabase.from("messages").insert({
+      await supabase.from("messages").upsert({
+        id: lastUserMsg.id, // Update if ID exists
         chat_id: chatId,
         user_id: userId,
         role: "user",
@@ -100,6 +101,37 @@ export async function POST(req: Request) {
       }
     }
 
+    // 5. Generate a title on the first message if this is a new chat (non-blocking)
+    let titlePromise: Promise<string | null> | null = null;
+    if (messages.length === 1 && chatId !== "temp-chat") {
+      // Use Ollama to generate a summary title based on the user question
+      titlePromise = fetch("http://localhost:11434/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama3.2",
+          prompt: `Based on the following query about study material in an image, generate a very short, concise 2 to 4 word summary title for the chat. Examples: "Biology Diagram Analysis", "Math Problem Help", "Chemistry Paper Study". Message: "${lastUserMsg.content || "Analyze this image"}"`,
+          stream: false,
+        }),
+      })
+        .then(async (res) => {
+          if (res.ok) {
+            const titleData = await res.json() as { response: string };
+            const newTitle = titleData.response.trim().replace(/['"]/g, "");
+            await supabase
+              .from("chats")
+              .update({ title: newTitle })
+              .eq("id", chatId);
+            return newTitle;
+          }
+          return null;
+        })
+        .catch((e) => {
+          console.error("Could not generate vision title with Ollama", e);
+          return null;
+        });
+    }
+
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -120,6 +152,18 @@ export async function POST(req: Request) {
               content: fullContent,
               email: session.user!.email,
             });
+          }
+
+          // Alert client to the updated title in real-time
+          if (titlePromise) {
+            const resolvedTitle = await titlePromise;
+            if (resolvedTitle) {
+              controller.enqueue(
+                encoder.encode(
+                  "\n" + JSON.stringify({ __generatedTitle: resolvedTitle }) + "\n"
+                )
+              );
+            }
           }
         } catch (streamErr: any) {
           console.error("Stream processing error:", streamErr);

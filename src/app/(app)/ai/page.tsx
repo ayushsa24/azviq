@@ -60,6 +60,7 @@ const fetcher = async (url: string) => {
 };
 
 export interface Message {
+  id?: string;
   role: "user" | "model" | "assistant";
   content: string;
   image?: string; // Base64 image data for Vision
@@ -148,10 +149,15 @@ function AiChatCore() {
       const activeChat = sessionData.chats.find((c: ChatSession) => c.id === activeChatId);
       if (activeChat) {
         const processedMessages = (activeChat.messages || []).map((msg: Message) => {
-          if (msg.role === "user" && msg.content?.startsWith('{"text":')) {
+          // Robust check for JSON content (all edited messages with images/structured text)
+          if (msg.role === "user" && msg.content?.trim().startsWith('{')) {
             try {
               const parsed = JSON.parse(msg.content);
-              return { ...msg, content: parsed.text, image: parsed.image || msg.image };
+              return { 
+                ...msg, 
+                content: parsed.text || parsed.content || msg.content, 
+                image: parsed.image || msg.image 
+              };
             } catch (e) {
               return msg;
             }
@@ -459,6 +465,7 @@ function AiChatCore() {
     isSendingRef.current = true;
     const currentImage = overrideText !== undefined ? editImage : selectedImage;
     const newMsg: Message = {
+      id: cutHistoryAtIndex !== undefined ? messages[cutHistoryAtIndex].id : undefined,
       role: "user",
       content: textToSend,
       image: currentImage || undefined // Pass the image data for the UI
@@ -1352,7 +1359,7 @@ function AiChatCore() {
               setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
             }
           }}
-          className="flex-1 overflow-y-auto p-0 md:p-6 space-y-4 md:space-y-6"
+          className="flex-1 overflow-y-auto pt-4 pb-4 md:p-6 space-y-4 md:space-y-6"
         >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
@@ -1432,305 +1439,205 @@ function AiChatCore() {
 
                   {/* Bubble */}
                   <div
-                    className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${msg.role === "user"
-                      ? theme === "dark"
-                        ? "bg-[#545454] text-white rounded-br-none"
-                        : "bg-[#F0EDE8] text-gray-900 rounded-br-none"
-                      : theme === "dark"
-                        ? "w-fit max-w-full bg-[#252525] text-white border border-[#545454] rounded-bl-none ai-response-content"
-                        : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-[#E8E5E0] rounded-bl-none ai-response-content"
-                      }`}
+                    className={`relative flex flex-col items-end group ${msg.role === "user" ? "ml-auto" : "mr-auto"}`}
                   >
                     {editingMessageIdx === idx ? (
-                      <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
-                        <textarea
-                          autoFocus
-                          value={editInput}
-                          onChange={(e) => setEditInput(e.target.value)}
-                          className={`w-full bg-transparent border-0 focus:ring-0 resize-none outline-none custom-scrollbar p-0 m-0 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
-                          rows={Math.max(2, editInput.split("\n").length)}
-                        />
+                      <div
+                        className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${theme === "dark"
+                          ? "bg-[#545454] text-white rounded-br-none"
+                          : "bg-[#F0EDE8] text-gray-900 rounded-br-none"
+                          }`}
+                      >
+                        <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
+                          <div className="flex items-end">
+                            {/* Image Preview in Edit Mode - Side by Side */}
+                            {(editImage || msg.image) && (
+                              <div className="mr-2 mb-1 shrink-0">
+                                <div className="relative h-12 w-12 md:h-16 md:w-16 rounded-md md:rounded-lg overflow-hidden border border-black/10 dark:border-white/10 shadow-sm transition-transform hover:scale-[1.02]">
+                                  <img
+                                    src={editImage || msg.image}
+                                    alt="Edit material"
+                                    className="h-full w-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 rounded-md md:rounded-lg">
+                                    <button
+                                      onClick={() => editFileInputRef.current?.click()}
+                                      className="p-1 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors"
+                                      title="Change image"
+                                    >
+                                      <Paperclip className="w-3 h-3 md:w-4 md:h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditImage(null);
+                                        msg.image = undefined;
+                                      }}
+                                      className="p-1 bg-red-500/50 hover:bg-red-500/70 text-white rounded-full transition-colors"
+                                      title="Remove image"
+                                    >
+                                      <X className="w-3 h-3 md:w-4 md:h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
-                        {/* Hidden File Input for Editing */}
-                        <input
-                          type="file"
-                          ref={editFileInputRef}
-                          className="hidden"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setEditImage(reader.result as string);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-
-                        {/* Image Preview in Edit Mode */}
-                        {(editImage || msg.image) && (
-                          <div className="mt-2 relative inline-block group/edit-img">
-                            <img
-                              src={editImage || msg.image}
-                              alt="Edit material"
-                              className="h-20 w-auto rounded-lg border border-black/10 dark:border-white/10"
+                            <textarea
+                              autoFocus
+                              value={editInput}
+                              onChange={(e) => setEditInput(e.target.value)}
+                              className={`flex-1 bg-transparent border-0 focus:ring-0 resize-none outline-none custom-scrollbar p-0 m-0 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+                              rows={Math.max(2, editInput.split("\n").length)}
                             />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/edit-img:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
-                              <button
-                                onClick={() => editFileInputRef.current?.click()}
-                                className="p-1.5 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors"
-                                title="Change image"
-                              >
-                                <Paperclip className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditImage(null);
-                                  // We manually force msg.image equal to null for the local render
-                                  msg.image = undefined;
-                                }}
-                                className="p-1.5 bg-red-500/20 hover:bg-red-500/40 text-white rounded-full transition-colors"
-                                title="Remove image"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
                           </div>
-                        )}
 
-                        <div className="flex justify-end gap-2 mt-2">
-                          <button
-                            onClick={() => {
-                              setEditingMessageIdx(null);
-                              setEditImage(null);
+                          {/* Hidden File Input for Editing */}
+                          <input
+                            type="file"
+                            ref={editFileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setEditImage(reader.result as string);
+                                };
+                                reader.readAsDataURL(file);
+                              }
                             }}
-                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${theme === "dark" ? "bg-[#252525] hover:bg-[#333] text-gray-300" : "bg-[#F0EDE8] hover:bg-[#D1D1D1] text-gray-700"}`}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleSend(editInput, idx)}
-                            disabled={
-                              (!editInput.trim() && !editImage && !msg.image) || (editInput === msg.content && editImage === null)
-                            }
-                            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${theme === "dark" ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-indigo-500 hover:bg-indigo-600 text-white"}`}
-                          >
-                            Save & Resubmit
-                          </button>
+                          />
+
+                          <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <button
+                              onClick={() => {
+                                setEditingMessageIdx(null);
+                                setEditImage(null);
+                              }}
+                              className={`px-3 py-1 text-xs rounded-lg transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900"}`}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleSend(editInput, idx)}
+                              disabled={
+                                (!editInput.trim() && !editImage && !msg.image) || (editInput === msg.content && editImage === null)
+                              }
+                              className={`px-3 py-1 text-xs rounded-lg font-medium transition-transform active:scale-95 ${theme === "dark" ? "bg-white text-black hover:bg-white/90 shadow-sm" : "bg-[#252525] text-white hover:bg-[#545454] shadow-md"}`}
+                            >
+                              Save & Resubmit
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      <>
-                        {/* Integrated Image Preview for Vision Messages */}
+                      <div className="flex flex-col items-end gap-1">
+                        {/* 1. Large Image Bubble */}
                         {msg.role === "user" && msg.image && (
-                          <div className="mb-2 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 shadow-sm transition-transform hover:scale-[1.01] bg-black/5 dark:bg-white/5">
+                          <div className={`rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 shadow-md transition-transform hover:scale-[1.01] bg-black/5 dark:bg-white/5 w-fit max-w-fit flex-shrink-0 ${isMobileApp ? "max-h-[220px]" : "max-h-[350px]"}`}>
                             <img
                               src={msg.image}
                               alt="Study Material"
-                              className="w-full h-auto object-contain max-h-[160px] cursor-zoom-in"
+                              className="w-auto h-auto object-cover max-h-[200px] md:max-h-[320px] cursor-zoom-in"
                               onClick={() => setImagePreviewUrl(msg.image || null)}
                             />
                           </div>
                         )}
 
-                        {msg.role === "model" ? (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              h1: ({ node, ...props }) => (
-                                <h1
-                                  className="text-xl font-bold mt-4 mb-2"
-                                  {...props}
-                                />
-                              ),
-                              h2: ({ node, ...props }) => (
-                                <h2
-                                  className="text-lg font-bold mt-3 mb-2"
-                                  {...props}
-                                />
-                              ),
-                              h3: ({ node, ...props }) => (
-                                <h3
-                                  className="text-md font-bold mt-2 mb-1"
-                                  {...props}
-                                />
-                              ),
-                              p: ({ node, ...props }) => (
-                                <p
-                                  className="mb-2 leading-relaxed"
-                                  {...props}
-                                />
-                              ),
-                              ul: ({ node, ...props }) => (
-                                <ul
-                                  className="list-disc pl-5 mb-2 space-y-0.5"
-                                  {...props}
-                                />
-                              ),
-                              ol: ({ node, ...props }) => (
-                                <ol
-                                  className="list-decimal pl-5 mb-2 space-y-0.5"
-                                  {...props}
-                                />
-                              ),
-                              li: ({ node, ...props }) => (
-                                <li className="pl-1" {...props} />
-                              ),
-                              a: ({ node, ...props }) => (
-                                <a
-                                  className="text-[#545454] dark:text-white hover:underline font-semibold"
-                                  {...props}
-                                />
-                              ),
-                              strong: ({ node, ...props }) => (
-                                <strong
-                                  className="font-bold text-inherit"
-                                  {...props}
-                                />
-                              ),
-                              table: ({ node, ...props }) => (
-                                <div className="w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
-                                  <table
-                                    className="w-full text-sm text-left border-collapse"
-                                    {...props}
-                                  />
-                                </div>
-                              ),
-                              thead: ({ node, ...props }) => (
-                                <thead
-                                  className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-[#F5F3EF] text-gray-700 border-b border-[#E8E5E0]"}`}
-                                  {...props}
-                                />
-                              ),
-                              tbody: ({ node, ...props }) => (
-                                <tbody
-                                  className="divide-y divide-gray-200 dark:divide-[#545454]"
-                                  {...props}
-                                />
-                              ),
-                              tr: ({ node, ...props }) => (
-                                <tr
-                                  className={`transition-colors shadow-sm ${theme === "dark" ? "hover:bg-[#252525]/50" : "hover:bg-gray-50"}`}
-                                  {...props}
-                                />
-                              ),
-                              th: ({ node, ...props }) => (
-                                <th
-                                  className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]"
-                                  {...props}
-                                />
-                              ),
-                              td: ({ node, ...props }) => (
-                                <td
-                                  className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]"
-                                  {...props}
-                                />
-                              ),
-                              pre: ({ node, children, ...props }) => (
-                                <div className="not-prose">{children}</div>
-                              ),
-                              code({
-                                node,
-                                className,
-                                children,
-                                ...props
-                              }: any) {
-                                const match = /language-(\w+)/.exec(
-                                  className || "",
-                                );
-                                const isInline =
-                                  !match && !className?.includes("language");
-                                const codeString = String(children).replace(
-                                  /\n$/,
-                                  "",
-                                );
-
-                                if (isInline) {
-                                  return (
-                                    <code
-                                      className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-[#F5F3EF] text-pink-600"}`}
-                                      {...props}
-                                    >
-                                      {children}
-                                    </code>
-                                  );
-                                }
-
-                                return (
-                                  <div className="relative group/code mb-4 mt-3">
-                                    <div
-                                      className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}
-                                    >
-                                      <span>{match?.[1] || "code"}</span>
-                                      <button
-                                        onClick={() =>
-                                          handleCopyCode(codeString)
-                                        }
-                                        className="flex items-center gap-1.5 hover:text-white transition-colors"
-                                      >
-                                        {copiedCodeBlock === codeString ? (
-                                          <Check className="w-3.5 h-3.5 text-green-500" />
-                                        ) : (
-                                          <Copy className="w-3.5 h-3.5" />
-                                        )}
-                                        {copiedCodeBlock === codeString ? (
-                                          <span className="text-green-500">
-                                            Copied
-                                          </span>
-                                        ) : (
-                                          <span>Copy code</span>
-                                        )}
-                                      </button>
-                                    </div>
-                                    <div
-                                      className={`overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}
-                                    >
-                                      <SyntaxHighlighter
-                                        style={vscDarkPlus}
-                                        language={match?.[1] || "text"}
-                                        PreTag="div"
-                                        customStyle={{
-                                          margin: 0,
-                                          padding: "1rem",
-                                          background: "transparent",
-                                          fontSize: "0.875rem",
-                                        }}
-                                        {...props}
-                                      >
-                                        {codeString}
-                                      </SyntaxHighlighter>
-                                    </div>
-                                  </div>
-                                );
-                              },
-                            }}
+                        {/* 2. Text Content Bubble (Small Gap) */}
+                        {msg.content && !msg.content.trim().startsWith('{') && (
+                          <div
+                            className={`px-4 py-2 text-[14px] md:text-[15px] shadow-sm ${msg.role === "user"
+                              ? theme === "dark"
+                                ? "bg-[#545454] text-white rounded-2xl rounded-tr-none min-w-[50px] text-right"
+                                : "bg-[#F0EDE8] text-gray-900 rounded-2xl rounded-tr-none min-w-[50px] text-right"
+                              : theme === "dark"
+                                ? "w-fit max-w-full bg-[#252525] text-white border border-[#545454] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
+                                : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-[#E8E5E0] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
+                              } ${msg.image ? "mt-1 mr-0.5 z-20" : ""}`}
                           >
-                            {msg.content}
-                          </ReactMarkdown>
-                        ) : (
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                            {msg.role === "model" ? (
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  h1: ({ ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                                  h2: ({ ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
+                                  h3: ({ ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
+                                  p: ({ ...props }) => <div className="mb-2 leading-relaxed" {...props} />,
+                                  ul: ({ ...props }) => <ul className="list-disc pl-5 mb-2 space-y-0.5" {...props} />,
+                                  ol: ({ ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5" {...props} />,
+                                  li: ({ ...props }) => <li className="pl-1" {...props} />,
+                                  a: ({ ...props }) => <a className="text-indigo-400 hover:underline font-semibold" {...props} />,
+                                  strong: ({ ...props }) => <strong className="font-bold text-inherit" {...props} />,
+                                  table: ({ ...props }) => (
+                                    <div className="w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
+                                      <table className="w-full text-sm text-left border-collapse" {...props} />
+                                    </div>
+                                  ),
+                                  thead: ({ ...props }) => (
+                                    <thead className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-[#F5F3EF] text-gray-700 border-b border-[#E8E5E0]"}`} {...props} />
+                                  ),
+                                  tbody: ({ ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-[#545454]" {...props} />,
+                                  tr: ({ ...props }) => <tr className={`transition-colors shadow-sm ${theme === "dark" ? "hover:bg-[#252525]/50" : "hover:bg-gray-50"}`} {...props} />,
+                                  th: ({ ...props }) => <th className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
+                                  td: ({ ...props }) => <td className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
+                                  pre: ({ children }) => <div className="not-prose">{children}</div>,
+                                  code({ inline, className, children, ...props }: any) {
+                                    const match = /language-(\w+)/.exec(className || "");
+                                    const codeString = String(children).replace(/\n$/, "");
+                                    if (inline) {
+                                      return (
+                                        <code className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-[#F5F3EF] text-pink-600"}`} {...props}>
+                                          {children}
+                                        </code>
+                                      );
+                                    }
+                                    return (
+                                      <div className="relative group/code mb-4 mt-3">
+                                        <div className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
+                                          <span>{match?.[1] || "code"}</span>
+                                          <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                                            {copiedCodeBlock === codeString ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                            <span>{copiedCodeBlock === codeString ? "Copied" : "Copy code"}</span>
+                                          </button>
+                                        </div>
+                                        <div className={`overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}>
+                                          <SyntaxHighlighter style={vscDarkPlus} language={match?.[1] || "text"} PreTag="div" customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: "0.875rem" }} {...props}>
+                                            {codeString}
+                                          </SyntaxHighlighter>
+                                        </div>
+                                      </div>
+                                    );
+                                  },
+                                }}
+                              >
+                                {msg.content}
+                              </ReactMarkdown>
+                            ) : (
+                              <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                            )}
+                          </div>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
 
                   {/* Action Buttons Beneath Bubble */}
                   {editingMessageIdx !== idx && !isLoading && (
                     <div
-                      className={`transition-opacity flex items-center gap-1 mt-0.5 ${msg.role === "user" ? "justify-end mr-1" : "justify-start ml-1"} ${(msg.role === "model" && !isMobileApp) || activeMobileMessageIdx === idx ? "opacity-100" : "opacity-0"} ${msg.role === "model" ? "md:opacity-100" : "md:opacity-0 group-hover:opacity-100"}`}
+                      className={`transition-opacity flex items-center gap-1 mt-1 ${msg.role === "user" ? "justify-end pr-2" : "justify-start pl-2"} ${(msg.role === "model" && !isMobileApp) || activeMobileMessageIdx === idx ? "opacity-100" : "opacity-0"} ${msg.role === "model" ? "md:opacity-100" : "md:opacity-0 group-hover:opacity-100"}`}
                     >
                       {/* Copy Button */}
                       <button
                         onClick={() => handleCopy(msg.content, idx)}
-                        className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
+                        className={`flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-white/5" : "text-gray-500 hover:text-gray-900 hover:bg-black/5"}`}
                         title="Copy message"
                       >
                         {copiedMessageIdx === idx ? (
-                          <Check className="w-3 h-3 text-green-500 shrink-0" />
+                          <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
                         ) : (
-                          <Copy className="w-3 h-3 shrink-0" />
+                          <Copy className="w-3.5 h-3.5 shrink-0" />
                         )}
                         {copiedMessageIdx === idx ? (
                           <span className="text-green-500">Copied</span>
@@ -1777,7 +1684,20 @@ function AiChatCore() {
                         <button
                           onClick={() => {
                             setEditingMessageIdx(idx);
-                            setEditInput(msg.content);
+                            
+                            // Robust extraction of text for editing, even if stored as JSON
+                            let cleanText = msg.content;
+                            if (msg.content?.trim().startsWith('{')) {
+                              try {
+                                const parsed = JSON.parse(msg.content);
+                                cleanText = parsed.text || parsed.content || "";
+                              } catch (e) {
+                                // Fallback to raw content if parsing fails
+                                cleanText = msg.content;
+                              }
+                            }
+                            
+                            setEditInput(cleanText);
                             setEditImage(msg.image || null);
                           }}
                           className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
@@ -1841,7 +1761,7 @@ function AiChatCore() {
               </button>
             </div>
           )}
-          <div className="max-w-3xl mx-auto flex items-end gap-2">
+          <div className="max-w-3xl mx-auto flex items-end w-full px-2">
             {/* Hidden File Input */}
             <input
               type="file"
@@ -1860,30 +1780,22 @@ function AiChatCore() {
               }}
             />
 
-            {/* Separate Attachment Button */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className={`h-[52px] w-[52px] rounded-xl flex items-center justify-center shrink-0 transition-colors border ${theme === "dark" ? "bg-[#252525] border-[#545454] text-gray-300 hover:bg-[#545454] hover:text-white" : "bg-white border-[#E8E5E0] text-gray-600 hover:bg-[#F0EDE8] hover:text-gray-900"}`}
-              title="Attach image"
-            >
-              <Paperclip className="w-5 h-5 shrink-0" />
-            </button>
-
-            {/* Input Wrapper */}
+            {/* Main Pill Wrapper */}
             <div
-              className={`flex-1 relative rounded-xl flex flex-col p-1.5 border transition-colors duration-300 ease-in-out ${theme === "dark"
-                ? "bg-[#252525] border-[#545454] focus-within:border-[#7D7D7D]"
-                : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D] focus-within:shadow-sm"
+              className={`flex-1 relative rounded-[28px] flex flex-col p-1.5 border transition-all duration-300 ease-in-out shadow-sm ${theme === "dark"
+                ? "bg-[#252525] border-[#444] focus-within:border-[#545454] focus-within:bg-[#2A2A2A]"
+                : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D] focus-within:shadow-md"
                 }`}
             >
-              {/* Image Preview Above Input */}
+              {/* Integrated Image Preview (Sticks to top of pill) */}
               {selectedImage && (
-                <div className="px-3 pt-2 mb-1 flex items-center gap-2">
-                  <div className="relative h-14 w-14 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="px-3 pt-2 shrink-0">
+                  <div className="relative h-12 w-12 md:h-16 md:w-16 rounded-xl overflow-hidden border border-gray-200 dark:border-[#545454] shadow-sm">
                     <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
                     <button
                       onClick={() => setSelectedImage(null)}
-                      className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors"
+                      className="absolute top-0 right-0 p-1 bg-black/50 text-white rounded-bl-lg hover:bg-black/80 transition-colors"
+                      title="Remove image"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1891,7 +1803,22 @@ function AiChatCore() {
                 </div>
               )}
 
-              <div className="flex items-end">
+              <div className="flex items-center px-1">
+                {/* 1. Attachment Button (Inside Pill) */}
+                <div className="relative flex items-center justify-center shrink-0">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${theme === "dark" 
+                      ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white" 
+                      : "bg-[#F5F3EF] text-gray-600 hover:text-gray-900 md:bg-transparent md:text-gray-500 md:hover:bg-[#F0EDE8] md:hover:text-[#252525]"
+                    } md:hover:scale-110`}
+                    title="Attach image"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* 2. Main Input */}
                 <textarea
                   ref={inputRef}
                   value={input}
@@ -1905,46 +1832,56 @@ function AiChatCore() {
                       }
                     }
                   }}
-                  placeholder={selectedImage ? "Add a caption or ask about this image..." : "Ask Avyx AI anything..."}
-                  className="flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-2 text-[14px] outline-none custom-scrollbar"
+                  placeholder={selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Avyx AI anything...")}
+                  className="flex-1 max-h-48 min-h-[44px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-3 text-[15px] outline-none custom-scrollbar leading-tight"
                   rows={1}
                 />
 
-                <button
-                  onClick={toggleDictation}
-                  title="Dictate"
-                  className={`p-2.5 rounded-lg mb-0.5 transition-colors ${isDictating ? "text-red-500 animate-pulse" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-800 hover:bg-[#F0EDE8]"}`}
-                >
-                  <Mic className="w-5 h-5" />
-                </button>
+                {/* 3. Action Buttons (Right Side) */}
+                <div className="flex items-center gap-1">
+                  <div className="relative flex items-center justify-center shrink-0">
+                    <button
+                      onClick={toggleDictation}
+                      title="Dictate"
+                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${isDictating 
+                        ? "bg-red-500 text-white animate-pulse" 
+                        : theme === "dark" 
+                          ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white" 
+                          : "bg-[#F5F3EF] text-gray-600 hover:text-gray-900 md:bg-transparent md:text-gray-500 md:hover:bg-[#F0EDE8] md:hover:text-[#252525]"
+                      } md:hover:scale-110`}
+                    >
+                      <Mic className="w-[18px] h-[18px]" />
+                    </button>
+                  </div>
 
-                {isActuallySending ? (
-                  <button
-                    onClick={() => {
-                      if (abortControllerRef.current) {
-                        abortControllerRef.current.abort();
-                        setIsLoading(false);
-                        setIsActuallySending(false);
-                        isSendingRef.current = false;
-                      }
-                    }}
-                    className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === "dark" ? "bg-[#545454] text-white hover:bg-[#7D7D7D]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
-                    title="Stop generating"
-                  >
-                    <Square className="w-4 h-4 fill-current" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleSend()}
-                    disabled={isLoading || (!input.trim() && !selectedImage)}
-                    className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === "dark"
-                      ? "bg-white text-[#252525] hover:bg-white/90"
-                      : "bg-[#252525] text-white hover:bg-[#545454]"
-                      }`}
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                )}
+                  {isActuallySending ? (
+                    <button
+                      onClick={() => {
+                        if (abortControllerRef.current) {
+                          abortControllerRef.current.abort();
+                          setIsLoading(false);
+                          setIsActuallySending(false);
+                          isSendingRef.current = false;
+                        }
+                      }}
+                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-90 ${theme === "dark" ? "bg-[#3A3A3A] text-white hover:bg-[#545454]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
+                      title="Stop generating"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleSend()}
+                      disabled={isLoading || (!input.trim() && !selectedImage)}
+                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all disabled:opacity-30 disabled:scale-100 active:scale-90 ${theme === "dark"
+                        ? "bg-white text-[#252525] hover:bg-gray-200"
+                        : "bg-[#252525] text-white hover:bg-[#444]"
+                        }`}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

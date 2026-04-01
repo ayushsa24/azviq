@@ -10,6 +10,7 @@ export const maxDuration = 60;
 
 // --- Zod Schema: Validate the exact shape of incoming requests ---
 const MessageSchema = z.object({
+  id: z.string().optional(),
   role: z.enum(["user", "model", "system", "assistant"]),
   content: z.string().min(1, "Message content cannot be empty").max(20000, "Message too long"),
 });
@@ -17,6 +18,7 @@ const MessageSchema = z.object({
 const ChatRequestSchema = z.object({
   chatId: z.string().min(1, "chatId is required"),
   messages: z.array(MessageSchema).min(1, "At least one message is required").max(200, "Too many messages in history"),
+  image: z.string().optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
       return apiError("Invalid request data", 400, "VALIDATION_ERROR", validation.error.flatten());
     }
 
-    const { chatId, messages } = validation.data;
+    const { chatId, messages, image } = validation.data;
 
     // 2. Authenticate the request
     const session = await getServerSession(authOptions);
@@ -58,13 +60,18 @@ export async function POST(req: Request) {
 
     // 4. Save user message to Supabase (Skip if temporary)
     if (chatId !== "temp-chat") {
+      const contentToSave = image 
+        ? JSON.stringify({ text: latestUserMessage.content, image: image })
+        : latestUserMessage.content;
+
       const { error: insertUserError } = await supabase
         .from("messages")
-        .insert({
+        .upsert({
+          id: latestUserMessage.id, // If provided, update this message
           chat_id: chatId,
           user_id: userId,
           role: "user",
-          content: latestUserMessage.content,
+          content: contentToSave,
           email: session.user.email,
         });
       if (insertUserError) throw insertUserError;

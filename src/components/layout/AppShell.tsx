@@ -125,7 +125,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           : isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-[env(safe-area-inset-top,0px)] md:pt-0'}
         flex flex-col overflow-hidden transition-all duration-300 ease-in-out
         ${open ? 'md:pl-56' : 'md:pl-0'}
-        ${isKeyboardOpen || isFullPageLayer ? 'pb-0' : 'pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0'} flex-1 min-h-0
+        ${isKeyboardOpen || isFullPageLayer ? 'pb-0' : 'pb-[calc(3.25rem+env(safe-area-inset-bottom,0px))] md:pb-0'} flex-1 min-h-0
         ${theme === 'dark' ? 'bg-[#1A1A1A]' : 'bg-[#F5F3EF]'}
       `}>
         {mounted && children}

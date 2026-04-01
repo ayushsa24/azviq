@@ -115,10 +115,10 @@ export default function Sidebar({
       >
         {/* ── TOP BRAND HEADER ── */}
         <div className={`flex items-center gap-3 px-4 h-14 shrink-0 border-b ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
-          <img 
-            src={isDark ? "/lavyx_logo.png" : "/davyx_logo.png"} 
-            alt="Avyx Logo" 
-            className="w-10 h-10 rounded-lg object-cover shrink-0" 
+          <img
+            src={isDark ? "/lavyx_logo.png" : "/davyx_logo.png"}
+            alt="Avyx Logo"
+            className="w-10 h-10 rounded-lg object-cover shrink-0"
           />
           <span className={`font-bold text-lg tracking-tighter flex-1 font-[var(--font-lexend)] ${isDark ? "text-white" : "text-[#252525]"}`}>
             Avyx
@@ -128,9 +128,9 @@ export default function Sidebar({
             onClick={() => setPanelOpen(!panelOpen)}
             className={`p-1.5 rounded-xl transition-all duration-200 hover:scale-105 relative cursor-pointer shrink-0
             ${isDark
-              ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
-              : 'text-[#545454] hover:bg-[#E8E5E0] hover:text-[#252525]'
-            } ${panelOpen ? (isDark ? 'bg-[#545454] text-white' : 'bg-[#E8E5E0] text-[#252525]') : ''}`}>
+                ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
+                : 'text-[#545454] hover:bg-[#E8E5E0] hover:text-[#252525]'
+              } ${panelOpen ? (isDark ? 'bg-[#545454] text-white' : 'bg-[#E8E5E0] text-[#252525]') : ''}`}>
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
               <span className="absolute top-0 right-0 w-3 h-3 bg-[#C2A27A] text-white text-[8px] font-bold flex items-center justify-center rounded-full border border-white dark:border-[#252525]">
@@ -138,7 +138,7 @@ export default function Sidebar({
               </span>
             )}
           </button>
-          
+
           {open && (
             <button
               onClick={toggle}
