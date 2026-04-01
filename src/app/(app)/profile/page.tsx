@@ -121,7 +121,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className={`p-2 rounded-lg transition-colors duration-200 cursor-pointer ${theme === 'dark' ? 'bg-[#545454] text-white hover:bg-white hover:text-[#252525]' : 'bg-[#252525] text-white hover:bg-[#545454]'}`}
+              className={`p-2 rounded-lg transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 ${theme === 'dark' ? 'bg-[#545454] text-white hover:bg-white hover:text-[#252525]' : 'bg-[#252525] text-white hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -136,13 +136,13 @@ export default function ProfilePage() {
             <div className="flex gap-2">
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 rounded-lg flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 transition-colors duration-200 cursor-pointer"
+                className="px-4 py-2 rounded-lg flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 Save
@@ -151,7 +151,7 @@ export default function ProfilePage() {
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="px-4 py-2 rounded-lg flex items-center gap-2 bg-gray-600 text-white hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+              className="px-4 py-2 rounded-lg flex items-center gap-2 bg-gray-600 dark:bg-[#545454] text-white hover:bg-gray-700 dark:hover:bg-white dark:hover:text-[#252525] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
             >
               <Edit3 className="w-4 h-4" />
               Edit

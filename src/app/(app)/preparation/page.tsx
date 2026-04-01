@@ -288,7 +288,7 @@ export default function PreparationPage() {
                             <div className="flex md:hidden items-center">
                                 <button
                                     onClick={() => setIsGenerateOpen(true)}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] active:scale-95 hover:scale-105 transition-all shadow-sm whitespace-nowrap"
                                 >
                                     <Sparkles size={14} />
                                     <span>Generate</span>
@@ -299,7 +299,7 @@ export default function PreparationPage() {
                             <div className="flex md:hidden items-center">
                                 <button
                                     onClick={() => setIsCreateRevisionOpen(true)}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-[11px] font-bold hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] active:scale-95 hover:scale-105 transition-all shadow-sm whitespace-nowrap"
                                 >
                                     <Sparkles size={14} />
                                     <span>Create</span>
@@ -311,7 +311,7 @@ export default function PreparationPage() {
                         {isExerciseTab && (
                             <button
                                 onClick={() => setIsGenerateOpen(true)}
-                                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-white active:scale-[0.98] transition-all shadow-md ml-auto"
+                                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-[0.98] transition-all shadow-md ml-auto"
                             >
                                 <Sparkles className="w-4 h-4" />
                                 <span>Generate Exercise</span>
@@ -320,7 +320,7 @@ export default function PreparationPage() {
                         {isRevisionTab && (
                             <button
                                 onClick={() => setIsCreateRevisionOpen(true)}
-                                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-white active:scale-[0.98] transition-all shadow-md ml-auto"
+                                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-[0.98] transition-all shadow-md ml-auto"
                             >
                                 <Sparkles className="w-4 h-4" />
                                 <span>Create Revision</span>
@@ -347,9 +347,9 @@ export default function PreparationPage() {
                             <div className="flex gap-1 pb-1.5 shrink-0">
                                 <button
                                     onClick={() => setViewMode("grid")}
-                                    className={`p-1.5 rounded-lg transition-all ${viewMode === "grid"
+                                    className={`p-1.5 rounded-lg transition-all duration-300 hover:scale-110 ${viewMode === "grid"
                                         ? "bg-[#252525]/5 dark:bg-white/10 text-[#252525] dark:text-white"
-                                        : "text-[#BABABA] hover:bg-[#252525]/5 dark:hover:bg-white/5"
+                                        : "text-[#BABABA] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
                                         }`}
                                     title="Grid View"
                                 >
@@ -357,9 +357,9 @@ export default function PreparationPage() {
                                 </button>
                                 <button
                                     onClick={() => setViewMode("list")}
-                                    className={`p-1.5 rounded-lg transition-all ${viewMode === "list"
+                                    className={`p-1.5 rounded-lg transition-all duration-300 hover:scale-110 ${viewMode === "list"
                                         ? "bg-[#252525]/5 dark:bg-white/10 text-[#252525] dark:text-white"
-                                        : "text-[#BABABA] hover:bg-[#252525]/5 dark:hover:bg-white/5"
+                                        : "text-[#BABABA] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
                                         }`}
                                     title="List View"
                                 >

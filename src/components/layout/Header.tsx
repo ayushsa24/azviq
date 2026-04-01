@@ -52,19 +52,19 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
           {/* LOGO BUTTON */}
           <div
             onClick={onMenuClick}
-            className={`cursor-pointer group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 relative overflow-hidden shrink-0
-              ${theme === 'dark' ? 'hover:bg-[#2E2E2E]' : 'hover:bg-[#F0EDE8]'}`}
+            className={`cursor-pointer group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 relative overflow-hidden shrink-0 hover:scale-110
+              ${theme === 'dark' ? 'hover:bg-[#545454] text-white' : 'hover:bg-[#F0EDE8] text-[#252525]'}`}
           >
             <img 
               src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
               alt="Avyx Logo" 
-              className="w-full h-full object-cover transition-opacity duration-200 group-hover:opacity-0" 
+              className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110 group-hover:opacity-0" 
             />
 
             {open ? (
-              <PanelLeftClose className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              <PanelLeftClose className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-all duration-300 text-current" />
             ) : (
-              <PanelLeft className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              <PanelLeft className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-all duration-300 text-current" />
             )}
           </div>
 
@@ -81,11 +81,11 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
         <button
           data-notification-bell
           onClick={() => setPanelOpen(!panelOpen)}
-          className={`md:hidden p-2 rounded-xl transition-all duration-200 hover:scale-105 relative
+          className={`md:hidden p-2 rounded-xl transition-all duration-300 hover:scale-110 relative
           ${theme === 'dark'
             ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
-            : 'text-[#545454] hover:bg-[#7D7D7D] hover:text-white'
-          } ${panelOpen ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-[#7D7D7D] text-white') : ''}`}>
+            : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'
+          } ${panelOpen ? (theme === 'dark' ? 'bg-[#545454] text-white' : 'bg-[#F0EDE8] text-[#252525]') : ''}`}>
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
             <span className="absolute top-0 right-0 w-4 h-4 bg-[#C2A27A] text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-[#252525]">
@@ -98,7 +98,7 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className={`p-1 rounded-xl transition-all duration-200 hover:scale-105 overflow-hidden flex items-center gap-1 cursor-pointer
+            className={`p-1 rounded-xl transition-all duration-300 hover:scale-110 overflow-hidden flex items-center gap-1 cursor-pointer
               ${theme === 'dark'
                 ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
                 : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'

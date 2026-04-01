@@ -400,17 +400,17 @@ export default function NoteEditorPage() {
                     {!sidebarOpen && (
                         <button
                             onClick={toggleSidebar}
-                            className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
+                            className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
                             title="Open Sidebar"
                         >
                             <PanelLeft size={20} />
                         </button>
                     )}
-
+ 
                     {/* Always visible Back button */}
                     <button
                         onClick={() => router.back()}
-                        className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
+                        className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
                         title="Back"
                     >
                         <ArrowLeft size={20} />
@@ -428,19 +428,19 @@ export default function NoteEditorPage() {
                             editor?.chain().focus().undo().run();
                         }}
                         disabled={isLocked || !editor?.can().undo()}
-                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors disabled:opacity-30"
+                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
                         title="Undo (Ctrl+Z)"
                     >
                         <Undo size={18} />
                     </button>
-
+ 
                     <button
                         onMouseDown={(e) => {
                             e.preventDefault();
                             editor?.chain().focus().redo().run();
                         }}
                         disabled={isLocked || !editor?.can().redo()}
-                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors disabled:opacity-30"
+                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
                         title="Redo (Ctrl+Y)"
                     >
                         <Redo size={18} />
@@ -450,9 +450,9 @@ export default function NoteEditorPage() {
 
                     <button
                         onClick={() => setIsLocked(!isLocked)}
-                        className={`p-1.5 rounded-md transition-colors ${isLocked
+                        className={`p-1.5 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 ${isLocked
                             ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white"
+                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
                             }`}
                         title={isLocked ? "Unlock Note to Edit" : "Lock Note (Read-Only)"}
                     >
@@ -465,7 +465,7 @@ export default function NoteEditorPage() {
                     <div className="relative" ref={moreMenuRef}>
                         <button
                             onClick={() => setShowMoreMenu(!showMoreMenu)}
-                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-md transition-colors"
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95"
                         >
                             <MoreVertical size={20} />
                         </button>

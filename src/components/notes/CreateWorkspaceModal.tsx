@@ -56,7 +56,8 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
             <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#7D7D7D] w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
                 <button
                     onClick={onClose}
-                    className="absolute right-4 top-4 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
+                    className="absolute right-4 top-4 p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
+                    title="Close"
                 >
                     <X size={20} />
                 </button>

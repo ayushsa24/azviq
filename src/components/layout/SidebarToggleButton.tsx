@@ -15,10 +15,10 @@ export default function SidebarToggleButton() {
         <button
             onClick={toggle}
             title={open ? "Close sidebar" : "Open sidebar"}
-            className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0
+            className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0
                 ${isDark
-                    ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
-                    : "bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#252525] hover:text-white hover:border-[#252525]"
+                    ? "bg-[#252525] border border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]"
+                    : "bg-white border border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#F0EDE8]"
                 }`}
         >
             {open

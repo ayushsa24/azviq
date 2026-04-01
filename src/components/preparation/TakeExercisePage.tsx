@@ -202,14 +202,18 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                         {!sidebarOpen && (
                             <button
                                 onClick={toggleSidebar}
-                                className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-transparent transition-all text-[#545454] dark:text-[#7D7D7D] hover:bg-white hover:text-[#252525] shrink-0"
+                                className={`hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
                                 title="Open Sidebar"
                             >
                                 <PanelLeft size={18} />
                             </button>
                         )}
-                        <button onClick={onBack} title="Back" className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all shrink-0 ${isDark ? 'border-[#545454] text-[#7D7D7D] hover:bg-white hover:text-[#252525]' : 'border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}>
-                            <ArrowLeft size={14} />
+                        <button
+                            onClick={onBack}
+                            title="Back"
+                            className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
+                        >
+                            <ArrowLeft size={18} />
                         </button>
                         <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1">{exercise.title}</h1>
                     </div>
@@ -286,7 +290,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}
-                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-transparent transition-all text-[#545454] dark:text-[#7D7D7D] hover:bg-white hover:text-[#252525] shrink-0"
+                        className={`hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
                         title="Open Sidebar"
                     >
                         <PanelLeft size={18} />
@@ -295,7 +299,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 <button
                     onClick={onBack}
                     title="Back"
-                    className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors active:scale-95 shrink-0"
+                    className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
                 >
                     <ArrowLeft size={20} />
                 </button>

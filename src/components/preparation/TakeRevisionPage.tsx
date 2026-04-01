@@ -154,23 +154,22 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
 
             {/* Top bar */}
             <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? "border-[#333] bg-[#1A1A1A]" : "border-[#E8E5E0] bg-[#F5F3EF]"}`}>
-                <button
-                    onClick={onBack}
-                    title="Back"
-                    className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors active:scale-95 shrink-0"
-                >
-                    <ArrowLeft size={20} />
-                </button>
-
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}
-                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-transparent transition-all text-[#545454] dark:text-[#7D7D7D] hover:bg-white hover:text-[#252525] shrink-0"
+                        className={`hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
                         title="Open Sidebar"
                     >
                         <PanelLeft size={18} />
                     </button>
                 )}
+                <button
+                    onClick={onBack}
+                    title="Back"
+                    className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
+                >
+                    <ArrowLeft size={20} />
+                </button>
                 <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
                     <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{revision.title}</p>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8E5E0] dark:bg-[#333] shrink-0">

@@ -421,7 +421,7 @@ export default function TasksPage() {
             </div>
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#252525] text-[#545454] dark:text-[#EDEAE6] border border-[#DEDBD6] dark:border-[#545454] rounded-xl text-sm font-semibold hover:bg-white dark:hover:bg-[#333333] hover:border-[#252525] dark:hover:border-[#7D7D7D] active:scale-[0.98] transition-all shadow-sm"
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#252525] text-[#545454] dark:text-[#EDEAE6] border border-[#DEDBD6] dark:border-[#545454] rounded-xl text-sm font-semibold hover:bg-white dark:hover:bg-[#333333] hover:border-[#252525] dark:hover:border-[#7D7D7D] active:scale-[0.98] hover:scale-105 transition-all shadow-sm"
             >
               <Sparkles className="w-4 h-4 text-[#252525] dark:text-white" />
               <span className="sm:hidden text-xs">Generate</span>
@@ -452,9 +452,9 @@ export default function TasksPage() {
                   type="button"
                   onClick={() => setShowProjectFavorites((v) => !v)}
                   title={showProjectFavorites ? "Showing favorites only" : "Show favorites only"}
-                  className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all active:scale-95 ${showProjectFavorites
+                  className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all duration-300 hover:scale-110 active:scale-95 ${showProjectFavorites
                     ? "bg-[#252525] dark:bg-white border-[#252525] dark:border-white text-white dark:text-[#252525] shadow-sm"
-                    : "bg-white/80 backdrop-blur-md dark:bg-[#252525] border-[#7D7D7D]/40 dark:border-[#545454] text-[#7D7D7D] dark:text-[#7D7D7D] hover:border-[#252525] dark:hover:border-white hover:text-[#252525] dark:hover:text-white"
+                    : "bg-white/80 backdrop-blur-md dark:bg-[#252525] border-[#7D7D7D]/40 dark:border-[#545454] text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:border-[#F0EDE8] dark:hover:border-[#545454] hover:text-[#252525] dark:hover:text-white"
                     }`}
                 >
                   <Star size={15} className={showProjectFavorites ? "fill-current" : ""} />
@@ -463,7 +463,7 @@ export default function TasksPage() {
               {/* Right: New Project button pushed to far right */}
               <button
                 onClick={handleQuickCreateProject}
-                className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white/90 rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
+                className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
               >
                 <Plus size={16} />
                 <span className="hidden sm:inline">New Project</span>
@@ -575,9 +575,9 @@ export default function TasksPage() {
                     type="button"
                     onClick={() => setShowTaskFavorites((v) => !v)}
                     title={showTaskFavorites ? "Showing favorites only" : "Show favorites only"}
-                    className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all active:scale-95 ${showTaskFavorites
+                    className={`flex items-center justify-center w-9 h-9 rounded-full border flex-shrink-0 transition-all duration-300 hover:scale-110 active:scale-95 ${showTaskFavorites
                       ? "bg-[#252525] dark:bg-white border-[#252525] dark:border-white text-white dark:text-[#252525] shadow-sm"
-                      : "bg-white/80 backdrop-blur-md dark:bg-[#252525] border-[#7D7D7D]/40 dark:border-[#545454] text-[#7D7D7D] dark:text-[#BABABA] hover:border-[#252525] dark:hover:border-white hover:text-[#252525] dark:hover:text-white dark:hover:border-white"
+                      : "bg-white/80 backdrop-blur-md dark:bg-[#252525] border-[#7D7D7D]/40 dark:border-[#545454] text-[#7D7D7D] dark:text-[#BABABA] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:border-[#F0EDE8] dark:hover:border-[#545454] hover:text-[#252525] dark:hover:text-white"
                       }`}
                   >
                     <Star size={15} className={showTaskFavorites ? "fill-current" : ""} />
@@ -586,7 +586,7 @@ export default function TasksPage() {
                 {/* Right: New Task button pushed to far right */}
                 <button
                   onClick={() => handleQuickCreateTask("not_started")}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 rounded-full text-sm font-medium transition-all shadow-sm flex-shrink-0"
                 >
                   <Plus size={16} />
                   <span className="hidden sm:inline">New Task</span>
@@ -709,9 +709,9 @@ export default function TasksPage() {
                         receives all touch/click events directly — the only reliable 
                         method for mobile browsers (iOS/Android block programmatic open).
                       */}
-                    <div className="relative">
+                    <div className="relative group/date">
                       {/* Visual styled button (behind) */}
-                      <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0EDE8] dark:bg-white/10 border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-white pointer-events-none select-none">
+                      <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0EDE8] dark:bg-white/10 border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-white pointer-events-none select-none transition-all duration-300 group-hover/date:bg-[#F0EDE8] dark:group-hover/date:bg-[#545454] group-hover/date:text-[#252525] dark:group-hover/date:text-white group-hover/date:scale-105">
                         <CalendarDays size={13} />
                         <span>{dateFilter ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All dates"}</span>
                         <ChevronDown size={12} />

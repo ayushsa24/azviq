@@ -41,9 +41,9 @@ export default function AskAIGlobalBar() {
                 <button
                     type="submit"
                     disabled={!query.trim()}
-                    className={`absolute right-2 p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
-                        ? 'bg-[#7D7D7D] text-white hover:bg-[#545454]'
-                        : 'bg-[#545454] text-white hover:bg-[#252525]'
+                    className={`absolute right-2 p-2 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 ${theme === 'dark'
+                        ? 'bg-[#545454] text-white hover:bg-[#7D7D7D]'
+                        : 'bg-[#F0EDE8] text-[#545454] hover:bg-[#E8E5E0] hover:text-[#252525]'
                         }`}
                 >
                     <Search className="w-5 h-5" />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 // POST /api/share/chat — create a shared chat snapshot
 export async function POST(req: Request) {
@@ -45,5 +46,79 @@ export async function POST(req: Request) {
     } catch (err) {
         console.error("[share/chat POST]", err);
         return NextResponse.json({ error: "Failed to create share" }, { status: 500 });
+    }
+}
+
+// GET /api/share/chat — list user's shared chats
+export async function GET() {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { data: dbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        if (!dbUser) {
+            return NextResponse.json({ error: "User not found" }, { status: 403 });
+        }
+
+        const { data: links, error } = await supabase
+            .from("shared_chats")
+            .select("id, title, created_at")
+            .eq("user_id", dbUser.id)
+            .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        return NextResponse.json({ links });
+    } catch (err) {
+        console.error("[share/chat GET]", err);
+        return NextResponse.json({ error: "Failed to list shares" }, { status: 500 });
+    }
+}
+
+// DELETE /api/share/chat/[id] — revoke a shared link
+export async function DELETE(req: Request, { params }: { params: any }) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const id = (await params).id;
+
+        const adminSupabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        // Verify ownership
+        const { data: dbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        if (!dbUser) {
+            return NextResponse.json({ error: "User not found" }, { status: 403 });
+        }
+
+        const { error } = await adminSupabase
+            .from("shared_chats")
+            .delete()
+            .eq("id", id)
+            .eq("user_id", dbUser.id);
+
+        if (error) throw error;
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        console.error("[share/chat/:id DELETE]", err);
+        return NextResponse.json({ error: "Failed to delete shared link." }, { status: 500 });
     }
 }

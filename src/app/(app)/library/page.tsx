@@ -352,7 +352,7 @@ export default function NotesPage() {
         {activeWorkspace && (
           <button
             onClick={handleBackToWorkspaces}
-            className="flex items-center text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
+            className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
             title="Back to Workspaces"
           >
             <ArrowLeft size={20} />
@@ -398,7 +398,7 @@ export default function NotesPage() {
           {!activeWorkspace && activeTab === "workspaces" ? (
             <button
               onClick={() => setIsWorkspaceModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
             >
               <Plus size={18} />
               <span className="sm:hidden">Create</span>
@@ -409,7 +409,7 @@ export default function NotesPage() {
               {activeTab !== "notes" && activeTab !== "favourites" && (
                 <button
                   onClick={() => setIsUploadModalOpen(true)}
-                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
                   <Upload size={18} />
                   <span className="sm:hidden">Upload</span>
@@ -420,7 +420,7 @@ export default function NotesPage() {
               {activeTab !== "pdfs" && activeTab !== "favourites" && (
                 <button
                   onClick={handleCreateNativeNote}
-                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
                   <Plus size={18} />
                   <span className="sm:hidden">Create</span>
@@ -486,9 +486,9 @@ export default function NotesPage() {
         <div className="flex gap-2 pb-2 shrink-0">
           <button
             onClick={() => setViewMode("grid")}
-            className={`p-1.5 rounded transition-colors ${viewMode === "grid"
-              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white"
-              : "text-[#7D7D7D] hover:bg-[#F0F0F0] dark:hover:bg-[#252525]"
+            className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 ${viewMode === "grid"
+              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white shadow-sm"
+              : "text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
               }`}
             title="Grid View"
           >
@@ -496,9 +496,9 @@ export default function NotesPage() {
           </button>
           <button
             onClick={() => setViewMode("list")}
-            className={`p-1.5 rounded transition-colors ${viewMode === "list"
-              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white"
-              : "text-[#7D7D7D] hover:bg-[#F0F0F0] dark:hover:bg-[#252525]"
+            className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 ${viewMode === "list"
+              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white shadow-sm"
+              : "text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
               }`}
             title="List View"
           >

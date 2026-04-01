@@ -617,17 +617,17 @@ export default function PdfEditorPage() {
                     {!sidebarOpen && (
                         <button
                             onClick={toggleSidebar}
-                            className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
+                            className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
                             title="Open Sidebar"
                         >
                             <PanelLeft size={20} />
                         </button>
                     )}
-
+ 
                     {/* Always visible Back button */}
                     <button
                         onClick={() => router.back()}
-                        className="p-2 transition-colors text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
+                        className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
                         title="Back"
                     >
                         <ArrowLeft size={20} />
@@ -636,7 +636,7 @@ export default function PdfEditorPage() {
                     {/* Mobile Thumbnail Toggle */}
                     <button
                         onClick={() => setShowThumbnails(!showThumbnails)}
-                        className={`sm:hidden p-2 rounded-md transition-colors ${showThumbnails ? "bg-[#252525] text-white" : "text-[#545454] dark:text-[#7D7D7D] hover:bg-gray-100 dark:hover:bg-[#1A1A1A]"}`}
+                        className={`sm:hidden p-2 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 ${showThumbnails ? "bg-[#252525] text-white" : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"}`}
                         title="Toggle Thumbnails"
                     >
                         <Layout size={20} />
@@ -650,7 +650,7 @@ export default function PdfEditorPage() {
                     <button
                         onClick={undo}
                         disabled={!canUndo}
-                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md transition-colors disabled:opacity-30"
+                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
                         title="Undo"
                     >
                         <Undo2 size={18} />
@@ -658,7 +658,7 @@ export default function PdfEditorPage() {
                     <button
                         onClick={redo}
                         disabled={!canRedo}
-                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] rounded-md transition-colors disabled:opacity-30"
+                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
                         title="Redo"
                     >
                         <Redo2 size={18} />
@@ -668,7 +668,7 @@ export default function PdfEditorPage() {
                     <div className="hidden sm:flex items-center mx-2 gap-1 bg-[#F5F3EF] dark:bg-[#1A1A1A] rounded-md p-0.5">
                         <button
                             onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.2))}
-                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white hover:bg-white dark:hover:bg-[#2A2A2A] rounded transition-colors"
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded transition-all duration-300 hover:scale-110 active:scale-95"
                             title="Zoom Out"
                         >
                             <ZoomOut size={16} />
@@ -678,7 +678,7 @@ export default function PdfEditorPage() {
                         </span>
                         <button
                             onClick={() => setZoomLevel(z => Math.min(3, z + 0.2))}
-                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white hover:bg-white dark:hover:bg-[#2A2A2A] rounded transition-colors"
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded transition-all duration-300 hover:scale-110 active:scale-95"
                             title="Zoom In"
                         >
                             <ZoomIn size={16} />
@@ -688,7 +688,7 @@ export default function PdfEditorPage() {
                     <div className="hidden sm:block w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
                     <button
                         onClick={() => window.open(note.file_url, "_blank")}
-                        className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-transparent border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-white hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] rounded-md text-sm font-medium transition-colors"
+                        className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-transparent border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 text-sm font-medium"
                         title="Download"
                     >
                         <Download size={16} />
@@ -697,7 +697,7 @@ export default function PdfEditorPage() {
                     <button
                         onClick={handleSavePdf}
                         disabled={isSaving}
-                        className="flex items-center justify-center p-2 sm:px-4 sm:py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-white/90 rounded-md text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                        className="flex items-center justify-center p-2 sm:px-4 sm:py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#3A3A3A] dark:hover:bg-[#F5F3EF] rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 text-sm font-medium disabled:opacity-50 shadow-sm"
                         title="Save PDF"
                     >
                         {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

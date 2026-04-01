@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-// Public API — no auth required. Returns a note only if share_mode is 'view' or 'edit'.
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+// GET /api/share/note/[id] — public, no auth required
+export async function GET(req: Request, { params }: { params: any }) {
     try {
-        const { id } = await params;
+        const id = (await params).id;
 
         const supabase = createClient(
             process.env.SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // First fetch the note by ID regardless of share_mode
         const { data: note, error } = await supabase
             .from("notes")
             .select("id, title, content, created_at, share_mode")
@@ -19,34 +20,69 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             .single();
 
         if (error || !note) {
-            console.error("[share/note] Note not found:", id, error);
             return NextResponse.json({ error: "Note not found." }, { status: 404 });
         }
 
-        // Then check the share_mode
         if (note.share_mode === "private" || !note.share_mode) {
-            console.log("[share/note] Note is private, share_mode:", note.share_mode);
             return NextResponse.json({ error: "Note is private." }, { status: 404 });
         }
 
         return NextResponse.json({ note });
-    } catch (error: unknown) {
-        console.error("[share/note] Unexpected error:", error);
-        return NextResponse.json({ error: "Failed to fetch shared note." }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
     }
 }
 
-// Public PATCH — only works if share_mode = 'edit'
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+// DELETE /api/share/note/[id] — revoke a shared note
+export async function DELETE(req: Request, { params }: { params: any }) {
     try {
-        const { id } = await params;
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const id = (await params).id;
 
         const supabase = createClient(
             process.env.SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Verify the note allows editing before accepting changes
+        // Verify ownership
+        const { data: dbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        if (!dbUser) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+        // Revoke by setting to private
+        const { error } = await supabase
+            .from("notes")
+            .update({ share_mode: "private" })
+            .eq("id", id)
+            .eq("user_id", dbUser.id);
+
+        if (error) throw error;
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        return NextResponse.json({ error: "Failed to revoke share." }, { status: 500 });
+    }
+}
+
+// PATCH /api/share/note/[id] — public edit
+export async function PATCH(req: Request, { params }: { params: any }) {
+    try {
+        const id = (await params).id;
+        const body = await req.json();
+
+        const supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
         const { data: existing } = await supabase
             .from("notes")
             .select("share_mode")
@@ -54,11 +90,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             .single();
 
         if (!existing || existing.share_mode !== "edit") {
-            return NextResponse.json({ error: "This note does not allow public editing." }, { status: 403 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const body = await req.json();
-        const updateData: Record<string, unknown> = {};
+        const updateData: any = {};
         if (body.title !== undefined) updateData.title = body.title;
         if (body.content !== undefined) updateData.content = body.content;
 
@@ -71,8 +106,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         if (error) throw error;
         return NextResponse.json({ note });
-    } catch (error: unknown) {
-        return NextResponse.json({ error: "Failed to save note." }, { status: 500 });
+    } catch (err) {
+        return NextResponse.json({ error: "Internal Error" }, { status: 500 });
     }
 }
-

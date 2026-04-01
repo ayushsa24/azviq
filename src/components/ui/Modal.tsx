@@ -36,10 +36,11 @@ export default function Modal({
           </h2>
           <button
             onClick={onClose}
-            className={`p-1.5 rounded-lg transition-colors ${isDark
-                ? 'text-[#7D7D7D] hover:bg-[#252525] hover:text-[#CFCFCF]'
-                : 'text-[#9E9E9E] hover:bg-[#CFCFCF] hover:text-[#252525]'
+            className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 ${isDark
+                ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white'
+                : 'text-[#9E9E9E] hover:bg-[#F0EDE8] hover:text-[#252525]'
               }`}
+            title="Close"
           >
             <X size={20} />
           </button>

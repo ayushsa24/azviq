@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { 
   X, 
@@ -29,7 +29,15 @@ import {
   Info,
   Check,
   Clock,
-  ExternalLink
+  ExternalLink,
+  ChevronRight,
+  Link as LinkIcon,
+  MessageSquare,
+  FileText as FileIcon2,
+  Trash2 as TrashIcon,
+  MoreHorizontal,
+  ArchiveRestore,
+  Archive as ArchiveIcon
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
@@ -76,6 +84,90 @@ export default function SettingsModal() {
   const [deleteEmail, setDeleteEmail] = useState("");
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  const [showSharedLinks, setShowSharedLinks] = useState(false);
+  const [linksType, setLinksType] = useState<"chat" | "note" | "archive">("chat");
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [showBulkMenu, setShowBulkMenu] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: string | "all", title: string } | null>(null);
+  const bulkMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close bulk menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bulkMenuRef.current && !bulkMenuRef.current.contains(e.target as Node)) {
+        setShowBulkMenu(false);
+      }
+    };
+    if (showBulkMenu) {
+      document.addEventListener("mousedown", handler);
+    }
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showBulkMenu]);
+
+  const { data: sharedLinksData, mutate: mutateSharedLinks, error: sharedLinksError } = useSWR(
+    showSharedLinks ? (
+      linksType === "chat" ? "/api/share/chat" : 
+      linksType === "note" ? "/api/share/note" : 
+      "/api/chat/history"
+    ) : null
+  );
+  const sharedLinks = (
+    linksType === "chat" ? sharedLinksData?.links : 
+    linksType === "note" ? sharedLinksData?.notes : 
+    sharedLinksData?.chats?.filter((c: any) => c.is_archived)
+  ) || [];
+  const isLoadingLinks = !sharedLinksData && !sharedLinksError && showSharedLinks;
+
+  const handleRevokeLink = async (id: string) => {
+    setRevokingId(id);
+    try {
+      let endpoint = "";
+      let method = "DELETE";
+      let body: any = null;
+
+      if (linksType === "chat") endpoint = `/api/share/chat/${id}`;
+      else if (linksType === "note") endpoint = `/api/share/note/${id}`;
+      else if (linksType === "archive") endpoint = `/api/chat/history/${id}`;
+
+      const res = await fetch(endpoint, { method, body });
+      if (res.ok) mutateSharedLinks();
+    } catch (err) {
+      console.error("Failed to revoke link", err);
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleUnarchive = async (id: string) => {
+    try {
+      setRevokingId(id);
+      await fetch(`/api/chat/archive/${id}`, { method: "PUT" });
+      mutateSharedLinks();
+    } catch (e) {
+      console.error("Failed to unarchive", e);
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      setIsBulkDeleting(true);
+      const url = linksType === "chat" ? "/api/share/chat/bulk" : 
+                  linksType === "note" ? "/api/share/note/bulk" : 
+                  "/api/chat/archive/bulk";
+      
+      await fetch(url, { method: "DELETE" });
+      mutateSharedLinks();
+      setShowBulkMenu(false);
+    } catch (e) {
+      console.error("Failed bulk delete", e);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const [doNotDisturb, setDoNotDisturb] = useState(false);
   const [notificationSound, setNotificationSound] = useState("chime");
@@ -237,17 +329,17 @@ export default function SettingsModal() {
       />
 
       {/* Modal Container */}
-      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 sm:border animate-in zoom-in-95 duration-200 ${
-        isDark ? "bg-[#0F0F0F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
+      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${
+        isDark ? "bg-[#161514] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
       }`}>
 
         {/* Sidebar (Desktop) / Top Bar (Mobile) */}
         <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${
-          isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
+          isDark ? "bg-[#161514] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
         } ${"w-full sm:w-72"}`}>
           
           {/* Header Area */}
-          <div className="flex items-center justify-between px-4 pt-4 pb-2 sm:pt-6 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] bg-[#F5F3EF] dark:bg-transparent dark:border-[#3A3A3A]/40 mb-2 sm:mb-4">
+          <div className="flex items-center justify-between px-4 pt-4 pb-2 sm:pt-6 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] bg-[#F5F3EF] dark:bg-transparent dark:border-[#2E2E2E] mb-2 sm:mb-4">
             <h2 className="text-lg font-bold sm:text-2xl">{translations[language].settings}</h2>
             <button onClick={closeSettings} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
                 <X size={20} />
@@ -265,8 +357,8 @@ export default function SettingsModal() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2.5 px-3 py-2 sm:py-2.5 rounded-xl transition-all text-xs sm:text-sm font-medium whitespace-nowrap sm:whitespace-normal shrink-0 sm:shrink outline-none ${
                     isActive
-                      ? isDark ? "bg-[#2E2E2E] text-white shadow-sm" : "bg-[#E8E5E0] text-[#252525] shadow-sm sm:shadow-none border-transparent"
-                      : isDark ? "text-[#BABABA] hover:bg-[#252525]" : "text-[#545454] hover:bg-[#F0EDE8]"
+                      ? isDark ? "bg-[#1C1C1B] text-white shadow-sm" : "bg-white text-[#252525] shadow-sm"
+                      : isDark ? "text-[#BABABA] hover:bg-[#1C1C1B]/50" : "text-[#7D7D7D] hover:bg-white/60"
                   }`}
                 >
                   <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
@@ -278,8 +370,8 @@ export default function SettingsModal() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 overscroll-contain">
+        <div className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 scrollbar-hide">
+          <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#161514]" : ""}`}>
             
             {activeTab === "general" && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
@@ -544,21 +636,85 @@ export default function SettingsModal() {
             )}
 
             {activeTab === "data" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[#252525] dark:text-amber-200">
-                        <div className="flex items-center gap-2 mb-2 font-bold text-sm">
-                            <AlertTriangle size={16} /> Data Transparency
-                        </div>
-                        <p className="text-xs leading-relaxed opacity-80">
-                            Your library content (PDFs, Notes) is indexed for AI generation only. Avyx does not sell your private data to third-party advertisers.
-                        </p>
-                    </div>
-
-                    <button className="w-full flex items-center justify-between p-3 rounded-xl border border-[#E8E5E0] dark:border-[#3A3A3A] hover:bg-[#F0F0F0] dark:hover:bg-[#333] transition-colors">
-                        <span className="text-sm font-semibold">Export All Data</span>
-                        <Globe size={16} className="opacity-40" />
-                    </button>
+              <div className="space-y-0 -mx-6 sm:-mx-0 animate-in slide-in-from-right-4 duration-300">
+                {/* Section Title */}
+                <div className="px-6 pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                  <h2 className="text-xl font-semibold">Data controls</h2>
+                  <p className="text-xs text-[#7D7D7D] mt-1">Manage how your data is used and stored.</p>
                 </div>
+
+                {/* List Items */}
+                <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
+                  {/* Chat Shared Links */}
+                  <div className="flex items-center justify-between px-6 py-5">
+                    <span className="text-sm font-medium">Chat shared links</span>
+                    <button 
+                      onClick={() => { setLinksType("chat"); setShowSharedLinks(true); }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
+                        isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                      }`}
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Note Shared Links */}
+                  <div className="flex items-center justify-between px-6 py-5">
+                    <span className="text-sm font-medium">Note shared links</span>
+                    <button 
+                      onClick={() => { setLinksType("note"); setShowSharedLinks(true); }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
+                        isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                      }`}
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Archived Chats */}
+                  <div className="flex items-center justify-between px-6 py-5">
+                    <span className="text-sm font-medium">Archived chats</span>
+                    <button 
+                      onClick={() => { setLinksType("archive"); setShowSharedLinks(true); }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
+                        isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                      }`}
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Archive All */}
+                  <div className="flex items-center justify-between px-6 py-5">
+                    <span className="text-sm font-medium">Archive all chats</span>
+                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
+                      isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                    }`}>
+                      Archive all
+                    </button>
+                  </div>
+
+                  {/* Delete All */}
+                  <div className="flex items-center justify-between px-6 py-5">
+                    <span className="text-sm font-medium">Delete all chats</span>
+                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
+                      isDark ? "bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-transparent border-red-200 text-red-600 hover:bg-red-50"
+                    }`}>
+                      Delete all
+                    </button>
+                  </div>
+
+                  {/* Export Data */}
+                  <div className="flex items-center justify-between px-6 py-5">
+                    <span className="text-sm font-medium">Export data</span>
+                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
+                      isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                    }`}>
+                      Export
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {activeTab === "account" && (
@@ -879,6 +1035,203 @@ export default function SettingsModal() {
           {/* Footer logout - ChatGPT style removed per user request */}
         </div>
       </div>
+
+      {/* Shared Links Sub-Modal */}
+      {showSharedLinks && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 sm:p-4 overflow-y-auto scrollbar-hide">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowSharedLinks(false)} />
+          <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl rounded-none sm:rounded-3xl shadow-2xl transition-colors overflow-hidden border-0 animate-in zoom-in-95 duration-200 flex flex-col my-auto ${
+            isDark ? "bg-[#161514] border-[#2E2E2E] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"
+          }`}>
+            {/* Unified Fixed Header (Title + Table Labels) */}
+            <div className="shrink-0 transition-all duration-200 bg-[#F5F3EF] dark:bg-[#161514]">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2 sm:pt-6 sm:px-6 border-b border-[#E8E5E0] bg-[#F5F3EF] dark:bg-transparent dark:border-[#2E2E2E]">
+                <h3 className="text-lg font-bold sm:text-2xl">
+                  {linksType === "chat" ? "Chat Shared Links" : 
+                   linksType === "note" ? "Note Shared Links" : 
+                   "Archived Chats"}
+                </h3>
+                <button 
+                  onClick={() => setShowSharedLinks(false)} 
+                  className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                  title="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <table className="w-full text-left border-collapse table-fixed">
+                <thead className={`text-[11px] uppercase tracking-wider font-bold shadow-sm ${isDark ? "text-[#7D7D7D]" : "text-[#545454]"}`}>
+                  <tr className="border-b border-[#333]/10 dark:border-white/10">
+                    <th className="px-6 py-4 w-[45%]">Name</th>
+                    <th className="px-6 py-4 w-[15%] hidden sm:table-cell">Type</th>
+                    <th className="px-6 py-4 w-[25%] hidden sm:table-cell">Date shared</th>
+                    <th className="px-6 py-4 w-[15%] text-right pr-6 relative">
+                      <button 
+                        onClick={() => setShowBulkMenu(!showBulkMenu)}
+                        className={`p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 ${showBulkMenu ? "bg-black/5 dark:bg-white/10" : ""}`}
+                      >
+                        <MoreHorizontal size={16} className="ml-auto" />
+                      </button>
+
+                      {/* Bulk Actions Menu (Just the trigger) */}
+                      {showBulkMenu && (
+                        <div 
+                          ref={bulkMenuRef}
+                          className={`absolute top-full right-6 mt-1 w-48 rounded-2xl shadow-2xl z-[50] overflow-hidden border animate-in slide-in-from-top-2 duration-200 ${
+                            isDark ? "bg-[#1C1C1B] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"
+                          }`}
+                        >
+                          <div className="p-2">
+                              <button
+                                onClick={() => {
+                                  setDeleteConfirmTarget({ id: "all", title: linksType === "archive" ? "All Archives" : "All Shared Links" });
+                                  setShowBulkMenu(false);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                              >
+                                <Trash2 size={14} />
+                                Delete All {linksType === "archive" ? "Archives" : "Links"}
+                              </button>
+                          </div>
+                        </div>
+                      )}
+                    </th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide">
+              <table className="w-full text-left border-collapse table-fixed">
+                <tbody className="divide-y divide-[#333]/10 dark:divide-white/5">
+                  {isLoadingLinks ? (
+                    [...Array(3)].map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-6 py-4 w-[45%]"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-3/4"></div></td>
+                        <td className="px-6 py-4 w-[15%] hidden sm:table-cell"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-12"></div></td>
+                        <td className="px-6 py-4 w-[25%] hidden sm:table-cell"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-24"></div></td>
+                        <td className="px-6 py-4 w-[15%]"></td>
+                      </tr>
+                    ))
+                  ) : sharedLinks.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-[#7D7D7D]">
+                        No {linksType === "archive" ? "archived chats" : "shared links"} found.
+                      </td>
+                    </tr>
+                  ) : (
+                    sharedLinks.map((link: any) => (
+                      <tr key={link.id} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors`}>
+                        <td className="px-6 py-4 w-[45%] text-sm font-medium">
+                          <div className="flex flex-col gap-0.5">
+                            {linksType === "archive" ? (
+                              <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                            ) : (
+                              <a 
+                                href={linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`} 
+                                target="_blank" 
+                                className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
+                              >
+                                <LinkIcon size={14} />
+                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                              </a>
+                            )}
+                            {/* Mobile-only date display */}
+                            <span className="text-[10px] text-[#7D7D7D] font-normal sm:hidden mt-1">
+                              {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 hidden sm:table-cell">
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${isDark ? "bg-[#333] text-[#BABABA]" : "bg-[#E8E5E0] text-[#545454]"}`}>
+                            {linksType === "archive" ? "Archive" : (linksType === "chat" ? "Chat" : "Note")}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-[#7D7D7D] hidden sm:table-cell">
+                          {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </td>
+                        <td className="px-6 py-4 w-[15%] text-right pr-6">
+                          <div className="flex items-center justify-end gap-3 sm:gap-5">
+                            {linksType === "archive" ? (
+                              <button 
+                                onClick={() => handleUnarchive(link.id)}
+                                disabled={revokingId === link.id}
+                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
+                                title="Unarchive chat"
+                              >
+                                {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <ArchiveRestore size={14} />}
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => window.open(linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`, '_blank')}
+                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
+                                title={`View ${linksType}`}
+                              >
+                                {linksType === "chat" ? <MessageSquare size={14} /> : <FileIcon2 size={14} />}
+                              </button>
+                            )}
+                            
+                            <button 
+                                onClick={() => setDeleteConfirmTarget({ id: link.id, title: link.title || `Untitled ${linksType}` })}
+                                disabled={revokingId === link.id}
+                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-red-500/10 text-red-500 hover:text-red-600" : "hover:bg-red-50 text-red-500 hover:text-red-700"}`}
+                                title={`Delete ${linksType === "archive" ? "chat" : "link"}`}
+                            >
+                                {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                            ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Centered Delete Confirmation Dialog */}
+            {deleteConfirmTarget && (
+              <div className="absolute inset-0 z-[500] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in" onClick={() => setDeleteConfirmTarget(null)} />
+                <div className={`relative w-full max-w-[340px] rounded-3xl shadow-2xl p-6 border animate-in zoom-in-95 duration-200 ${
+                  isDark ? "bg-[#1C1C1B] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"
+                }`}>
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 group animate-bounce">
+                      <Trash2 size={24} />
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-bold">Are you sure?</h4>
+                      <p className="text-sm text-[#7D7D7D] leading-relaxed">
+                        Are you sure you want to delete <span className="text-red-500 font-bold">"{deleteConfirmTarget.title}"</span>? <br/>This action cannot be undone.
+                      </p>
+                    </div>
+                    <div className="flex flex-col w-full gap-2 pt-2">
+                       <button
+                         onClick={() => {
+                           if (deleteConfirmTarget.id === "all") handleDeleteAll();
+                           else handleRevokeLink(deleteConfirmTarget.id);
+                           setDeleteConfirmTarget(null);
+                         }}
+                         className="w-full py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:scale-95 transition-all shadow-lg"
+                       >
+                         {isBulkDeleting ? <Loader2 size={16} className="animate-spin mx-auto" /> : "YES, DELETE"}
+                       </button>
+                       <button
+                         onClick={() => setDeleteConfirmTarget(null)}
+                         className={`w-full py-3 rounded-2xl font-bold text-sm transition-all ${
+                           isDark ? "hover:bg-[#2E2E2E] text-[#BABABA]" : "hover:bg-gray-100 text-[#7D7D7D]"
+                         }`}
+                       >
+                         CANCEL
+                       </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
