@@ -51,10 +51,16 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                var theme = localStorage.getItem('theme');
+                var supportDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var isDark = theme === 'dark' || (!theme && supportDark);
+                
+                if (isDark) {
                   document.documentElement.classList.add('dark');
+                  document.documentElement.style.backgroundColor = '#161514';
                 } else {
                   document.documentElement.classList.remove('dark');
+                  document.documentElement.style.backgroundColor = '#F5F3EF';
                 }
               } catch (_) {}
             `,

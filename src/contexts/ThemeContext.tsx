@@ -23,8 +23,10 @@ function applyTheme(theme: Theme) {
 
   if (theme === "dark") {
     root.classList.add("dark");
+    root.style.backgroundColor = "#161514";
   } else {
     root.classList.remove("dark");
+    root.style.backgroundColor = "#F5F3EF";
   }
 
   // Re-enable transitions after one paint

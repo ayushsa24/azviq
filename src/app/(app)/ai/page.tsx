@@ -46,6 +46,7 @@ import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { supabase } from "@/lib/supabase";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -58,12 +59,12 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-type Message = {
-  id?: string;
-  role: "user" | "model";
+export interface Message {
+  role: "user" | "model" | "assistant";
   content: string;
+  image?: string; // Base64 image data for Vision
   created_at?: string;
-};
+}
 
 type ChatSession = {
   id: string;
@@ -123,6 +124,8 @@ function AiChatCore() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharedLinkCopied, setSharedLinkCopied] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const activeStreamingTextRef = useRef<Record<string, string>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -132,8 +135,37 @@ function AiChatCore() {
   const isSendingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isMobileApp, setIsMobileApp] = useState(false);
-  const currentChatIdRef = useRef(activeChatId);
+  const currentChatIdRef = useRef<string | null>(activeChatId);
+  const [editImage, setEditImage] = useState<string | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
+  // Handle persisted vision images in the chat history
+  useEffect(() => {
+    if (activeChatId && sessionData?.chats) {
+      const activeChat = sessionData.chats.find((c: ChatSession) => c.id === activeChatId);
+      if (activeChat) {
+        const processedMessages = (activeChat.messages || []).map((msg: Message) => {
+          if (msg.role === "user" && msg.content?.startsWith('{"text":')) {
+            try {
+              const parsed = JSON.parse(msg.content);
+              return { ...msg, content: parsed.text, image: parsed.image || msg.image };
+            } catch (e) {
+              return msg;
+            }
+          }
+          return msg;
+        });
+        setMessages(processedMessages);
+      } else {
+        setMessages([]);
+      }
+    } else if (!activeChatId) {
+      setMessages([]);
+    }
+  }, [activeChatId, sessionData]);
 
   // Synchronize ref with current state for async callbacks
   useEffect(() => {
@@ -350,7 +382,7 @@ function AiChatCore() {
       messages: [],
       created_at: new Date().toISOString()
     };
-    
+
     mutateSessions(
       (current: { chats: ChatSession[] } | undefined) => ({
         ...current,
@@ -394,17 +426,6 @@ function AiChatCore() {
 
   const switchChat = (chatId: string) => {
     setActiveChatId(chatId);
-    const session = sessions.find((s) => s.id === chatId);
-    if (session) {
-      const baseMessages = session.messages || [];
-      const partialText = activeStreamingTextRef.current[chatId];
-      
-      if (partialText) {
-        setMessages([...baseMessages, { role: "model", content: partialText }]);
-      } else {
-        setMessages(baseMessages);
-      }
-    }
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
@@ -429,12 +450,19 @@ function AiChatCore() {
 
     const chatIdOfRequest = activeChatId;
     const textToSend = overrideText || input;
-    if (!textToSend.trim() || !chatIdOfRequest) return;
+
+    // Allow sending if there is either text OR an image
+    if ((!textToSend.trim() && !selectedImage) || !chatIdOfRequest) return;
 
     if (status !== "authenticated") return;
 
     isSendingRef.current = true;
-    const newMsg: Message = { role: "user", content: textToSend };
+    const currentImage = overrideText !== undefined ? editImage : selectedImage;
+    const newMsg: Message = {
+      role: "user",
+      content: textToSend,
+      image: currentImage || undefined // Pass the image data for the UI
+    };
 
     // If an edit occurred, slice the history up to the edited message
     const previousMessages =
@@ -445,10 +473,12 @@ function AiChatCore() {
     // Optimistic UI Update for internal messages
     setMessages([...previousMessages, newMsg]);
     setInput("");
+    setSelectedImage(null); // Clear image after sending
+    setEditImage(null); // Clear edit image
     setEditingMessageIdx(null);
     setIsLoading(true);
     setIsActuallySending(true);
-    
+
     setGeneratingChatIds(prev => new Set(prev).add(chatIdOfRequest));
 
     // Immediately move this chat to the top within SWR and ensure it's marked as non-empty
@@ -456,13 +486,17 @@ function AiChatCore() {
       if (!currentData || !currentData.chats) return currentData;
       const current = currentData.chats.find((s: ChatSession) => s.id === chatIdOfRequest);
       if (!current) return currentData;
-      
+
+      const updatedMessages = cutHistoryAtIndex !== undefined
+        ? [...previousMessages, newMsg]
+        : [...(current.messages || []), newMsg];
+
       const updatedCurrent = {
         ...current,
-        messages: [...(current.messages || []), newMsg],
+        messages: updatedMessages,
       };
       const others = currentData.chats.filter((s: ChatSession) => s.id !== chatIdOfRequest);
-      
+
       return { ...currentData, chats: [updatedCurrent, ...others] };
     }, { revalidate: false });
 
@@ -470,14 +504,30 @@ function AiChatCore() {
     let topicTitle: string | null = null;
 
     try {
+      // If this was an edit, delete all messages AFTER the current edit index in the database
+      if (cutHistoryAtIndex !== undefined && chatIdOfRequest !== "temp-chat") {
+        const lastOriginalMsg = messages[cutHistoryAtIndex];
+        if (lastOriginalMsg?.created_at) {
+          fetch(`/api/chat/message?chatId=${chatIdOfRequest}&after=${encodeURIComponent(lastOriginalMsg.created_at)}`, {
+            method: "DELETE",
+          }).catch(err => console.error("Failed to clear future history:", err));
+        }
+      }
+
+      // Endpoint logic: If it was an edit with NO NEW IMAGE but the PREVIOUS msg had one, it still needs vision
+      // However, usually we can just check if currentImage is present.
+      const isVision = !!currentImage;
+      const endpoint = isVision ? "/api/chat/vision" : "/api/chat";
+
       const payload = {
         chatId: activeChatId,
-        messages: [...previousMessages, newMsg], // send full history context
+        messages: [...previousMessages, newMsg], // send full history context up to the edit
+        image: currentImage || null,
       };
 
       abortControllerRef.current = new AbortController();
 
-      const res = await fetch("/api/chat", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -488,13 +538,13 @@ function AiChatCore() {
         const errorData = await res.json().catch(() => ({}));
         const rawError = errorData.error;
         let finalError = "API stream error";
-        
+
         if (typeof rawError === "object" && rawError !== null) {
           finalError = rawError.message || JSON.stringify(rawError);
         } else if (typeof rawError === "string") {
           finalError = rawError;
         }
-        
+
         throw new Error(finalError);
       }
       if (!res.body) throw new Error("No response body");
@@ -562,12 +612,27 @@ function AiChatCore() {
     } catch (error: any) {
       if (error.name === "AbortError") {
         console.log("User aborted the generation");
-        
+
+        // --- KEY: Ensure the partial message is saved to DB so it doesn't continue on refresh ---
+        if (aiResponseText.trim().length > 0 && chatIdOfRequest !== "temp-chat") {
+          try {
+            await supabase.from("messages").insert({
+              chat_id: chatIdOfRequest,
+              user_id: session.user!.email, // this works for identifying the project user usually
+              role: "model",
+              content: aiResponseText,
+              email: session.user!.email,
+            });
+          } catch (e) {
+            console.error("Failed to save partial message on abort:", e);
+          }
+        }
+
         // Optimistically update the SWR cache with the partial response so it survives chat switching
         if (aiResponseText.trim().length > 0) {
           mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
             if (!currentData || !currentData.chats) return currentData;
-            const updatedChat = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
+            const updatedChat = currentData.chats.find((s: ChatSession) => s.id === chatIdOfRequest);
             if (!updatedChat) return currentData;
 
             const updated: ChatSession = {
@@ -579,7 +644,7 @@ function AiChatCore() {
               ],
             };
 
-            const others = currentData.chats.filter((s: ChatSession) => s.id !== activeChatId);
+            const others = currentData.chats.filter((s: ChatSession) => s.id !== chatIdOfRequest);
             return { ...currentData, chats: [updated, ...others] };
           }, false);
 
@@ -598,21 +663,18 @@ function AiChatCore() {
         }
       } else {
         console.error("Error sending message", error);
-        setApiError(error.message || "Something went wrong. Please try again.");
+        setApiError(error.message || "An unexpected error occurred.");
       }
     } finally {
-      // Remove from generating set and clear streaming ref
-      setGeneratingChatIds(prev => {
+      setIsLoading(false);
+      setIsActuallySending(false);
+      isSendingRef.current = false;
+      setGeneratingChatIds((prev) => {
         const next = new Set(prev);
         next.delete(chatIdOfRequest);
         return next;
       });
       delete activeStreamingTextRef.current[chatIdOfRequest];
-
-      if (currentChatIdRef.current === chatIdOfRequest) {
-        setIsLoading(false);
-        setIsActuallySending(false);
-      }
       isSendingRef.current = false;
     }
   };
@@ -622,18 +684,18 @@ function AiChatCore() {
       setIsRenamingId(null);
       return;
     }
-    
+
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
       if (!currentData || !currentData.chats) return currentData;
       return {
         ...currentData,
-        chats: currentData.chats.map((s: ChatSession) => 
+        chats: currentData.chats.map((s: ChatSession) =>
           s.id === chatId ? { ...s, title: renameTitle } : s
         )
       };
     }, { revalidate: false });
-    
+
     try {
       setIsRenamingId(null);
       setActiveMenuId(null);
@@ -650,7 +712,7 @@ function AiChatCore() {
 
   const handleTogglePin = async (chatId: string, currentPinStatus: boolean) => {
     const newStatus = !currentPinStatus;
-    
+
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
       if (!currentData || !currentData.chats) return currentData;
@@ -664,7 +726,7 @@ function AiChatCore() {
       });
       return { ...currentData, chats: sorted };
     }, { revalidate: false });
-    
+
     try {
       setActiveMenuId(null);
       await fetch(`/api/chat/history/${chatId}`, {
@@ -683,7 +745,7 @@ function AiChatCore() {
     currentArchiveStatus: boolean,
   ) => {
     const newStatus = !currentArchiveStatus;
-    
+
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
       if (!currentData || !currentData.chats) return currentData;
@@ -694,7 +756,7 @@ function AiChatCore() {
         )
       };
     }, { revalidate: false });
-    
+
     try {
       setActiveMenuId(null);
 
@@ -726,7 +788,7 @@ function AiChatCore() {
         chats: currentData.chats.filter((s: ChatSession) => s.id !== chatId)
       };
     }, { revalidate: false });
-    
+
     try {
       setActiveMenuId(null);
 
@@ -824,7 +886,7 @@ function AiChatCore() {
     };
 
     doImport();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyLoaded, status]);
 
   // Organize chats based on search query
@@ -1137,8 +1199,8 @@ function AiChatCore() {
           ))}
           {sessionError && (
             <div className={`p-3 text-center text-xs rounded-lg mb-3 ${theme === "dark" ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}>
-              {sessionError.status === 429 
-                ? "Slow down! You're refreshing too fast. History will reappear in a moment." 
+              {sessionError.status === 429
+                ? "Slow down! You're refreshing too fast. History will reappear in a moment."
                 : "Failed to load chat history."}
             </div>
           )}
@@ -1268,8 +1330,8 @@ function AiChatCore() {
             onClick={toggleTemporaryChat}
             className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
               ? theme === "dark"
-                ? "bg-red-900/40 text-red-400 hover:bg-red-900/60"
-                : "bg-red-100 text-red-600 hover:bg-red-200"
+                ? "bg-[#333] text-white hover:bg-[#444]"
+                : "bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm"
               : theme === "dark"
                 ? "text-gray-300 hover:bg-[#252525]"
                 : "text-[#545454] hover:bg-[#F0EDE8]"
@@ -1308,9 +1370,9 @@ function AiChatCore() {
                 </div>
               ) : activeChatId === "temp-chat" ? (
                 <>
-                  <Ghost className="w-16 h-16 mb-4 text-red-500 opacity-80" />
+                  <Ghost className="w-16 h-16 mb-4 text-gray-400 opacity-80" />
                   <h2 className="text-2xl font-bold mb-2">
-                    You are in Temporary Chat
+                    Temporary Chat Mode
                   </h2>
                   <p className="max-w-md text-sm">
                     Messages here will not be saved to your history. How can I
@@ -1352,7 +1414,7 @@ function AiChatCore() {
 
                 {/* Bubble Container */}
                 <div
-                  className={`relative flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-[85%] md:max-w-[75%]" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}
+                  className={`relative flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}
                 >
                   {/* Timestamp - User Only, Mobile Only, On Long Press */}
                   {msg.role === "user" && activeMobileMessageIdx === idx && (
@@ -1388,9 +1450,62 @@ function AiChatCore() {
                           className={`w-full bg-transparent border-0 focus:ring-0 resize-none outline-none custom-scrollbar p-0 m-0 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
                           rows={Math.max(2, editInput.split("\n").length)}
                         />
+
+                        {/* Hidden File Input for Editing */}
+                        <input
+                          type="file"
+                          ref={editFileInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setEditImage(reader.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+
+                        {/* Image Preview in Edit Mode */}
+                        {(editImage || msg.image) && (
+                          <div className="mt-2 relative inline-block group/edit-img">
+                            <img
+                              src={editImage || msg.image}
+                              alt="Edit material"
+                              className="h-20 w-auto rounded-lg border border-black/10 dark:border-white/10"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/edit-img:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                              <button
+                                onClick={() => editFileInputRef.current?.click()}
+                                className="p-1.5 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors"
+                                title="Change image"
+                              >
+                                <Paperclip className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditImage(null);
+                                  // We manually force msg.image equal to null for the local render
+                                  msg.image = undefined;
+                                }}
+                                className="p-1.5 bg-red-500/20 hover:bg-red-500/40 text-white rounded-full transition-colors"
+                                title="Remove image"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex justify-end gap-2 mt-2">
                           <button
-                            onClick={() => setEditingMessageIdx(null)}
+                            onClick={() => {
+                              setEditingMessageIdx(null);
+                              setEditImage(null);
+                            }}
                             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${theme === "dark" ? "bg-[#252525] hover:bg-[#333] text-gray-300" : "bg-[#F0EDE8] hover:bg-[#D1D1D1] text-gray-700"}`}
                           >
                             Cancel
@@ -1398,7 +1513,7 @@ function AiChatCore() {
                           <button
                             onClick={() => handleSend(editInput, idx)}
                             disabled={
-                              !editInput.trim() || editInput === msg.content
+                              (!editInput.trim() && !editImage && !msg.image) || (editInput === msg.content && editImage === null)
                             }
                             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${theme === "dark" ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-indigo-500 hover:bg-indigo-600 text-white"}`}
                           >
@@ -1408,6 +1523,18 @@ function AiChatCore() {
                       </div>
                     ) : (
                       <>
+                        {/* Integrated Image Preview for Vision Messages */}
+                        {msg.role === "user" && msg.image && (
+                          <div className="mb-2 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 shadow-sm transition-transform hover:scale-[1.01] bg-black/5 dark:bg-white/5">
+                            <img
+                              src={msg.image}
+                              alt="Study Material"
+                              className="w-full h-auto object-contain max-h-[160px] cursor-zoom-in"
+                              onClick={() => setImagePreviewUrl(msg.image || null)}
+                            />
+                          </div>
+                        )}
+
                         {msg.role === "model" ? (
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
@@ -1651,6 +1778,7 @@ function AiChatCore() {
                           onClick={() => {
                             setEditingMessageIdx(idx);
                             setEditInput(msg.content);
+                            setEditImage(msg.image || null);
                           }}
                           className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                           title="Edit message"
@@ -1685,7 +1813,7 @@ function AiChatCore() {
                 <Bot className="w-4 h-4 shrink-0" />
                 <span>{apiError}</span>
               </div>
-              <button 
+              <button
                 onClick={() => setApiError(null)}
                 className="p-1 hover:bg-black/5 rounded-full transition-colors"
                 title="Dismiss error"
@@ -1714,73 +1842,110 @@ function AiChatCore() {
             </div>
           )}
           <div className="max-w-3xl mx-auto flex items-end gap-2">
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setSelectedImage(reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+
             {/* Separate Attachment Button */}
             <button
+              onClick={() => fileInputRef.current?.click()}
               className={`h-[52px] w-[52px] rounded-xl flex items-center justify-center shrink-0 transition-colors border ${theme === "dark" ? "bg-[#252525] border-[#545454] text-gray-300 hover:bg-[#545454] hover:text-white" : "bg-white border-[#E8E5E0] text-gray-600 hover:bg-[#F0EDE8] hover:text-gray-900"}`}
+              title="Attach image"
             >
               <Paperclip className="w-5 h-5 shrink-0" />
             </button>
 
             {/* Input Wrapper */}
             <div
-              className={`flex-1 relative rounded-xl flex items-end p-1.5 border transition-colors duration-300 ease-in-out ${theme === "dark"
+              className={`flex-1 relative rounded-xl flex flex-col p-1.5 border transition-colors duration-300 ease-in-out ${theme === "dark"
                 ? "bg-[#252525] border-[#545454] focus-within:border-[#7D7D7D]"
                 : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D] focus-within:shadow-sm"
                 }`}
             >
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    if (!isLoading) {
-                      e.currentTarget.blur();
-                      handleSend();
-                    }
-                  }
-                }}
-                placeholder="Ask Avyx AI anything..."
-                className="flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-2 text-[14px] outline-none custom-scrollbar"
-                rows={1}
-              />
+              {/* Image Preview Above Input */}
+              {selectedImage && (
+                <div className="px-3 pt-2 mb-1 flex items-center gap-2">
+                  <div className="relative h-14 w-14 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
+                    <button
+                      onClick={() => setSelectedImage(null)}
+                      className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
 
-              <button
-                onClick={toggleDictation}
-                title="Dictate"
-                className={`p-2.5 rounded-lg mb-0.5 transition-colors ${isDictating ? "text-red-500 animate-pulse" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-800 hover:bg-[#F0EDE8]"}`}
-              >
-                <Mic className="w-5 h-5" />
-              </button>
-
-              {isActuallySending ? (
-                <button
-                  onClick={() => {
-                    if (abortControllerRef.current) {
-                      abortControllerRef.current.abort();
-                      setIsLoading(false);
-                      setIsActuallySending(false);
-                      isSendingRef.current = false;
+              <div className="flex items-end">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!isLoading) {
+                        e.currentTarget.blur();
+                        handleSend();
+                      }
                     }
                   }}
-                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === "dark" ? "bg-[#545454] text-white hover:bg-[#7D7D7D]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
-                  title="Stop generating"
-                >
-                  <Square className="w-4 h-4 fill-current" />
-                </button>
-              ) : (
+                  placeholder={selectedImage ? "Add a caption or ask about this image..." : "Ask Avyx AI anything..."}
+                  className="flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-2 text-[14px] outline-none custom-scrollbar"
+                  rows={1}
+                />
+
                 <button
-                  onClick={() => handleSend()}
-                  disabled={isLoading || !input.trim()}
-                  className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === "dark"
-                    ? "bg-white text-[#252525] hover:bg-white/90"
-                    : "bg-[#252525] text-white hover:bg-[#545454]"
-                    }`}
+                  onClick={toggleDictation}
+                  title="Dictate"
+                  className={`p-2.5 rounded-lg mb-0.5 transition-colors ${isDictating ? "text-red-500 animate-pulse" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-800 hover:bg-[#F0EDE8]"}`}
                 >
-                  <Send className="w-4 h-4" />
+                  <Mic className="w-5 h-5" />
                 </button>
-              )}
+
+                {isActuallySending ? (
+                  <button
+                    onClick={() => {
+                      if (abortControllerRef.current) {
+                        abortControllerRef.current.abort();
+                        setIsLoading(false);
+                        setIsActuallySending(false);
+                        isSendingRef.current = false;
+                      }
+                    }}
+                    className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 active:scale-95 ${theme === "dark" ? "bg-[#545454] text-white hover:bg-[#7D7D7D]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
+                    title="Stop generating"
+                  >
+                    <Square className="w-4 h-4 fill-current" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSend()}
+                    disabled={isLoading || (!input.trim() && !selectedImage)}
+                    className={`p-2.5 rounded-lg mb-0.5 ml-1 transition-all duration-200 disabled:opacity-40 disabled:scale-100 active:scale-95 ${theme === "dark"
+                      ? "bg-white text-[#252525] hover:bg-white/90"
+                      : "bg-[#252525] text-white hover:bg-[#545454]"
+                      }`}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <p className="text-center text-xs opacity-50 mt-1.5 hidden md:block">
@@ -1788,52 +1953,80 @@ function AiChatCore() {
             information.
           </p>
         </div>
-      </div>
-      {/* ── Share Modal ── */}
-      {shareUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
-            onClick={() => { setShareUrl(null); setSharedLinkCopied(null); }}
-          />
-          <div className={`relative w-full max-w-sm rounded-2xl shadow-2xl p-6 border transform transition-all animate-in zoom-in-95 fade-in duration-200 ${theme === 'dark' ? 'bg-[#1A1A1A] border-[#333]' : 'bg-white border-[#EEE]'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider opacity-60">Share Link</h3>
-              <button 
-                onClick={() => { setShareUrl(null); setSharedLinkCopied(null); }}
-                className={`p-1.5 rounded-full transition-colors ${theme === 'dark' ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-[#F5F3EF] text-gray-500'}`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            
-            <p className="text-[10px] opacity-60 mb-3">Anyone with this link can view the conversation snapshot.</p>
-
-            <div className={`p-1.5 rounded-xl border flex items-center gap-2 mb-4 group ${theme === 'dark' ? 'bg-[#252525] border-[#444]' : 'bg-[#FAFAFA] border-[#DDD]'}`}>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-xs truncate px-2 opacity-80 select-all">{shareUrl}</p>
+        {/* ── Share Modal ── */}
+        {shareUrl && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+              onClick={() => { setShareUrl(null); setSharedLinkCopied(null); }}
+            />
+            <div className={`relative w-full max-w-sm rounded-2xl shadow-2xl p-6 border transform transition-all animate-in zoom-in-95 fade-in duration-200 ${theme === 'dark' ? 'bg-[#1A1A1A] border-[#333]' : 'bg-white border-[#EEE]'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider opacity-60">Share Link</h3>
+                <button
+                  onClick={() => { setShareUrl(null); setSharedLinkCopied(null); }}
+                  className={`p-1.5 rounded-full transition-colors ${theme === 'dark' ? 'hover:bg-[#333] text-gray-400' : 'hover:bg-[#F5F3EF] text-gray-500'}`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(shareUrl);
-                  setSharedLinkCopied("modal");
-                  setTimeout(() => setSharedLinkCopied(null), 2000);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all shrink-0 ${
-                  sharedLinkCopied === "modal"
+
+              <p className="text-[10px] opacity-60 mb-3">Anyone with this link can view the conversation snapshot.</p>
+
+              <div className={`p-1.5 rounded-xl border flex items-center gap-2 mb-4 group ${theme === 'dark' ? 'bg-[#252525] border-[#444]' : 'bg-[#FAFAFA] border-[#DDD]'}`}>
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-xs truncate px-2 opacity-80 select-all">{shareUrl}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(shareUrl);
+                    setSharedLinkCopied("modal");
+                    setTimeout(() => setSharedLinkCopied(null), 2000);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all shrink-0 ${sharedLinkCopied === "modal"
                     ? "bg-green-500 text-white"
                     : theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#252525] text-white hover:bg-[#444]'
-                }`}
+                    }`}
+                >
+                  {sharedLinkCopied === "modal" ? <Check size={12} /> : <Copy size={12} />}
+                  {sharedLinkCopied === "modal" ? "Copied" : "Copy"}
+                </button>
+              </div>
+
+              <p className="text-[10px] text-center opacity-40 italic">Note: Only people you share the link with can see the chat.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Image Lightbox ── */}
+        {imagePreviewUrl && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200">
+            <div
+              className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+              onClick={() => setImagePreviewUrl(null)}
+            />
+
+            <div className="absolute top-4 right-4 z-[160] md:top-8 md:right-8">
+              <button
+                onClick={() => setImagePreviewUrl(null)}
+                className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all duration-200 backdrop-blur-md border border-white/20 shadow-xl group"
+                title="Close preview"
               >
-                {sharedLinkCopied === "modal" ? <Check size={12} /> : <Copy size={12} />}
-                {sharedLinkCopied === "modal" ? "Copied" : "Copy"}
+                <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
               </button>
             </div>
 
-            <p className="text-[10px] text-center opacity-40 italic">Note: Only people you share the link with can see the chat.</p>
+            <div className="relative w-full h-full flex items-center justify-center pointer-events-none transform animate-in zoom-in-95 duration-300">
+              <img
+                src={imagePreviewUrl}
+                alt="Preview Full Screen"
+                className="max-w-full max-h-full object-contain shadow-2xl rounded-lg pointer-events-auto cursor-zoom-out"
+                onClick={() => setImagePreviewUrl(null)}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

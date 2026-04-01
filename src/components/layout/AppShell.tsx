@@ -21,6 +21,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const { open, toggle } = useSidebar();
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
@@ -63,7 +68,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const isFullPageLayer = isPdfEditor || isNoteEditor || isPrepSubView;
 
   return (
-    <div className={`h-[100dvh] overflow-hidden flex flex-col transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>
+    <div className={`h-[100dvh] overflow-hidden flex flex-col transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'} ${theme === 'dark' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>
 
       {/* Header: mobile only on Dashboard, hidden on desktop */}
       {isDashboard && (
@@ -72,7 +77,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {!isFullPageLayer ? (
+      {mounted && (!isFullPageLayer ? (
         <Sidebar
           open={open}
           isHovered={isSidebarHovered}
@@ -88,7 +93,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             onTrashClick={() => setIsTrashOpen(true)}
           />
         </div>
-      )}
+      ))}
 
       {/* Global Notification Panel */}
       <NotificationPanel />
@@ -123,10 +128,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         ${isKeyboardOpen || isFullPageLayer ? 'pb-0' : 'pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0'} flex-1 min-h-0
         ${theme === 'dark' ? 'bg-[#1A1A1A]' : 'bg-[#F5F3EF]'}
       `}>
-        {children}
+        {mounted && children}
       </main>
 
-      {!isFullPageLayer && <BottomNav />}
+      {!isFullPageLayer && mounted && <BottomNav />}
     </div>
   );
 }

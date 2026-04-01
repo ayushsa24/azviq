@@ -64,3 +64,51 @@ export async function POST(req: Request) {
         return apiError("Failed to save message", 500, "INTERNAL_SERVER_ERROR");
     }
 }
+
+export async function DELETE(req: Request) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email) {
+            return apiError("Unauthorized", 401, "UNAUTHORIZED");
+        }
+
+        const { searchParams } = new URL(req.url);
+        const chatId = searchParams.get("chatId");
+        const after = searchParams.get("after");
+
+        if (!chatId || !after) {
+            return apiError("Missing required parameters", 400, "MISSING_PARAMS");
+        }
+
+        // Verify ownership
+        const { data: dbUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", session.user.email)
+            .single();
+
+        const { data: chatData } = await supabase
+            .from("chats")
+            .select("user_id")
+            .eq("id", chatId)
+            .single();
+
+        if (!chatData || !dbUser || chatData.user_id !== dbUser.id) {
+            return apiError("Forbidden", 403, "FORBIDDEN");
+        }
+
+        // Delete messages after the specified timestamp
+        const { error: deleteError } = await supabase
+            .from("messages")
+            .delete()
+            .eq("chat_id", chatId)
+            .gt("created_at", after);
+
+        if (deleteError) throw deleteError;
+
+        return apiSuccess({ success: true });
+    } catch (error: any) {
+        console.error("Delete messages error:", error);
+        return apiError("Failed to clear history", 500, "INTERNAL_SERVER_ERROR");
+    }
+}
