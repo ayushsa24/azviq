@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ProfileModal from "@/components/layout/ProfileModal";
+import SettingsModal from "@/components/layout/SettingsModal";
 
-export default function GlobalProfilePage() {
+export default function GlobalSettingsPage() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
 
@@ -13,5 +13,5 @@ export default function GlobalProfilePage() {
     router.back();
   };
 
-  return <ProfileModal open={isOpen} onClose={handleClose} />;
+  return <SettingsModal isOpen={isOpen} onClose={handleClose} />;
 }

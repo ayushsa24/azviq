@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -54,6 +54,7 @@ export default function Sidebar({
   const { openSettings } = useSettings();
   const { toggle } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
   const isDark = theme === "dark";
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
   const { user: profile } = useUser();
@@ -222,9 +223,9 @@ export default function Sidebar({
             <div className={`absolute bottom-[calc(100%+4px)] left-2 right-2 rounded-2xl border shadow-2xl overflow-hidden z-20
               ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-white border-[#7D7D7D]/40"}`}>
 
-              {/* Profile header — click to open profile modal */}
+              {/* Profile header — click to open profile page */}
               <button
-                onClick={() => { setMenuOpen(false); setProfileModalOpen(true); }}
+                onClick={() => { setMenuOpen(false); router.push("/profile"); }}
                 className={`w-full text-left px-4 py-3 border-b transition-colors
                   ${isDark ? "border-[#3A3A3A] hover:bg-[#2E2E2E]" : "border-[#F0EDE8] hover:bg-[#CFCFCF]"}`}
               >
@@ -236,7 +237,7 @@ export default function Sidebar({
 
               {/* Settings */}
               <button
-                onClick={() => { setMenuOpen(false); openSettings(); }}
+                onClick={() => { setMenuOpen(false); router.push("/settings"); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
                   ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >
@@ -245,7 +246,7 @@ export default function Sidebar({
 
               {/* Trash (Added here as well) */}
               <button
-                onClick={() => { setMenuOpen(false); onTrashClick?.(); }}
+                onClick={() => { setMenuOpen(false); router.push("/trash"); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
                   ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >

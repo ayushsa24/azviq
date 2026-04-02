@@ -9,8 +9,10 @@ import { useUser } from "@/contexts/UserContext";
 import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings, Trash2 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useRouter } from "next/navigation";
 
 export default function Header({ onMenuClick, open, onTrashClick, onProfileClick }: { onMenuClick: () => void; open: boolean; onTrashClick?: () => void; onProfileClick?: () => void }) {
+  const router = useRouter();
   const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, zoomIn, zoomOut, resetZoom } = useZoom();
@@ -122,33 +124,33 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
               ? 'bg-[#252525] border-[#545454]'
               : 'bg-white border-[#E8E5E0]'
               }`}>
+                  <button
+                    onClick={() => { setDropdownOpen(false); router.push("/profile"); }}
+                    className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${theme === 'dark'
+                      ? 'text-[#CFCFCF] hover:bg-[#545454]'
+                      : 'text-[#545454] hover:bg-[#F0EDE8]'
+                      }`}>
+                    <User className="w-4 h-4" />
+                    My Profile
+                  </button>
                 <button
-                  onClick={() => { setDropdownOpen(false); onProfileClick?.(); }}
-                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${theme === 'dark'
+                  onClick={() => { setDropdownOpen(false); router.push("/trash"); }}
+                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
                     ? 'text-[#CFCFCF] hover:bg-[#545454]'
                     : 'text-[#545454] hover:bg-[#F0EDE8]'
                     }`}>
-                  <User className="w-4 h-4" />
-                  My Profile
+                  <Trash2 className="w-4 h-4" />
+                  Trash Bin
                 </button>
-              <button
-                onClick={() => { setDropdownOpen(false); onTrashClick?.(); }}
-                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
-                  ? 'text-[#CFCFCF] hover:bg-[#545454]'
-                  : 'text-[#545454] hover:bg-[#F0EDE8]'
-                  }`}>
-                <Trash2 className="w-4 h-4" />
-                Trash Bin
-              </button>
-              <button
-                onClick={() => { setDropdownOpen(false); openSettings(); }}
-                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
-                  ? 'text-[#CFCFCF] hover:bg-[#545454]'
-                  : 'text-[#545454] hover:bg-[#F0EDE8]'
-                  }`}>
-                <Settings className="w-4 h-4" />
-                Settings
-              </button>
+                <button
+                  onClick={() => { setDropdownOpen(false); router.push("/settings"); }}
+                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
+                    ? 'text-[#CFCFCF] hover:bg-[#545454]'
+                    : 'text-[#545454] hover:bg-[#F0EDE8]'
+                    }`}>
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </button>
 
 
 

@@ -2,29 +2,29 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
-import { 
-  X, 
-  Bell, 
-  ShieldAlert, 
-  User, 
-  Moon, 
-  Sun, 
-  Settings, 
-  LogOut, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle, 
-  BellOff, 
-  CalendarClock, 
-  AlertTriangle, 
-  Globe, 
-  Trash2, 
-  ZoomIn, 
-  ZoomOut, 
-  RotateCcw, 
-  FileText, 
-  CheckSquare, 
-  Plus, 
+import {
+  X,
+  Bell,
+  ShieldAlert,
+  User,
+  Moon,
+  Sun,
+  Settings,
+  LogOut,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  BellOff,
+  CalendarClock,
+  AlertTriangle,
+  Globe,
+  Trash2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  FileText,
+  CheckSquare,
+  Plus,
   Loader2,
   Info,
   Check,
@@ -50,13 +50,23 @@ import { translations } from "@/utils/translations";
 
 type Tab = "general" | "notifications" | "data" | "account" | "parent_control";
 
-export default function SettingsModal() {
-  const { isOpen, closeSettings, initialTab } = useSettings();
+interface SettingsModalProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose }: SettingsModalProps = {}) {
+  const { isOpen: contextIsOpen, closeSettings, initialTab } = useSettings();
+  
+  // Use prop if provided, otherwise fallback to context
+  const isOpen = propIsOpen !== undefined ? propIsOpen : contextIsOpen;
+  const handleClose = propOnClose || closeSettings;
+
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, setZoom, zoomIn, zoomOut, resetZoom } = useZoom();
   const { language, setLanguage } = useLanguage();
-  const { 
-    pushPermission, 
+  const {
+    pushPermission,
     requestPushPermission,
     studyReminders,
     setStudyReminders,
@@ -108,15 +118,15 @@ export default function SettingsModal() {
 
   const { data: sharedLinksData, mutate: mutateSharedLinks, error: sharedLinksError } = useSWR(
     showSharedLinks ? (
-      linksType === "chat" ? "/api/share/chat" : 
-      linksType === "note" ? "/api/share/note" : 
-      "/api/chat/history"
+      linksType === "chat" ? "/api/share/chat" :
+        linksType === "note" ? "/api/share/note" :
+          "/api/chat/history"
     ) : null
   );
   const sharedLinks = (
-    linksType === "chat" ? sharedLinksData?.links : 
-    linksType === "note" ? sharedLinksData?.notes : 
-    sharedLinksData?.chats?.filter((c: any) => c.is_archived)
+    linksType === "chat" ? sharedLinksData?.links :
+      linksType === "note" ? sharedLinksData?.notes :
+        sharedLinksData?.chats?.filter((c: any) => c.is_archived)
   ) || [];
   const isLoadingLinks = !sharedLinksData && !sharedLinksError && showSharedLinks;
 
@@ -155,10 +165,10 @@ export default function SettingsModal() {
   const handleDeleteAll = async () => {
     try {
       setIsBulkDeleting(true);
-      const url = linksType === "chat" ? "/api/share/chat/bulk" : 
-                  linksType === "note" ? "/api/share/note/bulk" : 
-                  "/api/chat/archive/bulk";
-      
+      const url = linksType === "chat" ? "/api/share/chat/bulk" :
+        linksType === "note" ? "/api/share/note/bulk" :
+          "/api/chat/archive/bulk";
+
       await fetch(url, { method: "DELETE" });
       mutateSharedLinks();
       setShowBulkMenu(false);
@@ -311,43 +321,41 @@ export default function SettingsModal() {
 
   const sendTestNotification = () => {
     if (pushPermission !== "granted") {
-        requestPushPermission();
-        return;
+      requestPushPermission();
+      return;
     }
     new Notification("Avyx", {
-        body: "This is a test notification. Your alerts are perfectly configured!",
-        icon: theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"
+      body: "This is a test notification. Your alerts are perfectly configured!",
+      icon: theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"
     });
   };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in" 
-        onClick={closeSettings}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
+        onClick={handleClose}
       />
 
       {/* Modal Container */}
-      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${
-        isDark ? "bg-[#161514] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
-      }`}>
+      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
+        }`}>
 
         {/* Sidebar (Desktop) / Top Bar (Mobile) */}
-        <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${
-          isDark ? "bg-[#161514] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
-        } ${"w-full sm:w-72"}`}>
-          
+        <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
+          } ${"w-full sm:w-72"}`}>
+
           {/* Header Area */}
-          <div className="flex items-center justify-between px-4 pt-4 pb-2 sm:pt-6 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] bg-[#F5F3EF] dark:bg-transparent dark:border-[#2E2E2E] mb-2 sm:mb-4">
+          <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF] dark:bg-transparent h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
             <h2 className="text-lg font-bold sm:text-2xl">{translations[language].settings}</h2>
-            <button onClick={closeSettings} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
-                <X size={20} />
+            <button onClick={handleClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
+              <X size={20} />
             </button>
           </div>
 
           {/* Navigation - Sidebar on desktop, horizontal scroll on mobile */}
-          <div className="flex sm:flex-col overflow-x-auto sm:overflow-x-visible px-2 pb-2 sm:pb-6 space-x-1 sm:space-x-0 sm:space-y-1 scrollbar-hide">
+          <div className="flex sm:flex-col items-center sm:items-stretch overflow-x-auto sm:overflow-x-visible h-[3.25rem] sm:h-auto px-4 sm:px-2 sm:mt-2 pb-0 sm:pb-6 space-x-1 sm:space-x-0 sm:space-y-1 scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -355,13 +363,12 @@ export default function SettingsModal() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2.5 px-3 py-2 sm:py-2.5 rounded-xl transition-all text-xs sm:text-sm font-medium whitespace-nowrap sm:whitespace-normal shrink-0 sm:shrink outline-none ${
-                    isActive
-                      ? isDark ? "bg-[#1C1C1B] text-white shadow-sm" : "bg-white text-[#252525] shadow-sm"
+                  className={`flex items-center gap-2 px-3 py-1.5 sm:py-2.5 rounded-xl transition-all text-[11px] sm:text-sm font-medium whitespace-nowrap shrink-0 sm:shrink outline-none ${isActive
+                      ? isDark ? "bg-[#2E2E2E] text-white" : "bg-white text-[#252525]"
                       : isDark ? "text-[#BABABA] hover:bg-[#1C1C1B]/50" : "text-[#7D7D7D] hover:bg-white/60"
-                  }`}
+                    }`}
                 >
-                  <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <Icon size={14} className="sm:w-[18px] sm:h-[18px]" />
                   {tab.label}
                 </button>
               );
@@ -371,8 +378,8 @@ export default function SettingsModal() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 scrollbar-hide">
-          <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#161514]" : ""}`}>
-            
+          <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A]" : ""}`}>
+
             {activeTab === "general" && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center justify-between">
@@ -380,11 +387,10 @@ export default function SettingsModal() {
                     <h3 className="text-sm font-semibold">{translations[language].theme}</h3>
                     <p className="text-xs text-[#7D7D7D]">Switch between light and dark mode</p>
                   </div>
-                  <button 
+                  <button
                     onClick={toggleTheme}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-sm font-medium ${
-                        isDark ? "bg-[#333] border-[#444] text-white" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525]"
-                    }`}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-sm font-medium ${isDark ? "bg-[#333] border-[#444] text-white" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525]"
+                      }`}
                   >
                     {isDark ? <Moon size={14} /> : <Sun size={14} />}
                     {isDark ? translations[language].dark : translations[language].light}
@@ -392,103 +398,98 @@ export default function SettingsModal() {
                 </div>
 
                 <div className="flex items-center justify-between pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
-                    <div>
-                        <h3 className="text-sm font-semibold">{translations[language].language}</h3>
-                        <p className="text-xs text-[#7D7D7D]">Set your preferred interface language</p>
-                    </div>
-                    <select 
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value as LanguageCode)}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium focus:outline-none transition-all ${
-                            isDark ? "bg-[#333] border-[#444] text-white" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525]"
-                        }`}
-                    >
-                        <option value="en">English</option>
-                        <option value="hi">Hindi</option>
-                        <option value="kn">Kannada</option>
-                        <option value="ta">Tamil</option>
-                        <option value="te">Telugu</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                    </select>
+                  <div>
+                    <h3 className="text-sm font-semibold">{translations[language].language}</h3>
+                    <p className="text-xs text-[#7D7D7D]">Set your preferred interface language</p>
+                  </div>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-medium focus:outline-none transition-all ${isDark ? "bg-[#333] border-[#444] text-white" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525]"
+                      }`}
+                  >
+                    <option value="en">English</option>
+                    <option value="hi">Hindi</option>
+                    <option value="kn">Kannada</option>
+                    <option value="ta">Tamil</option>
+                    <option value="te">Telugu</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                  </select>
                 </div>
 
                 <div className="flex flex-col gap-5 pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-semibold">Interface Scale</h3>
-                            <p className="text-xs text-[#7D7D7D]">Adjust text and element sizing</p>
-                        </div>
-                        <button 
-                            onClick={resetZoom}
-                            className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${
-                                isDark ? "bg-[#333] text-[#BABABA] hover:text-white" : "bg-[#F0EDE8] text-[#7D7D7D] hover:text-[#252525]"
-                            }`}
-                        >
-                            RESET
-                        </button>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold">Interface Scale</h3>
+                      <p className="text-xs text-[#7D7D7D]">Adjust text and element sizing</p>
                     </div>
+                    <button
+                      onClick={resetZoom}
+                      className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all active:scale-95 ${isDark ? "bg-[#333] text-[#BABABA] hover:text-white" : "bg-[#F0EDE8] text-[#7D7D7D] hover:text-[#252525]"
+                        }`}
+                    >
+                      RESET
+                    </button>
+                  </div>
 
-                    <div className="flex items-center gap-4 px-2">
-                        <button 
-                            onClick={zoomOut}
-                            className={`text-[10px] font-bold transition-all hover:scale-125 active:scale-90 p-1 rounded-md ${
-                                isDark ? "text-white/40 hover:text-white" : "text-black/40 hover:text-black"
-                            }`}
-                        >
-                            A
-                        </button>
-                        <div className="relative flex-1 group h-10 flex items-center">
-                            {/* Unified Track Background */}
-                            <div className={`absolute left-0 right-0 h-1.5 rounded-full ${
-                                isDark ? "bg-white/10" : "bg-black/10"
-                            }`} />
-                            
-                            <input 
-                                type="range" 
-                                min="12" 
-                                max="24" 
-                                step="1.6"
-                                value={zoomLevel}
-                                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                                className={`w-full appearance-none bg-transparent cursor-pointer relative z-10 outline-none
+                  <div className="flex items-center gap-4 px-2">
+                    <button
+                      onClick={zoomOut}
+                      className={`text-[10px] font-bold transition-all hover:scale-125 active:scale-90 p-1 rounded-md ${isDark ? "text-white/40 hover:text-white" : "text-black/40 hover:text-black"
+                        }`}
+                    >
+                      A
+                    </button>
+                    <div className="relative flex-1 group h-10 flex items-center">
+                      {/* Unified Track Background */}
+                      <div className={`absolute left-0 right-0 h-1.5 rounded-full ${isDark ? "bg-white/10" : "bg-black/10"
+                        }`} />
+
+                      <input
+                        type="range"
+                        min="12"
+                        max="24"
+                        step="1.6"
+                        value={zoomLevel}
+                        onChange={(e) => setZoom(parseFloat(e.target.value))}
+                        className={`w-full appearance-none bg-transparent cursor-pointer relative z-10 outline-none
                                     [&::-webkit-slider-thumb]:appearance-none 
                                     [&::-webkit-slider-thumb]:w-5 
                                     [&::-webkit-slider-thumb]:h-5 
                                     [&::-webkit-slider-thumb]:rounded-full 
                                     [&::-webkit-slider-thumb]:border-2 
-                                    ${isDark 
-                                        ? "[&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[#252525]" 
-                                        : "[&::-webkit-slider-thumb]:bg-[#252525] [&::-webkit-slider-thumb]:border-white"
-                                    }
+                                    ${isDark
+                            ? "[&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[#252525]"
+                            : "[&::-webkit-slider-thumb]:bg-[#252525] [&::-webkit-slider-thumb]:border-white"
+                          }
                                     group-hover:[&::-webkit-slider-thumb]:scale-110
                                     [&::-webkit-slider-thumb]:transition-transform 
                                     [&::-webkit-slider-thumb]:duration-200
                                 `}
-                            />
-                        </div>
-                        <button 
-                            onClick={zoomIn}
-                            className={`text-lg font-bold transition-all hover:scale-110 active:scale-95 p-1 rounded-md ${
-                                isDark ? "text-white/40 hover:text-white" : "text-black/40 hover:text-black"
-                            }`}
-                        >
-                            A
-                        </button>
+                      />
                     </div>
-                    
-                    <div className="flex justify-between px-10 text-[10px] font-medium opacity-30 mt-[-10px]">
-                        <span>Small</span>
-                        <span className="ml-1">Default ({Math.round((zoomLevel / 16) * 100)}%)</span>
-                        <span>Large</span>
-                    </div>
+                    <button
+                      onClick={zoomIn}
+                      className={`text-lg font-bold transition-all hover:scale-110 active:scale-95 p-1 rounded-md ${isDark ? "text-white/40 hover:text-white" : "text-black/40 hover:text-black"
+                        }`}
+                    >
+                      A
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between px-10 text-[10px] font-medium opacity-30 mt-[-10px]">
+                    <span>Small</span>
+                    <span className="ml-1">Default ({Math.round((zoomLevel / 16) * 100)}%)</span>
+                    <span>Large</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
-                    <div>
-                        <h3 className="text-sm font-semibold">User Info</h3>
-                        <p className="text-xs text-[#7D7D7D]">{session?.user?.email || "No email"}</p>
-                    </div>
+                  <div>
+                    <h3 className="text-sm font-semibold">User Info</h3>
+                    <p className="text-xs text-[#7D7D7D]">{session?.user?.email || "No email"}</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -500,13 +501,11 @@ export default function SettingsModal() {
                     <h3 className="text-sm font-semibold">Enable Notifications</h3>
                     <p className="text-xs text-[#7D7D7D]">Receive updates and reminders</p>
                   </div>
-                  <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                    pushPermission === "granted" 
-                      ? "bg-[#C2A27A]" 
+                  <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${pushPermission === "granted"
+                      ? "bg-[#C2A27A]"
                       : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                  }`} onClick={requestPushPermission}>
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                        pushPermission === "granted" ? "right-1" : "left-1"
+                    }`} onClick={requestPushPermission}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${pushPermission === "granted" ? "right-1" : "left-1"
                       }`} />
                   </div>
                 </div>
@@ -517,13 +516,11 @@ export default function SettingsModal() {
                       <h3 className="text-sm font-semibold">Study Reminders</h3>
                       <p className="text-xs text-[#7D7D7D]">Daily alerts to stay on track</p>
                     </div>
-                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                      studyReminders
-                        ? "bg-[#C2A27A]" 
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${studyReminders
+                        ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={() => setStudyReminders(!studyReminders)}>
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                          studyReminders ? "right-1" : "left-1"
+                      }`} onClick={() => setStudyReminders(!studyReminders)}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${studyReminders ? "right-1" : "left-1"
                         }`} />
                     </div>
                   </div>
@@ -533,13 +530,11 @@ export default function SettingsModal() {
                       <h3 className="text-sm font-semibold">AI Assistant Alerts</h3>
                       <p className="text-xs text-[#7D7D7D]">Notify when long tasks are complete</p>
                     </div>
-                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                      aiAlerts
-                        ? "bg-[#C2A27A]" 
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${aiAlerts
+                        ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={() => setAiAlerts(!aiAlerts)}>
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                          aiAlerts ? "right-1" : "left-1"
+                      }`} onClick={() => setAiAlerts(!aiAlerts)}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${aiAlerts ? "right-1" : "left-1"
                         }`} />
                     </div>
                   </div>
@@ -549,13 +544,11 @@ export default function SettingsModal() {
                       <h3 className="text-sm font-semibold">To-Do Reminders</h3>
                       <p className="text-xs text-[#7D7D7D]">Alerts for scheduled to-do items</p>
                     </div>
-                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                      todoReminders
-                        ? "bg-[#C2A27A]" 
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${todoReminders
+                        ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={() => setTodoReminders(!todoReminders)}>
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                          todoReminders ? "right-1" : "left-1"
+                      }`} onClick={() => setTodoReminders(!todoReminders)}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${todoReminders ? "right-1" : "left-1"
                         }`} />
                     </div>
                   </div>
@@ -565,13 +558,11 @@ export default function SettingsModal() {
                       <h3 className="text-sm font-semibold">Task Deadlines</h3>
                       <p className="text-xs text-[#7D7D7D]">Alerts when tasks are due today</p>
                     </div>
-                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                      taskDueReminders
-                        ? "bg-[#C2A27A]" 
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${taskDueReminders
+                        ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={() => setTaskDueReminders(!taskDueReminders)}>
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                          taskDueReminders ? "right-1" : "left-1"
+                      }`} onClick={() => setTaskDueReminders(!taskDueReminders)}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${taskDueReminders ? "right-1" : "left-1"
                         }`} />
                     </div>
                   </div>
@@ -581,40 +572,38 @@ export default function SettingsModal() {
                       <h3 className="text-sm font-semibold">Do Not Disturb</h3>
                       <p className="text-xs text-[#7D7D7D]">Silence all alerts for better focus</p>
                     </div>
-                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                      doNotDisturb
-                        ? "bg-[#C2A27A]" 
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${doNotDisturb
+                        ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={() => setDoNotDisturb(!doNotDisturb)}>
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                          doNotDisturb ? "right-1" : "left-1"
+                      }`} onClick={() => setDoNotDisturb(!doNotDisturb)}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${doNotDisturb ? "right-1" : "left-1"
                         }`} />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2 pt-2">
                     <h3 className="text-sm font-semibold">Notification Sound</h3>
-                    <select 
+                    <select
                       value={notificationSound}
                       onChange={(e) => setNotificationSound(e.target.value)}
                       className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
-                        ${isDark 
-                          ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]" 
+                        ${isDark
+                          ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]"
                           : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
                       `}
                     >
-                        <option value="chime">Modern Chime</option>
-                        <option value="pulsar">Pulsar Alert</option>
-                        <option value="silent">Silent / Vibration Only</option>
+                      <option value="chime">Modern Chime</option>
+                      <option value="pulsar">Pulsar Alert</option>
+                      <option value="silent">Silent / Vibration Only</option>
                     </select>
                   </div>
 
                   <div className="pt-4">
-                    <button 
+                    <button
                       onClick={sendTestNotification}
                       className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-lg
-                        ${isDark 
-                          ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" 
+                        ${isDark
+                          ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]"
                           : "bg-[#252525] text-white hover:bg-[#333]"}
                       `}
                     >
@@ -624,9 +613,8 @@ export default function SettingsModal() {
                   </div>
 
                   {pushPermission === "denied" && (
-                    <div className={`p-3 rounded-xl text-[11px] leading-relaxed flex items-start gap-2 ${
-                      isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/5 text-red-600"
-                    }`}>
+                    <div className={`p-3 rounded-xl text-[11px] leading-relaxed flex items-start gap-2 ${isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/5 text-red-600"
+                      }`}>
                       <AlertCircle size={14} className="shrink-0 mt-0.5" />
                       Browser permissions are blocked. Please enable them in your address bar settings to receive alerts.
                     </div>
@@ -648,11 +636,10 @@ export default function SettingsModal() {
                   {/* Chat Shared Links */}
                   <div className="flex items-center justify-between px-6 py-5">
                     <span className="text-sm font-medium">Chat shared links</span>
-                    <button 
+                    <button
                       onClick={() => { setLinksType("chat"); setShowSharedLinks(true); }}
-                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                        isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                      }`}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                        }`}
                     >
                       Manage
                     </button>
@@ -661,11 +648,10 @@ export default function SettingsModal() {
                   {/* Note Shared Links */}
                   <div className="flex items-center justify-between px-6 py-5">
                     <span className="text-sm font-medium">Note shared links</span>
-                    <button 
+                    <button
                       onClick={() => { setLinksType("note"); setShowSharedLinks(true); }}
-                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                        isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                      }`}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                        }`}
                     >
                       Manage
                     </button>
@@ -674,11 +660,10 @@ export default function SettingsModal() {
                   {/* Archived Chats */}
                   <div className="flex items-center justify-between px-6 py-5">
                     <span className="text-sm font-medium">Archived chats</span>
-                    <button 
+                    <button
                       onClick={() => { setLinksType("archive"); setShowSharedLinks(true); }}
-                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                        isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                      }`}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                        }`}
                     >
                       Manage
                     </button>
@@ -687,9 +672,8 @@ export default function SettingsModal() {
                   {/* Archive All */}
                   <div className="flex items-center justify-between px-6 py-5">
                     <span className="text-sm font-medium">Archive all chats</span>
-                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                      isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                    }`}>
+                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                      }`}>
                       Archive all
                     </button>
                   </div>
@@ -697,9 +681,8 @@ export default function SettingsModal() {
                   {/* Delete All */}
                   <div className="flex items-center justify-between px-6 py-5">
                     <span className="text-sm font-medium">Delete all chats</span>
-                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                      isDark ? "bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-transparent border-red-200 text-red-600 hover:bg-red-50"
-                    }`}>
+                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-transparent border-red-200 text-red-600 hover:bg-red-50"
+                      }`}>
                       Delete all
                     </button>
                   </div>
@@ -707,9 +690,8 @@ export default function SettingsModal() {
                   {/* Export Data */}
                   <div className="flex items-center justify-between px-6 py-5">
                     <span className="text-sm font-medium">Export data</span>
-                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                      isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                    }`}>
+                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                      }`}>
                       Export
                     </button>
                   </div>
@@ -720,57 +702,57 @@ export default function SettingsModal() {
             {activeTab === "account" && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center gap-4">
-                     <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                         {session?.user?.image ? (
-                             <img src={session.user.image} className="w-full h-full object-cover" alt="User" />
-                         ) : (
-                             <div className="w-full h-full flex items-center justify-center bg-[#C2A27A] text-white font-bold text-2xl">
-                                 {session?.user?.name?.[0] || 'A'}
-                             </div>
-                         )}
-                     </div>
-                     <div>
-                         <h3 className="font-bold">{session?.user?.name || "Member"}</h3>
-                         <p className="text-xs text-[#7D7D7D]">{session?.user?.email}</p>
-                     </div>
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 shrink-0">
+                    {session?.user?.image ? (
+                      <img src={session.user.image} className="w-full h-full object-cover" alt="User" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#C2A27A] text-white font-bold text-2xl">
+                        {session?.user?.name?.[0] || 'A'}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-bold">{session?.user?.name || "Member"}</h3>
+                    <p className="text-xs text-[#7D7D7D]">{session?.user?.email}</p>
+                  </div>
                 </div>
 
                 <div className="pt-6 border-t border-red-500/10">
-                    <h3 className="text-sm font-bold text-red-500 mb-2">Danger Area</h3>
-                    {!isConfirmingDelete ? (
-                        <button 
-                            onClick={() => setIsConfirmingDelete(true)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
+                  <h3 className="text-sm font-bold text-red-500 mb-2">Danger Area</h3>
+                  {!isConfirmingDelete ? (
+                    <button
+                      onClick={() => setIsConfirmingDelete(true)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
+                    >
+                      Delete Account
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-[11px] text-[#7D7D7D]">Enter your email <span className="underline">{session?.user?.email}</span> to delete:</p>
+                      <input
+                        value={deleteEmail}
+                        onChange={e => setDeleteEmail(e.target.value)}
+                        className="w-full bg-[#F5F3EF] dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] px-3 py-2 rounded-lg text-xs outline-none"
+                        placeholder="Your email here"
+                      />
+                      {deleteError && <p className="text-[10px] text-red-500">{deleteError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleDeleteAccount}
+                          disabled={isDeleting}
+                          className="px-4 py-2 bg-red-500 text-white rounded-lg text-[11px] font-bold"
                         >
-                            Delete Account
+                          {isDeleting ? "Deleting..." : "Permanently Delete"}
                         </button>
-                    ) : (
-                        <div className="space-y-3">
-                            <p className="text-[11px] text-[#7D7D7D]">Enter your email <span className="underline">{session?.user?.email}</span> to delete:</p>
-                            <input 
-                                value={deleteEmail}
-                                onChange={e => setDeleteEmail(e.target.value)}
-                                className="w-full bg-[#F5F3EF] dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] px-3 py-2 rounded-lg text-xs outline-none" 
-                                placeholder="Your email here"
-                            />
-                            {deleteError && <p className="text-[10px] text-red-500">{deleteError}</p>}
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleDeleteAccount}
-                                    disabled={isDeleting}
-                                    className="px-4 py-2 bg-red-500 text-white rounded-lg text-[11px] font-bold"
-                                >
-                                    {isDeleting ? "Deleting..." : "Permanently Delete"}
-                                </button>
-                                <button
-                                    onClick={() => { setIsConfirmingDelete(false); setDeleteEmail(""); }}
-                                    className="px-4 py-2 bg-gray-100 dark:bg-[#333] rounded-lg text-[11px] font-bold"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                        <button
+                          onClick={() => { setIsConfirmingDelete(false); setDeleteEmail(""); }}
+                          className="px-4 py-2 bg-gray-100 dark:bg-[#333] rounded-lg text-[11px] font-bold"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}            {activeTab === "parent_control" && (
@@ -782,13 +764,11 @@ export default function SettingsModal() {
                     <h3 className="text-sm font-semibold">Parental Control Mode</h3>
                     <p className="text-xs text-[#7D7D7D]">Enable monitoring and safety features</p>
                   </div>
-                  <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                    localControlEnabled
+                  <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${localControlEnabled
                       ? "bg-[#C2A27A]"
                       : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                  }`} onClick={() => setLocalControlEnabled(!localControlEnabled)}>
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                        localControlEnabled ? "right-1" : "left-1"
+                    }`} onClick={() => setLocalControlEnabled(!localControlEnabled)}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${localControlEnabled ? "right-1" : "left-1"
                       }`} />
                   </div>
                 </div>
@@ -810,9 +790,8 @@ export default function SettingsModal() {
                     {pcEntries.map((entry) => (
                       <div
                         key={entry.id}
-                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${
-                          isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-[#F7F7F8] border-[#E8E5E0]"
-                        }`}
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-[#F7F7F8] border-[#E8E5E0]"
+                          }`}
                       >
                         <span className="text-sm truncate flex-1">{entry.family_email}</span>
                         <button
@@ -847,9 +826,8 @@ export default function SettingsModal() {
                         <button
                           onClick={handleAddFamilyEmail}
                           disabled={addingEmail || !newFamilyEmail.trim()}
-                          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center gap-1.5 ${
-                            isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"
-                          } disabled:opacity-40`}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center gap-1.5 ${isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"
+                            } disabled:opacity-40`}
                         >
                           {addingEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                           Add
@@ -868,14 +846,12 @@ export default function SettingsModal() {
                       <h3 className="text-sm font-semibold">Restricted AI Content</h3>
                       <p className="text-xs text-[#7D7D7D]">Filter AI responses for younger audiences</p>
                     </div>
-                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                      localRestrictedMode
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${localRestrictedMode
                         ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => setLocalRestrictedMode(!localRestrictedMode)}>
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                        localRestrictedMode ? "right-1" : "left-1"
-                      }`} />
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${localRestrictedMode ? "right-1" : "left-1"
+                        }`} />
                     </div>
                   </div>
 
@@ -925,8 +901,8 @@ export default function SettingsModal() {
                           <button
                             onClick={() => setLocalTarget("unlimited")}
                             className={`flex-shrink-0 px-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center
-                              ${isDark 
-                                ? "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10" 
+                              ${isDark
+                                ? "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10"
                                 : "bg-black/5 border-black/5 text-black/70 hover:text-black hover:bg-black/10"}
                             `}
                             title="Reset to No Target"
@@ -942,7 +918,7 @@ export default function SettingsModal() {
                   <div className="flex flex-col gap-2">
                     <h3 className="text-sm font-semibold">Report Delivery Time</h3>
                     <p className="text-xs text-[#7D7D7D] mb-1">Scheduled time for family reports (IST)</p>
-                    
+
                     <div className="relative">
                       {(!isCustomTime && localReportTime === "20:00") ? (
                         <select
@@ -982,8 +958,8 @@ export default function SettingsModal() {
                               setIsCustomTime(false);
                             }}
                             className={`flex-shrink-0 px-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center
-                              ${isDark 
-                                ? "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10" 
+                              ${isDark
+                                ? "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10"
                                 : "bg-black/5 border-black/5 text-black/70 hover:text-black hover:bg-black/10"}
                             `}
                             title="Reset to 8:00 PM Default"
@@ -999,9 +975,8 @@ export default function SettingsModal() {
                   <button
                     onClick={handleSaveParentSettings}
                     disabled={savingSettings}
-                    className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                      isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"
-                    }`}
+                    className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 ${isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"
+                      }`}
                   >
                     {savingSettings && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     Save Settings
@@ -1040,34 +1015,33 @@ export default function SettingsModal() {
       {showSharedLinks && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 sm:p-4 overflow-y-auto scrollbar-hide">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowSharedLinks(false)} />
-          <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl rounded-none sm:rounded-3xl shadow-2xl transition-colors overflow-hidden border-0 animate-in zoom-in-95 duration-200 flex flex-col my-auto ${
-            isDark ? "bg-[#161514] border-[#2E2E2E] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"
-          }`}>
+          <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl rounded-none sm:rounded-3xl shadow-2xl transition-colors overflow-hidden border-0 animate-in zoom-in-95 duration-200 flex flex-col my-auto ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"
+            }`}>
             {/* Unified Fixed Header (Title + Table Labels) */}
-            <div className="shrink-0 transition-all duration-200 bg-[#F5F3EF] dark:bg-[#161514]">
-              <div className="flex items-center justify-between px-4 pt-4 pb-2 sm:pt-6 sm:px-6 border-b border-[#E8E5E0] bg-[#F5F3EF] dark:bg-transparent dark:border-[#2E2E2E]">
+            <div className="shrink-0 transition-all duration-200 bg-[#F5F3EF] dark:bg-[#1A1A1A]">
+              <div className={`flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF] dark:bg-transparent h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
                 <h3 className="text-lg font-bold sm:text-2xl">
-                  {linksType === "chat" ? "Chat Shared Links" : 
-                   linksType === "note" ? "Note Shared Links" : 
-                   "Archived Chats"}
+                  {linksType === "chat" ? "Chat Shared Links" :
+                    linksType === "note" ? "Note Shared Links" :
+                      "Archived Chats"}
                 </h3>
-                <button 
-                  onClick={() => setShowSharedLinks(false)} 
+                <button
+                  onClick={() => setShowSharedLinks(false)}
                   className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                   title="Close"
                 >
                   <X size={20} />
                 </button>
               </div>
-              
+
               <table className="w-full text-left border-collapse table-fixed">
                 <thead className={`text-[11px] uppercase tracking-wider font-bold shadow-sm ${isDark ? "text-[#7D7D7D]" : "text-[#545454]"}`}>
-                  <tr className="border-b border-[#333]/10 dark:border-white/10">
-                    <th className="px-6 py-4 w-[45%]">Name</th>
-                    <th className="px-6 py-4 w-[15%] hidden sm:table-cell">Type</th>
-                    <th className="px-6 py-4 w-[25%] hidden sm:table-cell">Date shared</th>
-                    <th className="px-6 py-4 w-[15%] text-right pr-6 relative">
-                      <button 
+                  <tr className="border-b border-[#E8E5E0] dark:border-[#545454]">
+                    <th className="px-6 py-3 sm:py-4 w-[45%]">Name</th>
+                    <th className="px-6 py-3 sm:py-4 w-[15%] hidden sm:table-cell">Type</th>
+                    <th className="px-6 py-3 sm:py-4 w-[25%] hidden sm:table-cell">Date shared</th>
+                    <th className="px-6 py-3 sm:py-4 w-[15%] text-right pr-6 relative">
+                      <button
                         onClick={() => setShowBulkMenu(!showBulkMenu)}
                         className={`p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 ${showBulkMenu ? "bg-black/5 dark:bg-white/10" : ""}`}
                       >
@@ -1076,23 +1050,22 @@ export default function SettingsModal() {
 
                       {/* Bulk Actions Menu (Just the trigger) */}
                       {showBulkMenu && (
-                        <div 
+                        <div
                           ref={bulkMenuRef}
-                          className={`absolute top-full right-6 mt-1 w-48 rounded-2xl shadow-2xl z-[50] overflow-hidden border animate-in slide-in-from-top-2 duration-200 ${
-                            isDark ? "bg-[#1C1C1B] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"
-                          }`}
+                          className={`absolute top-full right-6 mt-1 w-48 rounded-2xl shadow-2xl z-[50] overflow-hidden border animate-in slide-in-from-top-2 duration-200 ${isDark ? "bg-[#1C1C1B] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"
+                            }`}
                         >
                           <div className="p-2">
-                              <button
-                                onClick={() => {
-                                  setDeleteConfirmTarget({ id: "all", title: linksType === "archive" ? "All Archives" : "All Shared Links" });
-                                  setShowBulkMenu(false);
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                              >
-                                <Trash2 size={14} />
-                                Delete All {linksType === "archive" ? "Archives" : "Links"}
-                              </button>
+                            <button
+                              onClick={() => {
+                                setDeleteConfirmTarget({ id: "all", title: linksType === "archive" ? "All Archives" : "All Shared Links" });
+                                setShowBulkMenu(false);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                            >
+                              <Trash2 size={14} />
+                              Delete All {linksType === "archive" ? "Archives" : "Links"}
+                            </button>
                           </div>
                         </div>
                       )}
@@ -1122,15 +1095,15 @@ export default function SettingsModal() {
                     </tr>
                   ) : (
                     sharedLinks.map((link: any) => (
-                      <tr key={link.id} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors`}>
-                        <td className="px-6 py-4 w-[45%] text-sm font-medium">
+                      <tr key={link.id} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-[#E8E5E0]/10 dark:border-white/5 last:border-b-0`}>
+                        <td className="px-6 py-3 sm:py-4 w-[45%] text-sm font-medium">
                           <div className="flex flex-col gap-0.5">
                             {linksType === "archive" ? (
                               <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
                             ) : (
-                              <a 
-                                href={linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`} 
-                                target="_blank" 
+                              <a
+                                href={linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`}
+                                target="_blank"
                                 className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
                               >
                                 <LinkIcon size={14} />
@@ -1143,18 +1116,18 @@ export default function SettingsModal() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 hidden sm:table-cell">
+                        <td className="px-6 py-3 sm:py-4 hidden sm:table-cell">
                           <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${isDark ? "bg-[#333] text-[#BABABA]" : "bg-[#E8E5E0] text-[#545454]"}`}>
                             {linksType === "archive" ? "Archive" : (linksType === "chat" ? "Chat" : "Note")}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-[#7D7D7D] hidden sm:table-cell">
+                        <td className="px-6 py-3 sm:py-4 text-xs text-[#7D7D7D] hidden sm:table-cell">
                           {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                         </td>
-                        <td className="px-6 py-4 w-[15%] text-right pr-6">
+                        <td className="px-6 py-3 sm:py-4 w-[15%] text-right pr-6">
                           <div className="flex items-center justify-end gap-3 sm:gap-5">
                             {linksType === "archive" ? (
-                              <button 
+                              <button
                                 onClick={() => handleUnarchive(link.id)}
                                 disabled={revokingId === link.id}
                                 className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
@@ -1163,7 +1136,7 @@ export default function SettingsModal() {
                                 {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <ArchiveRestore size={14} />}
                               </button>
                             ) : (
-                              <button 
+                              <button
                                 onClick={() => window.open(linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`, '_blank')}
                                 className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
                                 title={`View ${linksType}`}
@@ -1171,19 +1144,19 @@ export default function SettingsModal() {
                                 {linksType === "chat" ? <MessageSquare size={14} /> : <FileIcon2 size={14} />}
                               </button>
                             )}
-                            
-                            <button 
-                                onClick={() => setDeleteConfirmTarget({ id: link.id, title: link.title || `Untitled ${linksType}` })}
-                                disabled={revokingId === link.id}
-                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-red-500/10 text-red-500 hover:text-red-600" : "hover:bg-red-50 text-red-500 hover:text-red-700"}`}
-                                title={`Delete ${linksType === "archive" ? "chat" : "link"}`}
+
+                            <button
+                              onClick={() => setDeleteConfirmTarget({ id: link.id, title: link.title || `Untitled ${linksType}` })}
+                              disabled={revokingId === link.id}
+                              className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-red-500/10 text-red-500 hover:text-red-600" : "hover:bg-red-50 text-red-500 hover:text-red-700"}`}
+                              title={`Delete ${linksType === "archive" ? "chat" : "link"}`}
                             >
-                                {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                              {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                             </button>
                           </div>
                         </td>
                       </tr>
-                            ))
+                    ))
                   )}
                 </tbody>
               </table>
@@ -1192,9 +1165,8 @@ export default function SettingsModal() {
             {deleteConfirmTarget && (
               <div className="absolute inset-0 z-[500] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in" onClick={() => setDeleteConfirmTarget(null)} />
-                <div className={`relative w-full max-w-[340px] rounded-3xl shadow-2xl p-6 border animate-in zoom-in-95 duration-200 ${
-                  isDark ? "bg-[#1C1C1B] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"
-                }`}>
+                <div className={`relative w-full max-w-[340px] rounded-3xl shadow-2xl p-6 border animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1C1C1B] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"
+                  }`}>
                   <div className="flex flex-col items-center text-center space-y-4">
                     <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 group animate-bounce">
                       <Trash2 size={24} />
@@ -1202,28 +1174,27 @@ export default function SettingsModal() {
                     <div className="space-y-2">
                       <h4 className="text-lg font-bold">Are you sure?</h4>
                       <p className="text-sm text-[#7D7D7D] leading-relaxed">
-                        Are you sure you want to delete <span className="text-red-500 font-bold">"{deleteConfirmTarget.title}"</span>? <br/>This action cannot be undone.
+                        Are you sure you want to delete <span className="text-red-500 font-bold">"{deleteConfirmTarget.title}"</span>? <br />This action cannot be undone.
                       </p>
                     </div>
                     <div className="flex flex-col w-full gap-2 pt-2">
-                       <button
-                         onClick={() => {
-                           if (deleteConfirmTarget.id === "all") handleDeleteAll();
-                           else handleRevokeLink(deleteConfirmTarget.id);
-                           setDeleteConfirmTarget(null);
-                         }}
-                         className="w-full py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:scale-95 transition-all shadow-lg"
-                       >
-                         {isBulkDeleting ? <Loader2 size={16} className="animate-spin mx-auto" /> : "YES, DELETE"}
-                       </button>
-                       <button
-                         onClick={() => setDeleteConfirmTarget(null)}
-                         className={`w-full py-3 rounded-2xl font-bold text-sm transition-all ${
-                           isDark ? "hover:bg-[#2E2E2E] text-[#BABABA]" : "hover:bg-gray-100 text-[#7D7D7D]"
-                         }`}
-                       >
-                         CANCEL
-                       </button>
+                      <button
+                        onClick={() => {
+                          if (deleteConfirmTarget.id === "all") handleDeleteAll();
+                          else handleRevokeLink(deleteConfirmTarget.id);
+                          setDeleteConfirmTarget(null);
+                        }}
+                        className="w-full py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:scale-95 transition-all shadow-lg"
+                      >
+                        {isBulkDeleting ? <Loader2 size={16} className="animate-spin mx-auto" /> : "YES, DELETE"}
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmTarget(null)}
+                        className={`w-full py-3 rounded-2xl font-bold text-sm transition-all ${isDark ? "hover:bg-[#2E2E2E] text-[#BABABA]" : "hover:bg-gray-100 text-[#7D7D7D]"
+                          }`}
+                      >
+                        CANCEL
+                      </button>
                     </div>
                   </div>
                 </div>
