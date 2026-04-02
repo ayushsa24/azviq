@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import ReactMarkdown from "react-markdown";
@@ -78,6 +78,10 @@ type ChatSession = {
 
 function AiChatCore() {
   const router = useRouter();
+  const params = useParams();
+  // Works for both /ai/[id] and /ai/archive/[id] — both have params.id
+  const urlChatId = params?.id as string | undefined;
+  // Initialize directly from URL so first render has the right chat
   const { theme } = useTheme();
   const { open: isMainSidebarOpen, toggle: toggleMainSidebar } = useSidebar();
 
@@ -94,7 +98,7 @@ function AiChatCore() {
     }
   );
 
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(urlChatId || null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +128,7 @@ function AiChatCore() {
   const [sharingChatId, setSharingChatId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharedLinkCopied, setSharedLinkCopied] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; openUp: boolean } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -153,10 +158,10 @@ function AiChatCore() {
           if (msg.role === "user" && msg.content?.trim().startsWith('{')) {
             try {
               const parsed = JSON.parse(msg.content);
-              return { 
-                ...msg, 
-                content: parsed.text || parsed.content || msg.content, 
-                image: parsed.image || msg.image 
+              return {
+                ...msg,
+                content: parsed.text || parsed.content || msg.content,
+                image: parsed.image || msg.image
               };
             } catch (e) {
               return msg;
@@ -172,6 +177,11 @@ function AiChatCore() {
       setMessages([]);
     }
   }, [activeChatId, sessionData]);
+
+
+
+  // No URL sync needed — activeChatId is initialized from urlChatId above
+  // switchChat uses window.history.pushState to update URL without remounting
 
   // Synchronize ref with current state for async callbacks
   useEffect(() => {
@@ -318,7 +328,7 @@ function AiChatCore() {
     }
     const hasImport = !!localStorage.getItem("import_shared_chat");
     if (!activeChatId && !hasImport) {
-      startNewChat();
+      startNewChat(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyLoaded]);
@@ -368,13 +378,14 @@ function AiChatCore() {
     }
   }, [messages, isLoading, activeChatId]);
 
-  const startNewChat = async () => {
+  const startNewChat = async (shouldClose: boolean | React.MouseEvent | React.KeyboardEvent = true) => {
+    const actuallyClose = typeof shouldClose === 'boolean' ? shouldClose : true;
     // Prevent creating multiple empty chats if one already exists
     const existingEmptyChat = sessions.find(
       (s) => !s.is_archived && (!s.messages || s.messages.length === 0),
     );
     if (existingEmptyChat) {
-      switchChat(existingEmptyChat.id);
+      switchChat(existingEmptyChat.id, !!existingEmptyChat.is_archived, actuallyClose);
       return;
     }
 
@@ -399,7 +410,8 @@ function AiChatCore() {
 
     setActiveChatId(optimisticId);
     setMessages([]);
-    if (window.innerWidth < 768) setIsSidebarOpen(false);
+    window.history.pushState(null, '', `/ai/${optimisticId}`);
+    if (window.innerWidth < 768 && actuallyClose) setIsSidebarOpen(false);
 
     try {
       const res = await fetch("/api/chat/history", {
@@ -413,6 +425,7 @@ function AiChatCore() {
         // Swap out optimistic chat for real one
         mutateSessions();
         setActiveChatId(data.chat.id);
+        window.history.replaceState(null, '', `/ai/${data.chat.id}`);
       }
     } catch (err) {
       console.error("Failed to create chat");
@@ -426,13 +439,17 @@ function AiChatCore() {
     } else {
       setActiveChatId("temp-chat");
       setMessages([]);
+      window.history.pushState(null, '', `/ai/temp-chat`);
     }
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
-  const switchChat = (chatId: string) => {
+  const switchChat = (chatId: string, isArchived = false, shouldClose: boolean | any = true) => {
     setActiveChatId(chatId);
-    if (window.innerWidth < 768) setIsSidebarOpen(false);
+    const path = isArchived ? `/ai/archive/${chatId}` : `/ai/${chatId}`;
+    window.history.pushState(null, '', path);
+    const actuallyClose = typeof shouldClose === 'boolean' ? shouldClose : true;
+    if (window.innerWidth < 768 && actuallyClose) setIsSidebarOpen(false);
   };
 
   const handleCopy = (text: string, idx: number) => {
@@ -767,12 +784,18 @@ function AiChatCore() {
     try {
       setActiveMenuId(null);
 
-      if (activeChatId === chatId && newStatus) {
-        const nextChat = sessions.find(
-          (s) => s.id !== chatId && !s.is_archived,
-        );
-        if (nextChat) switchChat(nextChat.id);
-        else startNewChat();
+      if (activeChatId === chatId) {
+        if (newStatus) {
+          // Archiving the active chat → switch to another chat
+          const nextChat = sessions.find(
+            (s) => s.id !== chatId && !s.is_archived,
+          );
+          if (nextChat) switchChat(nextChat.id, false);
+          else startNewChat();
+        } else {
+          // Unarchiving the active chat → update URL to non-archive path
+          window.history.replaceState(null, '', `/ai/${chatId}`);
+        }
       }
 
       await fetch(`/api/chat/history/${chatId}`, {
@@ -933,7 +956,7 @@ function AiChatCore() {
         isLongPressActive.current = false;
         return;
       }
-      switchChat(session.id);
+      switchChat(session.id, !!session.is_archived);
     };
 
     const formatDate = (iso: string) => {
@@ -955,6 +978,7 @@ function AiChatCore() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
+        id={`session-item-${session.id}`}
         className={`group relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 ${activeChatId === session.id
           ? theme === "dark"
             ? "bg-[#545454] text-white"
@@ -1004,6 +1028,16 @@ function AiChatCore() {
         <button
           onClick={(e) => {
             e.stopPropagation();
+            const rect = e.currentTarget.getBoundingClientRect();
+            // Decide if we should flip the menu upward
+            const spaceNeeded = 260; // Estimated max height of menu
+            const openUp = rect.bottom + spaceNeeded > window.innerHeight;
+
+            setMenuPosition({
+              top: openUp ? rect.top - 5 : rect.bottom + 5,
+              left: rect.left - 130,
+              openUp
+            });
             setActiveMenuId(activeMenuId === session.id ? null : session.id);
           }}
           className={`block p-1 rounded-md transition-opacity shrink-0 ${activeMenuId === session.id ? "opacity-100" : "opacity-100 md:opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"} ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-[#F0EDE8]"
@@ -1016,10 +1050,15 @@ function AiChatCore() {
         {activeMenuId === session.id && (
           <div
             ref={menuRef}
-            className={`absolute right-2 top-11 w-44 rounded-xl shadow-lg border z-50 overflow-hidden ${theme === "dark"
+            style={{
+              top: menuPosition?.openUp ? 'auto' : `${menuPosition?.top}px`,
+              bottom: menuPosition?.openUp ? `${window.innerHeight - (menuPosition?.top ?? 0)}px` : 'auto',
+              left: menuPosition ? `${menuPosition.left}px` : 'auto'
+            }}
+            className={`fixed w-44 rounded-xl shadow-2xl border z-[100] overflow-hidden ${theme === "dark"
               ? "bg-[#252525] border-[#545454]"
-              : "bg-white/95 backdrop-blur-md border-[#E8E5E0]"
-              }`}
+              : "bg-white border-[#E8E5E0] shadow-2xl"
+              } ${menuPosition?.openUp ? "origin-bottom-right" : "origin-top-right"}`}
           >
             <div className={`px-3 py-2 border-b flex items-center gap-2.5 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#545454]" : "border-[#E8E5E0]"}`}>
               <Clock size={12} />
@@ -1047,6 +1086,15 @@ function AiChatCore() {
                 setIsRenamingId(session.id);
                 setRenameTitle(session.title);
                 setActiveMenuId(null);
+                // Auto-scroll on mobile
+                if (window.innerWidth < 768) {
+                  setTimeout(() => {
+                    document.getElementById(`session-item-${session.id}`)?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'center'
+                    });
+                  }, 100);
+                }
               }}
               className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
                 }`}
@@ -1197,7 +1245,10 @@ function AiChatCore() {
         </div>
 
         {/* Chat List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
+        <div
+          onScroll={() => setActiveMenuId(null)}
+          className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide"
+        >
           {isHistoryLoading && Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex items-center gap-2.5 px-3 py-2 w-full opacity-60">
               <Skeleton className="w-4 h-4 shrink-0 rounded-full opacity-30" />
@@ -1260,7 +1311,7 @@ function AiChatCore() {
                       }`}
                   >
                     <button
-                      onClick={() => switchChat(session.id)}
+                      onClick={() => switchChat(session.id, true)}
                       className="flex items-center gap-2.5 flex-1 min-w-0 pr-2"
                     >
                       <span className="truncate text-sm opacity-80">
@@ -1359,7 +1410,7 @@ function AiChatCore() {
               setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
             }
           }}
-          className="flex-1 overflow-y-auto pt-4 pb-4 md:p-6 space-y-4 md:space-y-6"
+          className="absolute inset-0 overflow-y-auto overflow-x-hidden pt-20 pb-[100px] md:p-6 md:pb-[120px] space-y-4 md:space-y-6"
         >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
@@ -1402,7 +1453,7 @@ function AiChatCore() {
             messages.map((msg, idx) => (
               <div
                 key={idx}
-                className={`group flex gap-3 md:gap-4 max-w-4xl mx-auto w-full px-3 md:px-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`group flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setActiveMobileMessageIdx(
@@ -1421,7 +1472,7 @@ function AiChatCore() {
 
                 {/* Bubble Container */}
                 <div
-                  className={`relative flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}
+                  className={`relative flex flex-col gap-1 min-w-0 ${msg.role === "user" ? "items-end max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}
                 >
                   {/* Timestamp - User Only, Mobile Only, On Long Press */}
                   {msg.role === "user" && activeMobileMessageIdx === idx && (
@@ -1439,7 +1490,7 @@ function AiChatCore() {
 
                   {/* Bubble */}
                   <div
-                    className={`relative flex flex-col items-end group ${msg.role === "user" ? "ml-auto" : "mr-auto"}`}
+                    className={`relative flex flex-col group max-w-full min-w-0 ${msg.role === "user" ? "items-end ml-auto" : "items-start mr-auto"}`}
                   >
                     {editingMessageIdx === idx ? (
                       <div
@@ -1548,13 +1599,13 @@ function AiChatCore() {
                         {/* 2. Text Content Bubble (Small Gap) */}
                         {msg.content && !msg.content.trim().startsWith('{') && (
                           <div
-                            className={`px-4 py-2 text-[14px] md:text-[15px] shadow-sm ${msg.role === "user"
+                            className={`px-4 py-2 text-[14px] md:text-[15px] shadow-sm min-w-0 break-words ${msg.role === "user"
                               ? theme === "dark"
                                 ? "bg-[#545454] text-white rounded-2xl rounded-tr-none min-w-[50px] text-right"
                                 : "bg-[#F0EDE8] text-gray-900 rounded-2xl rounded-tr-none min-w-[50px] text-right"
                               : theme === "dark"
-                                ? "w-fit max-w-full bg-[#252525] text-white border border-[#545454] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
-                                : "w-fit max-w-full bg-white text-[#252525] shadow-sm border border-[#E8E5E0] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
+                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#545454] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
+                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#E8E5E0] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
                               } ${msg.image ? "mt-1 mr-0.5 z-20" : ""}`}
                           >
                             {msg.role === "model" ? (
@@ -1571,7 +1622,7 @@ function AiChatCore() {
                                   a: ({ ...props }) => <a className="text-indigo-400 hover:underline font-semibold" {...props} />,
                                   strong: ({ ...props }) => <strong className="font-bold text-inherit" {...props} />,
                                   table: ({ ...props }) => (
-                                    <div className="w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
+                                    <div className="block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
                                       <table className="w-full text-sm text-left border-collapse" {...props} />
                                     </div>
                                   ),
@@ -1594,7 +1645,7 @@ function AiChatCore() {
                                       );
                                     }
                                     return (
-                                      <div className="relative group/code mb-4 mt-3">
+                                      <div className="relative group/code mb-4 mt-3 block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full">
                                         <div className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
                                           <span>{match?.[1] || "code"}</span>
                                           <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
@@ -1602,7 +1653,7 @@ function AiChatCore() {
                                             <span>{copiedCodeBlock === codeString ? "Copied" : "Copy code"}</span>
                                           </button>
                                         </div>
-                                        <div className={`overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}>
+                                        <div className={`block w-full overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}>
                                           <SyntaxHighlighter style={vscDarkPlus} language={match?.[1] || "text"} PreTag="div" customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: "0.875rem" }} {...props}>
                                             {codeString}
                                           </SyntaxHighlighter>
@@ -1615,7 +1666,7 @@ function AiChatCore() {
                                 {msg.content}
                               </ReactMarkdown>
                             ) : (
-                              <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                              <div className="whitespace-pre-wrap leading-relaxed break-words break-all sm:break-words max-w-full overflow-hidden">{msg.content}</div>
                             )}
                           </div>
                         )}
@@ -1626,7 +1677,7 @@ function AiChatCore() {
                   {/* Action Buttons Beneath Bubble */}
                   {editingMessageIdx !== idx && !isLoading && (
                     <div
-                      className={`transition-opacity flex items-center gap-1 mt-1 ${msg.role === "user" ? "justify-end pr-2" : "justify-start pl-2"} ${(msg.role === "model" && !isMobileApp) || activeMobileMessageIdx === idx ? "opacity-100" : "opacity-0"} ${msg.role === "model" ? "md:opacity-100" : "md:opacity-0 group-hover:opacity-100"}`}
+                      className={`transition-opacity flex items-center gap-1.5 mt-1 ${msg.role === "user" ? "justify-end pr-2" : "justify-start pl-2"} opacity-100 md:opacity-0 md:group-hover:opacity-100`}
                     >
                       {/* Copy Button */}
                       <button
@@ -1635,14 +1686,15 @@ function AiChatCore() {
                         title="Copy message"
                       >
                         {copiedMessageIdx === idx ? (
-                          <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          <>
+                            <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                            <span className="hidden md:inline text-green-500">Copied</span>
+                          </>
                         ) : (
-                          <Copy className="w-3.5 h-3.5 shrink-0" />
-                        )}
-                        {copiedMessageIdx === idx ? (
-                          <span className="text-green-500">Copied</span>
-                        ) : (
-                          "Copy"
+                          <>
+                            <Copy className="w-3.5 h-3.5 shrink-0" />
+                            <span className="hidden md:inline">Copy</span>
+                          </>
                         )}
                       </button>
 
@@ -1684,7 +1736,7 @@ function AiChatCore() {
                         <button
                           onClick={() => {
                             setEditingMessageIdx(idx);
-                            
+
                             // Robust extraction of text for editing, even if stored as JSON
                             let cleanText = msg.content;
                             if (msg.content?.trim().startsWith('{')) {
@@ -1696,14 +1748,15 @@ function AiChatCore() {
                                 cleanText = msg.content;
                               }
                             }
-                            
+
                             setEditInput(cleanText);
                             setEditImage(msg.image || null);
                           }}
                           className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                           title="Edit message"
                         >
-                          <Edit2 className="w-3 h-3 shrink-0" /> Edit
+                          <Edit2 className="w-3 h-3 shrink-0" />
+                          <span className="hidden md:inline">Edit</span>
                         </button>
                       )}
                     </div>
@@ -1726,9 +1779,9 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`relative px-3 md:px-5 md:pb-2 pt-0 mt-2 ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-3 md:px-5 pb-1 md:pb-4 pt-8 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] via-[#161514] via-60% to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] via-[#F5F3EF] via-60% to-transparent'} ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
           {apiError && (
-            <div className={`max-w-3xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
+            <div className={`max-w-3xl md:max-w-4xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
               <div className="flex items-center gap-2 text-sm">
                 <Bot className="w-4 h-4 shrink-0" />
                 <span>{apiError}</span>
@@ -1761,7 +1814,7 @@ function AiChatCore() {
               </button>
             </div>
           )}
-          <div className="max-w-3xl mx-auto flex items-end w-full px-2">
+          <div className="max-w-3xl md:max-w-4xl mx-auto flex items-end w-full px-2">
             {/* Hidden File Input */}
             <input
               type="file"
@@ -1808,10 +1861,10 @@ function AiChatCore() {
                 <div className="relative flex items-center justify-center shrink-0">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${theme === "dark" 
-                      ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white" 
+                    className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${theme === "dark"
+                      ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white"
                       : "bg-[#F5F3EF] text-gray-600 hover:text-gray-900 md:bg-transparent md:text-gray-500 md:hover:bg-[#F0EDE8] md:hover:text-[#252525]"
-                    } md:hover:scale-110`}
+                      } md:hover:scale-110`}
                     title="Attach image"
                   >
                     <Plus className="w-5 h-5" />
@@ -1843,12 +1896,12 @@ function AiChatCore() {
                     <button
                       onClick={toggleDictation}
                       title="Dictate"
-                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${isDictating 
-                        ? "bg-red-500 text-white animate-pulse" 
-                        : theme === "dark" 
-                          ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white" 
+                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${isDictating
+                        ? "bg-red-500 text-white animate-pulse"
+                        : theme === "dark"
+                          ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white"
                           : "bg-[#F5F3EF] text-gray-600 hover:text-gray-900 md:bg-transparent md:text-gray-500 md:hover:bg-[#F0EDE8] md:hover:text-[#252525]"
-                      } md:hover:scale-110`}
+                        } md:hover:scale-110`}
                     >
                       <Mic className="w-[18px] h-[18px]" />
                     </button>
