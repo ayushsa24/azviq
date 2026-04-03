@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import useSWR from "swr";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   X,
   Bell,
@@ -37,7 +38,8 @@ import {
   Trash2 as TrashIcon,
   MoreHorizontal,
   ArchiveRestore,
-  Archive as ArchiveIcon
+  Archive as ArchiveIcon,
+  Sparkles
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
@@ -48,19 +50,30 @@ import { useLanguage, LanguageCode } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { translations } from "@/utils/translations";
 
-type Tab = "general" | "notifications" | "data" | "account" | "parent_control";
+type Tab = "general" | "notifications" | "models" | "data" | "account" | "parent_control";
 
 interface SettingsModalProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
 
-export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose }: SettingsModalProps = {}) {
+function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: SettingsModalProps = {}) {
   const { isOpen: contextIsOpen, closeSettings, initialTab } = useSettings();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const fromParam = searchParams.get("from") || "/dashboard";
   
   // Use prop if provided, otherwise fallback to context
   const isOpen = propIsOpen !== undefined ? propIsOpen : contextIsOpen;
-  const handleClose = propOnClose || closeSettings;
+  const originalClose = propOnClose || closeSettings;
+
+  const handleClose = () => {
+    // Revert the URL to the actual originating page
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, '', fromParam);
+    }
+    originalClose();
+  };
 
   const { theme, toggleTheme } = useTheme();
   const { zoomLevel, setZoom, zoomIn, zoomOut, resetZoom } = useZoom();
@@ -95,8 +108,20 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  const [showSharedLinks, setShowSharedLinks] = useState(false);
-  const [linksType, setLinksType] = useState<"chat" | "note" | "archive">("chat");
+  const [showSharedLinks, setShowSharedLinks] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return pathname.includes("/settings/notesharedlink") || 
+           pathname.includes("/settings/chatsharedlink") || 
+           pathname.includes("/settings/archivechat");
+  });
+  
+  const [linksType, setLinksType] = useState<"chat" | "note" | "archive">(() => {
+    if (typeof window !== "undefined") {
+      if (pathname.includes("/settings/notesharedlink")) return "note";
+      if (pathname.includes("/settings/archivechat")) return "archive";
+    }
+    return "chat";
+  });
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -153,8 +178,12 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
   const handleUnarchive = async (id: string) => {
     try {
       setRevokingId(id);
-      await fetch(`/api/chat/archive/${id}`, { method: "PUT" });
-      mutateSharedLinks();
+      const res = await fetch(`/api/chat/history/${id}`, { 
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_archived: false })
+      });
+      if (res.ok) mutateSharedLinks();
     } catch (e) {
       console.error("Failed to unarchive", e);
     } finally {
@@ -277,9 +306,10 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "general", label: translations[language].general, icon: Settings },
     { id: "notifications", label: translations[language].notifications, icon: Bell },
+    { id: "models", label: "Models", icon: Sparkles },
     { id: "data", label: translations[language].data_controls, icon: Globe },
-    { id: "account", label: translations[language].account, icon: User },
     { id: "parent_control", label: translations[language].parent_control, icon: ShieldAlert },
+    { id: "account", label: translations[language].account, icon: User },
   ];
 
   const statusConfig = {
@@ -381,7 +411,15 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
           <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A]" : ""}`}>
 
             {activeTab === "general" && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <div className="space-y-4 animate-in slide-in-from-right-4 duration-300 -mt-2">
+                {/* User Info - Moved to Top with moderate upward nudge */}
+                <div className="flex items-center justify-between pb-4 border-b border-[#E8E5E0] dark:border-[#545454]">
+                  <div>
+                    <h3 className="text-sm font-semibold">User Info</h3>
+                    <p className="text-xs text-[#7D7D7D]">{session?.user?.email || "No email"}</p>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold">{translations[language].theme}</h3>
@@ -397,7 +435,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
+                <div className="flex items-center justify-between pt-4 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
                   <div>
                     <h3 className="text-sm font-semibold">{translations[language].language}</h3>
                     <p className="text-xs text-[#7D7D7D]">Set your preferred interface language</p>
@@ -418,7 +456,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </select>
                 </div>
 
-                <div className="flex flex-col gap-5 pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
+                <div className="flex flex-col gap-3.5 pt-4 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-semibold">Interface Scale</h3>
@@ -484,19 +522,13 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     <span>Large</span>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
-                  <div>
-                    <h3 className="text-sm font-semibold">User Info</h3>
-                    <p className="text-xs text-[#7D7D7D]">{session?.user?.email || "No email"}</p>
-                  </div>
-                </div>
               </div>
             )}
 
             {activeTab === "notifications" && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                <div className="flex items-center justify-between">
+              <div className="space-y-0 animate-in slide-in-from-right-4 duration-300 -mt-2">
+                {/* Master Switch */}
+                <div className="flex items-center justify-between py-4 border-b border-[#E8E5E0] dark:border-[#545454] -mt-5">
                   <div>
                     <h3 className="text-sm font-semibold">Enable Notifications</h3>
                     <p className="text-xs text-[#7D7D7D]">Receive updates and reminders</p>
@@ -510,8 +542,8 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-4 pt-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
-                  <div className="flex items-center justify-between">
+                <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
+                  <div className="flex items-center justify-between py-3.5">
                     <div>
                       <h3 className="text-sm font-semibold">Study Reminders</h3>
                       <p className="text-xs text-[#7D7D7D]">Daily alerts to stay on track</p>
@@ -525,7 +557,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between py-3.5">
                     <div>
                       <h3 className="text-sm font-semibold">AI Assistant Alerts</h3>
                       <p className="text-xs text-[#7D7D7D]">Notify when long tasks are complete</p>
@@ -539,7 +571,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between py-3.5">
                     <div>
                       <h3 className="text-sm font-semibold">To-Do Reminders</h3>
                       <p className="text-xs text-[#7D7D7D]">Alerts for scheduled to-do items</p>
@@ -553,7 +585,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between py-3.5">
                     <div>
                       <h3 className="text-sm font-semibold">Task Deadlines</h3>
                       <p className="text-xs text-[#7D7D7D]">Alerts when tasks are due today</p>
@@ -567,7 +599,8 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  {/* Sections with consistent spacing */}
+                  <div className="flex items-center justify-between py-4">
                     <div>
                       <h3 className="text-sm font-semibold">Do Not Disturb</h3>
                       <p className="text-xs text-[#7D7D7D]">Silence all alerts for better focus</p>
@@ -581,7 +614,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 pt-2">
+                  <div className="flex flex-col gap-2 py-4 border-t border-black/5 dark:border-white/5">
                     <h3 className="text-sm font-semibold">Notification Sound</h3>
                     <select
                       value={notificationSound}
@@ -598,7 +631,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     </select>
                   </div>
 
-                  <div className="pt-4">
+                  <div className="py-6">
                     <button
                       onClick={sendTestNotification}
                       className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-lg
@@ -610,34 +643,97 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                       Send Test Notification
                     </button>
                     <p className="text-[10px] text-center mt-3 text-[#7D7D7D]">Click to verify your browser and push settings are working correctly.</p>
+
+                    {pushPermission === "denied" && (
+                      <div className={`mt-4 p-3 rounded-xl text-[11px] leading-relaxed flex items-start gap-2 ${isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/5 text-red-600"
+                        }`}>
+                        <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                        Browser permissions are blocked. Please enable them in your address bar settings to receive alerts.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === "models" && (
+              <div className="space-y-0 animate-in slide-in-from-right-4 duration-300 -mt-2">
+                {/* Section Title - Standardized */}
+                <div className="pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                  <h3 className="text-sm font-semibold">AI Models</h3>
+                  <p className="text-xs text-[#7D7D7D] mt-0.5">Select the intelligence that powers your workspace.</p>
+                </div>
+
+                <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
+                  <div className="flex flex-col gap-2 py-4">
+                    <h3 className="text-sm font-semibold">Current Model</h3>
+                    <div className="relative">
+                      <select 
+                        className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
+                          ${isDark 
+                            ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]" 
+                            : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
+                        `}
+                      >
+                        <option value="gpt-4o">GPT-4o (Most Intelligent)</option>
+                        <option value="gpt-4-mini">GPT-4o Mini (Fast & Cheap)</option>
+                        <option value="claude-3-5">Claude 3.5 Sonnet (Nuanced)</option>
+                        <option value="gemini-1-5">Gemini 1.5 Pro (Deep Memory)</option>
+                      </select>
+                    </div>
                   </div>
 
-                  {pushPermission === "denied" && (
-                    <div className={`p-3 rounded-xl text-[11px] leading-relaxed flex items-start gap-2 ${isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/5 text-red-600"
-                      }`}>
-                      <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                      Browser permissions are blocked. Please enable them in your address bar settings to receive alerts.
+                  <div className="flex flex-col gap-2 py-4 pb-6">
+                    <h3 className="text-sm font-semibold">Response Style</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["Balanced", "Creative", "Precise"].map((style) => (
+                        <button
+                          key={style}
+                          className={`py-2 pt-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95
+                            ${style === "Balanced" 
+                              ? isDark ? "bg-white text-[#1A1A1A] border-white" : "bg-[#252525] text-white border-[#252525]"
+                              : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"}
+                          `}
+                        >
+                          {style}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="py-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
+                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 dark:bg-white/5 dark:border-white/10">
+                      <div className="flex items-center gap-2 mb-2 font-bold text-sm text-blue-500 dark:text-blue-400">
+                        <Sparkles size={16} /> Advanced Modeling
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-80">
+                        Switching models affects the accuracy and personality of the AI assistant across all your chats and notes. This change is applied instantly to everyone on your account.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {activeTab === "data" && (
-              <div className="space-y-0 -mx-6 sm:-mx-0 animate-in slide-in-from-right-4 duration-300">
+              <div className="space-y-0 animate-in slide-in-from-right-4 duration-300 -mt-2">
                 {/* Section Title */}
-                <div className="px-6 pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
-                  <h2 className="text-xl font-semibold">Data controls</h2>
-                  <p className="text-xs text-[#7D7D7D] mt-1">Manage how your data is used and stored.</p>
+                <div className="pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                  <h3 className="text-sm font-semibold">Data controls</h3>
+                  <p className="text-xs text-[#7D7D7D] mt-0.5">Manage how your data is used and stored.</p>
                 </div>
 
                 {/* List Items */}
                 <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
                   {/* Chat Shared Links */}
-                  <div className="flex items-center justify-between px-6 py-5">
+                  <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Chat shared links</span>
                     <button
-                      onClick={() => { setLinksType("chat"); setShowSharedLinks(true); }}
+                      onClick={() => { 
+                        setLinksType("chat"); 
+                        setShowSharedLinks(true); 
+                        window.history.pushState(null, '', `/settings/chatsharedlink?from=${encodeURIComponent(fromParam)}`);
+                      }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                         }`}
                     >
@@ -646,10 +742,14 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
 
                   {/* Note Shared Links */}
-                  <div className="flex items-center justify-between px-6 py-5">
+                  <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Note shared links</span>
                     <button
-                      onClick={() => { setLinksType("note"); setShowSharedLinks(true); }}
+                      onClick={() => { 
+                        setLinksType("note"); 
+                        setShowSharedLinks(true); 
+                        window.history.pushState(null, '', `/settings/notesharedlink?from=${encodeURIComponent(fromParam)}`);
+                      }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                         }`}
                     >
@@ -658,10 +758,14 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
 
                   {/* Archived Chats */}
-                  <div className="flex items-center justify-between px-6 py-5">
+                  <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Archived chats</span>
                     <button
-                      onClick={() => { setLinksType("archive"); setShowSharedLinks(true); }}
+                      onClick={() => { 
+                        setLinksType("archive"); 
+                        setShowSharedLinks(true); 
+                        window.history.pushState(null, '', `/settings/archivechat?from=${encodeURIComponent(fromParam)}`);
+                      }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                         }`}
                     >
@@ -670,7 +774,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
 
                   {/* Archive All */}
-                  <div className="flex items-center justify-between px-6 py-5">
+                  <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Archive all chats</span>
                     <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                       }`}>
@@ -679,7 +783,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
 
                   {/* Delete All */}
-                  <div className="flex items-center justify-between px-6 py-5">
+                  <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Delete all chats</span>
                     <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-transparent border-red-200 text-red-600 hover:bg-red-50"
                       }`}>
@@ -688,7 +792,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
 
                   {/* Export Data */}
-                  <div className="flex items-center justify-between px-6 py-5">
+                  <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm font-medium">Export data</span>
                     <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                       }`}>
@@ -756,8 +860,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                 </div>
               </div>
             )}            {activeTab === "parent_control" && (
-              <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
-
+              <div className="space-y-3.5 animate-in slide-in-from-right-4 duration-300 -mt-2">
                 {/* Master Controls */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -838,10 +941,10 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   )}
                 </div>
 
-                <div className="flex flex-col gap-4 pt-5 border-t border-black/5 dark:border-white/5">
+                <div className="flex flex-col gap-4 pt-3.5 border-t border-black/5 dark:border-white/5">
 
                   {/* Restricted AI */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pb-5 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div>
                       <h3 className="text-sm font-semibold">Restricted AI Content</h3>
                       <p className="text-xs text-[#7D7D7D]">Filter AI responses for younger audiences</p>
@@ -856,7 +959,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
 
                   {/* Daily Study Target */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 pb-6 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <h3 className="text-sm font-semibold">Daily Study Target</h3>
                     <p className="text-xs text-[#7D7D7D] mb-1">Set a minimum study time for your child — tracked in the Study Consistency graph</p>
                     <div className="relative">
@@ -907,7 +1010,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                             `}
                             title="Reset to No Target"
                           >
-                            <RotateCcw className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4 scale-x-[-1]" />
                           </button>
                         </div>
                       )}
@@ -915,7 +1018,7 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   </div>
 
                   {/* Report Delivery Time */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 pb-6 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <h3 className="text-sm font-semibold">Report Delivery Time</h3>
                     <p className="text-xs text-[#7D7D7D] mb-1">Scheduled time for family reports (IST)</p>
 
@@ -1014,10 +1117,12 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
       {/* Shared Links Sub-Modal */}
       {showSharedLinks && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 sm:p-4 overflow-y-auto scrollbar-hide">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowSharedLinks(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => {
+            setShowSharedLinks(false);
+            window.history.pushState(null, '', `/settings?from=${encodeURIComponent(fromParam)}`);
+          }} />
           <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl rounded-none sm:rounded-3xl shadow-2xl transition-colors overflow-hidden border-0 animate-in zoom-in-95 duration-200 flex flex-col my-auto ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"
             }`}>
-            {/* Unified Fixed Header (Title + Table Labels) */}
             <div className="shrink-0 transition-all duration-200 bg-[#F5F3EF] dark:bg-[#1A1A1A]">
               <div className={`flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF] dark:bg-transparent h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
                 <h3 className="text-lg font-bold sm:text-2xl">
@@ -1026,20 +1131,27 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                       "Archived Chats"}
                 </h3>
                 <button
-                  onClick={() => setShowSharedLinks(false)}
+                  onClick={() => {
+                    setShowSharedLinks(false);
+                    window.history.pushState(null, '', `/settings?from=${encodeURIComponent(fromParam)}`);
+                  }}
                   className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                   title="Close"
                 >
                   <X size={20} />
                 </button>
               </div>
+            </div>
 
+            <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide relative">
               <table className="w-full text-left border-collapse table-fixed">
-                <thead className={`text-[11px] uppercase tracking-wider font-bold shadow-sm ${isDark ? "text-[#7D7D7D]" : "text-[#545454]"}`}>
+                <thead className={`sticky top-0 z-10 text-[11px] uppercase tracking-wider font-bold shadow-sm ${isDark ? "bg-[#1A1A1A] text-[#7D7D7D]" : "bg-[#F5F3EF] text-[#545454]"}`}>
                   <tr className="border-b border-[#E8E5E0] dark:border-[#545454]">
-                    <th className="px-6 py-3 sm:py-4 w-[45%]">Name</th>
-                    <th className="px-6 py-3 sm:py-4 w-[15%] hidden sm:table-cell">Type</th>
-                    <th className="px-6 py-3 sm:py-4 w-[25%] hidden sm:table-cell">Date shared</th>
+                    <th className="px-6 py-3 sm:py-4 w-[40%] text-left">Name</th>
+                    <th className="px-6 py-3 sm:py-4 w-[15%] hidden sm:table-cell text-center">Type</th>
+                    <th className="px-6 py-3 sm:py-4 w-[30%] hidden sm:table-cell text-center">
+                      {linksType === "archive" ? "Date" : "Date shared"}
+                    </th>
                     <th className="px-6 py-3 sm:py-4 w-[15%] text-right pr-6 relative">
                       <button
                         onClick={() => setShowBulkMenu(!showBulkMenu)}
@@ -1072,18 +1184,13 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                     </th>
                   </tr>
                 </thead>
-              </table>
-            </div>
-
-            <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide">
-              <table className="w-full text-left border-collapse table-fixed">
                 <tbody className="divide-y divide-[#333]/10 dark:divide-white/5">
                   {isLoadingLinks ? (
                     [...Array(3)].map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td className="px-6 py-4 w-[45%]"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-3/4"></div></td>
+                        <td className="px-6 py-4 w-[40%]"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-3/4"></div></td>
                         <td className="px-6 py-4 w-[15%] hidden sm:table-cell"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-12"></div></td>
-                        <td className="px-6 py-4 w-[25%] hidden sm:table-cell"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-24"></div></td>
+                        <td className="px-6 py-4 w-[30%] hidden sm:table-cell"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-24"></div></td>
                         <td className="px-6 py-4 w-[15%]"></td>
                       </tr>
                     ))
@@ -1096,10 +1203,18 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                   ) : (
                     sharedLinks.map((link: any) => (
                       <tr key={link.id} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-[#E8E5E0]/10 dark:border-white/5 last:border-b-0`}>
-                        <td className="px-6 py-3 sm:py-4 w-[45%] text-sm font-medium">
+                        <td className="px-6 py-3 sm:py-4 w-[40%] text-sm font-medium">
                           <div className="flex flex-col gap-0.5">
                             {linksType === "archive" ? (
-                              <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                                <a
+                                  href={`/ai/${link.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
+                                >
+                                <LinkIcon size={14} />
+                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                              </a>
                             ) : (
                               <a
                                 href={linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`}
@@ -1116,12 +1231,12 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-3 sm:py-4 hidden sm:table-cell">
+                        <td className="px-6 py-3 sm:py-4 w-[15%] hidden sm:table-cell text-center">
                           <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${isDark ? "bg-[#333] text-[#BABABA]" : "bg-[#E8E5E0] text-[#545454]"}`}>
                             {linksType === "archive" ? "Archive" : (linksType === "chat" ? "Chat" : "Note")}
                           </span>
                         </td>
-                        <td className="px-6 py-3 sm:py-4 text-xs text-[#7D7D7D] hidden sm:table-cell">
+                        <td className="px-6 py-3 sm:py-4 w-[30%] text-xs text-[#7D7D7D] hidden sm:table-cell text-center">
                           {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                         </td>
                         <td className="px-6 py-3 sm:py-4 w-[15%] text-right pr-6">
@@ -1204,5 +1319,13 @@ export default function SettingsModal({ isOpen: propIsOpen, onClose: propOnClose
         </div>
       )}
     </div>
+  );
+}
+
+export default function SettingsModal(props: SettingsModalProps) {
+  return (
+    <Suspense fallback={null}>
+      <SettingsModalInner {...props} />
+    </Suspense>
   );
 }

@@ -62,10 +62,29 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isPdfEditor = pathname.includes("/library/pdf/");
-  const isNoteEditor = pathname.includes("/library/note/");
-  const isPrepSubView = pathname === "/preparation" && !!searchParams.get("id") && (searchParams.get("tab") === "exercise" || searchParams.get("tab") === "revision");
-  const isFullPageLayer = isPdfEditor || isNoteEditor || isPrepSubView;
+  const fromParam = searchParams.get("from");
+  const checkIsFullPage = (path: string, params: URLSearchParams | null) => {
+    const isPdf = path.includes("/library/pdf/");
+    const isNote = path.includes("/library/note/");
+    const isPrep = path.includes("/preparation") && !!params?.get("id") && (params?.get("tab") === "exercise" || params?.get("tab") === "revision");
+    return isPdf || isNote || isPrep;
+  };
+
+  const isSettingsOrTrash = pathname === "/settings" || 
+                            pathname === "/trash" || 
+                            pathname.startsWith("/settings/");
+
+  let isFullPageLayer = false;
+  if (isSettingsOrTrash && fromParam) {
+    try {
+      const fromUrl = new URL(fromParam, "http://localhost:3000"); // base doesn't matter for query parsing
+      isFullPageLayer = checkIsFullPage(fromUrl.pathname, fromUrl.searchParams);
+    } catch (e) {
+      isFullPageLayer = checkIsFullPage(pathname, searchParams);
+    }
+  } else {
+    isFullPageLayer = checkIsFullPage(pathname, searchParams);
+  }
 
   return (
     <div className={`h-[100dvh] overflow-hidden flex flex-col transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'} ${theme === 'dark' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>

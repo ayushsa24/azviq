@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { X, Trash2, AlertCircle, FileText, CheckSquare, RotateCcw, Box, BookOpen, FlaskConical, Loader2, RefreshCcw, Check, Trash } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
@@ -110,7 +111,7 @@ function TrashItemRow({
   );
 }
 
-export default function TrashModal({ isOpen, onClose }: TrashModalProps) {
+function TrashModal({ isOpen, onClose }: TrashModalProps) {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const isDark = theme === "dark";
@@ -118,6 +119,17 @@ export default function TrashModal({ isOpen, onClose }: TrashModalProps) {
   const [isRestoring, setIsRestoring] = useState<string | null>(null);
   const [isEmptying, setIsEmptying] = useState(false);
   const [showNotice, setShowNotice] = useState(true);
+
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const fromParam = searchParams.get("from") || "/dashboard";
+
+  const handleClose = () => {
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, '', fromParam);
+    }
+    onClose();
+  };
 
   // Reset to "all" category whenever the modal is opened
   React.useEffect(() => {
@@ -211,7 +223,7 @@ export default function TrashModal({ isOpen, onClose }: TrashModalProps) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={handleClose} />
       
       <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl shadow-2xl overflow-hidden transition-colors border-0 animate-in zoom-in-95 duration-200 ${
         isDark ? "bg-[#1A1A1A] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
@@ -222,7 +234,7 @@ export default function TrashModal({ isOpen, onClose }: TrashModalProps) {
         } w-full sm:w-72`}>
           <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF] dark:bg-transparent h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
             <h2 className="text-lg font-bold sm:text-2xl">{translations[language].trash || 'Trash'}</h2>
-            <button onClick={onClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"><X size={20} /></button>
+            <button onClick={handleClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"><X size={20} /></button>
           </div>
 
           {/* Navigation - Sidebar on desktop, horizontal scroll on mobile */}
@@ -332,5 +344,13 @@ export default function TrashModal({ isOpen, onClose }: TrashModalProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TrashModalSuspense(props: TrashModalProps) {
+  return (
+    <Suspense fallback={null}>
+      <TrashModal {...props} />
+    </Suspense>
   );
 }

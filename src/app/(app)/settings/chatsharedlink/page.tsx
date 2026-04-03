@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SettingsModal from "@/components/layout/SettingsModal";
 
-function SettingsPageInner() {
+function ChatSharedLinkPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/dashboard";
@@ -18,10 +18,10 @@ function SettingsPageInner() {
   return <SettingsModal isOpen={isOpen} onClose={handleClose} />;
 }
 
-export default function GlobalSettingsPage() {
+export default function ChatSharedLinksSettingsPage() {
   return (
     <Suspense fallback={null}>
-      <SettingsPageInner />
+      <ChatSharedLinkPageInner />
     </Suspense>
   );
 }

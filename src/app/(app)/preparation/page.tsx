@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -34,6 +34,7 @@ const tabCls = (active: boolean) =>
 
 export default function PreparationPage() {
     const router = useRouter();
+    const pathname = usePathname();
     const [activeTab, setActiveTab] = useState<TabType>("exercise");
     const [search, setSearch] = useState("");
     const [isGenerateOpen, setIsGenerateOpen] = useState(false);
@@ -64,6 +65,11 @@ export default function PreparationPage() {
 
     // Deep-link: auto-open exercise or revision from URL params (e.g. from Recent Activity)
     useEffect(() => {
+        // IMPORTANT: Ignore URL updates when viewing global overlays so we don't close the current file.
+        if (pathname === "/settings" || pathname === "/trash" || pathname.startsWith("/settings/")) {
+            return;
+        }
+
         const tabParam = searchParams.get("tab") as TabType | null;
         const idParam = searchParams.get("id");
 

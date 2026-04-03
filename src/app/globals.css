@@ -39,7 +39,9 @@
 }
 
 /* Base styles */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 250ms;
@@ -424,4 +426,13 @@ pre::-webkit-scrollbar,
 .dark .spinner-elegant {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-top: 1px solid currentColor;
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(-10%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+  50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s infinite;
 }

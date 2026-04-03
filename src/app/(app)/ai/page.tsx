@@ -141,7 +141,7 @@ function AiChatCore() {
 
   // Dynamic Thinking Messages
   const thinkingMessages = [
-    "Thinking deeply...",
+    "Thinking...",
     "Analyzing your context...",
     "Extracting key information...",
     "Synthesizing an answer...",
@@ -246,6 +246,7 @@ function AiChatCore() {
       }
     };
   }, []);
+
 
   // Initialize Mobile App Check
   useEffect(() => {
@@ -367,6 +368,16 @@ function AiChatCore() {
       router.push("/login");
     }
   }, [sessionData, historyLoaded, router, status]);
+
+  // Auto-expand Archived section if current chat is archived
+  useEffect(() => {
+    if (activeChatId && sessions.length > 0) {
+      const isActiveArchived = sessions.some(s => s.id === activeChatId && s.is_archived);
+      if (isActiveArchived) {
+        setIsArchivedExpanded(true);
+      }
+    }
+  }, [activeChatId, sessions]);
 
   const pendingQueryRef = useRef<string | null>(null);
 
@@ -582,7 +593,7 @@ function AiChatCore() {
     setIsLoading(true);
     setIsActuallySending(true);
     setGeneratingChatIds(prev => new Set(prev).add(chatIdOfRequest));
-    
+
     // Explicitly blur the input on mobile to hide the keyboard after sending
     if (window.innerWidth < 768) {
       inputRef.current?.blur();
@@ -637,10 +648,10 @@ function AiChatCore() {
       // Endpoint logic: If it was an edit with NO NEW IMAGE but the PREVIOUS msg had one, it still needs vision
       const isVision = !!currentImage;
       const endpoint = isVision ? "/api/chat/vision" : "/api/chat";
-      
+
       // Filter out error messages from history so they don't 'poison' the context
-      const filteredHistory = previousMessages.filter(m => 
-        !m.isError && 
+      const filteredHistory = previousMessages.filter(m =>
+        !m.isError &&
         !(m.role === "model" && m.content?.includes('[ERROR]:'))
       );
 
@@ -685,7 +696,7 @@ function AiChatCore() {
         }
         return [...prev, { role: "model", content: "" }];
       });
-      
+
       // Since typing started, immediately turn off the big thinking spinner
       setIsLoading(false);
 
@@ -802,14 +813,14 @@ function AiChatCore() {
         }
       } else {
         const currentErrorCount = messages.filter(m => m.isError).length + 1;
-        
+
         let errorMsg = "Oops! Something went wrong while generating the response. Please check your connection or try again shortly.";
-        
+
         // If this is the 3rd+ error, give more specific advice
         if (currentErrorCount >= 3) {
           errorMsg = "This chat is having repeated connection issues. If retrying doesn't work, we recommend starting a fresh chat to clear any broken history.";
         }
-        
+
         // Restore user's input so they don't have to re-type it upon error
         if (textToSend && !input) setInput(textToSend);
 
@@ -1827,7 +1838,7 @@ function AiChatCore() {
                                     </span>
                                     {/* Show "Start a fresh chat" button if we have multiple errors */}
                                     {messages.filter(m => m.isError).length >= 3 && (
-                                      <button 
+                                      <button
                                         onClick={() => startNewChat()}
                                         className="mt-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[11px] font-semibold w-fit border border-red-500/20 transition-all active:scale-95"
                                       >
@@ -1839,59 +1850,59 @@ function AiChatCore() {
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                  h1: ({ ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
-                                  h2: ({ ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
-                                  h3: ({ ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
-                                  p: ({ ...props }) => <div className="mb-2 leading-relaxed" {...props} />,
-                                  ul: ({ ...props }) => <ul className="list-disc pl-5 mb-2 space-y-0.5" {...props} />,
-                                  ol: ({ ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5" {...props} />,
-                                  li: ({ ...props }) => <li className="pl-1" {...props} />,
-                                  a: ({ ...props }) => <a className="text-indigo-400 hover:underline font-semibold" {...props} />,
-                                  strong: ({ ...props }) => <strong className="font-bold text-inherit" {...props} />,
-                                  table: ({ ...props }) => (
-                                    <div className="block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
-                                      <table className="w-full text-sm text-left border-collapse" {...props} />
-                                    </div>
-                                  ),
-                                  thead: ({ ...props }) => (
-                                    <thead className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-[#F5F3EF] text-gray-700 border-b border-[#E8E5E0]"}`} {...props} />
-                                  ),
-                                  tbody: ({ ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-[#545454]" {...props} />,
-                                  tr: ({ ...props }) => <tr className={`transition-colors shadow-sm ${theme === "dark" ? "hover:bg-[#252525]/50" : "hover:bg-gray-50"}`} {...props} />,
-                                  th: ({ ...props }) => <th className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
-                                  td: ({ ...props }) => <td className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
-                                  pre: ({ children }) => <div className="not-prose">{children}</div>,
-                                  code({ inline, className, children, ...props }: any) {
-                                    const match = /language-(\w+)/.exec(className || "");
-                                    const codeString = String(children).replace(/\n$/, "");
-                                    if (inline) {
-                                      return (
-                                        <code className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-[#F5F3EF] text-pink-600"}`} {...props}>
-                                          {children}
-                                        </code>
-                                      );
-                                    }
-                                    return (
-                                      <div className="relative group/code mb-4 mt-3 block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full">
-                                        <div className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
-                                          <span>{match?.[1] || "code"}</span>
-                                          <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
-                                            {copiedCodeBlock === codeString ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                                            <span>{copiedCodeBlock === codeString ? "Copied" : "Copy code"}</span>
-                                          </button>
+                                      h1: ({ ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                                      h2: ({ ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
+                                      h3: ({ ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
+                                      p: ({ ...props }) => <div className="mb-2 leading-relaxed" {...props} />,
+                                      ul: ({ ...props }) => <ul className="list-disc pl-5 mb-2 space-y-0.5" {...props} />,
+                                      ol: ({ ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5" {...props} />,
+                                      li: ({ ...props }) => <li className="pl-1" {...props} />,
+                                      a: ({ ...props }) => <a className="text-indigo-400 hover:underline font-semibold" {...props} />,
+                                      strong: ({ ...props }) => <strong className="font-bold text-inherit" {...props} />,
+                                      table: ({ ...props }) => (
+                                        <div className="block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
+                                          <table className="w-full text-sm text-left border-collapse" {...props} />
                                         </div>
-                                        <div className={`block w-full overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}>
-                                          <SyntaxHighlighter style={vscDarkPlus} language={match?.[1] || "text"} PreTag="div" customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: "0.875rem" }} {...props}>
-                                            {codeString}
-                                          </SyntaxHighlighter>
-                                        </div>
-                                      </div>
-                                    );
-                                  },
-                                }}
-                              >
-                                {msg.content}
-                              </ReactMarkdown>
+                                      ),
+                                      thead: ({ ...props }) => (
+                                        <thead className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-[#F5F3EF] text-gray-700 border-b border-[#E8E5E0]"}`} {...props} />
+                                      ),
+                                      tbody: ({ ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-[#545454]" {...props} />,
+                                      tr: ({ ...props }) => <tr className={`transition-colors shadow-sm ${theme === "dark" ? "hover:bg-[#252525]/50" : "hover:bg-gray-50"}`} {...props} />,
+                                      th: ({ ...props }) => <th className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
+                                      td: ({ ...props }) => <td className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
+                                      pre: ({ children }) => <div className="not-prose">{children}</div>,
+                                      code({ inline, className, children, ...props }: any) {
+                                        const match = /language-(\w+)/.exec(className || "");
+                                        const codeString = String(children).replace(/\n$/, "");
+                                        if (inline) {
+                                          return (
+                                            <code className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-[#F5F3EF] text-pink-600"}`} {...props}>
+                                              {children}
+                                            </code>
+                                          );
+                                        }
+                                        return (
+                                          <div className="relative group/code mb-4 mt-3 block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full">
+                                            <div className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
+                                              <span>{match?.[1] || "code"}</span>
+                                              <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                                                {copiedCodeBlock === codeString ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                                <span>{copiedCodeBlock === codeString ? "Copied" : "Copy code"}</span>
+                                              </button>
+                                            </div>
+                                            <div className={`block w-full overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}>
+                                              <SyntaxHighlighter style={vscDarkPlus} language={match?.[1] || "text"} PreTag="div" customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: "0.875rem" }} {...props}>
+                                                {codeString}
+                                              </SyntaxHighlighter>
+                                            </div>
+                                          </div>
+                                        );
+                                      },
+                                    }}
+                                  >
+                                    {msg.content}
+                                  </ReactMarkdown>
                                 )}
                               </>
                             ) : (
@@ -2008,7 +2019,8 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`absolute bottom-0 left-0 w-full z-10 px-3 md:px-5 pb-1 md:pb-4 pt-8 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] via-[#161514] via-60% to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] via-[#F5F3EF] via-60% to-transparent'} ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
+        {/* Input Dock */}
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-3 md:px-5 pb-1 md:pb-4 pt-1 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] via-[#161514] via-90% to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] via-[#F5F3EF] via-90% to-transparent'} ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
           {apiError && (
             <div className={`max-w-3xl md:max-w-4xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
               <div className="flex items-center gap-2 text-sm">
@@ -2024,11 +2036,12 @@ function AiChatCore() {
               </button>
             </div>
           )}
-          {/* Scroll To Bottom Button */}
+          {/* 🚀 FIXED SCROLL-DOWN BUTTON - Stationary & Dull */}
           {showScrollDown && (
-            <div className="absolute bottom-full left-0 right-0 flex justify-center pb-3 z-20">
+            <div className="fixed bottom-[112px] left-1/2 -translate-x-1/2 z-[100] md:absolute md:bottom-full md:left-0 md:right-0 md:translate-x-0 md:flex md:justify-center md:pb-8 pointer-events-none">
               <button
-                onClick={() => {
+                onPointerDown={(e) => {
+                  e.preventDefault();
                   if (chatContainerRef.current) {
                     chatContainerRef.current.scrollTo({
                       top: chatContainerRef.current.scrollHeight,
@@ -2036,7 +2049,11 @@ function AiChatCore() {
                     });
                   }
                 }}
-                className={`p-1.5 rounded-full shadow-md border transition-all duration-300 transform scale-100 hover:scale-105 active:scale-95 ${theme === "dark" ? "bg-[#545454] border-[#7D7D7D] text-white hover:bg-[#7D7D7D]" : "bg-white border-[#E8E5E0] text-gray-700 hover:bg-[#F0EDE8]"}`}
+                className={`w-8 h-8 rounded-full shadow-md border flex items-center justify-center transition-all duration-300 transform scale-100 hover:scale-110 active:scale-95 pointer-events-auto backdrop-blur-sm
+                  ${theme === "dark" 
+                    ? "bg-[#252525]/70 border-[#3A3A3A] text-gray-500 hover:text-gray-300" 
+                    : "bg-white/70 border-[#E8E5E0] text-gray-400 hover:text-gray-600"}
+                `}
                 title="Scroll to bottom"
               >
                 <ArrowDown className="w-4 h-4" />
@@ -2064,9 +2081,9 @@ function AiChatCore() {
 
             {/* Main Pill Wrapper */}
             <div
-              className={`flex-1 relative rounded-[28px] flex flex-col p-1.5 border transition-all duration-300 ease-in-out shadow-sm ${theme === "dark"
+              className={`flex-1 relative rounded-[28px] flex flex-col p-1.5 border transition-all duration-300 ease-in-out ${theme === "dark"
                 ? "bg-[#252525] border-[#444] focus-within:border-[#545454] focus-within:bg-[#2A2A2A]"
-                : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D] focus-within:shadow-md"
+                : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D]"
                 }`}
             >
               {/* Integrated Image Preview (Sticks to top of pill) */}

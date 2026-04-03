@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -54,6 +54,7 @@ export default function Sidebar({
   const { openSettings } = useSettings();
   const { toggle } = useSidebar();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const isDark = theme === "dark";
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
@@ -190,7 +191,14 @@ export default function Sidebar({
               <div className="space-y-0.5">
                 {recentItems.map((item) => {
                   const ItemIcon = TYPE_CONFIG[item.item_type]?.icon || FileText;
-                  const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
+                  
+                  // Construct the current full URL string for comparison
+                  const searchParamsString = searchParams.toString();
+                  const currentFullComparePath = pathname + (searchParamsString ? `?${searchParamsString}` : "");
+                  
+                  // Check if this recent item matches the current view
+                  const isActive = currentFullComparePath === item.href || 
+                                  (item.href !== "/" && pathname.startsWith(item.href + "/"));
 
                   return (
                     <Link
@@ -237,7 +245,13 @@ export default function Sidebar({
 
               {/* Settings */}
               <button
-                onClick={() => { setMenuOpen(false); router.push("/settings"); }}
+                onClick={() => { 
+                  setMenuOpen(false); 
+                  const currentFullUrl = window.location.pathname + window.location.search;
+                  const newUrl = `/settings?from=${encodeURIComponent(currentFullUrl)}`;
+                  window.history.pushState(null, '', newUrl);
+                  openSettings(); 
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
                   ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >
@@ -246,7 +260,13 @@ export default function Sidebar({
 
               {/* Trash (Added here as well) */}
               <button
-                onClick={() => { setMenuOpen(false); router.push("/trash"); }}
+                onClick={() => { 
+                  setMenuOpen(false); 
+                  const currentFullUrl = window.location.pathname + window.location.search;
+                  const newUrl = `/trash?from=${encodeURIComponent(currentFullUrl)}`;
+                  window.history.pushState(null, '', newUrl);
+                  onTrashClick?.(); 
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors
                   ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >
