@@ -75,8 +75,9 @@ export async function DELETE(req: Request) {
         const { searchParams } = new URL(req.url);
         const chatId = searchParams.get("chatId");
         const after = searchParams.get("after");
+        const messageId = searchParams.get("messageId");
 
-        if (!chatId || !after) {
+        if (!chatId || (!after && !messageId)) {
             return apiError("Missing required parameters", 400, "MISSING_PARAMS");
         }
 
@@ -97,12 +98,31 @@ export async function DELETE(req: Request) {
             return apiError("Forbidden", 403, "FORBIDDEN");
         }
 
-        // Delete messages after the specified timestamp
+        let deleteFromTimestamp = after;
+
+        // If messageId is provided, get its timestamp first
+        if (messageId) {
+            const { data: targetMsg } = await supabase
+                .from("messages")
+                .select("created_at")
+                .eq("id", messageId)
+                .single();
+            
+            if (targetMsg?.created_at) {
+                deleteFromTimestamp = targetMsg.created_at;
+            }
+        }
+
+        if (!deleteFromTimestamp) {
+            return apiError("Target message not found or missing timestamp", 404, "NOT_FOUND");
+        }
+
+        // Delete messages from the specified timestamp onwards
         const { error: deleteError } = await supabase
             .from("messages")
             .delete()
             .eq("chat_id", chatId)
-            .gt("created_at", after);
+            .gte("created_at", deleteFromTimestamp);
 
         if (deleteError) throw deleteError;
 

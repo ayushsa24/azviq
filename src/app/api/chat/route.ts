@@ -83,11 +83,38 @@ export async function POST(req: Request) {
       return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
     }
 
-    // 5. Format messages for Ollama
-    const formattedMessages = messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    // 5. Format messages for Ollama with robust cleaning
+    const cleanMessages = messages.filter((m) => 
+      !m.content.includes("[ERROR]:") && 
+      !m.content.includes("Oops! Something went wrong")
+    );
+
+    const formattedMessages: { role: string; content: string }[] = [];
+    let lastRole: string | null = null;
+
+    for (const msg of cleanMessages) {
+      let content = msg.content;
+      
+      // If message is JSON-encoded (likely from a vision prompt), extract the text part
+      if (msg.role === "user" && content.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(content);
+          content = parsed.text || parsed.content || content;
+        } catch (e) {
+          // Fallback to original content if not valid JSON
+        }
+      }
+
+      if (msg.role === lastRole) {
+        // Merge consecutive messages of the same role (avoids Ollama/Llama validation errors)
+        if (formattedMessages.length > 0) {
+          formattedMessages[formattedMessages.length - 1].content += "\n\n" + content;
+        }
+      } else {
+        formattedMessages.push({ role: msg.role, content });
+        lastRole = msg.role;
+      }
+    }
 
     formattedMessages.unshift({
       role: "system",

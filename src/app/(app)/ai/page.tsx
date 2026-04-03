@@ -40,6 +40,8 @@ import {
   ChevronsLeft,
   Search,
   Clock,
+  Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
@@ -65,6 +67,9 @@ export interface Message {
   content: string;
   image?: string; // Base64 image data for Vision
   created_at?: string;
+  isThinking?: boolean;
+  type?: "text" | "vision";
+  isError?: boolean;
 }
 
 type ChatSession = {
@@ -132,10 +137,46 @@ function AiChatCore() {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [chatDrafts, setChatDrafts] = useState<Record<string, { text: string; image: string | null }>>({});
+
+  // Dynamic Thinking Messages
+  const thinkingMessages = [
+    "Thinking deeply...",
+    "Analyzing your context...",
+    "Extracting key information...",
+    "Synthesizing an answer...",
+    "Applying advanced reasoning...",
+    "Reviewing relevant topics...",
+    "Generating a detailed response...",
+    "Formulating helpful points..."
+  ];
+  const visionMessages = [
+    "Scanning image details...",
+    "Analyzing visual layout...",
+    "Extracting diagrams & text...",
+    "Processing handwriting data...",
+    "Interpreting context from visuals...",
+    "Structuring image data...",
+    "Analyzing visual instructions..."
+  ];
+  const [thinkingIdx, setThinkingIdx] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      setThinkingIdx(0);
+      interval = setInterval(() => {
+        setThinkingIdx((prev) => (prev + 1) % thinkingMessages.length);
+      }, 3500); // Slowed down to 3.5s for better readability and a more 'premium' deliberate feel
+    }
+    return () => clearInterval(interval);
+  }, [isLoading, thinkingMessages.length]);
+
   const activeStreamingTextRef = useRef<Record<string, string>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const isSendingRef = useRef(false);
@@ -166,6 +207,15 @@ function AiChatCore() {
             } catch (e) {
               return msg;
             }
+          }
+          // Detect saved error messages
+          const hasErrorMarker = msg.role === "model" && msg.content?.includes('[ERROR]:');
+          if (hasErrorMarker) {
+            return {
+              ...msg,
+              content: msg.content.replace('[ERROR]:', '').trim(),
+              isError: true
+            };
           }
           return msg;
         });
@@ -360,25 +410,38 @@ function AiChatCore() {
 
   // Scroll to bottom whenever messages change or chat is switched
   useEffect(() => {
-    if (chatContainerRef.current) {
-      const isSwitchingChat = prevChatIdRef.current !== activeChatId;
-      if (isSwitchingChat) {
-        prevChatIdRef.current = activeChatId;
-      }
+    if (!chatContainerRef.current) return;
 
-      // Delay slightly to allow DOM to render new messages before calculating scrollHeight
-      setTimeout(() => {
-        if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTo({
-            top: chatContainerRef.current.scrollHeight,
-            behavior: isSwitchingChat ? "auto" : (isSendingRef.current ? "smooth" : "auto"),
-          });
-        }
-      }, 50);
+    const isSwitchingChat = prevChatIdRef.current !== activeChatId;
+    if (isSwitchingChat) {
+      prevChatIdRef.current = activeChatId;
+      setAtBottom(true);
+      chatContainerRef.current.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: "auto" });
+      return;
     }
-  }, [messages, isLoading, activeChatId]);
+
+    if (atBottom) {
+      // Use requestAnimationFrame for the smoothest possible 'pin' during streaming
+      const scroll = () => {
+        if (chatContainerRef.current && atBottom) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+      };
+
+      const frame = requestAnimationFrame(scroll);
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [messages, activeChatId, atBottom]);
 
   const startNewChat = async (shouldClose: boolean | React.MouseEvent | React.KeyboardEvent = true) => {
+    // Save current drafting area before switching to a new chat
+    if (activeChatId) {
+      setChatDrafts(prev => ({
+        ...prev,
+        [activeChatId]: { text: input, image: selectedImage }
+      }));
+    }
+
     const actuallyClose = typeof shouldClose === 'boolean' ? shouldClose : true;
     // Prevent creating multiple empty chats if one already exists
     const existingEmptyChat = sessions.find(
@@ -445,7 +508,22 @@ function AiChatCore() {
   };
 
   const switchChat = (chatId: string, isArchived = false, shouldClose: boolean | any = true) => {
+    // 1. Save the draft of the current chat before switching
+    if (activeChatId) {
+      setChatDrafts(prev => ({
+        ...prev,
+        [activeChatId]: { text: input, image: selectedImage }
+      }));
+    }
+
+    // 2. Switch the active chat
     setActiveChatId(chatId);
+
+    // 3. Load the draft for the new chat
+    const draft = chatDrafts[chatId];
+    setInput(draft?.text || "");
+    setSelectedImage(draft?.image || null);
+
     const path = isArchived ? `/ai/archive/${chatId}` : `/ai/${chatId}`;
     window.history.pushState(null, '', path);
     const actuallyClose = typeof shouldClose === 'boolean' ? shouldClose : true;
@@ -473,14 +551,14 @@ function AiChatCore() {
 
     const chatIdOfRequest = activeChatId;
     const textToSend = overrideText || input;
+    const currentImage = overrideText !== undefined ? editImage : selectedImage;
 
     // Allow sending if there is either text OR an image
-    if ((!textToSend.trim() && !selectedImage) || !chatIdOfRequest) return;
+    if ((!textToSend.trim() && !currentImage) || !chatIdOfRequest) return;
 
     if (status !== "authenticated") return;
 
     isSendingRef.current = true;
-    const currentImage = overrideText !== undefined ? editImage : selectedImage;
     const newMsg: Message = {
       id: cutHistoryAtIndex !== undefined ? messages[cutHistoryAtIndex].id : undefined,
       role: "user",
@@ -495,15 +573,28 @@ function AiChatCore() {
         : messages;
 
     // Optimistic UI Update for internal messages
-    setMessages([...previousMessages, newMsg]);
+    const thinkingMsg: Message = { role: "model", content: "", isThinking: true, type: currentImage ? "vision" : "text" };
+    setMessages([...previousMessages, newMsg, thinkingMsg]);
     setInput("");
     setSelectedImage(null); // Clear image after sending
     setEditImage(null); // Clear edit image
     setEditingMessageIdx(null);
     setIsLoading(true);
     setIsActuallySending(true);
-
     setGeneratingChatIds(prev => new Set(prev).add(chatIdOfRequest));
+    
+    // Explicitly blur the input on mobile to hide the keyboard after sending
+    if (window.innerWidth < 768) {
+      inputRef.current?.blur();
+      // Also blur any active document elements
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }
+
+    // A small intentional delay (1500ms) to ensure the thinking phase has a meaningful 'presence' in the UI
+    // and looks more deliberate, as requested.
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Immediately move this chat to the top within SWR and ensure it's marked as non-empty
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
@@ -512,8 +603,8 @@ function AiChatCore() {
       if (!current) return currentData;
 
       const updatedMessages = cutHistoryAtIndex !== undefined
-        ? [...previousMessages, newMsg]
-        : [...(current.messages || []), newMsg];
+        ? [...previousMessages, newMsg, thinkingMsg]
+        : [...(current.messages || []), newMsg, thinkingMsg];
 
       const updatedCurrent = {
         ...current,
@@ -528,24 +619,34 @@ function AiChatCore() {
     let topicTitle: string | null = null;
 
     try {
-      // If this was an edit, delete all messages AFTER the current edit index in the database
+      // If this was an edit, delete all messages AT or AFTER the current edit index in the database
       if (cutHistoryAtIndex !== undefined && chatIdOfRequest !== "temp-chat") {
         const lastOriginalMsg = messages[cutHistoryAtIndex];
-        if (lastOriginalMsg?.created_at) {
-          fetch(`/api/chat/message?chatId=${chatIdOfRequest}&after=${encodeURIComponent(lastOriginalMsg.created_at)}`, {
+        if (lastOriginalMsg?.created_at || lastOriginalMsg?.id) {
+          const params = new URLSearchParams({ chatId: chatIdOfRequest });
+          if (lastOriginalMsg.created_at) params.set("after", lastOriginalMsg.created_at);
+          if (lastOriginalMsg.id) params.set("messageId", lastOriginalMsg.id);
+
+          // Use 'await' to ensure removal before saving new message versions
+          await fetch(`/api/chat/message?${params.toString()}`, {
             method: "DELETE",
-          }).catch(err => console.error("Failed to clear future history:", err));
+          }).catch(err => console.error("Failed to clear history:", err));
         }
       }
 
       // Endpoint logic: If it was an edit with NO NEW IMAGE but the PREVIOUS msg had one, it still needs vision
-      // However, usually we can just check if currentImage is present.
       const isVision = !!currentImage;
       const endpoint = isVision ? "/api/chat/vision" : "/api/chat";
+      
+      // Filter out error messages from history so they don't 'poison' the context
+      const filteredHistory = previousMessages.filter(m => 
+        !m.isError && 
+        !(m.role === "model" && m.content?.includes('[ERROR]:'))
+      );
 
       const payload = {
         chatId: activeChatId,
-        messages: [...previousMessages, newMsg], // send full history context up to the edit
+        messages: [...filteredHistory, newMsg], // send clean history context
         image: currentImage || null,
       };
 
@@ -576,8 +677,15 @@ function AiChatCore() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
 
-      // Lock in a blank message that will get updated character-by-character
-      setMessages((prev) => [...prev, { role: "model", content: "" }]);
+      // Replace thinking message with empty model message for streaming
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === "model" && last.isThinking) {
+          return [...prev.slice(0, -1), { role: "model", content: "" }];
+        }
+        return [...prev, { role: "model", content: "" }];
+      });
+      
       // Since typing started, immediately turn off the big thinking spinner
       setIsLoading(false);
 
@@ -615,6 +723,13 @@ function AiChatCore() {
       }
 
       // Update sidebar session explicitly at the end and move it to the top in SWR
+      // Also clear any drafts for this chat since message is now sent
+      setChatDrafts(prev => {
+        const updated = { ...prev };
+        delete updated[chatIdOfRequest];
+        return updated;
+      });
+
       mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
         if (!currentData || !currentData.chats) return currentData;
         const updatedChat = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
@@ -686,8 +801,58 @@ function AiChatCore() {
           }
         }
       } else {
-        console.error("Error sending message", error);
-        setApiError(error.message || "An unexpected error occurred.");
+        const currentErrorCount = messages.filter(m => m.isError).length + 1;
+        
+        let errorMsg = "Oops! Something went wrong while generating the response. Please check your connection or try again shortly.";
+        
+        // If this is the 3rd+ error, give more specific advice
+        if (currentErrorCount >= 3) {
+          errorMsg = "This chat is having repeated connection issues. If retrying doesn't work, we recommend starting a fresh chat to clear any broken history.";
+        }
+        
+        // Restore user's input so they don't have to re-type it upon error
+        if (textToSend && !input) setInput(textToSend);
+
+        // Mark the last message as an error if it was a thinking message
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === "model" && (last.isThinking || last.content === "")) {
+            return [
+              ...prev.slice(0, -1),
+              { role: "model", content: errorMsg, isError: true }
+            ];
+          }
+          return prev;
+        });
+
+        // Save BOTH User message and Error message to DB so history is preserved
+        if (chatIdOfRequest !== "temp-chat" && chatIdOfRequest) {
+          // 1. Save the user's prompt message first
+          fetch("/api/chat/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chatId: chatIdOfRequest,
+              role: "user",
+              content: typeof textToSend === 'object' ? JSON.stringify(textToSend) : textToSend,
+              image: currentImage || undefined
+            }),
+          }).then(() => {
+            // 2. Then save the error bubble message
+            return fetch("/api/chat/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chatId: chatIdOfRequest,
+                role: "model",
+                content: `[ERROR]: ${errorMsg}`,
+              }),
+            });
+          }).then(() => {
+            // Re-sync with SWR cache
+            mutateSessions();
+          }).catch((e) => console.error("Failed to save error state to history", e));
+        }
       }
     } finally {
       setIsLoading(false);
@@ -1365,7 +1530,7 @@ function AiChatCore() {
         )}
         {/* Mobile Header Toggle */}
         <div
-          className={`md:hidden shrink-0 sticky top-0 z-10 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
+          className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
             ? "bg-[#1A1A1A] border-[#545454]"
             : "bg-[#F5F3EF] border-[#E8E5E0]"
             }`}
@@ -1405,14 +1570,49 @@ function AiChatCore() {
           ref={chatContainerRef}
           onScroll={() => {
             if (chatContainerRef.current) {
-              const { scrollTop, scrollHeight, clientHeight } =
-                chatContainerRef.current;
-              setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
+              const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+              // If within 100px of bottom, consider user 'at bottom' for auto-scroll
+              const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+              setAtBottom(isNearBottom);
+              setShowScrollDown(!isNearBottom);
             }
           }}
           className="absolute inset-0 overflow-y-auto overflow-x-hidden pt-20 pb-[100px] md:p-6 md:pb-[120px] space-y-4 md:space-y-6"
         >
-          {messages.length === 0 ? (
+          {isHistoryLoading && messages.length === 0 && urlChatId && urlChatId !== "temp-chat" ? (
+            <div className="flex flex-col gap-10 px-4 md:px-0 max-w-4xl mx-auto w-full pt-10">
+              {/* User Bubble Skeleton (Right aligned) */}
+              <div className="flex justify-end transition-all duration-700 opacity-60">
+                <div className="flex flex-col items-end gap-2 w-[70%] md:w-[35%]">
+                  <Skeleton className="h-12 w-full rounded-2xl rounded-tr-none" />
+                </div>
+              </div>
+
+              {/* AI Response Skeleton (Left aligned) */}
+              <div className="flex justify-start transition-all duration-700">
+                <div className="flex flex-col items-start gap-4 w-[90%] md:w-[70%]">
+                  <div className="flex items-center gap-3">
+                    <Skeleton variant="circle" className="h-8 w-8" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <div className="space-y-3 w-full">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-[95%]" />
+                    <Skeleton className="h-4 w-[85%]" />
+                    <Skeleton className="h-4 w-[60%]" />
+                  </div>
+                  <Skeleton className="h-40 w-full rounded-2xl opacity-40 mt-2" />
+                </div>
+              </div>
+
+              {/* Second User Bubble (Faded) */}
+              <div className="flex justify-end opacity-20 hidden md:flex">
+                <div className="w-[20%]">
+                  <Skeleton className="h-10 w-full rounded-2xl rounded-tr-none" />
+                </div>
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
               {isImporting ? (
                 <div className="flex flex-col items-center animate-pulse">
@@ -1501,34 +1701,36 @@ function AiChatCore() {
                       >
                         <div className="flex flex-col gap-2 min-w-[200px] sm:min-w-[300px]">
                           <div className="flex items-end">
-                            {/* Image Preview in Edit Mode - Side by Side */}
-                            {(editImage || msg.image) && (
+                            {/* Image Preview in Edit Mode - Controlled exclusively by editImage state */}
+                            {editImage && (
                               <div className="mr-2 mb-1 shrink-0">
                                 <div className="relative h-12 w-12 md:h-16 md:w-16 rounded-md md:rounded-lg overflow-hidden border border-black/10 dark:border-white/10 shadow-sm transition-transform hover:scale-[1.02]">
                                   <img
-                                    src={editImage || msg.image}
+                                    src={editImage}
                                     alt="Edit material"
                                     className="h-full w-full object-cover"
                                   />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 rounded-md md:rounded-lg">
+                                  <div className="absolute inset-0 bg-black/20 md:bg-black/40 md:opacity-0 md:hover:opacity-100 transition-opacity flex items-center justify-center rounded-md md:rounded-lg">
                                     <button
                                       onClick={() => editFileInputRef.current?.click()}
-                                      className="p-1 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors"
+                                      className="p-1 md:p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-full transition-colors"
                                       title="Change image"
                                     >
-                                      <Paperclip className="w-3 h-3 md:w-4 md:h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setEditImage(null);
-                                        msg.image = undefined;
-                                      }}
-                                      className="p-1 bg-red-500/50 hover:bg-red-500/70 text-white rounded-full transition-colors"
-                                      title="Remove image"
-                                    >
-                                      <X className="w-3 h-3 md:w-4 md:h-4" />
+                                      <Paperclip className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
+
+                                  {/* Corner Clear Button (Sleek Integrated Style) */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditImage(null);
+                                    }}
+                                    className="absolute top-0 right-0 p-0.5 md:p-1 bg-black/50 hover:bg-black/80 text-white rounded-bl-lg z-30 transition-colors"
+                                    title="Remove image"
+                                  >
+                                    <X className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                                  </button>
                                 </div>
                               </div>
                             )}
@@ -1586,18 +1788,18 @@ function AiChatCore() {
                       <div className="flex flex-col items-end gap-1">
                         {/* 1. Large Image Bubble */}
                         {msg.role === "user" && msg.image && (
-                          <div className={`rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 shadow-md transition-transform hover:scale-[1.01] bg-black/5 dark:bg-white/5 w-fit max-w-fit flex-shrink-0 ${isMobileApp ? "max-h-[220px]" : "max-h-[350px]"}`}>
+                          <div className={`rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 shadow-md transition-transform hover:scale-[1.01] bg-black/5 dark:bg-white/5 w-fit max-w-[280px] sm:max-w-md flex-shrink-0`}>
                             <img
                               src={msg.image}
                               alt="Study Material"
-                              className="w-auto h-auto object-cover max-h-[200px] md:max-h-[320px] cursor-zoom-in"
+                              className="block w-full h-auto object-contain max-h-[320px] md:max-h-[500px] cursor-zoom-in"
                               onClick={() => setImagePreviewUrl(msg.image || null)}
                             />
                           </div>
                         )}
 
                         {/* 2. Text Content Bubble (Small Gap) */}
-                        {msg.content && !msg.content.trim().startsWith('{') && (
+                        {(msg.content || msg.isThinking) && !msg.content?.trim().startsWith('{') && (
                           <div
                             className={`px-4 py-2 text-[14px] md:text-[15px] shadow-sm min-w-0 break-words ${msg.role === "user"
                               ? theme === "dark"
@@ -1609,9 +1811,34 @@ function AiChatCore() {
                               } ${msg.image ? "mt-1 mr-0.5 z-20" : ""}`}
                           >
                             {msg.role === "model" ? (
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
+                              <>
+                                {msg.isThinking ? (
+                                  <div className="flex items-center py-1 px-0.5 min-w-[140px] animate-pulse">
+                                    <span className="text-[13px] font-medium opacity-80">
+                                      {msg.type === "vision"
+                                        ? visionMessages[thinkingIdx % visionMessages.length]
+                                        : thinkingMessages[thinkingIdx % thinkingMessages.length]}
+                                    </span>
+                                  </div>
+                                ) : msg.isError ? (
+                                  <div className="flex flex-col gap-2 py-1.5 transition-all duration-300">
+                                    <span className="text-[13px] font-medium text-red-500 dark:text-red-400 max-w-[280px]">
+                                      {msg.content}
+                                    </span>
+                                    {/* Show "Start a fresh chat" button if we have multiple errors */}
+                                    {messages.filter(m => m.isError).length >= 3 && (
+                                      <button 
+                                        onClick={() => startNewChat()}
+                                        className="mt-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[11px] font-semibold w-fit border border-red-500/20 transition-all active:scale-95"
+                                      >
+                                        Start a fresh chat
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
                                   h1: ({ ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
                                   h2: ({ ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
                                   h3: ({ ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
@@ -1665,6 +1892,8 @@ function AiChatCore() {
                               >
                                 {msg.content}
                               </ReactMarkdown>
+                                )}
+                              </>
                             ) : (
                               <div className="whitespace-pre-wrap leading-relaxed break-words break-all sm:break-words max-w-full overflow-hidden">{msg.content}</div>
                             )}
@@ -1847,10 +2076,10 @@ function AiChatCore() {
                     <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
                     <button
                       onClick={() => setSelectedImage(null)}
-                      className="absolute top-0 right-0 p-1 bg-black/50 text-white rounded-bl-lg hover:bg-black/80 transition-colors"
+                      className="absolute top-0 right-0 p-0.5 md:p-1 bg-black/50 text-white rounded-bl-lg hover:bg-black/80 transition-colors z-30"
                       title="Remove image"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-2.5 h-2.5 md:w-3 md:h-3" />
                     </button>
                   </div>
                 </div>
@@ -1924,9 +2153,19 @@ function AiChatCore() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleSend()}
+                      onPointerDown={(e) => {
+                        // Fix for mobile: send message immediately without waiting for keyboard blur
+                        if (!isLoading && (input.trim() || selectedImage)) {
+                          e.preventDefault(); // Stop the focus shift that closes keyboard
+                          handleSend();
+                        }
+                      }}
+                      onClick={(e) => {
+                        // Desktop fallback or mouse clicks
+                        if (window.innerWidth >= 768) handleSend();
+                      }}
                       disabled={isLoading || (!input.trim() && !selectedImage)}
-                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all disabled:opacity-30 disabled:scale-100 active:scale-90 ${theme === "dark"
+                      className={`flex items-center justify-center w-10 h-10 rounded-full transition-all disabled:opacity-30 disabled:scale-100 active:scale-90 ${theme === "dark"
                         ? "bg-white text-[#252525] hover:bg-gray-200"
                         : "bg-[#252525] text-white hover:bg-[#444]"
                         }`}
