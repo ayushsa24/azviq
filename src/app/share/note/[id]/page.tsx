@@ -24,7 +24,9 @@ import { all, createLowlight } from "lowlight";
 import "highlight.js/styles/atom-one-dark.css";
 import { useDebouncedCallback } from "use-debounce";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Loader2, Lock, FileText, Pencil, Eye, Check, Sun, Moon } from "lucide-react";
+import { Loader2, Lock, FileText, Pencil, Eye, Check, Sun, Moon, LogIn, DownloadCloud } from "lucide-react";
+import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const lowlight = createLowlight(all);
 
@@ -37,11 +39,14 @@ export default function SharedNotePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [savedOk, setSavedOk] = useState(false);
     const [contentLoaded, setContentLoaded] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+    const { data: session } = useSession();
+    const router = useRouter();
 
     // AI Trigger State
     const [aiInlinePos, setAiInlinePos] = useState<{ top: number; left: number; from: number } | null>(null);
 
-    const canEdit = note?.share_mode === "edit";
+    const canEdit = false; // Public shared pages are now strictly view-only. Import to edit.
 
     useEffect(() => {
         // Suppress known Tiptap v2 + React 19 flushSync warning (harmless)
@@ -110,8 +115,7 @@ export default function SharedNotePage() {
             },
         },
         onUpdate: ({ editor }) => {
-            if (!contentLoaded) return;
-            if (canEdit) debouncedSave(editor.getHTML());
+            // No public updates allowed. Import to library to edit.
         },
     });
 
@@ -149,7 +153,7 @@ export default function SharedNotePage() {
                 if (note.content) {
                     editor.commands.setContent(note.content, { emitUpdate: false });
                 }
-                editor.setEditable(note.share_mode === "edit");
+                editor.setEditable(false);
                 setContentLoaded(true);
             }, 0);
             return () => clearTimeout(timer);
@@ -170,6 +174,30 @@ export default function SharedNotePage() {
         } catch { /* silent */ }
         finally { setIsSaving(false); }
     }, 1500);
+
+    const handleImport = async () => {
+        if (!session) {
+            signIn(undefined, { callbackUrl: window.location.href });
+            return;
+        }
+
+        setIsImporting(true);
+        try {
+            const res = await fetch(`/api/share/note/${id}/import`, {
+                method: "POST",
+            });
+            if (!res.ok) throw new Error("Failed to import note");
+            const data = await res.json();
+            
+            // Redirect to the newly created note in the user's library
+            router.push(`/library/note/${data.noteId}`);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to import note. Please try again.");
+        } finally {
+            setIsImporting(false);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -258,13 +286,9 @@ export default function SharedNotePage() {
 
                 <div className="flex-1" />
 
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${
-                    canEdit
-                        ? "bg-[#F0EDE8] dark:bg-[#252525] text-[#252525] dark:text-white border border-[#E8E5E0] dark:border-[#3A3A3A]"
-                        : "bg-[#F0EDE8] dark:bg-[#252525] text-[#7D7D7D] dark:text-[#7D7D7D] border border-[#E8E5E0] dark:border-[#3A3A3A]"
-                }`}>
-                    {canEdit ? <Pencil size={11} /> : <Eye size={11} />}
-                    {canEdit ? "Can Edit" : "View Only"}
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 bg-[#F0EDE8] dark:bg-[#252525] text-[#7D7D7D] dark:text-[#7D7D7D] border border-[#E8E5E0] dark:border-[#3A3A3A]`}>
+                    <Eye size={11} />
+                    View Only
                 </div>
 
                 <button
@@ -273,6 +297,23 @@ export default function SharedNotePage() {
                     title={isDark ? "Switch to Light" : "Switch to Dark"}
                 >
                     {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                </button>
+
+                <div className="w-px h-4 bg-[#E8E5E0] dark:bg-[#3A3A3A] hidden sm:block" />
+
+                <button
+                    onClick={handleImport}
+                    disabled={isImporting}
+                    className="flex items-center gap-2 px-4 py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:opacity-90 active:scale-95 rounded-full text-xs font-bold transition-all shadow-lg disabled:opacity-50"
+                >
+                    {isImporting ? (
+                        <Loader2 size={14} className="animate-spin" />
+                    ) : session ? (
+                        <DownloadCloud size={14} />
+                    ) : (
+                        <LogIn size={14} />
+                    )}
+                    {session ? "Import to Library" : "Sign in to Import"}
                 </button>
 
                 <div className="w-px h-4 bg-[#E8E5E0] dark:bg-[#3A3A3A] hidden sm:block" />
@@ -316,6 +357,14 @@ export default function SharedNotePage() {
                                         } catch (err) {
                                             console.warn("AI rich text insertion failed schema validation.", err);
                                         }
+                                        setAiInlinePos(null);
+                                    }
+                                }}
+                                onDiscard={() => {
+                                    if (editor && aiInlinePos) {
+                                        const start = aiInlinePos.from;
+                                        const end = editor.state.selection.to;
+                                        editor.chain().focus().deleteRange({ from: start, to: end }).run();
                                         setAiInlinePos(null);
                                     }
                                 }}

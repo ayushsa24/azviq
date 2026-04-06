@@ -26,18 +26,31 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const { data: note, error } = await supabase
+        const { data: note, error: noteError } = await (supabase
             .from("notes")
-            .select("*")
+            .select(`
+                *,
+                original_note:original_note_id (
+                    share_mode,
+                    user_id
+                )
+            `)
             .eq("id", id)
-            .eq("user_id", user.id)
-            .single();
+            .single() as any);
 
-        if (error) {
+        if (noteError || !note) {
             return NextResponse.json({ error: "Note not found" }, { status: 404 });
         }
 
-        return NextResponse.json({ note });
+        const isOwner = note.user_id === user.id;
+        const parentShareMode = note.original_note?.share_mode;
+        
+        // Return enriched note data with parent permissions
+        return NextResponse.json({ 
+            note, 
+            isOwner,
+            parentShareMode: parentShareMode ?? null
+        });
     } catch (error: unknown) {
         console.error("GET note error:", error);
         return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to fetch note" }, { status: 500 });
@@ -85,17 +98,34 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (body.last_reviewed_at !== undefined) updateData.last_reviewed_at = body.last_reviewed_at;
         if (body.next_review_at !== undefined) updateData.next_review_at = body.next_review_at;
 
-        const { data: note, error } = await supabase
+        // Check permissions first: Owners see everything, collaborators match by share_mode
+        const { data: note, error: fetchError } = await supabase
+            .from("notes")
+            .select("user_id, share_mode")
+            .eq("id", id)
+            .single();
+
+        if (fetchError || !note) {
+            return NextResponse.json({ error: "Note not found" }, { status: 404 });
+        }
+
+        const isOwner = note.user_id === user.id;
+        const canEdit = isOwner || note.share_mode === "edit";
+
+        if (!canEdit) {
+            return NextResponse.json({ error: "No permission to edit this note" }, { status: 403 });
+        }
+
+        const { data: updatedNote, error } = await supabase
             .from("notes")
             .update(updateData)
             .eq("id", id)
-            .eq("user_id", user.id)
             .select()
             .single();
 
         if (error) throw error;
 
-        return NextResponse.json({ note });
+        return NextResponse.json({ note: updatedNote });
     } catch (error: unknown) {
         console.error("PATCH notes error:", error);
         return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Failed to update note" }, { status: 500 });

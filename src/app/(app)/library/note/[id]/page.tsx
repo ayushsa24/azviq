@@ -28,6 +28,7 @@ import { AiInlineInput } from '@/components/editor/AiInlineInput';
 import { logRecentActivity } from '@/lib/logRecentActivity';
 import { useStudyTracker } from '@/hooks/useStudyTracker';
 import { useSidebar } from "@/contexts/SidebarContext";
+import { supabase as supabaseClient } from "@/lib/supabase";
 
 const lowlight = createLowlight(all)
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -40,6 +41,7 @@ export default function NoteEditorPage() {
     const searchParams = useSearchParams();
 
     const [title, setTitle] = useState("Untitled Note");
+    const [note, setNote] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState("");
@@ -50,6 +52,7 @@ export default function NoteEditorPage() {
     const [isTogglingShare, setIsTogglingShare] = useState(false);
     const [linkCopied, setLinkCopied] = useState(false);
     const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+    const [parentShareMode, setParentShareMode] = useState<'private' | 'view' | 'edit' | null>(null);
     const moreMenuRef = React.useRef<HTMLDivElement>(null);
 
     // Default to locked, unless the 'new' query parameter is present meaning we just created it
@@ -60,6 +63,8 @@ export default function NoteEditorPage() {
     // Use a ref to keep track of the latest title for editor closures
     const titleRef = React.useRef(title);
     const isFetchingRef = React.useRef(true);
+    const isOriginalUpdateRef = React.useRef(false); // Flag to prevent infinite loops during sync
+    const abortControllerRef = React.useRef<AbortController | null>(null);
 
     useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
 
@@ -181,7 +186,10 @@ export default function NoteEditorPage() {
             },
         },
         onUpdate: ({ editor }) => {
-            if (isFetchingRef.current) return;
+            if (isFetchingRef.current || isOriginalUpdateRef.current) return;
+            // The owner should always be able to trigger a save unless they explicitly locked it for themselves.
+            // Importers are controlled by the parentShareMode.
+            if (isLocked && note?.original_note_id) return;
             debouncedSave(editor.getHTML(), titleRef.current);
         },
     });
@@ -228,21 +236,32 @@ export default function NoteEditorPage() {
                 isFetchingRef.current = true;
                 const res = await fetch(`/api/notes/${id}`);
                 if (!res.ok) throw new Error("Failed to load note");
-                const { note } = await res.json();
+                const data = await res.json();
+                const { note: noteData } = data;
 
-                titleRef.current = note.title;
-                setTitle(note.title);
-                setWorkspaceId(note.workspace_id);
-                setShareMode(note.share_mode ?? 'private');
-                if (editor && note.content) {
-                    editor.commands.setContent(note.content, { emitUpdate: false });
+                setNote(noteData);
+                titleRef.current = noteData.title;
+                setTitle(noteData.title);
+                setWorkspaceId(noteData.workspace_id);
+                setShareMode(noteData.share_mode ?? 'private');
+                
+                const pShareMode = data.parentShareMode;
+                setParentShareMode(pShareMode);
+
+                // If owner explicitly set original to view-only, lock the copies
+                if (pShareMode === 'view') {
+                    setIsLocked(true);
+                }
+
+                if (editor && noteData.content) {
+                    editor.commands.setContent(noteData.content, { emitUpdate: false });
                 }
 
                 // Log this note open to recent activity
                 logRecentActivity({
                     item_id: id,
                     item_type: "note",
-                    title: note.title || "Untitled Note",
+                    title: noteData.title || "Untitled Note",
                     href: `/library/note/${id}`,
                 });
             } catch (err) {
@@ -260,26 +279,117 @@ export default function NoteEditorPage() {
         }
     }, [id, editor]);
 
+    // Real-Time Sync: Listen for changes on the source of truth
+    useEffect(() => {
+        if (!id || !editor || !note) return;
+
+        // If I am a clone, I listen to my PARENT (original_note_id)
+        // If I am the owner, I listen to MYSELF (id) for inbound collaborator changes
+        const syncId = note.original_note_id || id;
+
+        const channel = supabaseClient
+            .channel(`sync-note-${syncId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'notes',
+                    filter: `id=eq.${syncId}`
+                },
+                (payload) => {
+                    const updatedData = payload.new as any;
+                    
+                    // IF I am the owner: and some clone updated the source, I should sync
+                    // IF I am a clone: and the owner updated the source, I should sync
+                    
+                    // Skip if I am the one who just saved (identified by user_id)
+                    // Note: This requires payload.new to include user_id
+                    
+                    // Mark this as an external update to avoid re-saving
+                    isOriginalUpdateRef.current = true;
+                    
+                    if (updatedData.title && updatedData.title !== titleRef.current) {
+                        setTitle(updatedData.title);
+                        titleRef.current = updatedData.title;
+                    }
+                    
+                    if (updatedData.content && editor.getHTML() !== updatedData.content) {
+                        const { from, to } = editor.state.selection;
+                        editor.commands.setContent(updatedData.content, { emitUpdate: false });
+                        // Try to preserve cursor position
+                        try {
+                            editor.commands.setTextSelection({ from, to });
+                        } catch { /* pos might be invalid if content changed significantly */ }
+                    }
+
+                    setTimeout(() => {
+                        isOriginalUpdateRef.current = false;
+                    }, 500);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabaseClient.removeChannel(channel);
+        };
+    }, [id, editor, note]);
+
     const handleSave = async (contentToSave?: string, titleToSave?: string) => {
-        if (!editor) return;
+        // If it's a clone (has original_note_id), respect the parent's view-only lock.
+        // If it's the original, let them save unless they manually locked the editor UI.
+        const isClone = !!note?.original_note_id;
+        if (!editor || isOriginalUpdateRef.current) return;
+        if (isClone && (isLocked || parentShareMode === 'view')) return;
+        if (!isClone && isLocked) return;
+        
+        // Final guard: Don't save if we're just loading.
+        if (isFetchingRef.current) return;
+
+        // Cancel the previous save request if it exists
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         setIsSaving(true);
         setSaveError("");
 
         try {
+            // 1. Save to local note (clone or original)
             const res = await fetch(`/api/notes/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
                 body: JSON.stringify({
                     title: titleToSave !== undefined ? titleToSave : title,
                     content: contentToSave !== undefined ? contentToSave : editor.getHTML(),
                 }),
             });
             if (!res.ok) throw new Error("Failed to save note");
-        } catch (err) {
+
+            // 2. Collaborative Sync: If this is an import, also update the original source
+            // so the owner and other importers can see my changes in real-time.
+            if (isClone && note.original_note_id && parentShareMode === 'edit') {
+                await fetch(`/api/notes/${note.original_note_id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        title: titleToSave !== undefined ? titleToSave : title,
+                        content: contentToSave !== undefined ? contentToSave : editor.getHTML(),
+                    }),
+                });
+            }
+        } catch (err: any) {
+            if (err.name === 'AbortError') return; // Expected cancellation
             console.error(err);
             setSaveError("Failed to save. Please try again.");
         } finally {
-            setIsSaving(false);
+            if (abortControllerRef.current === controller) {
+                setIsSaving(false);
+                abortControllerRef.current = null;
+            }
         }
     };
 
@@ -449,12 +559,18 @@ export default function NoteEditorPage() {
                     <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
 
                     <button
-                        onClick={() => setIsLocked(!isLocked)}
+                        onClick={() => {
+                            if (parentShareMode === 'view') {
+                                alert("This note is view-only by the original owner's request.");
+                                return;
+                            }
+                            setIsLocked(!isLocked);
+                        }}
                         className={`p-1.5 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 ${isLocked
                             ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                             : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
-                            }`}
-                        title={isLocked ? "Unlock Note to Edit" : "Lock Note (Read-Only)"}
+                            } ${parentShareMode === 'view' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={parentShareMode === 'view' ? "Locked by Owner" : isLocked ? "Unlock Note to Edit" : "Lock Note (Read-Only)"}
                     >
                         {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
                     </button>
