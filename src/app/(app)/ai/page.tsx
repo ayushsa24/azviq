@@ -94,7 +94,7 @@ function AiChatCore() {
 
   const { data: session, status } = useSession();
   const { data: sessionData, mutate: mutateSessions, error: sessionError, isLoading: isHistoryLoading } = useSWR(
-    status === "authenticated" ? `/api/chat/history` : null,
+    status === "authenticated" ? `/api/chat/history?all=true` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -102,6 +102,18 @@ function AiChatCore() {
       dedupingInterval: 10000, // 10 seconds deduping
     }
   );
+
+  const { data: subscription, mutate: mutateSubscription } = useSWR(
+    status === "authenticated" ? "/api/user/subscription" : null,
+    fetcher,
+    {
+      revalidateOnFocus: true, // Refresh more often when chatting
+      dedupingInterval: 5000,
+    }
+  );
+
+  const usage = subscription?.usage;
+
 
   const [activeChatId, setActiveChatId] = useState<string | null>(urlChatId || null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -138,6 +150,10 @@ function AiChatCore() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [chatDrafts, setChatDrafts] = useState<Record<string, { text: string; image: string | null }>>({});
+
+  const isChatExhausted = usage?.chat?.limit !== Infinity && (usage?.chat?.remaining || 0) <= 0;
+  const isVisionExhausted = usage?.vision?.limit !== Infinity && (usage?.vision?.remaining || 0) <= 0;
+  const isQuotaReached = !!(isChatExhausted || (selectedImage && isVisionExhausted));
 
   // Dynamic Thinking Messages
   const thinkingMessages = [
@@ -569,6 +585,12 @@ function AiChatCore() {
 
     if (status !== "authenticated") return;
 
+    // Quota double check
+    if (isQuotaReached) {
+      setApiError("Daily AI quota reached. Please upgrade or try again tomorrow.");
+      return;
+    }
+
     isSendingRef.current = true;
     const newMsg: Message = {
       id: cutHistoryAtIndex !== undefined ? messages[cutHistoryAtIndex].id : undefined,
@@ -732,6 +754,9 @@ function AiChatCore() {
           } catch (e) { }
         }
       }
+
+      // Refresh subscription usage data after a successful message
+      mutateSubscription();
 
       // Update sidebar session explicitly at the end and move it to the top in SWR
       // Also clear any drafts for this chat since message is now sent
@@ -2131,8 +2156,9 @@ function AiChatCore() {
                       }
                     }
                   }}
-                  placeholder={selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Avyx AI anything...")}
-                  className="flex-1 max-h-48 min-h-[44px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-3 text-[15px] outline-none custom-scrollbar leading-tight"
+                  placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Avyx AI anything..."))}
+                  disabled={isQuotaReached && !isLoading}
+                  className={`flex-1 max-h-48 min-h-[44px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-3 text-[15px] outline-none custom-scrollbar leading-tight ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
                 />
 

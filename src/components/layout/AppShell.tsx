@@ -11,6 +11,7 @@ import NotificationPanel from "./NotificationPanel";
 import SettingsModal from "./SettingsModal";
 import TrashModal from "./TrashModal";
 import ProfileModal from "./ProfileModal";
+import PricingModal from "../PricingModal";
 import { useState } from "react";
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
@@ -92,7 +94,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       {/* Header: mobile only on Dashboard, hidden on desktop */}
       {isDashboard && (
         <div className="md:hidden">
-          <Header open={open} onMenuClick={toggle} onTrashClick={() => setIsTrashOpen(true)} onProfileClick={() => setIsProfileOpen(true)} />
+          <Header 
+            open={open} 
+            onMenuClick={toggle} 
+            onTrashClick={() => setIsTrashOpen(true)} 
+            onProfileClick={() => setIsProfileOpen(true)}
+            onUpgradeClick={() => setIsPricingOpen(true)}
+          />
         </div>
       )}
 
@@ -102,6 +110,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           isHovered={isSidebarHovered}
           onMouseLeave={() => setIsSidebarHovered(false)}
           onTrashClick={() => setIsTrashOpen(true)}
+          onUpgradeClick={() => setIsPricingOpen(true)}
         />
       ) : (
         <div className="hidden md:contents">
@@ -110,6 +119,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             isHovered={isSidebarHovered}
             onMouseLeave={() => setIsSidebarHovered(false)}
             onTrashClick={() => setIsTrashOpen(true)}
+            onUpgradeClick={() => setIsPricingOpen(true)}
           />
         </div>
       ))}
@@ -125,6 +135,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       {/* Global Profile Popup */}
       <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+
+      {/* Global Pricing Popup */}
+      <PricingModal open={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
 
       {!open && (
         <div

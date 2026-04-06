@@ -56,9 +56,18 @@ export default function Signup() {
 
       const data = await res.json();
       if (data.success) {
-        setSuccessMessage(data.message || "Verify your email!");
+        // Automatically save userId to localStorage for onboarding fallback
+        localStorage.setItem('userId', data.data.user.id);
+        
+        // Auto-login after successful signup
+        await nextAuthSignIn("credentials", {
+          email,
+          password,
+          callbackUrl: "/onboarding",
+          redirect: true
+        });
       } else {
-        alert(data.error || "Signup failed");
+        alert(data.error?.message || "Signup failed");
         setIsVerifying(false);
       }
     } catch (err) {

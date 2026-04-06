@@ -11,7 +11,7 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell, HelpCircle, Trash2
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell, HelpCircle, Trash2, Crown
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
@@ -42,12 +42,14 @@ export default function Sidebar({
   open,
   isHovered = false,
   onMouseLeave,
-  onTrashClick
+  onTrashClick,
+  onUpgradeClick
 }: {
   open: boolean;
   isHovered?: boolean;
   onMouseLeave?: () => void;
   onTrashClick?: () => void;
+  onUpgradeClick?: () => void;
 }) {
   const { theme, toggleTheme } = useTheme();
   const { language } = useLanguage();
@@ -258,7 +260,7 @@ export default function Sidebar({
                 <Settings className="w-4 h-4" /> {translations[language].settings}
               </button>
 
-              {/* Trash (Added here as well) */}
+              {/* Trash */}
               <button
                 onClick={() => { 
                   setMenuOpen(false); 
@@ -271,6 +273,23 @@ export default function Sidebar({
                   ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >
                 <Trash2 className="w-4 h-4" /> Trash
+              </button>
+
+              {/* ✨ Upgrade Plan */}
+              <button
+                onClick={() => { setMenuOpen(false); onUpgradeClick?.(); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-all
+                  ${isDark
+                    ? "text-[#C2A27A] hover:bg-[#C2A27A]/10"
+                    : "text-[#8B6F4E] hover:bg-[#C2A27A]/10"
+                  }`}
+              >
+                <Crown className="w-4 h-4" />
+                Upgrade Plan
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full
+                  ${isDark ? "bg-[#C2A27A]/20 text-[#C2A27A]" : "bg-[#C2A27A]/15 text-[#8B6F4E]"}`}>
+                  PRO
+                </span>
               </button>
 
 
@@ -322,7 +341,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      {/* Profile modal — rendered outside aside so it can center on screen */}
+      {/* Profile modal */}
       <ProfileModal open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
     </>
   );

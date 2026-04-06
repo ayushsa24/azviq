@@ -20,12 +20,25 @@ export async function GET(req: Request) {
     }
     
     const userId = dbUser.id;
+    const { searchParams } = new URL(req.url);
+    const archivedOnly = searchParams.get("archived") === "true";
+    const allChats = searchParams.get("all") === "true";
 
-    // Fetch all chats for the user, ordered by pinned first, then newest first
-    const { data: chats, error } = await supabase
+    // Fetch chats for the user
+    let query = supabase
       .from("chats")
       .select("*, messages(*)")
-      .eq("user_id", userId)
+      .eq("user_id", userId);
+
+    if (allChats) {
+      // Don't filter by is_archived, get everything
+    } else if (archivedOnly) {
+      query = query.eq("is_archived", true);
+    } else {
+      query = query.eq("is_archived", false); // Default to non-archived
+    }
+
+    const { data: chats, error } = await query
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false });
 

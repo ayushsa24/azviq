@@ -6,12 +6,12 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useUser } from "@/contexts/UserContext";
-import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings, Trash2 } from "lucide-react";
+import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings, Trash2, Crown } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useRouter } from "next/navigation";
 
-export default function Header({ onMenuClick, open, onTrashClick, onProfileClick }: { onMenuClick: () => void; open: boolean; onTrashClick?: () => void; onProfileClick?: () => void }) {
+export default function Header({ onMenuClick, open, onTrashClick, onProfileClick, onUpgradeClick }: { onMenuClick: () => void; open: boolean; onTrashClick?: () => void; onProfileClick?: () => void; onUpgradeClick?: () => void }) {
   const router = useRouter();
   const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
@@ -150,6 +150,15 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
                     }`}>
                   <Settings className="w-4 h-4" />
                   Settings
+                </button>
+                <button
+                  onClick={() => { setDropdownOpen(false); onUpgradeClick?.(); }}
+                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer border-t border-b ${theme === 'dark'
+                    ? 'text-[#C2A27A] border-[#545454] hover:bg-[#545454]'
+                    : 'text-[#8B6F4E] border-[#E8E5E0] hover:bg-[#F0EDE8]'
+                    }`}>
+                  <Crown className="w-4 h-4" />
+                  <span className="font-bold">Upgrade Plan</span>
                 </button>
 
 

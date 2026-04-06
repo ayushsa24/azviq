@@ -43,27 +43,15 @@ export async function POST(req: NextRequest) {
       return apiError("An account with this email already exists.", 400, "USER_ALREADY_EXISTS");
     }
 
-    // 3. Hash password and create Supabase Auth user
+    // 3. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${process.env.NEXTAUTH_URL}/onboarding`,
-      }
-    });
-
-    if (authError) {
-      return apiError(authError.message, 400, "AUTH_SIGNUP_ERROR");
-    }
-
-    // 4. Insert into public.users
+    // 4. Insert directly into public.users (NextAuth uses its own auth, not Supabase Auth)
     const { data, error } = await supabase
       .from("users")
       .insert([
         {
-          id: authData.user?.id || randomUUID(),
+          id: randomUUID(),
           email,
           password_hash: hashedPassword,
           is_onboarded: false,
@@ -78,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     return apiSuccess({
-      message: "Check your email for a confirmation link!",
+      message: "Account created successfully!",
       user: { id: data.id, email: data.email },
     }, 201);
 

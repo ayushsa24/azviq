@@ -1,15 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/db";
 import { apiError, apiSuccess } from "@/lib/api";
 import { z } from "zod";
-import { checkAiDailyQuota } from "@/lib/ai-tracking";
+import { getTextResponse, runSubscriptionGuard } from "@/lib/ai/manager";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // --- Zod Schema ---
 const SummarizeSchema = z.object({
@@ -52,26 +49,26 @@ export async function POST(req: Request) {
     const { text } = validation.data;
 
     // --- AI Daily Quota Check ---
-    const quota = await checkAiDailyQuota(user.id);
-    if (!quota.success) {
-        return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
+    const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "chat", user.id);
+    if (!guard.allowed) {
+      return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
     }
 
-    // 3. Call Gemini with explicit error handling
     if (!process.env.GEMINI_API_KEY) {
       return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
     }
 
+    // 3. Summarize using AI Manager (Gemini 2.5 Flash)
     let summary: string;
     try {
-      const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash", // Changed model as per instruction
-        systemInstruction: "Summarize study notes into clear bullet points.",
+      summary = await getTextResponse(text, {
+        model: "gemini-2.5-flash",
+        style: "balanced",
+        systemPrompt: "Summarize the following study notes into clear, concise bullet points. Use Markdown formatting.",
+        stream: false,
       });
-      const response = await model.generateContent(text);
-      summary = response.response.text();
     } catch (err: unknown) {
-      console.error("Gemini API Error:", err);
+      console.error("Summarize AI Error:", err);
       return apiError("AI summarization service failed. Please try again later.", 502, "AI_SERVICE_ERROR");
     }
 

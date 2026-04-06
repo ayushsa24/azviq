@@ -5,7 +5,7 @@ import { supabase } from "@/lib/db";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { checkAiDailyQuota } from "@/lib/ai-tracking";
+import { runSubscriptionGuard } from "@/lib/ai/manager";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -109,9 +109,9 @@ export async function POST(req: Request) {
             return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
         }
 
-        const quota = await checkAiDailyQuota(user.id);
-        if (!quota.success) {
-            return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
+        const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "exercise", user.id);
+        if (!guard.allowed) {
+            return apiError(guard.error || "Subscription limit reached", guard.status || 403, "QUOTA_EXCEEDED");
         }
 
         const noteContext = (note.content as string | null) || "Use general knowledge about this topic.";
