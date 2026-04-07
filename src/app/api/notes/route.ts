@@ -24,9 +24,15 @@ export async function GET(req: Request) {
     const workspaceId = url.searchParams.get("workspace_id");
     const all = url.searchParams.get("all") === "true";
 
+    // Fetch notes with original share status
     let query = supabase
       .from("notes")
-      .select("*")
+      .select(`
+        *,
+        original_note:original_note_id (
+          share_mode
+        )
+      `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -38,11 +44,26 @@ export async function GET(req: Request) {
       }
     }
 
-    const { data: notes, error } = await query;
+    const { data: notes, error } = await (query as any);
 
     if (error) throw error;
 
-    return NextResponse.json({ notes });
+    // SECURITY REDACTION: Wipe content for any note that was revoked via original source
+    const securedNotes = notes?.map((note: any) => {
+      const isOriginalOwner = note.original_note?.user_id === user.id;
+      
+      // If access is private AND the current user is NOT the original creator
+      if (note.original_note_id && !isOriginalOwner && note.original_note?.share_mode === 'private') {
+        return {
+          ...note,
+          content: "<p>Access to this shared material has been restricted by the owner.</p>",
+          is_revoked: true // Add flag to let the UI show an icon
+        };
+      }
+      return note;
+    }) || [];
+
+    return NextResponse.json({ notes: securedNotes });
   } catch (error) {
     console.error("GET notes error:", error);
     return NextResponse.json({ error: "Failed to fetch notes" }, { status: 500 });

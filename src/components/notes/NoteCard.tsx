@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2, Clock } from "lucide-react";
+import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2, Clock, EyeOff } from "lucide-react";
 
 export interface NoteItem {
     id: string;
@@ -13,6 +13,7 @@ export interface NoteItem {
     is_pinned?: boolean;
     is_pinned_in_favourites?: boolean;
     workspace_id?: string;
+    is_revoked?: boolean;
 }
 
 interface NoteCardProps {
@@ -182,9 +183,14 @@ export function NoteCard({
                             </div>
                         </div>
                     )}
-                    <h3 className={`font-semibold truncate text-[#252525] dark:text-white transition-colors ${isList ? "text-sm sm:text-base" : "text-sm mb-1"
+                    <h3 className={`font-semibold truncate text-[#252525] dark:text-white transition-colors flex items-center gap-2 ${isList ? "text-sm sm:text-base" : "text-sm mb-1"
                         }`}>
                         {note.title}
+                        {note.is_revoked && (
+                            <span title="Access Revoked (Private Note)" className="flex items-center">
+                                <EyeOff size={14} className="text-[#7D7D7D] shrink-0" />
+                            </span>
+                        )}
                     </h3>
                 </div>
 

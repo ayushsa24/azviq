@@ -44,7 +44,36 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         const isOwner = note.user_id === user.id;
-        const parentShareMode = note.original_note?.share_mode;
+        
+        // SECURITY HARDENING: Re-verify the parent share mode and original ownership explicitly
+        // This prevents "inspect" hacks if the join was optimized away or failed.
+        let parentShareMode = note.original_note?.share_mode;
+        let originalOwnerId = note.original_note?.user_id;
+        
+        if (note.original_note_id) {
+            const { data: original } = await supabase
+                .from("notes")
+                .select("share_mode, user_id")
+                .eq("id", note.original_note_id)
+                .single();
+            
+            if (original) {
+                parentShareMode = original.share_mode;
+                originalOwnerId = original.user_id;
+            } else {
+                // If original note is gone, consider it revoked
+                parentShareMode = "private";
+            }
+        }
+
+        const isOriginalOwner = originalOwnerId === user.id;
+
+        // AGGRESSIVE REDACTION: If this is an import AND user is NOT the original creator AND original is private
+        if (note.original_note_id && !isOriginalOwner && parentShareMode === 'private') {
+            console.warn(`[Security] REVOKING ACCESS for note ${id}. User ${user.id} is not original owner ${originalOwnerId}`);
+            note.content = "<p>Access to this shared material has been restricted by the owner.</p>";
+            note.is_revoked = true; // Tell the frontend it's revoked so it can show an icon
+        }
         
         // Stabilized Importer Fetch: Get users who have cloned this note
         let importers: any[] = [];

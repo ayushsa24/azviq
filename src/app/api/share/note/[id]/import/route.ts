@@ -39,7 +39,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             return NextResponse.json({ error: "Shared note not found" }, { status: 404 });
         }
 
-        // 3. Create the clone with a link to the original to enable collaborative sync
+        // 3. SECURITY CHECK: Verify the note is actually being shared
+        if (sharedNote.share_mode === "private") {
+            return NextResponse.json({ error: "Access Denied: This note is private or sharing has been disabled by the owner." }, { status: 403 });
+        }
+
+        // 4. Create the clone with a link to the original to enable collaborative sync
         const originalTitle = sharedNote.title || "Untitled Note";
         const cleanTitle = originalTitle.startsWith("Imported: ") 
             ? originalTitle 

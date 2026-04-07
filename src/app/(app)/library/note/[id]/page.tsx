@@ -9,7 +9,8 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Users, Share2, FileDown, Trash2, SmilePlus, PanelLeft, Globe, EyeOff, Copy, Check, Pencil, X } from "lucide-react";
+import { DownloadCloud, Check, Sun, Moon, LogIn, FileDown, MoreVertical, Share2, FileText, PanelLeft, ArrowLeft, Undo, Redo, Lock, Unlock, Eye, EyeOff, Users, Loader2, FileJson, FileIcon, Save, Trash2, SmilePlus, Globe, Copy, Pencil, X, AlertCircle } from "lucide-react";
+import { exportToPdf } from "@/lib/utils/pdf-export";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useDebouncedCallback } from "use-debounce";
 import dynamic from 'next/dynamic';
@@ -44,6 +45,7 @@ export default function NoteEditorPage() {
     const [note, setNote] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
     const [importers, setImporters] = useState<any[]>([]);
     const [showImporters, setShowImporters] = useState(false);
     const [saveError, setSaveError] = useState("");
@@ -60,6 +62,7 @@ export default function NoteEditorPage() {
 
     // Default to locked, unless the 'new' query parameter is present meaning we just created it
     const [isLocked, setIsLocked] = useState(searchParams.get("new") !== "true");
+    const [isRevoked, setIsRevoked] = useState(false);
 
     const [aiInlinePos, setAiInlinePos] = useState<{ top: number; left: number; from: number } | null>(null);
 
@@ -227,16 +230,29 @@ export default function NoteEditorPage() {
         };
     }, [showMoreMenu, showSharePanel]);
 
-    const handleDownload = () => {
+    const handleDownloadPdf = async () => {
         if (!editor) return;
-        const content = editor.getText();
-        const blob = new Blob([content], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${title || 'note'}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const html = editor.getHTML();
+        const plainText = editor.getText();
+        
+        console.log("[PDF] Exporting HTML length:", html.length);
+        console.log("[PDF] Exporting Text length:", plainText.trim().length);
+
+        if (plainText.trim().length === 0 || isRevoked) {
+            alert("Exporting is disabled for private or empty notes.");
+            return;
+        }
+
+        setIsDownloadingPdf(true);
+        try {
+            await exportToPdf(html, title || 'Untitled Note');
+        } catch (err) {
+            console.error("PDF Export failed:", err);
+            alert("Failed to generate PDF. Please try again.");
+        } finally {
+            setIsDownloadingPdf(false);
+            setShowMoreMenu(false);
+        }
     };
 
     useEffect(() => {
@@ -255,6 +271,7 @@ export default function NoteEditorPage() {
                 setTitle(noteData.title);
                 setWorkspaceId(noteData.workspace_id);
                 setShareMode(noteData.share_mode ?? 'private');
+                setIsRevoked(!!noteData.is_revoked);
                 
                 const pShareMode = data.parentShareMode;
                 setParentShareMode(pShareMode);
@@ -311,21 +328,36 @@ export default function NoteEditorPage() {
                 (payload) => {
                     const updatedData = payload.new as any;
                     
-                    // IF I am the owner: and some clone updated the source, I should sync
-                    // IF I am a clone: and the owner updated the source, I should sync
-                    
-                    // CRITICAL: If I am currently typing, do NOT let the server overwrite my screen
-                    if (isLocalUpdateRef.current) return;
-                    
                     // Mark this as an external update to avoid re-saving
                     isOriginalUpdateRef.current = true;
                     
+                    // 1. Sync Title
                     if (updatedData.title && updatedData.title !== titleRef.current) {
                         setTitle(updatedData.title);
                         titleRef.current = updatedData.title;
                     }
                     
-                    if (updatedData.content && editor.getHTML() !== updatedData.content) {
+                    // 2. Sync Permissions & Security
+                    if (note?.original_note_id && updatedData.share_mode !== undefined) {
+                        setParentShareMode(updatedData.share_mode);
+                        // Lock/Unlock the editor based on owner's decision
+                        if (updatedData.share_mode === 'view' || updatedData.share_mode === 'private') {
+                            setIsLocked(true);
+                            if (updatedData.share_mode === 'private') {
+                                setIsRevoked(true);
+                                // The API handles content redaction on refresh, but for the session we can wipe it
+                                editor.commands.setContent("<p>Access to this shared material has been restricted by the owner.</p>");
+                            } else {
+                                setIsRevoked(false);
+                            }
+                        } else if (updatedData.share_mode === 'edit') {
+                            setIsLocked(false);
+                            setIsRevoked(false);
+                        }
+                    }
+
+                    // 3. Sync Content (Ignore if typing myself)
+                    if (!isLocalUpdateRef.current && updatedData.content && editor.getHTML() !== updatedData.content) {
                         const { from, to } = editor.state.selection;
                         editor.commands.setContent(updatedData.content, { emitUpdate: false });
                         // Try to preserve cursor position
@@ -543,48 +575,52 @@ export default function NoteEditorPage() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-4">
-                    <button
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            editor?.chain().focus().undo().run();
-                        }}
-                        disabled={isLocked || !editor?.can().undo()}
-                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
-                        title="Undo (Ctrl+Z)"
-                    >
-                        <Undo size={18} />
-                    </button>
- 
-                    <button
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            editor?.chain().focus().redo().run();
-                        }}
-                        disabled={isLocked || !editor?.can().redo()}
-                        className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
-                        title="Redo (Ctrl+Y)"
-                    >
-                        <Redo size={18} />
-                    </button>
-
-                    <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
-
-                    <button
-                        onClick={() => {
-                            if (parentShareMode === 'view') {
-                                alert("This note is view-only by the original owner's request.");
-                                return;
-                            }
-                            setIsLocked(!isLocked);
-                        }}
-                        className={`p-1.5 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 ${isLocked
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                            : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
-                            } ${parentShareMode === 'view' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        title={parentShareMode === 'view' ? "Locked by Owner" : isLocked ? "Unlock Note to Edit" : "Lock Note (Read-Only)"}
-                    >
-                        {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
-                    </button>
+                    {!isRevoked && (
+                        <>
+                            <button
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    editor?.chain().focus().undo().run();
+                                }}
+                                disabled={isLocked || !editor?.can().undo()}
+                                className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
+                                title="Undo (Ctrl+Z)"
+                            >
+                                <Undo size={18} />
+                            </button>
+        
+                            <button
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    editor?.chain().focus().redo().run();
+                                }}
+                                disabled={isLocked || !editor?.can().redo()}
+                                className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
+                                title="Redo (Ctrl+Y)"
+                            >
+                                <Redo size={18} />
+                            </button>
+        
+                            <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+        
+                            <button
+                                onClick={() => {
+                                    if (parentShareMode === 'view') {
+                                        alert("This note is view-only by the original owner's request.");
+                                        return;
+                                    }
+                                    setIsLocked(!isLocked);
+                                }}
+                                className={`p-1.5 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 ${isLocked
+                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                    : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
+                                    } ${parentShareMode === 'view' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title={parentShareMode === 'view' ? "Locked by Owner" : isLocked ? "Unlock Note to Edit" : "Lock Note (Read-Only)"}
+                            >
+                                {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
+                            </button>
+                        </>
+                    )}
 
                     <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] hidden sm:block mx-1" />
 
@@ -599,20 +635,30 @@ export default function NoteEditorPage() {
 
                         {showMoreMenu && (
                             <div className="absolute right-0 mt-2 w-56 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden z-[60]">
-                                <button
-                                    onClick={handleShare}
-                                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
-                                >
-                                    <Share2 size={16} />
-                                    Share &amp; Publish
-                                </button>
-                                <button
-                                    onClick={handleDownload}
-                                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
-                                >
-                                    <FileDown size={16} />
-                                    Download as Text
-                                </button>
+                                {/* Share & Publish — Only for Original Owners */}
+                                {!note?.original_note_id && (
+                                    <button
+                                        onClick={handleShare}
+                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
+                                    >
+                                        <Share2 size={16} />
+                                        Share &amp; Publish
+                                    </button>
+                                )}
+                                {!isRevoked && (
+                                    <button
+                                        onClick={handleDownloadPdf}
+                                        disabled={isDownloadingPdf}
+                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors border-t border-[#E8E5E0] dark:border-[#3A3A3A] disabled:opacity-50"
+                                    >
+                                        {isDownloadingPdf ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                        ) : (
+                                            <FileText size={16} />
+                                        )}
+                                        Download as PDF
+                                    </button>
+                                )}
                                 {/* Importers List — Only show if shared and I am owner */}
                                 {isOwner && shareMode !== 'private' && (
                                     <button
@@ -697,8 +743,40 @@ export default function NoteEditorPage() {
                 </div>
             </div>
 
+            {/* Access Revoked Overlay for Importers (Restored to Full Page) */}
+            {isRevoked && (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
+                    <div className="w-20 h-20 bg-[#F0EDE8] dark:bg-white/5 rounded-full flex items-center justify-center mb-6 text-[#7D7D7D] dark:text-[#BABABA] shadow-inner">
+                        <EyeOff size={40} />
+                    </div>
+                    
+                    {/* Show the original title as requested */}
+                    <div className="mb-4">
+                        <span className="text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-2.5 py-1 rounded-full uppercase tracking-widest mb-2 inline-block font-sans">Access Restricted</span>
+                        <h2 className="text-3xl font-extrabold text-[#252525] dark:text-white leading-tight">
+                            {title}
+                        </h2>
+                    </div>
+
+                    <p className="text-[#8B7E6D] dark:text-[#9E9E9E] max-w-sm mb-8 leading-relaxed text-sm">
+                        The owner of this note has restricted access or stopped sharing this content. 
+                        You can still view your local copy in your main library, but real-time updates and collaboration are currently paused.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button 
+                            onClick={() => router.push('/library')}
+                            className="px-6 py-3 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-xl font-semibold hover:opacity-90 transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <ArrowLeft size={18} />
+                            Back to Library
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Editor Area */}
-            <div className="flex-1 max-w-4xl mx-auto w-full px-6 pt-4 sm:pt-12 pb-[50vh] flex flex-col">
+            <div className={`flex-1 max-w-4xl mx-auto w-full px-6 pt-4 sm:pt-12 pb-[50vh] flex flex-col ${isRevoked ? 'hidden' : 'block'}`}>
                 <div className="flex items-center gap-4 mb-4 sm:mb-8">
                     <input
                         id="note-title-input"
@@ -719,6 +797,13 @@ export default function NoteEditorPage() {
                         placeholder="Note Title"
                         className="flex-1 w-full text-4xl sm:text-5xl font-bold bg-transparent border-none outline-none text-[#252525] dark:text-white placeholder-[#CFCFCF] dark:placeholder-[#545454]"
                     />
+
+                    {isRevoked && (
+                        <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-3 py-1.5 rounded-full shrink-0 animate-in fade-in duration-300 border border-[#E8E5E0] dark:border-white/10" title="Access Revoked">
+                            <EyeOff size={18} />
+                            <span className="text-[10px] font-bold hidden sm:inline uppercase tracking-wider">Private Access</span>
+                        </div>
+                    )}
 
                     <div className="relative">
                         <button
