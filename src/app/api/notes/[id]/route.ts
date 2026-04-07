@@ -11,10 +11,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const supabase = createClient(
-            process.env.SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/^"|"$/g, '');
+        const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim().replace(/^"|"$/g, '');
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data: user } = await supabase
             .from("users")
@@ -26,6 +26,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
+        // Fetch the main note and its parent (if any)
         const { data: note, error: noteError } = await (supabase
             .from("notes")
             .select(`
@@ -45,11 +46,60 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const isOwner = note.user_id === user.id;
         const parentShareMode = note.original_note?.share_mode;
         
-        // Return enriched note data with parent permissions
+        // Stabilized Importer Fetch: Get users who have cloned this note
+        let importers: any[] = [];
+        if (isOwner) {
+            // Step 1: Find all notes that cloned this note
+            const { data: clonedNotes, error: impError } = await supabase
+                .from("notes")
+                .select("user_id, created_at")
+                .eq("original_note_id", id)
+                .neq("user_id", user.id); // Exclude the owner
+            
+            if (impError) {
+                console.error("[Importers API] Note fetch error:", impError);
+            }
+
+            if (clonedNotes && clonedNotes.length > 0) {
+                // Step 2: Extract unique user IDs and map their import times
+                const importTimeMap: Record<string, string> = {};
+                clonedNotes.forEach(n => {
+                    if (!importTimeMap[n.user_id]) {
+                        importTimeMap[n.user_id] = n.created_at;
+                    }
+                });
+
+                const uniqueUserIds = Object.keys(importTimeMap);
+                
+                // Step 3: Fetch the user profiles directly
+                const { data: userProfiles, error: userError } = await supabase
+                    .from("users")
+                    .select("id, name, email, avatar_url")
+                    .in("id", uniqueUserIds);
+                    
+                if (userError) {
+                    console.error("[Importers API] User fetch error:", userError);
+                }
+
+                // Step 4: Map the profiles with their corresponding import time
+                importers = userProfiles?.map((profile: any) => ({
+                    id: profile.id,
+                    name: profile.name || profile.email || "Anonymous Importer",
+                    email: profile.email || "No Email Provided",
+                    image: profile.avatar_url || null,
+                    importedAt: importTimeMap[profile.id]
+                })) || [];
+            }
+            
+            console.log(`[Importers API] Found ${importers.length} total importers for note ${id}`);
+        }
+
+        // Return enriched note data with parent permissions and importers list
         return NextResponse.json({ 
             note, 
             isOwner,
-            parentShareMode: parentShareMode ?? null
+            parentShareMode: parentShareMode ?? null,
+            importers
         });
     } catch (error: unknown) {
         console.error("GET note error:", error);

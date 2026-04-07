@@ -65,26 +65,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing required fields: item_id, item_type, href" }, { status: 400 });
         }
 
-        // Explicitly delete any existing entry for this item first to avoid duplicates
-        // We delete by title (which is shared between a Note, its Exercise, and its Revision)
-        // This ensures the Recent Activity list only shows the single most recent interaction for a given material.
-        const itemTitle = title || "Untitled";
-        await supabase
-            .from("recent_activity")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("title", itemTitle);
-
-        // Insert as new, giving it the latest timestamp
+        // Insert or update securely, giving it the latest timestamp
+        // we use upsert matching the unique constraint in the db!
         const { error } = await supabase
             .from("recent_activity")
-            .insert({
+            .upsert({
                 user_id: user.id,
                 item_id,
                 item_type,
                 title: title || "Untitled",
                 href,
                 opened_at: new Date().toISOString(),
+            }, { 
+                onConflict: 'user_id, item_id, item_type' 
             });
 
         if (error) {

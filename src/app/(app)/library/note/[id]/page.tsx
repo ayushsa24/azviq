@@ -9,7 +9,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Share2, FileDown, Trash2, SmilePlus, PanelLeft, Globe, EyeOff, Copy, Check, Pencil } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Lock, Unlock, Download, Undo, Redo, MoreVertical, Users, Share2, FileDown, Trash2, SmilePlus, PanelLeft, Globe, EyeOff, Copy, Check, Pencil, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useDebouncedCallback } from "use-debounce";
 import dynamic from 'next/dynamic';
@@ -44,7 +44,10 @@ export default function NoteEditorPage() {
     const [note, setNote] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [importers, setImporters] = useState<any[]>([]);
+    const [showImporters, setShowImporters] = useState(false);
     const [saveError, setSaveError] = useState("");
+    const [isOwner, setIsOwner] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showSharePanel, setShowSharePanel] = useState(false);
@@ -64,6 +67,7 @@ export default function NoteEditorPage() {
     const titleRef = React.useRef(title);
     const isFetchingRef = React.useRef(true);
     const isOriginalUpdateRef = React.useRef(false); // Flag to prevent infinite loops during sync
+    const isLocalUpdateRef = React.useRef(false); // Flag to prevent UI jumping when typing
     const abortControllerRef = React.useRef<AbortController | null>(null);
 
     useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
@@ -187,6 +191,11 @@ export default function NoteEditorPage() {
         },
         onUpdate: ({ editor }) => {
             if (isFetchingRef.current || isOriginalUpdateRef.current) return;
+            
+            // Mark that we are actively typing locally
+            isLocalUpdateRef.current = true;
+            setTimeout(() => { isLocalUpdateRef.current = false; }, 2000); // 2s cooldown for sync
+
             // The owner should always be able to trigger a save unless they explicitly locked it for themselves.
             // Importers are controlled by the parentShareMode.
             if (isLocked && note?.original_note_id) return;
@@ -240,6 +249,8 @@ export default function NoteEditorPage() {
                 const { note: noteData } = data;
 
                 setNote(noteData);
+                setImporters(data.importers || []);
+                setIsOwner(data.isOwner);
                 titleRef.current = noteData.title;
                 setTitle(noteData.title);
                 setWorkspaceId(noteData.workspace_id);
@@ -303,8 +314,8 @@ export default function NoteEditorPage() {
                     // IF I am the owner: and some clone updated the source, I should sync
                     // IF I am a clone: and the owner updated the source, I should sync
                     
-                    // Skip if I am the one who just saved (identified by user_id)
-                    // Note: This requires payload.new to include user_id
+                    // CRITICAL: If I am currently typing, do NOT let the server overwrite my screen
+                    if (isLocalUpdateRef.current) return;
                     
                     // Mark this as an external update to avoid re-saving
                     isOriginalUpdateRef.current = true;
@@ -602,6 +613,19 @@ export default function NoteEditorPage() {
                                     <FileDown size={16} />
                                     Download as Text
                                 </button>
+                                {/* Importers List — Only show if shared and I am owner */}
+                                {isOwner && shareMode !== 'private' && (
+                                    <button
+                                        onClick={() => {
+                                            setShowImporters(true);
+                                            setShowMoreMenu(false);
+                                        }}
+                                        className="w-full h-10 flex items-center gap-2.5 px-4 py-2 text-sm text-[#545454] dark:text-[#A0A0A0] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] transition-colors border-t border-[#E8E5E0] dark:border-[#3A3A3A]"
+                                    >
+                                        <Users size={16} />
+                                        View Importers ({importers.length})
+                                    </button>
+                                )}
                                 <div className="h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
                                 <button
                                     onClick={handleDelete}
@@ -680,7 +704,7 @@ export default function NoteEditorPage() {
                         id="note-title-input"
                         type="text"
                         value={title}
-                        disabled={isLocked}
+                        disabled={isLocked || !!note?.original_note_id}
                         onChange={(e) => {
                             setTitle(e.target.value);
                             titleRef.current = e.target.value;
@@ -803,6 +827,76 @@ export default function NoteEditorPage() {
                     {mounted && <EditorContent editor={editor} className="h-full" />}
                 </div>
             </div>
+            {/* Importers Modal */}
+            {showImporters && (
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
+                    onClick={() => setShowImporters(false)}
+                >
+                    <div 
+                        className="bg-white dark:bg-[#252525] rounded-xl shadow-2xl w-full max-w-md border border-[#E8E5E0] dark:border-[#3A3A3A] overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-6 py-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A] flex justify-between items-center bg-[#F9F8F6] dark:bg-[#2A2A2A]">
+                            <h3 className="font-semibold text-[#252525] dark:text-white flex items-center gap-2">
+                                <Users size={18} className="text-[#8B7E6D]" />
+                                Note Importers
+                            </h3>
+                            <button 
+                                onClick={() => setShowImporters(false)}
+                                className="text-[#8B7E6D] hover:text-[#252525] dark:hover:text-white transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="max-h-[400px] overflow-y-auto p-2">
+                            {importers.length === 0 ? (
+                                <div className="py-12 text-center text-[#8B7E6D] text-sm italic">
+                                    No one has imported this note yet.
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {importers.map((imp) => (
+                                        <div 
+                                            key={imp.id} 
+                                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] transition-colors group"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-[#E8E5E0] dark:bg-[#4A4A4A] flex items-center justify-center overflow-hidden border border-[#D9D1C1] dark:border-[#545454]">
+                                                {imp.image ? (
+                                                    <img src={imp.image} alt={imp.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-xs font-bold text-[#8B7E6D]">
+                                                        {imp.name?.[0]?.toUpperCase() || imp.email?.[0]?.toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-[#252525] dark:text-white truncate">
+                                                    {imp.name || 'Anonymous User'}
+                                                </p>
+                                                <p className="text-xs text-[#8B7E6D] truncate">
+                                                    {imp.email}
+                                                </p>
+                                                {imp.importedAt && (
+                                                    <p className="text-[10px] text-[#A39686] dark:text-[#6D6D6D] mt-0.5">
+                                                        Imported on {new Date(imp.importedAt).toLocaleDateString()} at {new Date(imp.importedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" title="Connected" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="px-6 py-4 bg-[#F9F8F6] dark:bg-[#2A2A2A] border-t border-[#E8E5E0] dark:border-[#3A3A3A] text-[11px] text-[#8B7E6D] text-center italic">
+                            Importers can see your updates in real-time if sharing is enabled.
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

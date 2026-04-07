@@ -12,10 +12,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const supabase = createClient(
-            process.env.SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/^"|"$/g, '');
+        const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim().replace(/^"|"$/g, '');
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         // 1. Get the current user
         const { data: user, error: userError } = await supabase
@@ -39,21 +39,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             return NextResponse.json({ error: "Shared note not found" }, { status: 404 });
         }
 
-        // 3. Create the clone with a link to the original to enable collaborative permission sync
+        // 3. Create the clone with a link to the original to enable collaborative sync
+        const originalTitle = sharedNote.title || "Untitled Note";
+        const cleanTitle = originalTitle.startsWith("Imported: ") 
+            ? originalTitle 
+            : `Imported: ${originalTitle}`;
+
         const { data: newNote, error: insertError } = await supabase
             .from("notes")
             .insert({
                 user_id: user.id,
-                original_note_id: id,
-                title: `Imported: ${sharedNote.title}`,
+                title: cleanTitle,
                 content: sharedNote.content,
-                share_mode: "private",
-                is_public: false
+                original_note_id: id, // Use the ID from the URL path
+                share_mode: "private" // Clones are private by default
             })
             .select()
             .single();
 
-        if (insertError) throw insertError;
+        if (insertError) {
+            console.error("Import insert error:", insertError);
+            return NextResponse.json({ error: "Failed to create note clone" }, { status: 500 });
+        }
 
         return NextResponse.json({ success: true, noteId: newNote.id });
     } catch (err: unknown) {

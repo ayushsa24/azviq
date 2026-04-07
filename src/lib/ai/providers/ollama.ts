@@ -6,7 +6,8 @@
 
 import { AIMessage, AIRequestConfig, STYLE_TEMPERATURE } from "../types";
 
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
+const DEFAULT_MODEL = "qwen2:0.5b"; // Lightning fast for i7-8550U CPUs
 const OLLAMA_TIMEOUT_MS = 90000; // 90 second timeout
 
 /**
@@ -22,9 +23,12 @@ export async function callOllamaText(
   try {
     const response = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
       body: JSON.stringify({
-        model: config.model,
+        model: config.model || DEFAULT_MODEL,
         prompt,
         stream: false,
         options: { temperature: STYLE_TEMPERATURE[config.style] },
@@ -70,12 +74,20 @@ export async function callOllamaStream(
   try {
     response = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
       body: JSON.stringify({
-        model: config.model,
+        model: config.model || DEFAULT_MODEL,
         messages: ollamaMessages,
         stream: true,
-        options: { temperature: STYLE_TEMPERATURE[config.style] },
+        keep_alive: "5m", // Keep model in RAM for 5 minutes for faster sub-responses
+        options: {
+          temperature: STYLE_TEMPERATURE[config.style],
+          num_thread: 4,
+          num_predict: 512,
+        },
       }),
       signal: controller.signal,
     });
