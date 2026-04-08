@@ -31,6 +31,8 @@ export async function PATCH(
         if (body.repeat !== undefined) updates.repeat = body.repeat;
         if (body.custom_days !== undefined) updates.custom_days = body.custom_days;
         if (body.done !== undefined) updates.done = body.done;
+        if (body.linked_document_id !== undefined) updates.linked_document_id = body.linked_document_id || null;
+        if (body.linked_document_type !== undefined) updates.linked_document_type = body.linked_document_type || null;
 
         const { data: todo, error } = await supabase
             .from("todos")

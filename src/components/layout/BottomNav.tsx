@@ -10,6 +10,24 @@ export default function BottomNav() {
   const { theme } = useTheme();
   const pathname = usePathname();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  /* ── Detect if dynamic modal is open (via body lock) ── */
+  useEffect(() => {
+    const checkModal = () => {
+      // Modals in this app usually set body overflow to hidden
+      setIsModalOpen(document.body.style.overflow === "hidden");
+    };
+
+    // Use a MutationObserver to watch for body style changes
+    const observer = new MutationObserver(checkModal);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
+
+    // Also check on mount
+    checkModal();
+
+    return () => observer.disconnect();
+  }, []);
 
   /* ── Hide when mobile keyboard is visible ── */
   useEffect(() => {
@@ -33,7 +51,7 @@ export default function BottomNav() {
     };
   }, []);
 
-  const hidden = isKeyboardOpen;
+  const hidden = isKeyboardOpen || isModalOpen;
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },

@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         const body = await req.json();
-        const { title, note, time, repeat, custom_days } = body;
+        const { title, note, time, repeat, custom_days, linked_document_id, linked_document_type } = body;
 
         if (!title?.trim())
             return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -58,6 +58,8 @@ export async function POST(req: Request) {
                 repeat: repeat || "today",
                 custom_days: custom_days || [],
                 done: false,
+                linked_document_id: linked_document_id || null,
+                linked_document_type: linked_document_type || null,
             })
             .select()
             .single();

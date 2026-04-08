@@ -45,6 +45,7 @@ import {
   CheckCircle2,
   Crown
 } from "lucide-react";
+import { SharedLinksModal } from "./SharedLinksModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -119,10 +120,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
            pathname.includes("/settings/archivechat");
   });
   
-  const [linksType, setLinksType] = useState<"chat" | "note" | "archive">(() => {
+  const [linksType, setLinksType] = useState<"chat" | "note" | "archive" | "import">(() => {
     if (typeof window !== "undefined") {
       if (pathname.includes("/settings/notesharedlink")) return "note";
       if (pathname.includes("/settings/archivechat")) return "archive";
+      if (pathname.includes("/settings/importnotes")) return "import";
     }
     return "chat";
   });
@@ -131,19 +133,6 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: string | "all", title: string } | null>(null);
   const bulkMenuRef = useRef<HTMLDivElement>(null);
-
-  // Close bulk menu on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (bulkMenuRef.current && !bulkMenuRef.current.contains(e.target as Node)) {
-        setShowBulkMenu(false);
-      }
-    };
-    if (showBulkMenu) {
-      document.addEventListener("mousedown", handler);
-    }
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showBulkMenu]);
 
   // Handle mobile hardware back button to intuitively close the shared links popup
   useEffect(() => {
@@ -166,13 +155,15 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     showSharedLinks ? (
       linksType === "chat" ? "/api/share/chat" :
         linksType === "note" ? "/api/share/note" :
-          "/api/chat/history?archived=true"
+          linksType === "import" ? "/api/notes?imported=true&all=true" :
+            "/api/chat/history?archived=true"
     ) : null
   );
   const sharedLinks = (
     linksType === "chat" ? sharedLinksData?.links :
       linksType === "note" ? sharedLinksData?.notes :
-        sharedLinksData?.chats?.filter((c: any) => c.is_archived)
+        linksType === "import" ? sharedLinksData?.notes :
+          sharedLinksData?.chats?.filter((c: any) => c.is_archived)
   ) || [];
   const isLoadingLinks = !sharedLinksData && !sharedLinksError && showSharedLinks;
 
@@ -275,23 +266,26 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [loadingModels, setLoadingModels] = useState(false);
+
   // Fetch AI settings and subscription from Supabase when models tab opens
   useEffect(() => {
     if (activeTab === "models" && isOpen) {
-      // Fetch AI settings
-      fetch("/api/user/ai-settings")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.ai_model) setSelectedModel(data.ai_model);
-          if (data.response_style) setResponseStyle(data.response_style);
+      setLoadingModels(true);
+      // Fetch AI settings and subscription in parallel
+      Promise.all([
+        fetch("/api/user/ai-settings").then((r) => r.json()),
+        fetch("/api/user/subscription").then((r) => r.json())
+      ])
+        .then(([aiData, subData]) => {
+          if (aiData.ai_model) setSelectedModel(aiData.ai_model);
+          if (aiData.response_style) setResponseStyle(aiData.response_style);
+          setSubscription(subData);
         })
-        .catch(() => {});
-      
-      // Fetch subscription tier
-      fetch("/api/user/subscription")
-        .then((r) => r.json())
-        .then(setSubscription)
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          setLoadingModels(false);
+        });
     }
   }, [activeTab, isOpen]);
 
@@ -810,80 +804,89 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     </h3>
                     <p className="text-xs text-[#7D7D7D] mt-0.5">Configure your default workspace AI.</p>
                   </div>
-                  {subscription && (
-                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold border border-[#C2A27A]/20 bg-[#C2A27A]/10 text-[#C2A27A]`}>
-                      {subscription.plan_name.toUpperCase()}
-                    </div>
+                  {loadingModels ? (
+                    <Skeleton className="w-16 h-4 rounded" />
+                  ) : (
+                    subscription && (
+                      <div className={`px-2 py-0.5 rounded text-[10px] font-bold border border-[#C2A27A]/20 bg-[#C2A27A]/10 text-[#C2A27A]`}>
+                        {subscription.plan_name.toUpperCase()}
+                      </div>
+                    )
                   )}
                 </div>
 
                 <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
+                  {/* Active AI Model */}
                   <div className="flex flex-col gap-2 py-4" ref={dropdownRef}>
                     <h3 className="text-sm font-semibold">Active AI Model</h3>
-                    <div className="relative">
-                      {/* Dropdown Trigger */}
-                      <button
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all
-                          ${isDark ? "bg-[#252525] border-[#3A3A3A] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-[#C2A27A]" />
-                          <span className="font-medium">
-                            {AI_MODELS.find(m => m.value === selectedModel)?.label || "Select Model"}
-                          </span>
-                        </div>
-                        <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-90" : ""}`} />
-                      </button>
-
-                      {/* Dropdown Content */}
-                      {isDropdownOpen && (
-                        <div className={`absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border shadow-xl overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-2 duration-200
-                          ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-white border-[#E8E5E0]"}`}
+                    {loadingModels ? (
+                      <Skeleton className="h-12 w-full" />
+                    ) : (
+                      <div className="relative">
+                        {/* Dropdown Trigger */}
+                        <button
+                          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all
+                            ${isDark ? "bg-[#252525] border-[#3A3A3A] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"}`}
                         >
-                          {AI_MODELS.map((m) => {
-                            const userTier = subscription?.plan_tier ?? 0;
-                            const isLocked = m.minTier > userTier;
-                            const isSelected = selectedModel === m.value;
-                            
-                            return (
-                              <button
-                                key={m.value}
-                                onClick={() => {
-                                  if (!isLocked) {
-                                    setSelectedModel(m.value);
-                                    setIsDropdownOpen(false);
-                                    handleSaveModelSettings(m.value, responseStyle);
-                                  }
-                                }}
-                                className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors
-                                  ${isSelected 
-                                    ? isDark ? "bg-white/5" : "bg-black/5" 
-                                    : isLocked ? "opacity-40 cursor-not-allowed" : isDark ? "hover:bg-white/5" : "hover:bg-black/5"}`}
-                              >
-                                <div className="flex flex-col gap-0.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className={`text-xs font-semibold ${isSelected ? "text-[#C2A27A]" : ""}`}>{m.label}</span>
-                                    {m.minTier > 0 && (
-                                      <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase
-                                        ${m.minTier === 1 ? "bg-blue-500/10 text-blue-400" : "bg-amber-500/10 text-[#C2A27A]"}`}>
-                                        {m.badge}
-                                      </span>
-                                    )}
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-[#C2A27A]" />
+                            <span className="font-medium">
+                              {AI_MODELS.find(m => m.value === selectedModel)?.label || "Select Model"}
+                            </span>
+                          </div>
+                          <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-90" : ""}`} />
+                        </button>
+
+                        {/* Dropdown Content */}
+                        {isDropdownOpen && (
+                          <div className={`absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border shadow-xl overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-2 duration-200
+                            ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-white border-[#E8E5E0]"}`}
+                          >
+                            {AI_MODELS.map((m) => {
+                              const userTier = subscription?.plan_tier ?? 0;
+                              const isLocked = m.minTier > userTier;
+                              const isSelected = selectedModel === m.value;
+                              
+                              return (
+                                <button
+                                  key={m.value}
+                                  onClick={() => {
+                                    if (!isLocked) {
+                                      setSelectedModel(m.value);
+                                      setIsDropdownOpen(false);
+                                      handleSaveModelSettings(m.value, responseStyle);
+                                    }
+                                  }}
+                                  className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors
+                                    ${isSelected 
+                                      ? isDark ? "bg-white/5" : "bg-black/5" 
+                                      : isLocked ? "opacity-40 cursor-not-allowed" : isDark ? "hover:bg-white/5" : "hover:bg-black/5"}`}
+                                >
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs font-semibold ${isSelected ? "text-[#C2A27A]" : ""}`}>{m.label}</span>
+                                      {m.minTier > 0 && (
+                                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase
+                                          ${m.minTier === 1 ? "bg-blue-500/10 text-blue-400" : "bg-amber-500/10 text-[#C2A27A]"}`}>
+                                          {m.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] opacity-60 leading-tight">{m.desc}</span>
                                   </div>
-                                  <span className="text-[10px] opacity-60 leading-tight">{m.desc}</span>
-                                </div>
-                                {isLocked ? (
-                                  <Lock size={12} className="shrink-0 opacity-40" />
-                                ) : isSelected ? (
-                                  <Check size={14} className="shrink-0 text-[#C2A27A]" />
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                                  {isLocked ? (
+                                    <Lock size={12} className="shrink-0 opacity-40" />
+                                  ) : isSelected ? (
+                                    <Check size={14} className="shrink-0 text-[#C2A27A]" />
+                                  ) : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Response Style */}
@@ -891,104 +894,126 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     <h3 className="text-sm font-semibold">Response Style</h3>
                     <p className="text-xs text-[#7D7D7D] mb-1">Controls how the AI writes its answers.</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {(["balanced", "creative", "precise"] as const).map((style) => {
-                        const labels = { balanced: "Balanced", creative: "Creative", precise: "Precise" };
-                        const descs = { balanced: "Smart defaults", creative: "Imaginative", precise: "Exact & factual" };
-                        const isActive = responseStyle === style;
-                        return (
-                          <button
-                            key={style}
-                            onClick={() => {
-                              setResponseStyle(style);
-                              handleSaveModelSettings(selectedModel, style);
-                            }}
-                            className={`flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all active:scale-95 gap-1 ${
-                              isActive
-                                ? isDark ? "bg-[#C2A27A] text-white border-[#C2A27A]" : "bg-[#252525] text-white border-[#252525]"
-                                : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"
-                            }`}
-                          >
-                            <span>{labels[style]}</span>
-                            <span className="text-[9px] font-normal opacity-60">{descs[style]}</span>
-                          </button>
-                        );
-                      })}
+                      {loadingModels ? (
+                        <>
+                          <Skeleton className="h-14 w-full" />
+                          <Skeleton className="h-14 w-full" />
+                          <Skeleton className="h-14 w-full" />
+                        </>
+                      ) : (
+                        (["balanced", "creative", "precise"] as const).map((style) => {
+                          const labels = { balanced: "Balanced", creative: "Creative", precise: "Precise" };
+                          const descs = { balanced: "Smart defaults", creative: "Imaginative", precise: "Exact & factual" };
+                          const isActive = responseStyle === style;
+                          return (
+                            <button
+                              key={style}
+                              onClick={() => {
+                                setResponseStyle(style);
+                                handleSaveModelSettings(selectedModel, style);
+                              }}
+                              className={`flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all active:scale-95 gap-1 ${
+                                isActive
+                                  ? isDark ? "bg-[#C2A27A] text-white border-[#C2A27A]" : "bg-[#252525] text-white border-[#252525]"
+                                  : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"
+                              }`}
+                            >
+                              <span>{labels[style]}</span>
+                              <span className="text-[9px] font-normal opacity-60">{descs[style]}</span>
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
 
                   {/* Daily Quota & Usage */}
-                  {subscription?.usage && (
-                    <div className="flex flex-col gap-3 py-5 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
-                      <div className="flex items-center justify-between mb-1">
-                        <div>
-                          <h3 className="text-sm font-bold">Daily Quota & Usage</h3>
-                          <p className="text-[11px] text-[#7D7D7D]">Your remaining model requests for today</p>
-                        </div>
-                        {subscription.usage.chat.reset > 0 && (
-                          <div className={`px-2 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5
-                            ${isDark ? "bg-white/5 border-white/10 text-[#BABABA]" : "bg-black/5 border-black/5 text-[#545454]"}`}>
-                            <Clock className="w-3 h-3" />
-                            Refreshes in {Math.ceil((subscription.usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h
-                          </div>
-                        )}
+                  {loadingModels ? (
+                    <div className="flex flex-col gap-4 py-5 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
+                      <div className="flex justify-between items-center mb-1">
+                        <Skeleton className="h-10 w-48" />
+                        <Skeleton className="h-6 w-24" />
                       </div>
-
-                      <div className="grid grid-cols-1 gap-4 mt-1">
-                        {/* Chat Usage */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[11px] font-medium">
-                            <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>AI Chats</span>
-                            <span className="font-bold">
-                              {subscription.usage.chat.limit === Infinity ? "Unlimited" : `${subscription.usage.chat.remaining} / ${subscription.usage.chat.limit}`}
-                            </span>
-                          </div>
-                          {subscription.usage.chat.limit !== Infinity && (
-                            <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                              <div 
-                                className="h-full bg-[#C2A27A] transition-all duration-500" 
-                                style={{ width: `${(subscription.usage.chat.remaining / subscription.usage.chat.limit) * 100}%` }}
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Vision Usage */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[11px] font-medium">
-                            <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Vision & Images</span>
-                            <span className="font-bold">
-                                {subscription.usage.vision.limit === Infinity ? "Unlimited" : `${subscription.usage.vision.remaining} / ${subscription.usage.vision.limit}`}
-                            </span>
-                          </div>
-                          {subscription.usage.vision.limit !== Infinity && (
-                            <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                              <div 
-                                className="h-full bg-[#C2A27A] transition-all duration-500" 
-                                style={{ width: `${(subscription.usage.vision.remaining / subscription.usage.vision.limit) * 100}%` }}
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Exercise Usage */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[11px] font-medium">
-                            <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Exercise Generation</span>
-                            <span className="font-bold">
-                                {subscription.usage.exercise.limit === Infinity ? "Unlimited" : `${subscription.usage.exercise.remaining} / ${subscription.usage.exercise.limit}`}
-                            </span>
-                          </div>
-                          {subscription.usage.exercise.limit !== Infinity && (
-                            <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                              <div 
-                                className="h-full bg-[#C2A27A] transition-all duration-500" 
-                                style={{ width: `${(subscription.usage.exercise.remaining / subscription.usage.exercise.limit) * 100}%` }}
-                              />
-                            </div>
-                          )}
-                        </div>
+                      <div className="space-y-4">
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
                       </div>
                     </div>
+                  ) : (
+                    subscription?.usage && (
+                      <div className="flex flex-col gap-3 py-5 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
+                        <div className="flex items-center justify-between mb-1">
+                          <div>
+                            <h3 className="text-sm font-bold">Daily Quota & Usage</h3>
+                            <p className="text-[11px] text-[#7D7D7D]">Your remaining model requests for today</p>
+                          </div>
+                          {subscription.usage.chat.reset > 0 && (
+                            <div className={`px-2 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5
+                              ${isDark ? "bg-white/5 border-white/10 text-[#BABABA]" : "bg-black/5 border-black/5 text-[#545454]"}`}>
+                              <Clock className="w-3 h-3" />
+                              Refreshes in {Math.ceil((subscription.usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 mt-1">
+                          {/* Chat Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>AI Chats</span>
+                              <span className="font-bold">
+                                {subscription.usage.chat.limit === Infinity ? "Unlimited" : `${subscription.usage.chat.remaining} / ${subscription.usage.chat.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.chat.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.chat.remaining / subscription.usage.chat.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Vision Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Vision & Images</span>
+                              <span className="font-bold">
+                                  {subscription.usage.vision.limit === Infinity ? "Unlimited" : `${subscription.usage.vision.remaining} / ${subscription.usage.vision.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.vision.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.vision.remaining / subscription.usage.vision.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Exercise Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Exercise Generation</span>
+                              <span className="font-bold">
+                                  {subscription.usage.exercise.limit === Infinity ? "Unlimited" : `${subscription.usage.exercise.remaining} / ${subscription.usage.exercise.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.exercise.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.exercise.remaining / subscription.usage.exercise.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
                   )}
 
                   {/* Info Card */}
@@ -1056,6 +1081,22 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                         setLinksType("archive"); 
                         setShowSharedLinks(true); 
                         window.history.pushState(null, '', `/settings/archivechat?from=${encodeURIComponent(fromParam)}`);
+                      }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                        }`}
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Imported Notes */}
+                  <div className="flex items-center justify-between py-4">
+                    <span className="text-sm font-medium">Imported notes</span>
+                    <button
+                      onClick={() => { 
+                        setLinksType("import"); 
+                        setShowSharedLinks(true); 
+                        window.history.pushState(null, '', `/settings/importnotes?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                         }`}
@@ -1435,231 +1476,26 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         </div>
       </div>
 
-      {/* Shared Links Sub-Modal */}
-      {showSharedLinks && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 sm:p-4 overflow-y-auto scrollbar-hide">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => {
-            setShowSharedLinks(false);
-            window.history.pushState(null, '', `/settings?from=${encodeURIComponent(fromParam)}`);
-          }} />
-          <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl rounded-none sm:rounded-3xl shadow-2xl transition-colors overflow-hidden border-0 animate-in zoom-in-95 duration-200 flex flex-col my-auto ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"
-            }`}>
-            <div className="shrink-0 transition-all duration-200 bg-[#F5F3EF] dark:bg-[#1A1A1A]">
-              <div className={`flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#D1D1D1] dark:border-[#545454] bg-[#F5F3EF] dark:bg-transparent h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
-                <h3 className="text-lg font-bold sm:text-2xl">
-                  {linksType === "chat" ? "Chat Shared Links" :
-                    linksType === "note" ? "Note Shared Links" :
-                      "Archived Chats"}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowSharedLinks(false);
-                    window.history.pushState(null, '', `/settings?from=${encodeURIComponent(fromParam)}`);
-                  }}
-                  className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                  title="Close"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide relative">
-              <table className="w-full text-left border-collapse table-fixed">
-                <thead className={`sticky top-0 z-10 text-[11px] uppercase tracking-wider font-bold shadow-sm ${isDark ? "bg-[#1A1A1A] text-[#7D7D7D]" : "bg-[#F5F3EF] text-[#545454]"}`}>
-                  <tr className="border-b border-[#D1D1D1] dark:border-[#545454]">
-                    <th className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[40%] text-left`}>Name</th>
-                    <th className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[15%] hidden sm:table-cell text-center`}>Type</th>
-                    <th className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[30%] hidden sm:table-cell text-center`}>
-                      {linksType === "archive" ? "Date" : "Date shared"}
-                    </th>
-                    <th className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[15%] text-right pr-6 relative`}>
-                      {linksType !== "archive" && (
-                        <button
-                          onClick={() => setShowBulkMenu(!showBulkMenu)}
-                          className={`p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 ${showBulkMenu ? "bg-black/5 dark:bg-white/10" : ""}`}
-                        >
-                          <MoreHorizontal size={16} className="ml-auto" />
-                        </button>
-                      )}
-
-                      {/* Bulk Actions Menu (Just the trigger) */}
-                      {showBulkMenu && (
-                        <div
-                          ref={bulkMenuRef}
-                          className={`absolute top-full right-6 mt-1 w-48 rounded-2xl shadow-2xl z-[50] overflow-hidden border animate-in slide-in-from-top-2 duration-200 ${isDark ? "bg-[#1C1C1B] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"
-                            }`}
-                        >
-                          <div className="p-2">
-                            <button
-                              onClick={() => {
-                                setDeleteConfirmTarget({ id: "all", title: linksType === "archive" ? "All Archives" : "All Shared Links" });
-                                setShowBulkMenu(false);
-                              }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                            >
-                              <Trash2 size={14} />
-                              Delete All {linksType === "archive" ? "Archives" : "Links"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#333]/20 sm:divide-black/5 dark:divide-white/5">
-                  {isLoadingLinks ? (
-                    [...Array(5)].map((_, i) => (
-                      <tr key={i} className="animate-pulse border-b border-[#D1D1D1]/30 sm:border-black/5 dark:border-white/5 last:border-b-0">
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[40%]`}>
-                          <div className="flex flex-col gap-1.5">
-                            <div className="h-4 bg-black/5 dark:bg-white/5 rounded w-3/4"></div>
-                            <div className="h-3 bg-black/5 dark:bg-white/5 rounded w-1/2 sm:hidden mt-0.5"></div>
-                          </div>
-                        </td>
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[15%] hidden sm:table-cell text-center`}>
-                          <div className="h-5 bg-black/5 dark:bg-white/5 rounded-md w-14 mx-auto"></div>
-                        </td>
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[30%] hidden sm:table-cell text-center`}>
-                          <div className="h-3 bg-black/5 dark:bg-white/5 rounded w-20 mx-auto"></div>
-                        </td>
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[15%] text-right pr-6`}>
-                          <div className="flex justify-end gap-3 sm:gap-5">
-                            <div className="h-7 w-7 bg-black/5 dark:bg-white/5 rounded-lg"></div>
-                            <div className="h-7 w-7 bg-black/5 dark:bg-white/5 rounded-lg"></div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : sharedLinks.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-[#7D7D7D]">
-                        No {linksType === "archive" ? "archived chats" : "shared links"} found.
-                      </td>
-                    </tr>
-                  ) : (
-                    sharedLinks.map((link: any) => (
-                      <tr key={link.id} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-[#D1D1D1]/30 sm:border-black/5 dark:border-white/5 last:border-b-0`}>
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[40%] text-sm font-medium`}>
-                          <div className="flex flex-col gap-0.5">
-                            {linksType === "archive" ? (
-                                <a
-                                  href={`/ai/${link.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
-                                >
-                                <LinkIcon size={14} />
-                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
-                              </a>
-                            ) : (
-                              <a
-                                href={linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`}
-                                target="_blank"
-                                className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
-                              >
-                                <LinkIcon size={14} />
-                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
-                              </a>
-                            )}
-                            {/* Mobile-only date display */}
-                            <span className="text-[10px] text-[#7D7D7D] font-normal sm:hidden mt-1">
-                              {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                            </span>
-                          </div>
-                        </td>
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[15%] hidden sm:table-cell text-center`}>
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${isDark ? "bg-[#333] text-[#BABABA]" : "bg-[#E8E5E0] text-[#545454]"}`}>
-                            {linksType === "archive" ? "Archive" : (linksType === "chat" ? "Chat" : "Note")}
-                          </span>
-                        </td>
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[30%] text-xs text-[#7D7D7D] hidden sm:table-cell text-center`}>
-                          {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                        </td>
-                        <td className={`px-6 ${linksType === "archive" ? "py-4 sm:py-4" : "py-3 sm:py-2.5"} w-[15%] text-right pr-6`}>
-                          <div className="flex items-center justify-end gap-3 sm:gap-5">
-                            {linksType === "archive" ? (
-                              <button
-                                onClick={() => handleUnarchive(link.id)}
-                                disabled={revokingId === link.id}
-                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
-                                title="Unarchive chat"
-                              >
-                                {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <ArchiveRestore size={14} />}
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => window.open(linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`, '_blank')}
-                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
-                                title={`View ${linksType}`}
-                              >
-                                {linksType === "chat" ? <MessageSquare size={14} /> : <FileIcon2 size={14} />}
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => setDeleteConfirmTarget({ id: link.id, title: link.title || `Untitled ${linksType}` })}
-                              disabled={revokingId === link.id}
-                              className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-red-500/10 text-red-500 hover:text-red-600" : "hover:bg-red-50 text-red-500 hover:text-red-700"}`}
-                              title={`Delete ${linksType === "archive" ? "chat" : "link"}`}
-                            >
-                              {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            </div>
-          </div>
-        )}
-
-      {/* Centered Delete Confirmation Dialog */}
-      {deleteConfirmTarget && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in" onClick={() => setDeleteConfirmTarget(null)} />
-          <div className={`relative w-full max-w-[340px] rounded-3xl shadow-2xl p-6 border animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1C1C1B] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"
-            }`}>
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 group animate-bounce">
-                <Trash2 size={24} />
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-lg font-bold">Are you sure?</h4>
-                <p className="text-sm text-[#7D7D7D] leading-relaxed">
-                  Are you sure you want to {deleteConfirmTarget.id === "archive-all-history" ? "archive" : "delete"} <span className="text-red-500 font-bold">"{deleteConfirmTarget.title}"</span>? <br />{deleteConfirmTarget.id === "archive-all-history" ? "You can always unarchive them later." : "This action cannot be undone."}
-                </p>
-              </div>
-              <div className="flex flex-col w-full gap-2 pt-2">
-                <button
-                  onClick={() => {
-                    if (deleteConfirmTarget.id === "all") handleDeleteAll();
-                    else if (deleteConfirmTarget.id === "archive-all-history") handleArchiveAllHistory();
-                    else if (deleteConfirmTarget.id === "delete-all-archives") handleDeleteAllHistory();
-                    else handleRevokeLink(deleteConfirmTarget.id);
-                    setDeleteConfirmTarget(null);
-                  }}
-                  className={`w-full py-3 rounded-2xl text-white font-bold text-sm transition-all shadow-lg active:scale-95 ${
-                    deleteConfirmTarget.id === "archive-all-history" ? "bg-[#C2A27A] hover:bg-[#B19169]" : "bg-red-500 hover:bg-red-600"
-                  }`}
-                >
-                  {isBulkDeleting ? <Loader2 size={16} className="animate-spin mx-auto" /> : (deleteConfirmTarget.id === "archive-all-history" ? "YES, ARCHIVE" : "YES, DELETE")}
-                </button>
-                <button
-                  onClick={() => setDeleteConfirmTarget(null)}
-                  className={`w-full py-3 rounded-2xl font-bold text-sm transition-all ${isDark ? "hover:bg-[#2E2E2E] text-[#BABABA]" : "hover:bg-gray-100 text-[#7D7D7D]"
-                    }`}
-                >
-                  CANCEL
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <SharedLinksModal
+        showSharedLinks={showSharedLinks}
+        setShowSharedLinks={setShowSharedLinks}
+        linksType={linksType}
+        isDark={isDark}
+        fromParam={fromParam}
+        isLoadingLinks={isLoadingLinks}
+        sharedLinks={sharedLinks}
+        showBulkMenu={showBulkMenu}
+        setShowBulkMenu={setShowBulkMenu}
+        deleteConfirmTarget={deleteConfirmTarget}
+        setDeleteConfirmTarget={setDeleteConfirmTarget}
+        revokingId={revokingId}
+        isBulkDeleting={isBulkDeleting}
+        handleRevokeLink={handleRevokeLink}
+        handleUnarchive={handleUnarchive}
+        handleDeleteAll={handleDeleteAll}
+        handleArchiveAllHistory={handleArchiveAllHistory}
+        handleDeleteAllHistory={handleDeleteAllHistory}
+      />
     </div>
   );
 }

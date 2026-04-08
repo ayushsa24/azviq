@@ -46,7 +46,7 @@ export async function GET() {
 
         const { data: exercises, error: exercisesError } = await supabase
             .from("exercises")
-            .select(`*, notes ( title, file_url )`)
+            .select(`id, title, difficulty, status, score, time_taken, created_at, note_id, notes ( title, file_url )`)
             .eq("user_id", user.id)
             .order("created_at", { ascending: false });
 

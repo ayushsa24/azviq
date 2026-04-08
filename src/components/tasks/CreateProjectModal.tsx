@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -16,6 +17,14 @@ export function CreateProjectModal({
   const [colorTheme, setColorTheme] = useState("blue");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const themeColors = [
     { name: "blue", class: "bg-blue-500" },
@@ -25,8 +34,6 @@ export function CreateProjectModal({
     { name: "orange", class: "bg-orange-500" },
     { name: "gray", class: "bg-gray-500" },
   ];
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,73 +67,107 @@ export function CreateProjectModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#7D7D7D]/40 w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
-        >
-          <X size={20} />
-        </button>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[70] flex flex-col sm:justify-center sm:items-center px-0 sm:px-4">
+          {/* Backdrop */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/40 sm:backdrop-blur-sm"
+          />
 
-        <h2 className="text-xl font-bold text-[#252525] dark:text-white mb-6">
-          Create New Project
-        </h2>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-200 text-sm rounded-lg">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-1">
-              Project Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Science Fair"
-              className="w-full bg-[#F5F3EF] dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#545454] rounded-lg px-4 py-2 text-[#252525] dark:text-white focus:outline-none focus:border-[#7D7D7D] transition-colors"
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-2">
-              Color Theme
-            </label>
-            <div className="flex gap-3">
-              {themeColors.map((color) => (
-                <button
-                  key={color.name}
-                  type="button"
-                  onClick={() => setColorTheme(color.name)}
-                  className={`w-8 h-8 rounded-full ${color.class} ${colorTheme === color.name ? "ring-2 ring-offset-2 ring-black dark:ring-white dark:ring-offset-[#252525]" : "opacity-80 hover:opacity-100"} transition-all`}
-                  title={color.name}
-                />
-              ))}
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2.5 rounded-lg font-medium text-white dark:text-[#252525] bg-[#252525] dark:bg-white hover:bg-[#1A1A1A] dark:hover:bg-white/90 transition-colors flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
+          {/* Sheet/Modal Container */}
+          <motion.div
+            initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
+            exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
+            transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
+            drag={isMobile ? "y" : false}
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+                if (info.offset.y > 150) onClose();
+            }}
+            className="bg-[#F5F3EF] dark:bg-[#1A1A1A] w-full sm:max-w-md rounded-t-[20px] sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 p-6"
+            onClick={(e) => e.stopPropagation()}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="animate-spin mr-2" size={18} />
-                Creating...
-              </>
-            ) : (
-              "Create Project"
+            {/* Mobile Drag Handle */}
+            <div className="sm:hidden w-full flex justify-center pt-0 pb-6 cursor-grab active:cursor-grabbing">
+                <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700/50 rounded-full" />
+            </div>
+
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors p-1"
+            >
+              <X size={20} />
+            </button>
+
+            <h2 className="text-xl font-bold text-[#252525] dark:text-white mb-6">
+              Create New Project
+            </h2>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-xl flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                {error}
+              </div>
             )}
-          </button>
-        </form>
-      </div>
-    </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] mb-1.5 uppercase tracking-[0.1em]">
+                  Project Title
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Science Fair"
+                  className="w-full bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-xl px-4 py-3 text-sm text-[#252525] dark:text-white focus:outline-none focus:border-[#7D7D7D] transition-all shadow-sm"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] mb-3 uppercase tracking-[0.1em]">
+                  Color Theme
+                </label>
+                <div className="flex gap-4 flex-wrap">
+                  {themeColors.map((color) => (
+                    <button
+                      key={color.name}
+                      type="button"
+                      onClick={() => setColorTheme(color.name)}
+                      className={`w-9 h-9 rounded-full ${color.class} ${colorTheme === color.name ? "ring-2 ring-offset-2 ring-black dark:ring-white dark:ring-offset-[#1A1A1A]" : "opacity-80 hover:opacity-100"} transition-all shadow-sm`}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 rounded-xl font-bold text-white dark:text-[#252525] bg-[#252525] dark:bg-white hover:bg-black dark:hover:bg-white/90 transition-all flex justify-center items-center shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mb-2 sm:mb-0"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="spinner-elegant !w-3.5 !h-3.5 text-white dark:text-[#252525] mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  "Create Project"
+                )}
+              </button>
+            </form>
+          </motion.div>
+          <div className="h-[env(safe-area-inset-bottom,20px)] sm:hidden bg-[#F5F3EF] dark:bg-[#1A1A1A]" />
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -117,18 +117,32 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
             <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
                 {isLoading || (exercises.length > 0 && visibleCount === 0) ? (
                     Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className={`p-5 rounded-xl border flex flex-col gap-3 animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'}`}>
-                            <div className="flex items-start justify-between gap-2">
-                                <div className={`h-5 w-16 rounded ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                                <div className={`h-6 w-6 rounded-lg ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                            </div>
-                            <div className={`w-9 h-9 rounded-xl mt-2 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                            <div className={`h-5 w-3/4 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                            <div className={`h-3 w-1/2 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-
-                            <div className="mt-4 pt-4 border-t flex items-center justify-between border-gray-100 dark:border-[#545454]/30">
-                                <div className={`h-4 w-20 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                            </div>
+                        <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-3.5 gap-3 h-44'}`}>
+                            {isList ? (
+                                <>
+                                    <div className={`w-8 h-8 rounded-lg shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`} />
+                                    <div className="flex-1">
+                                        <div className={`h-4 w-3/4 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-3 w-1/4 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between">
+                                        <div className={`h-4 w-12 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-6 w-6 rounded-lg ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className={`h-4 w-full rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-4 w-2/3 rounded mt-1.5 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-3 w-1/2 rounded mt-3 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                    <div className="pt-2.5 border-t border-gray-100 dark:border-[#545454]/30 flex justify-between">
+                                        <div className={`h-3 w-16 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-5 w-10 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ))
                 ) : filtered.length === 0 ? (

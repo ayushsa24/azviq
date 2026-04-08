@@ -1564,43 +1564,6 @@ function AiChatCore() {
             </button>
           </div>
         )}
-        {/* Mobile Header Toggle */}
-        <div
-          className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b transition-colors duration-300 ease-in-out ${theme === "dark"
-            ? "bg-[#1A1A1A] border-[#545454]"
-            : "bg-[#F5F3EF] border-[#E8E5E0]"
-            }`}
-        >
-          <div className="flex items-center">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <span className="font-semibold text-sm truncate max-w-[150px]">
-              {activeChatId === "temp-chat"
-                ? "Temporary Chat"
-                : sessions.find((s) => s.id === activeChatId)?.title ||
-                "Chat History"}
-            </span>
-          </div>
-          <button
-            onClick={toggleTemporaryChat}
-            className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
-              ? theme === "dark"
-                ? "bg-[#333] text-white hover:bg-[#444]"
-                : "bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm"
-              : theme === "dark"
-                ? "text-gray-300 hover:bg-[#252525]"
-                : "text-[#545454] hover:bg-[#F0EDE8]"
-              }`}
-            title="Toggle Temporary Chat"
-          >
-            <Ghost className="w-5 h-5" />
-          </button>
-        </div>
-
         {/* Chat Bubbles Container */}
         <div
           ref={chatContainerRef}
@@ -1613,8 +1576,45 @@ function AiChatCore() {
               setShowScrollDown(!isNearBottom);
             }
           }}
-          className="absolute inset-0 overflow-y-auto overflow-x-hidden pt-20 pb-[100px] md:p-6 md:pb-[120px] space-y-4 md:space-y-6"
+          className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-hide md:scrollbar-default pb-[100px] md:p-6 md:pb-[120px] space-y-4 md:space-y-6"
         >
+          {/* Mobile Header Toggle - Moved inside for scroll-away effect */}
+          <div
+            className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b mb-2 transition-colors duration-300 ease-in-out ${theme === "dark"
+              ? "bg-[#1A1A1A] border-[#545454]"
+              : "bg-[#F5F3EF] border-[#E8E5E0]"
+              }`}
+          >
+            <div className="flex items-center">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <span className="font-semibold text-sm truncate max-w-[150px]">
+                {activeChatId === "temp-chat"
+                  ? "Temporary Chat"
+                  : sessions.find((s) => s.id === activeChatId)?.title ||
+                  "Chat History"}
+              </span>
+            </div>
+            <button
+              onClick={toggleTemporaryChat}
+              className={`p-2 rounded-lg transition-colors ${
+                activeChatId === "temp-chat"
+                  ? theme === "dark"
+                    ? "bg-[#333] text-white hover:bg-[#444]"
+                    : "bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm"
+                  : theme === "dark"
+                  ? "text-gray-300 hover:bg-[#252525]"
+                  : "text-[#545454] hover:bg-[#F0EDE8]"
+              }`}
+              title="Toggle Temporary Chat"
+            >
+              <Ghost className="w-5 h-5" />
+            </button>
+          </div>
           {isHistoryLoading && messages.length === 0 && urlChatId && urlChatId !== "temp-chat" ? (
             <div className="flex flex-col gap-10 px-4 md:px-0 max-w-4xl mx-auto w-full pt-10">
               {/* User Bubble Skeleton (Right aligned) */}
@@ -2043,7 +2043,6 @@ function AiChatCore() {
           <div ref={messagesEndRef} className="h-1 md:h-4" />
         </div>
 
-        {/* Input Dock */}
         {/* Input Dock */}
         <div className={`absolute bottom-0 left-0 w-full z-10 px-3 md:px-5 pb-1 md:pb-4 pt-1 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] via-[#161514] via-90% to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] via-[#F5F3EF] via-90% to-transparent'} ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
           {apiError && (

@@ -114,7 +114,7 @@ export async function GET() {
                 if (currentItems && currentItems.length > 0) {
                     const multiple_actions = currentItems.map((item) => ({
                         id: item.item_id,
-                        action_type: `/preparation?tab=exercise&id=${item.item_id}`,
+                        action_type: `/preparation/exercise/${item.item_id}`,
                         action_label: item.title,
                         status: item.status
                     }));

@@ -28,6 +28,7 @@ import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
 import { AITaskModal } from "@/components/tasks/AITaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
+import { AnimatePresence } from "framer-motion";
 
 export default function TasksPage() {
   const { data: tasksData, mutate: mutateTasks, isLoading: isTasksLoading } = useSWR("/api/tasks", fetcher);
@@ -64,6 +65,31 @@ export default function TasksPage() {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: "auto" });
     }
   }, []);
+
+  // Prevent background scrolling when any modal is open
+  useEffect(() => {
+    const isAnyModalOpen = !!(
+      selectedTask || 
+      selectedProject || 
+      selectedProjectTask || 
+      isProjectModalOpen || 
+      isAIModalOpen
+    );
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+      // Optional: Add a padding-right if the scrollbar disappears to prevent jump
+      // const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      // document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.overflow = 'unset';
+      // document.body.style.paddingRight = '0px';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedTask, selectedProject, selectedProjectTask, isProjectModalOpen, isAIModalOpen]);
   const [dateFilter, setDateFilter] = useState("");            // yyyy-mm-dd
   const [projectDropdownFilter, setProjectDropdownFilter] = useState("all"); // project id or 'all'
   const [showTaskFavorites, setShowTaskFavorites] = useState(false);
@@ -855,26 +881,32 @@ export default function TasksPage() {
         projects={projects}
       />
 
-      <TaskDetailModal
-        task={selectedTask}
-        onClose={() => setSelectedTask(null)}
-        projects={projects}
-        notes={notes}
-        workspaces={workspaces}
-        onTaskUpdated={handleTaskUpdated}
-      />
+      <AnimatePresence mode="wait">
+        {selectedTask && (
+          <TaskDetailModal
+            task={selectedTask}
+            onClose={() => setSelectedTask(null)}
+            projects={projects}
+            notes={notes}
+            workspaces={workspaces}
+            onTaskUpdated={handleTaskUpdated}
+          />
+        )}
 
-      <ProjectDetailModal
-        project={selectedProject}
-        onClose={() => { setSelectedProject(null); setSelectedProjectTask(null); }}
-        tasks={tasks}
-        notes={notes}
-        workspaces={workspaces}
-        onProjectUpdated={handleProjectUpdated}
-        onTaskUpdated={refetchData}
-        selectedTask={selectedProjectTask}
-        onSelectTask={setSelectedProjectTask}
-      />
+        {selectedProject && (
+          <ProjectDetailModal
+            project={selectedProject}
+            onClose={() => { setSelectedProject(null); setSelectedProjectTask(null); }}
+            tasks={tasks}
+            notes={notes}
+            workspaces={workspaces}
+            onProjectUpdated={handleProjectUpdated}
+            onTaskUpdated={refetchData}
+            selectedTask={selectedProjectTask}
+            onSelectTask={setSelectedProjectTask}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Project 3-dot dropdown — fixed so it escapes overflow scroll */}
       {/* Project/Task 3-dot dropdown — fixed so it escapes overflow scroll and auto-corrects position */}

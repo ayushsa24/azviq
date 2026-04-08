@@ -64,11 +64,52 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    const tickTimer = () => {
+      if (document.hidden) return; // Automatic pause when moving out
+      if (localStorage.getItem('study_timer_active') !== 'true') return;
+
+      const savedStudy = localStorage.getItem("dashboard_study_data");
+      if (savedStudy) {
+        try {
+          const parsed = JSON.parse(savedStudy);
+          // Helper to get local date string YYYY-MM-DD
+          const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+          
+          if (parsed.date === today) {
+            const nextElapsed = (parsed.elapsedSeconds || 0) + 1;
+            let shouldStop = false;
+            if (parsed.targetMinutes !== null && nextElapsed >= parsed.targetMinutes * 60) {
+              shouldStop = true;
+              localStorage.setItem('study_timer_active', 'false');
+              window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: false } }));
+            }
+            const updated = { ...parsed, elapsedSeconds: nextElapsed };
+            localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('study-timer-tick', { detail: { studyData: updated, isActive: !shouldStop } }));
+          } else {
+            const reset = { date: today, elapsedSeconds: 0, targetMinutes: null };
+            localStorage.setItem("dashboard_study_data", JSON.stringify(reset));
+            localStorage.setItem('study_timer_active', 'false');
+            window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: false } }));
+            window.dispatchEvent(new CustomEvent('study-timer-tick', { detail: { studyData: reset, isActive: false } }));
+          }
+        } catch (e) {}
+      }
+    };
+    const interval = setInterval(tickTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const fromParam = searchParams.get("from");
   const checkIsFullPage = (path: string, params: URLSearchParams | null) => {
     const isPdf = path.includes("/library/pdf/");
     const isNote = path.includes("/library/note/");
-    const isPrep = path.includes("/preparation") && !!params?.get("id") && (params?.get("tab") === "exercise" || params?.get("tab") === "revision");
+    const isPrep = path.includes("/preparation") && (
+      (!!params?.get("id") && (params?.get("tab") === "exercise" || params?.get("tab") === "revision")) ||
+      path.includes("/preparation/exercise/") ||
+      path.includes("/preparation/revision/")
+    );
     return isPdf || isNote || isPrep;
   };
 
@@ -90,19 +131,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={`h-[100dvh] overflow-hidden flex flex-col transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'} ${theme === 'dark' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>
-
-      {/* Header: mobile only on Dashboard, hidden on desktop */}
-      {isDashboard && (
-        <div className="md:hidden">
-          <Header 
-            open={open} 
-            onMenuClick={toggle} 
-            onTrashClick={() => setIsTrashOpen(true)} 
-            onProfileClick={() => setIsProfileOpen(true)}
-            onUpgradeClick={() => setIsPricingOpen(true)}
-          />
-        </div>
-      )}
 
       {mounted && (!isFullPageLayer ? (
         <Sidebar
@@ -152,9 +180,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       )}
 
       <main className={`
-        ${isDashboard
-          ? 'pt-[calc(3.25rem+env(safe-area-inset-top,0px))] md:pt-0'
-          : isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-[env(safe-area-inset-top,0px)] md:pt-0'}
+        ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0 md:pt-0'}
         flex flex-col overflow-hidden transition-all duration-300 ease-in-out
         ${open ? 'md:pl-56' : 'md:pl-0'}
         ${isKeyboardOpen || isFullPageLayer ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} flex-1 min-h-0

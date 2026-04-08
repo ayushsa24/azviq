@@ -11,11 +11,21 @@ import DashboardTasks from "./DashboardTasks";
 import AiSuggestions from "./AiSuggestions";
 import StudyConsistency from "./StudyConsistency";
 import { Session } from "next-auth";
+import Header from "@/components/layout/Header";
+import { useSidebar } from "@/contexts/SidebarContext";
+import TrashModal from "@/components/layout/TrashModal";
+import ProfileModal from "@/components/layout/ProfileModal";
+import PricingModal from "../PricingModal";
+import { useState } from "react";
 
 export default function DashboardWrapper({ session }: { session: Session }) {
   const { user, isLoading } = useUser();
-  
-  if (isLoading) return null; // Or a skeleton
+  const { open, toggle } = useSidebar();
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
+
+  if (isLoading) return null;
 
   // Extract first name: 
   // 1. Prioritize database full name from UserContext
@@ -35,12 +45,25 @@ export default function DashboardWrapper({ session }: { session: Session }) {
 
   return (
     <div className="flex flex-col h-full bg-transparent dark:bg-[#1A1A1A] text-[#252525] dark:text-white overflow-hidden transition-colors">
-      <div className="flex-1 w-full overflow-y-auto min-h-0">
+      <div className="flex-1 w-full overflow-y-auto min-h-0 scrollbar-hide md:scrollbar-default">
+        <div className="md:hidden sticky top-0 z-[100] w-full">
+          <Header 
+            variant="sticky"
+            open={open}
+            onMenuClick={toggle}
+            onTrashClick={() => setIsTrashOpen(true)}
+            onProfileClick={() => setIsProfileOpen(true)}
+            onUpgradeClick={() => setIsPricingOpen(true)}
+          />
+        </div>
+
         <div className="w-full flex flex-col pt-1.5 sm:pt-4 lg:pt-6 px-3 sm:px-6">
 
           {/* 1. Greeting, Motivation, Date */}
           <GreetingHeader userName={userName}>
-            <SidebarToggleButton />
+            <div className="hidden md:block">
+              <SidebarToggleButton />
+            </div>
           </GreetingHeader>
 
           {/* 2. Ask AI Prompt Bar */}
@@ -76,6 +99,11 @@ export default function DashboardWrapper({ session }: { session: Session }) {
 
         </div>
       </div>
+
+      {/* Global Modals for Dashboard Context */}
+      <TrashModal isOpen={isTrashOpen} onClose={() => setIsTrashOpen(false)} />
+      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <PricingModal open={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
     </div>
   );
 }

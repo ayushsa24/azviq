@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, Trash2, Clock, FileText, HelpCircle, Key, Search } from "lucide-react";
+import { BookOpen, Trash2, Clock, FileText, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
@@ -209,7 +209,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                         <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
                                             <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(rev.created_at)}</span>
                                             <span className="font-bold text-[#252525] dark:text-white">
-                                                {rev.keywords?.length || 0} keywords · {rev.qa_pairs?.length || 0} Q&A
+                                                Revision
                                             </span>
                                         </div>
                                     </div>
@@ -256,7 +256,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <span className={`text-[10px] font-bold ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
-                                                    {rev.keywords?.length || 0} keywords · {rev.qa_pairs?.length || 0} Q&A
+                                                    Tap to study
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1 mt-0.5 text-[10px] text-[#BABABA]">

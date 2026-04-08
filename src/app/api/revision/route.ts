@@ -31,7 +31,7 @@ export async function GET() {
 
         const { data: revisions, error } = await supabase
             .from("revisions")
-            .select("*, notes(title)")
+            .select("id, title, created_at, note_id, notes(title)")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false });
 

@@ -11,7 +11,21 @@ import { signOut, useSession } from "next-auth/react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useRouter } from "next/navigation";
 
-export default function Header({ onMenuClick, open, onTrashClick, onProfileClick, onUpgradeClick }: { onMenuClick: () => void; open: boolean; onTrashClick?: () => void; onProfileClick?: () => void; onUpgradeClick?: () => void }) {
+export default function Header({ 
+  onMenuClick, 
+  open, 
+  onTrashClick, 
+  onProfileClick, 
+  onUpgradeClick,
+  variant = "fixed"
+}: { 
+  onMenuClick: () => void; 
+  open: boolean; 
+  onTrashClick?: () => void; 
+  onProfileClick?: () => void; 
+  onUpgradeClick?: () => void;
+  variant?: "fixed" | "sticky" | "relative"
+}) {
   const router = useRouter();
   const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
@@ -40,7 +54,7 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
   };
 
   return (
-    <header className={`h-[calc(3.25rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(env(safe-area-inset-top,0px)+8px)] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out fixed z-50 ${theme === 'dark'
+    <header className={`h-[calc(3.25rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(env(safe-area-inset-top,0px)+8px)] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out ${variant} z-50 ${theme === 'dark'
       ? 'bg-[#1A1A1A] border-[#545454]'
       : 'bg-[#F5F3EF] border-[#E8E5E0]'
       } ${open
@@ -143,7 +157,13 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
                   Trash Bin
                 </button>
                 <button
-                  onClick={() => { setDropdownOpen(false); router.push("/settings"); }}
+                  onClick={() => { 
+                    setDropdownOpen(false); 
+                    const currentFullUrl = window.location.pathname + window.location.search;
+                    const newUrl = `/settings?from=${encodeURIComponent(currentFullUrl)}`;
+                    window.history.pushState(null, '', newUrl);
+                    openSettings(); 
+                  }}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
                     ? 'text-[#CFCFCF] hover:bg-[#545454]'
                     : 'text-[#545454] hover:bg-[#F0EDE8]'

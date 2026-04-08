@@ -504,19 +504,23 @@ export default function NoteEditorPage() {
     if (isLoading) {
         return (
             <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] transition-colors">
-                {/* Skeleton Header */}
+                {/* Clean Loading Header */}
                 <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A]">
-                    <div className="flex items-center gap-3">
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <Skeleton className="w-24 h-4 rounded-md" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
-                        <Skeleton className="w-20 h-8 rounded-md" />
+                    <div className="flex items-center gap-1 sm:gap-3">
+                        {!sidebarOpen && (
+                            <button
+                                onClick={toggleSidebar}
+                                className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300"
+                            >
+                                <PanelLeft size={20} />
+                            </button>
+                        )}
+                        <button
+                            onClick={() => router.back()}
+                            className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
                     </div>
                 </div>
 
@@ -547,7 +551,7 @@ export default function NoteEditorPage() {
         <div className="flex flex-col h-full overflow-y-auto bg-[#F5F3EF] dark:bg-[#1A1A1A] transition-colors relative">
 
             {/* Top Navigation Bar */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A] transition-colors">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 pt-2 pb-2.5 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A] transition-colors">
                 <div className="flex items-center gap-1 sm:gap-3">
                     {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
                     {!sidebarOpen && (

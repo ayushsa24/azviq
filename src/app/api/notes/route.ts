@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const workspaceId = url.searchParams.get("workspace_id");
     const all = url.searchParams.get("all") === "true";
+    const imported = url.searchParams.get("imported") === "true";
 
     // Fetch notes with original share status
     let query = supabase
@@ -30,11 +31,19 @@ export async function GET(req: Request) {
       .select(`
         *,
         original_note:original_note_id (
-          share_mode
+          share_mode,
+          user:user_id (
+            full_name,
+            email
+          )
         )
       `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
+
+    if (imported) {
+      query = query.not("original_note_id", "is", null);
+    }
 
     if (!all) {
       if (workspaceId) {

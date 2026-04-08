@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
     X,
     FolderOpen,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { motion, useDragControls } from "framer-motion";
 
 interface TaskDetailModalProps {
     task: any | null;
@@ -36,16 +37,46 @@ export function TaskDetailModal({
     const [isSaving, setIsSaving] = useState(false);
     const [isMaterialDropdownOpen, setIsMaterialDropdownOpen] = useState(false);
     const [materialSearchQuery, setMaterialSearchQuery] = useState("");
+    const [isMobile, setIsMobile] = useState(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const materialDropdownRef = useRef<HTMLDivElement>(null);
+    const dragControls = useDragControls();
+    const [scrollTop, setScrollTop] = useState(0);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 640);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         if (task) {
+            document.body.style.overflow = "hidden";
             setLocalTask({ ...task });
         } else {
+            document.body.style.overflow = "";
             setLocalTask(null);
         }
+        return () => {
+            document.body.style.overflow = "";
+        };
     }, [task]);
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (materialDropdownRef.current && !materialDropdownRef.current.contains(event.target as Node)) {
+                setIsMaterialDropdownOpen(false);
+            }
+        };
 
+        if (isMaterialDropdownOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isMaterialDropdownOpen]);
 
     const hasChanged = localTask && task && (
         localTask.title !== task.title ||
@@ -73,8 +104,8 @@ export function TaskDetailModal({
                     linked_document_type: localTask.linked_document_type,
                 }),
             });
-            onTaskUpdated(localTask); // refresh lists quietly in background and supply the optimistic update
-            onClose(); // close the modal to see the task moved
+            onTaskUpdated(localTask); 
+            onClose(); 
         } catch (err) {
             console.error("Failed to update task", err);
         } finally {
@@ -87,8 +118,6 @@ export function TaskDetailModal({
     const handleUpdateField = (field: string, value: any) => {
         setLocalTask((prev: any) => {
             const updated = { ...prev, [field]: value };
-
-            // Auto assign linked_document_type if linked_document_id changes
             if (field === "linked_document_id" && value) {
                 const note = notes.find((n) => n.id === value);
                 updated.linked_document_type = note?.file_url ? "pdf" : "note";
@@ -100,19 +129,43 @@ export function TaskDetailModal({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-[60] flex flex-col sm:justify-center sm:items-center bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-black/40 sm:dark:bg-black/40 sm:backdrop-blur-sm pt-[env(safe-area-inset-top,0px)] sm:pt-0 sm:px-4 sm:py-6"
-            onClick={onClose}
-        >
-            {/* Notion-style Page Container */}
-            <div
-                className="bg-[#F5F3EF] dark:bg-[#1A1A1A] sm:bg-[#F5F3EF] sm:dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl overflow-y-auto flex flex-col shadow-none sm:shadow-2xl relative scrollbar-hide border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454]"
+        <div className="fixed inset-0 z-[300] flex flex-col sm:justify-center sm:items-center">
+            {/* Backdrop */}
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                onClick={onClose}
+                className="absolute inset-0 bg-black/40 sm:backdrop-blur-sm pointer-events-none sm:pointer-events-auto"
+                style={{ WebkitTapHighlightColor: "transparent" }}
+            />
+
+            {/* Sheet/Modal Container */}
+            <motion.div
+                initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
+                animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
+                exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
+                transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
+                drag={isMobile ? "y" : false}
+                dragConstraints={{ top: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(_, info) => {
+                    if (info.offset.y > 100 || info.velocity.y > 500) {
+                        onClose();
+                    }
+                }}
+                className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] w-full ${isMobile ? 'h-[95vh]' : 'h-auto max-h-[90vh]'} sm:max-w-3xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* Mobile Drag Handle */}
+                <div className="sm:hidden w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
+                    <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700/50 rounded-full" />
+                </div>
+
                 {/* Top Control Bar */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 sm:bg-[#F5F3EF]/95 sm:dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] sm:border-[#E8E5E0] dark:border-[#3A3A3A]">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div className="flex items-center gap-2 min-w-0 pr-4">
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate max-w-[200px] sm:max-w-[400px]">
+                        <span className="text-xs font-bold text-[#252525] dark:text-gray-200 truncate max-w-[200px] sm:max-w-[400px]">
                             {localTask.title || "Untitled Task"}
                         </span>
                         {hasChanged && (
@@ -140,40 +193,26 @@ export function TaskDetailModal({
                     </div>
                 </div>
 
-                <div className="px-4 sm:px-10 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:pb-6 flex-1 w-full">
+                <div 
+                    ref={scrollContainerRef} 
+                    onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                    onPointerDown={(e) => {
+                        if (isMobile && scrollTop <= 0) {
+                            dragControls.start(e);
+                        }
+                    }}
+                    className="px-4 sm:px-10 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:pb-6 flex-1 w-full overflow-y-auto overscroll-behavior-contain custom-scrollbar">
                     {/* Title Area */}
                     <input
                         type="text"
-                        value={localTask.title}
+                        value={localTask.title || ""}
                         onChange={(e) => handleUpdateField("title", e.target.value)}
                         placeholder="Untitled Task"
                         className="w-full text-4xl sm:text-5xl font-bold text-gray-900 dark:text-gray-100 bg-transparent outline-none placeholder-gray-300 dark:placeholder-gray-700 mb-6"
                     />
 
                     {/* Properties Grid */}
-                    <div className="space-y-3 mb-6">
-                        {/* Project */}
-                        <div className="grid grid-cols-3 items-center gap-4 group">
-                            <div className="flex items-center gap-2 text-gray-500 text-sm font-medium col-span-1">
-                                <FolderOpen className="w-4 h-4 text-gray-400" />
-                                <span>Project</span>
-                            </div>
-                            <div className="col-span-2">
-                                <select
-                                    value={localTask.project_id || ""}
-                                    onChange={(e) => handleUpdateField("project_id", e.target.value || null)}
-                                    className="bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-1 -ml-1 rounded transition-colors w-full cursor-pointer"
-                                >
-                                    <option value="">Empty</option>
-                                    {projects.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.title}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
+                    <div className="space-y-3 mb-8 max-w-2xl">
                         {/* Status */}
                         <div className="grid grid-cols-3 items-center gap-4 group">
                             <div className="flex items-center gap-2 text-gray-500 text-sm font-medium col-span-1">
@@ -182,7 +221,7 @@ export function TaskDetailModal({
                             </div>
                             <div className="col-span-2 flex items-center">
                                 <select
-                                    value={localTask.status}
+                                    value={localTask.status || "not_started"}
                                     onChange={(e) => handleUpdateField("status", e.target.value)}
                                     className={`text-sm font-medium outline-none p-1 -ml-1 rounded transition-colors w-fit cursor-pointer appearance-none ${localTask.status === "in_progress"
                                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
@@ -204,13 +243,33 @@ export function TaskDetailModal({
                             </div>
                         </div>
 
+                        {/* Project */}
+                        <div className="grid grid-cols-3 items-center gap-4 group">
+                            <div className="flex items-center gap-2 text-gray-500 text-sm font-medium col-span-1">
+                                <FolderOpen className="w-4 h-4 text-gray-400" />
+                                <span>Project</span>
+                            </div>
+                            <div className="col-span-2">
+                                <select
+                                    value={localTask.project_id || ""}
+                                    onChange={(e) => handleUpdateField("project_id", e.target.value || null)}
+                                    className="bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-1 -ml-1 rounded transition-colors w-full cursor-pointer appearance-none"
+                                >
+                                    <option value="">No Project</option>
+                                    {projects.map((p) => (
+                                        <option key={p.id} value={p.id}>{p.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
                         {/* Due Date */}
                         <div className="grid grid-cols-3 items-center gap-4 group">
                             <div className="flex items-center gap-2 text-gray-500 text-sm font-medium col-span-1">
                                 <Calendar className="w-4 h-4 text-gray-400" />
-                                <span>By Day</span>
+                                <span>Due Date</span>
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-2 relative flex items-center">
                                 <input
                                     type="date"
                                     value={localTask.due_date ? new Date(localTask.due_date).toISOString().split('T')[0] : ""}
@@ -218,36 +277,30 @@ export function TaskDetailModal({
                                         const dateVal = e.target.value ? new Date(e.target.value).toISOString() : null;
                                         handleUpdateField("due_date", dateVal);
                                     }}
-                                    className="bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-1 -ml-1 rounded transition-colors"
+                                    className={`bg-transparent text-sm font-medium outline-none p-1 -ml-1 rounded transition-colors w-full cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 ${!localTask.due_date ? "text-transparent" : "text-gray-700 dark:text-gray-300"}`}
                                 />
+                                {!localTask.due_date && (
+                                    <span className="absolute left-0 text-sm font-medium text-gray-400 dark:text-gray-500 pointer-events-none">
+                                        dd-mm-yyyy
+                                    </span>
+                                )}
                             </div>
                         </div>
 
-                        {/* Created Timestamp (Read Only) */}
-                        <div className="grid grid-cols-3 items-center gap-4 group">
-                            <div className="flex items-center gap-2 text-gray-500 text-sm font-medium col-span-1">
-                                <Clock className="w-4 h-4 text-gray-400" />
-                                <span>Created</span>
-                            </div>
-                            <div className="col-span-2 text-sm text-gray-700 dark:text-gray-300 p-1 -ml-1">
-                                {localTask.created_at ? format(new Date(localTask.created_at), "MMMM d, yyyy h:mm a") : "Just now"}
-                            </div>
-                        </div>
-
-                        {/* Note/PDF Link */}
+                        {/* Material (Notes/PDFs) */}
                         <div className="grid grid-cols-3 items-center gap-4 group">
                             <div className="flex items-center gap-2 text-gray-500 text-sm font-medium col-span-1">
                                 <FileText className="w-4 h-4 text-gray-400" />
-                                <span>Study Material</span>
+                                <span>Material</span>
                             </div>
                             <div className="col-span-2 flex items-center gap-2">
-                                <div className="relative w-full">
+                                <div ref={materialDropdownRef} className="relative flex-1 min-w-0">
                                     <button
                                         type="button"
                                         onClick={() => setIsMaterialDropdownOpen(!isMaterialDropdownOpen)}
-                                        className="flex items-center justify-between bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-2 rounded-lg transition-colors w-full cursor-pointer border border-[#E8E5E0] dark:border-[#545454]"
+                                        className="flex items-center justify-between bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-2 rounded-lg transition-colors w-full cursor-pointer border border-[#E8E5E0] dark:border-[#545454] min-w-0"
                                     >
-                                        <span className="truncate">
+                                        <span className="truncate flex-1 text-left">
                                             {localTask.linked_document_id ? (() => {
                                                 const n = notes.find(note => note.id === localTask.linked_document_id);
                                                 if (!n) return "Empty";
@@ -259,7 +312,7 @@ export function TaskDetailModal({
                                     </button>
 
                                     {isMaterialDropdownOpen && (
-                                        <div className="absolute top-11 right-0 sm:left-0 sm:right-auto w-[260px] sm:w-[350px] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-lg shadow-xl z-50 flex flex-col max-h-[250px] overflow-hidden">
+                                        <div className="absolute top-11 right-0 sm:left-0 sm:right-auto w-full sm:w-[350px] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-lg shadow-xl z-50 flex flex-col max-h-[250px] overflow-hidden">
                                             <div className="p-2 border-b border-[#E8E5E0] dark:border-[#444] bg-gray-50 dark:bg-[#1A1A1A]">
                                                 <div className="relative">
                                                     <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -366,7 +419,7 @@ export function TaskDetailModal({
                         />
                     </div>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 }

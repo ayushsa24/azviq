@@ -202,17 +202,8 @@ export default function SharedNotePage() {
     if (isLoading) {
         return (
             <div className="flex flex-col h-full min-h-screen bg-[#F5F3EF] dark:bg-[#161514] transition-colors">
-                {/* Skeleton Header */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-8 py-3 bg-[#F5F3EF]/80 dark:bg-[#161514]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2E2A26]">
-                    <div className="flex items-center gap-3">
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                        <Skeleton className="w-32 h-4 rounded-md" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Skeleton className="w-20 h-6 rounded-full" />
-                        <Skeleton className="w-8 h-8 rounded-full" />
-                    </div>
-                </div>
+                {/* Clean Loading Header */}
+                <div className="sticky top-0 z-10 h-[52px] bg-[#F5F3EF]/80 dark:bg-[#161514]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2E2A26]" />
 
                 {/* Skeleton Content */}
                 <div className="flex flex-col items-center w-full">

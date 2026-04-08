@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { CheckCircle2, BookOpen, Play, Pause, RotateCcw, X } from "lucide-react";
+import { CheckCircle2, BookOpen, Play, Pause, RotateCcw, X, Target } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import useSWR from "swr";
 
@@ -10,6 +10,7 @@ export default function DashboardStats() {
     const isDark = theme === "dark";
     const [tasksDue, setTasksDue] = useState(0);
     const [revisionsDue, setRevisionsDue] = useState(0);
+    const [weakTopics, setWeakTopics] = useState(0);
 
     const getTodayString = () => new Date().toISOString().split('T')[0];
 
@@ -27,7 +28,8 @@ export default function DashboardStats() {
     const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR('/api/tasks');
     const { data: suggestionData, isLoading: suggestionLoading, mutate: mutateSuggestions } = useSWR('/api/suggestions');
 
-    const isLoading = (tasksLoading && !tasksData) || (suggestionLoading && !suggestionData);
+    const isLoadingTasks = tasksLoading && !tasksData;
+    const isLoadingSuggestions = suggestionLoading && !suggestionData;
 
     useEffect(() => {
         const calculateStats = () => {
@@ -49,6 +51,10 @@ export default function DashboardStats() {
                 const revisionCard = (suggestionData.suggestions || []).find((s: any) => s.suggestion_type === "spaced_revision");
                 const count = revisionCard?.multiple_actions?.filter((act: any) => act.status === 'active').length || 0;
                 setRevisionsDue(count);
+
+                const weakCard = (suggestionData.suggestions || []).find((s: any) => s.suggestion_type === "weak_topic");
+                const weakCount = weakCard?.multiple_actions?.filter((act: any) => act.status === 'active').length || 0;
+                setWeakTopics(weakCount);
             }
         };
 
@@ -83,22 +89,37 @@ export default function DashboardStats() {
     }, []);
 
     useEffect(() => {
-        let interval: any;
-        if (isActive) {
-            interval = setInterval(() => {
-                setStudyData((prev) => {
-                    const nextElapsed = prev.elapsedSeconds + 1;
-                    if (prev.targetMinutes !== null && nextElapsed >= prev.targetMinutes * 60) {
-                        setIsActive(false);
-                    }
-                    const updated = { ...prev, elapsedSeconds: nextElapsed };
-                    localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
-                    return updated;
-                });
-            }, 1000);
-        }
-        return () => clearInterval(interval);
+        setIsActive(localStorage.getItem('study_timer_active') === 'true');
+
+        const handleTick = (e: any) => {
+            setStudyData(e.detail.studyData);
+            if (!e.detail.isActive && isActive) {
+                setIsActive(false);
+            }
+        };
+
+        const handleState = (e: any) => {
+            setIsActive(e.detail.isActive);
+        };
+
+        window.addEventListener('study-timer-tick', handleTick);
+        window.addEventListener('study-timer-state', handleState);
+        return () => {
+            window.removeEventListener('study-timer-tick', handleTick);
+            window.removeEventListener('study-timer-state', handleState);
+        };
     }, [isActive]);
+
+    useEffect(() => {
+        if (showPicker) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [showPicker]);
 
     const handlePlayClick = () => {
         if (studyData.targetMinutes === null) {
@@ -106,19 +127,29 @@ export default function DashboardStats() {
             const [hours, mins] = goalInput.split(':').map(Number);
             const totalMins = (hours || 0) * 60 + (mins || 0);
             if (totalMins > 0) {
-                setStudyData(prev => ({ ...prev, targetMinutes: totalMins }));
+                const newData = { ...studyData, targetMinutes: totalMins };
+                setStudyData(newData);
+                localStorage.setItem("dashboard_study_data", JSON.stringify(newData));
                 setIsActive(true);
+                localStorage.setItem('study_timer_active', 'true');
+                window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: true } }));
             }
         } else {
-            setIsActive(!isActive);
+            const nextActive = !isActive;
+            setIsActive(nextActive);
+            localStorage.setItem('study_timer_active', nextActive ? 'true' : 'false');
+            window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: nextActive } }));
         }
     };
 
     const handleResetGoal = () => {
-        setStudyData({ date: getTodayString(), elapsedSeconds: 0, targetMinutes: null });
+        const reset = { date: getTodayString(), elapsedSeconds: 0, targetMinutes: null };
+        setStudyData(reset);
         setIsActive(false);
         setGoalInput("00:00");
-        localStorage.setItem("dashboard_study_data", JSON.stringify({ date: getTodayString(), elapsedSeconds: 0, targetMinutes: null }));
+        localStorage.setItem("dashboard_study_data", JSON.stringify(reset));
+        localStorage.setItem('study_timer_active', 'false');
+        window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: false } }));
     };
 
     const openPicker = () => {
@@ -151,7 +182,7 @@ export default function DashboardStats() {
     };
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Study Time Tracker — Loads instantly as it's local */}
             <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 relative z-20 ${isDark
                 ? "hover:bg-white/10 hover:border-[#444]"
@@ -162,12 +193,9 @@ export default function DashboardStats() {
                     <p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Study Time Today</p>
                     <div className="flex items-center mt-1">
                         {studyData.targetMinutes === null ? (
-                            <input
-                                type="time"
-                                value={goalInput}
-                                onChange={(e) => setGoalInput(e.target.value)}
-                                className="bg-transparent text-[1.65rem] font-bold text-[#252525] dark:text-white border-none outline-none focus:ring-0 p-0 m-0 w-[80px] cursor-pointer relative z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
-                            />
+                            <div className="text-[1.65rem] font-bold text-[#252525] dark:text-white cursor-pointer select-none tracking-wider" onClick={openPicker}>
+                                {goalInput}
+                            </div>
                         ) : (
                             <h3 className={`text-2xl font-bold ${Math.max(0, studyData.targetMinutes * 60 - studyData.elapsedSeconds) === 0 ? "text-[#545454] dark:text-[#BABABA]" : "text-[#252525] dark:text-white"}`}>
                                 {formatTime(Math.max(0, studyData.targetMinutes * 60 - studyData.elapsedSeconds))}
@@ -210,42 +238,130 @@ export default function DashboardStats() {
                 </div>
             </div>
 
-            {/* Dashboard Stats — show loading or real data */}
-            {isLoading ? (
+            {/* Tasks Due — desktop only */}
+            {isLoadingTasks ? (
+                <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse hidden sm:block"></div>
+            ) : (
+                <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/10" : "hover:bg-[#F9F8F6] shadow-md"}`}>
+                    <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Tasks Due</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDue}</h3></div>
+                    <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" /></div>
+                </div>
+            )}
+
+            {/* Suggestions (Revision Due & Weak Topics) — desktop/laptop only */}
+            {isLoadingSuggestions ? (
                 <>
                     <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse hidden sm:block"></div>
-                    <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse"></div>
+                    <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse hidden lg:block"></div>
                 </>
             ) : (
                 <>
-                    {/* Tasks Done — desktop only */}
-                    <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/10" : "hover:bg-[#F9F8F6] shadow-md"}`}>
-                        <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Tasks Due</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDue}</h3></div>
-                        <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" /></div>
-                    </div>
-
                     {/* Revision Due — desktop only */}
                     <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/10" : "hover:bg-[#F9F8F6] shadow-md"}`}>
                         <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Revision Due</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{revisionsDue}</h3></div>
                         <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center"><BookOpen className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" /></div>
                     </div>
 
-                    {/* Combined for mobile */}
-                    <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[88px]`}>
-                        <p className="text-xs font-semibold text-[#545454] dark:text-[#BABABA] mb-2">Today&apos;s Due</p>
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-[#E8E5E0] dark:bg-[#3C3C3C] flex items-center justify-center"><CheckCircle2 className="w-3 h-3 text-[#545454] dark:text-[#BABABA]" /></div><span className="text-xs text-[#7D7D7D] dark:text-[#BABABA]">Tasks</span></div>
-                                <span className="text-lg font-bold text-[#252525] dark:text-white">{tasksDue}</span>
-                            </div>
-                            <div className="h-px bg-[#E8E5E0] dark:bg-[#383838]" />
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-[#E8E5E0] dark:bg-[#3C3C3C] flex items-center justify-center"><BookOpen className="w-3 h-3 text-[#545454] dark:text-[#BABABA]" /></div><span className="text-xs text-[#7D7D7D] dark:text-[#BABABA]">Revision</span></div>
-                                <span className="text-lg font-bold text-[#252525] dark:text-white">{revisionsDue}</span>
-                            </div>
+                    {/* Weak Topics — laptop only */}
+                    <div className={`hidden lg:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/10" : "hover:bg-[#F9F8F6] shadow-md"}`}>
+                        <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Weak Topics</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{weakTopics}</h3></div>
+                        <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
+                            <Target className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" />
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Combined for mobile */}
+            {isLoadingTasks || isLoadingSuggestions ? (
+                <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse sm:hidden"></div>
+            ) : (
+                <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[88px]`}>
+                    <p className="text-xs font-semibold text-[#545454] dark:text-[#BABABA] mb-2">Today&apos;s Due</p>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-[#E8E5E0] dark:bg-[#3C3C3C] flex items-center justify-center"><CheckCircle2 className="w-3 h-3 text-[#545454] dark:text-[#BABABA]" /></div><span className="text-xs text-[#7D7D7D] dark:text-[#BABABA]">Tasks</span></div>
+                            <span className="text-lg font-bold text-[#252525] dark:text-white">{tasksDue}</span>
+                        </div>
+                        <div className="h-px bg-[#E8E5E0] dark:bg-[#383838]" />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-[#E8E5E0] dark:bg-[#3C3C3C] flex items-center justify-center"><BookOpen className="w-3 h-3 text-[#545454] dark:text-[#BABABA]" /></div><span className="text-xs text-[#7D7D7D] dark:text-[#BABABA]">Revision</span></div>
+                            <span className="text-lg font-bold text-[#252525] dark:text-white">{revisionsDue}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Duration Modal */}
+            {showPicker && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowPicker(false)}>
+                    <div 
+                        className="bg-white dark:bg-[#1A1A1A] w-[300px] rounded-3xl p-5 shadow-2xl border border-[#E8E5E0] dark:border-[#333] flex flex-col animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-[#252525] dark:text-white">Study Goal</h3>
+                            <button onClick={() => setShowPicker(false)} className="text-[#545454] dark:text-[#BABABA] bg-transparent border-none hover:opacity-70 transition-opacity">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex items-center justify-center gap-6 text-xl h-[160px] relative">
+                            {/* Selected highlight bar */}
+                            <div className="absolute top-[50%] left-0 right-0 h-[40px] -translate-y-1/2 bg-[#F0EDE8] dark:bg-[#333] rounded-xl pointer-events-none -z-10" />
+                            
+                            <div className="flex flex-col items-center h-full">
+                                <span className="text-xs text-[#7D7D7D] dark:text-[#BABABA] mb-1 font-semibold uppercase tracking-wider">Hours</span>
+                                <div 
+                                    id="picker-hour-scroll" 
+                                    className="w-16 flex-1 overflow-y-auto snap-y snap-mandatory scrollbar-hide relative"
+                                    onScroll={(e) => {
+                                        const top = e.currentTarget.scrollTop;
+                                        const index = Math.round(top / 40);
+                                        if (index >= 0 && index < 24 && pickerHours !== index) setPickerHours(index);
+                                    }}
+                                >
+                                    <div className="h-[50px]" />
+                                    {Array.from({ length: 24 }).map((_, i) => (
+                                        <div key={`h-${i}`} className={`h-[40px] flex items-center justify-center font-bold text-[22px] snap-center transition-colors ${pickerHours === i ? 'text-[#252525] dark:text-white' : 'text-[#A0A0A0] dark:text-[#545454]'}`}>
+                                            {i.toString().padStart(2, '0')}
+                                        </div>
+                                    ))}
+                                    <div className="h-[50px]" />
+                                </div>
+                            </div>
+                            <span className="text-2xl font-bold text-[#545454] dark:text-[#545454] relative z-10 pt-[25px]">:</span>
+                            <div className="flex flex-col items-center h-full">
+                                <span className="text-xs text-[#7D7D7D] dark:text-[#BABABA] mb-1 font-semibold uppercase tracking-wider">Mins</span>
+                                <div 
+                                    id="picker-min-scroll" 
+                                    className="w-16 flex-1 overflow-y-auto snap-y snap-mandatory scrollbar-hide relative"
+                                    onScroll={(e) => {
+                                        const top = e.currentTarget.scrollTop;
+                                        const index = Math.round(top / 40);
+                                        if (index >= 0 && index < 60 && pickerMins !== index) setPickerMins(index);
+                                    }}
+                                >
+                                    <div className="h-[50px]" />
+                                    {Array.from({ length: 60 }).map((_, i) => (
+                                        <div key={`m-${i}`} className={`h-[40px] flex items-center justify-center font-bold text-[22px] snap-center transition-colors ${pickerMins === i ? 'text-[#252525] dark:text-white' : 'text-[#A0A0A0] dark:text-[#545454]'}`}>
+                                            {i.toString().padStart(2, '0')}
+                                        </div>
+                                    ))}
+                                    <div className="h-[50px]" />
+                                </div>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                setGoalInput(`${(pickerHours || 0).toString().padStart(2, '0')}:${(pickerMins || 0).toString().padStart(2, '0')}`);
+                                setShowPicker(false);
+                            }}
+                            className="mt-6 w-full py-3.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-2xl font-bold text-[15px] hover:opacity-90 active:scale-[0.98] transition-all relative z-10"
+                        >
+                            Set Goal
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );

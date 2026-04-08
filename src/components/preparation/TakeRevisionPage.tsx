@@ -153,7 +153,7 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
         <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
 
             {/* Top bar */}
-            <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? "border-[#333] bg-[#1A1A1A]" : "border-[#E8E5E0] bg-[#F5F3EF]"}`}>
+            <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-2 sm:pt-2.5 pb-2.5 border-b shrink-0 ${isDark ? "border-[#333] bg-[#1A1A1A]" : "border-[#E8E5E0] bg-[#F5F3EF]"}`}>
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}
