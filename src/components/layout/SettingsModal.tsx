@@ -46,6 +46,7 @@ import {
   Crown
 } from "lucide-react";
 import { SharedLinksModal } from "./SharedLinksModal";
+import { ImportersModal } from "../modals/ImportersModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -120,17 +121,19 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
            pathname.includes("/settings/archivechat");
   });
   
-  const [linksType, setLinksType] = useState<"chat" | "note" | "archive" | "import">(() => {
+  const [linksType, setLinksType] = useState<"chat" | "note" | "archive" | "import" | "import-chat">(() => {
     if (typeof window !== "undefined") {
       if (pathname.includes("/settings/notesharedlink")) return "note";
       if (pathname.includes("/settings/archivechat")) return "archive";
       if (pathname.includes("/settings/importnotes")) return "import";
+      if (pathname.includes("/settings/importchats")) return "import-chat";
     }
     return "chat";
   });
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [importerModalData, setImporterModalData] = useState<{ type: "chat" | "note", id: string } | null>(null);
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: string | "all", title: string } | null>(null);
   const bulkMenuRef = useRef<HTMLDivElement>(null);
 
@@ -156,14 +159,16 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       linksType === "chat" ? "/api/share/chat" :
         linksType === "note" ? "/api/share/note" :
           linksType === "import" ? "/api/notes?imported=true&all=true" :
-            "/api/chat/history?archived=true"
+            linksType === "import-chat" ? "/api/chat/history?imported=true&all=true" :
+              "/api/chat/history?archived=true"
     ) : null
   );
   const sharedLinks = (
     linksType === "chat" ? sharedLinksData?.links :
       linksType === "note" ? sharedLinksData?.notes :
         linksType === "import" ? sharedLinksData?.notes :
-          sharedLinksData?.chats?.filter((c: any) => c.is_archived)
+          linksType === "import-chat" ? sharedLinksData?.chats :
+            sharedLinksData?.chats?.filter((c: any) => c.is_archived)
   ) || [];
   const isLoadingLinks = !sharedLinksData && !sharedLinksError && showSharedLinks;
 
@@ -1073,14 +1078,14 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     </button>
                   </div>
 
-                  {/* Archived Chats */}
+                  {/* Imported chats */}
                   <div className="flex items-center justify-between py-4">
-                    <span className="text-sm font-medium">Archived chats</span>
+                    <span className="text-sm font-medium">Imported chats</span>
                     <button
                       onClick={() => { 
-                        setLinksType("archive"); 
+                        setLinksType("import-chat"); 
                         setShowSharedLinks(true); 
-                        window.history.pushState(null, '', `/settings/archivechat?from=${encodeURIComponent(fromParam)}`);
+                        window.history.pushState(null, '', `/settings/importchats?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                         }`}
@@ -1097,6 +1102,22 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                         setLinksType("import"); 
                         setShowSharedLinks(true); 
                         window.history.pushState(null, '', `/settings/importnotes?from=${encodeURIComponent(fromParam)}`);
+                      }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                        }`}
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Archived chats */}
+                  <div className="flex items-center justify-between py-4">
+                    <span className="text-sm font-medium">Archived chats</span>
+                    <button
+                      onClick={() => { 
+                        setLinksType("archive"); 
+                        setShowSharedLinks(true); 
+                        window.history.pushState(null, '', `/settings/archivechat?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                         }`}
@@ -1127,14 +1148,6 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     </button>
                   </div>
 
-                  {/* Export Data */}
-                  <div className="flex items-center justify-between py-3.5">
-                    <span className="text-sm font-medium">Export data</span>
-                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                      }`}>
-                      Export
-                    </button>
-                  </div>
                 </div>
               </div>
             )}
@@ -1495,6 +1508,17 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         handleDeleteAll={handleDeleteAll}
         handleArchiveAllHistory={handleArchiveAllHistory}
         handleDeleteAllHistory={handleDeleteAllHistory}
+        onViewImporters={(type, id) => {
+          setImporterModalData({ type, id });
+        }}
+      />
+
+      <ImportersModal 
+        isOpen={!!importerModalData}
+        onClose={() => setImporterModalData(null)}
+        type={importerModalData?.type || "chat"}
+        id={importerModalData?.id || ""}
+        theme={theme}
       />
     </div>
   );

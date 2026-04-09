@@ -57,6 +57,7 @@ export default function SharedChatPage() {
         localStorage.setItem("import_shared_chat", JSON.stringify({
             title: shared.title,
             messages: shared.messages,
+            original_shared_chat_id: id // Store the shared chat ID as original
         }));
         const destination = "/ai?from_share=1";
         if (status === "authenticated") {

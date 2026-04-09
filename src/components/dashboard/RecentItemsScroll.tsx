@@ -35,7 +35,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function RecentItemsScroll() {
-    const { data, isLoading } = useSWR("/api/recent-activity");
+    const { data, isLoading, error } = useSWR("/api/recent-activity");
     const items = (data?.items || []) as RecentItem[];
     const [navigatingId, setNavigatingId] = useState<string | null>(null);
     const router = useRouter();

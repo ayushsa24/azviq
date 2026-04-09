@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface SharedLinksModalProps {
   showSharedLinks: boolean;
   setShowSharedLinks: (show: boolean) => void;
-  linksType: "chat" | "note" | "archive" | "import";
+  linksType: "chat" | "note" | "archive" | "import" | "import-chat";
   isDark: boolean;
   fromParam: string;
   isLoadingLinks: boolean;
@@ -35,6 +35,7 @@ interface SharedLinksModalProps {
   handleDeleteAll: () => void;
   handleArchiveAllHistory: () => void;
   handleDeleteAllHistory: () => void;
+  onViewImporters?: (type: "chat" | "note", id: string) => void;
 }
 
 export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
@@ -55,7 +56,8 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
   handleUnarchive,
   handleDeleteAll,
   handleArchiveAllHistory,
-  handleDeleteAllHistory
+  handleDeleteAllHistory,
+  onViewImporters
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bulkMenuRef = useRef<HTMLDivElement>(null);
@@ -146,6 +148,8 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                     ? "Note Shared Links"
                     : linksType === "import"
                     ? "Imported Notes"
+                    : linksType === "import-chat"
+                    ? "Imported Chats"
                     : "Archived Chats"}
                 </h3>
                 <button
@@ -167,7 +171,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                     <th className={`px-6 ${rowPy} w-[40%] text-left`}>Name</th>
                     <th className={`px-6 ${rowPy} w-[15%] hidden sm:table-cell text-center`}>Type</th>
                     <th className={`px-6 ${rowPy} w-[30%] hidden sm:table-cell text-center`}>
-                      {linksType === "archive" ? "Date" : "Date shared"}
+                      {linksType === "archive" ? "Date" : (linksType === "import" || linksType === "import-chat") ? "Date imported" : "Date shared"}
                     </th>
                     <th className={`px-6 ${rowPy} w-[15%] text-right pr-6 relative`}>
                       {linksType !== "archive" && (
@@ -256,7 +260,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                   ) : sharedLinks.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-6 py-12 text-center text-sm text-[#7D7D7D]">
-                        No {linksType === "archive" ? "archived chats" : linksType === "import" ? "imported notes" : "shared links"} found.
+                        No {linksType === "archive" ? "archived chats" : (linksType === "import" || linksType === "import-chat") ? "imported items" : "shared links"} found.
                       </td>
                     </tr>
                   ) : (
@@ -281,7 +285,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                             ) : linksType === "import" ? (
                               <div className="flex flex-col gap-0.5">
                                 <a
-                                  href={`/ai?noteId=${link.id}`}
+                                  href={`/library/note/${link.id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
@@ -292,13 +296,31 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                                 {link.original_note?.user && (
                                   <span className="text-[10px] text-[#7D7D7D] flex items-center gap-1 ml-5">
                                     <Users size={10} />
-                                    Imported from {link.original_note.user.full_name || link.original_note.user.email}
+                                    Imported from {link.original_note.user.name || link.original_note.user.email}
+                                  </span>
+                                )}
+                              </div>
+                            ) : linksType === "import-chat" ? (
+                              <div className="flex flex-col gap-0.5">
+                                <a
+                                  href={`/ai/${link.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
+                                >
+                                  <LinkIcon size={14} />
+                                  <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                                </a>
+                                {link.original_shared_chat?.users && (
+                                  <span className="text-[10px] text-[#7D7D7D] flex items-center gap-1 ml-5">
+                                    <Users size={10} />
+                                    Imported from {link.original_shared_chat.users.name || link.original_shared_chat.users.email}
                                   </span>
                                 )}
                               </div>
                             ) : (
                               <a
-                                href={linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`}
+                                href={linksType === "chat" ? `/ai/${link.chat_id}` : `/library/note/${link.id}`}
                                 target="_blank"
                                 className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
                               >
@@ -343,25 +365,25 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                               >
                                 {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <ArchiveRestore size={14} />}
                               </button>
-                            ) : linksType === "import" ? (
+                            ) : (linksType === "import" || linksType === "import-chat") && (
                               <button
-                                onClick={() => window.open(`/ai?noteId=${link.id}`, "_blank")}
+                                onClick={() => window.open(linksType === "import" ? `/library/note/${link.id}` : `/ai/${link.id}`, "_blank")}
                                 className={`p-1.5 rounded-lg transition-all hover:scale-110
                                   ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
-                                title="Open note"
+                                title={linksType === "import" ? "Open note" : "Open chat"}
                               >
-                                <ExternalLink size={14} />
+                                {linksType === "import" ? <ExternalLink size={14} /> : <MessageSquare size={14} />}
                               </button>
-                            ) : (
+                            )}
+
+                            {onViewImporters && (linksType === "chat" || linksType === "note") && (
                               <button
-                                onClick={() => window.open(
-                                  linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`, "_blank"
-                                )}
+                                onClick={() => onViewImporters(linksType, linksType === "chat" ? link.chat_id : link.id)}
                                 className={`p-1.5 rounded-lg transition-all hover:scale-110
                                   ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
-                                title={`View ${linksType}`}
+                                title={`View ${linksType === "chat" ? "Chat" : "Note"} Importers`}
                               >
-                                {linksType === "chat" ? <MessageSquare size={14} /> : <FileIcon2 size={14} />}
+                                <Users size={14} />
                               </button>
                             )}
 

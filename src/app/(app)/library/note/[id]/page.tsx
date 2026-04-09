@@ -30,6 +30,7 @@ import { logRecentActivity } from '@/lib/logRecentActivity';
 import { useStudyTracker } from '@/hooks/useStudyTracker';
 import { useSidebar } from "@/contexts/SidebarContext";
 import { supabase as supabaseClient } from "@/lib/supabase";
+import { ImportersModal } from "@/components/modals/ImportersModal";
 
 const lowlight = createLowlight(all)
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -917,75 +918,13 @@ export default function NoteEditorPage() {
                 </div>
             </div>
             {/* Importers Modal */}
-            {showImporters && (
-                <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
-                    onClick={() => setShowImporters(false)}
-                >
-                    <div 
-                        className="bg-white dark:bg-[#252525] rounded-xl shadow-2xl w-full max-w-md border border-[#E8E5E0] dark:border-[#3A3A3A] overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="px-6 py-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A] flex justify-between items-center bg-[#F9F8F6] dark:bg-[#2A2A2A]">
-                            <h3 className="font-semibold text-[#252525] dark:text-white flex items-center gap-2">
-                                <Users size={18} className="text-[#8B7E6D]" />
-                                Note Importers
-                            </h3>
-                            <button 
-                                onClick={() => setShowImporters(false)}
-                                className="text-[#8B7E6D] hover:text-[#252525] dark:hover:text-white transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        
-                        <div className="max-h-[400px] overflow-y-auto p-2">
-                            {importers.length === 0 ? (
-                                <div className="py-12 text-center text-[#8B7E6D] text-sm italic">
-                                    No one has imported this note yet.
-                                </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    {importers.map((imp) => (
-                                        <div 
-                                            key={imp.id} 
-                                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] transition-colors group"
-                                        >
-                                            <div className="w-10 h-10 rounded-full bg-[#E8E5E0] dark:bg-[#4A4A4A] flex items-center justify-center overflow-hidden border border-[#D9D1C1] dark:border-[#545454]">
-                                                {imp.image ? (
-                                                    <img src={imp.image} alt={imp.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="text-xs font-bold text-[#8B7E6D]">
-                                                        {imp.name?.[0]?.toUpperCase() || imp.email?.[0]?.toUpperCase()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-[#252525] dark:text-white truncate">
-                                                    {imp.name || 'Anonymous User'}
-                                                </p>
-                                                <p className="text-xs text-[#8B7E6D] truncate">
-                                                    {imp.email}
-                                                </p>
-                                                {imp.importedAt && (
-                                                    <p className="text-[10px] text-[#A39686] dark:text-[#6D6D6D] mt-0.5">
-                                                        Imported on {new Date(imp.importedAt).toLocaleDateString()} at {new Date(imp.importedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" title="Connected" />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        
-                        <div className="px-6 py-4 bg-[#F9F8F6] dark:bg-[#2A2A2A] border-t border-[#E8E5E0] dark:border-[#3A3A3A] text-[11px] text-[#8B7E6D] text-center italic">
-                            Importers can see your updates in real-time if sharing is enabled.
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ImportersModal
+                isOpen={showImporters}
+                onClose={() => setShowImporters(false)}
+                type="note"
+                id={id}
+                theme={typeof document !== 'undefined' && document.documentElement.className.includes('dark') ? 'dark' : 'light'}
+            />
         </div>
     );
 }

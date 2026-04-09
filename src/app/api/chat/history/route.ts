@@ -23,14 +23,26 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const archivedOnly = searchParams.get("archived") === "true";
     const allChats = searchParams.get("all") === "true";
+    const importedOnly = searchParams.get("imported") === "true";
 
     // Fetch chats for the user
     let query = supabase
       .from("chats")
-      .select("*, messages(*)")
+      .select(`
+        *,
+        messages(*),
+        original_shared_chat:shared_chats!original_shared_chat_id(
+          id,
+          user_id,
+          users:users!user_id(name, email)
+        ),
+        share_links:shared_chats!chat_id(id)
+      `)
       .eq("user_id", userId);
 
-    if (allChats) {
+    if (importedOnly) {
+      query = query.not("original_shared_chat_id", "is", null);
+    } else if (allChats) {
       // Don't filter by is_archived, get everything
     } else if (archivedOnly) {
       query = query.eq("is_archived", true);
@@ -84,7 +96,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   // Use POST to create a new chat session explicitly
   try {
-    const { title } = await req.json();
+    const { title, original_shared_chat_id } = await req.json();
 
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
@@ -109,6 +121,7 @@ export async function POST(req: Request) {
         user_id: userId,
         title: title || "New Chat",
         username: authDbUser.username || null,
+        original_shared_chat_id: original_shared_chat_id || null,
       })
       .select()
       .single();

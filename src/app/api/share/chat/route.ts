@@ -69,7 +69,7 @@ export async function GET() {
 
         const { data: links, error } = await supabase
             .from("shared_chats")
-            .select("id, title, created_at")
+            .select("id, title, created_at, chat_id")
             .eq("user_id", dbUser.id)
             .order("created_at", { ascending: false });
 

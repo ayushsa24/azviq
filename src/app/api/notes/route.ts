@@ -33,7 +33,7 @@ export async function GET(req: Request) {
         original_note:original_note_id (
           share_mode,
           user:user_id (
-            full_name,
+            name,
             email
           )
         )

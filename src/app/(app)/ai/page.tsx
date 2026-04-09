@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Bot,
   User,
+  Users,
   Menu,
   X,
   Image as ImageIcon,
@@ -36,13 +37,14 @@ import {
   Square,
   ArrowDown,
   PanelLeft,
-  History,
+  History as HistoryIcon,
   ChevronsLeft,
   Search,
   Clock,
   Sparkles,
   AlertCircle,
 } from "lucide-react";
+import { ImportersModal } from "@/components/modals/ImportersModal";
 import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSession } from "next-auth/react";
@@ -79,6 +81,7 @@ type ChatSession = {
   created_at: string;
   is_pinned?: boolean;
   is_archived?: boolean;
+  share_links?: { id: string }[];
 };
 
 function AiChatCore() {
@@ -150,6 +153,7 @@ function AiChatCore() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [chatDrafts, setChatDrafts] = useState<Record<string, { text: string; image: string | null }>>({});
+  const [importerModalData, setImporterModalData] = useState<{ id: string } | null>(null);
 
   const isChatExhausted = usage?.chat?.limit !== Infinity && (usage?.chat?.remaining || 0) <= 0;
   const isVisionExhausted = usage?.vision?.limit !== Infinity && (usage?.vision?.remaining || 0) <= 0;
@@ -1059,6 +1063,7 @@ function AiChatCore() {
       if (data.id) {
         const link = `${window.location.origin}/share/chat/${data.id}`;
         setShareUrl(link);
+        mutateSessions();
       }
     } catch (e) {
       console.error("Failed to share chat", e);
@@ -1080,7 +1085,7 @@ function AiChatCore() {
       router.replace("/ai", { scroll: false });
     }
 
-    let importData: { title: string; messages: Message[] } | null = null;
+    let importData: { title: string; messages: Message[]; original_shared_chat_id?: string } | null = null;
     try { importData = JSON.parse(raw); } catch { return; }
     if (!importData || !importData.messages?.length) return;
 
@@ -1091,7 +1096,10 @@ function AiChatCore() {
         const res = await fetch("/api/chat/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: importData!.title || "Shared Chat" }),
+          body: JSON.stringify({ 
+            title: importData!.title || "Shared Chat",
+            original_shared_chat_id: importData!.original_shared_chat_id
+          }),
         });
         const data = await res.json();
         if (!data.chat?.id) return;
@@ -1323,6 +1331,19 @@ function AiChatCore() {
             >
               <Archive className="w-3.5 h-3.5 opacity-70" /> Archive
             </button>
+            {session.share_links && session.share_links.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImporterModalData({ id: session.id });
+                  setActiveMenuId(null);
+                }}
+                className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                  }`}
+              >
+                <Users className="w-3.5 h-3.5 opacity-70" /> Chat Importers
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1559,7 +1580,7 @@ function AiChatCore() {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border duration-200 font-medium text-sm ${theme === "dark" ? "border-transparent text-gray-300 hover:text-white hover:bg-[#252525]" : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"}`}
               title="Open history"
             >
-              <History className="w-4 h-4" />
+              <HistoryIcon className="w-4 h-4" />
               <span>History</span>
             </button>
           </div>
@@ -2268,6 +2289,14 @@ function AiChatCore() {
             </div>
           </div>
         )}
+
+        <ImportersModal
+          isOpen={!!importerModalData}
+          onClose={() => setImporterModalData(null)}
+          type="chat"
+          id={importerModalData?.id || ""}
+          theme={theme}
+        />
 
         {/* ── Image Lightbox ── */}
         {imagePreviewUrl && (
