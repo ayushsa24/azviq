@@ -705,7 +705,7 @@ export default function TasksPage() {
                                 </button>
                               </div>
                               {t.due_date && <p className="text-xs text-gray-500 mt-2">Due {format(new Date(t.due_date), "MMM d")}</p>}
-                              {t.linked_document_id && (
+                              {t.linked_document_id && notes.some(n => n.id === t.linked_document_id) && (
                                 <Link href={`/library/${t.linked_document_type}/${t.linked_document_id}`} className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 rounded text-[10px] font-semibold transition-colors" onClick={(e) => e.stopPropagation()}>
                                   <FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "Open PDF" : "Open Note"}
                                 </Link>

@@ -49,7 +49,7 @@ export function AiInlineInput({
         // Ensure input is focused on mount
         if (!isLoading && !isComplete) {
             setTimeout(() => {
-                inputRef.current?.focus();
+                inputRef.current?.focus({ preventScroll: true });
             }, 10);
         }
 
@@ -172,7 +172,7 @@ export function AiInlineInput({
     return (
         <div
             ref={containerRef}
-            className={`flex flex-col bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl overflow-hidden pointer-events-auto z-[100] transition-all duration-300 ${isLoading || isComplete
+            className={`flex flex-col bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl overflow-hidden pointer-events-auto z-[50] transition-all duration-300 ${isLoading || isComplete
                 ? 'fixed bottom-12 left-1/2 -translate-x-1/2 rounded-full w-auto max-w-fit px-2 min-w-max flex-nowrap'
                 : 'absolute rounded-xl w-[90vw] max-w-[450px]'
                 }`}

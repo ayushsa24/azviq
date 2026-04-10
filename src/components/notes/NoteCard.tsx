@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2, Clock, EyeOff } from "lucide-react";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 export interface NoteItem {
     id: string;
@@ -14,6 +15,7 @@ export interface NoteItem {
     is_pinned_in_favourites?: boolean;
     workspace_id?: string;
     is_revoked?: boolean;
+    original_note_id?: string;
 }
 
 interface NoteCardProps {
@@ -157,8 +159,8 @@ export function NoteCard({
             )}
 
             {!isList && (
-                <div className="absolute top-3 right-3 bg-[#252525] text-white dark:text-white/90 text-[10px] px-1.5 py-0.5 rounded shadow-sm opacity-80 group-hover:opacity-100">
-                    {isPdf ? "PDF" : "NOTE"}
+                <div className="absolute top-3 right-3 rounded shadow-sm opacity-90 transition-all bg-[#252525] text-white dark:text-white/90 text-[8px] sm:text-[10px] px-1.5 py-0.5 font-bold transform-gpu">
+                    {note.original_note_id ? "IMPORTED" : (isPdf ? "PDF" : "NOTE")}
                 </div>
             )}
 
@@ -178,14 +180,22 @@ export function NoteCard({
                             {note.is_favourite && (
                                 <Star size={14} fill="currentColor" className="text-[#252525] dark:text-white" strokeWidth={0} />
                             )}
-                            <div className="bg-[#252525] text-white dark:text-white/90 text-[10px] px-1.5 py-0.5 rounded opacity-80 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                {isPdf ? "PDF" : "NOTE"}
+                            <div className="rounded opacity-90 transition-all whitespace-nowrap bg-[#252525] text-white dark:text-white/90 text-[8px] sm:text-[10px] px-1.5 py-0.5 font-bold">
+                                {note.original_note_id ? "IMPORTED" : (isPdf ? "PDF" : "NOTE")}
                             </div>
                         </div>
                     )}
                     <h3 className={`font-semibold truncate text-[#252525] dark:text-white transition-colors flex items-center gap-2 ${isList ? "text-sm sm:text-base" : "text-sm mb-1"
                         }`}>
-                        {note.title}
+                        {note.title.replace(/^\[\w+\]\s*/, "")}
+                        {(() => {
+                            const iconMatch = note.title.match(/^\[(\w+)\]/);
+                            if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                const IconComp = ICON_MAP[iconMatch[1]];
+                                return <IconComp size={16} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                            }
+                            return null;
+                        })()}
                         {note.is_revoked && (
                             <span title="Access Revoked (Private Note)" className="flex items-center">
                                 <EyeOff size={14} className="text-[#7D7D7D] shrink-0" />

@@ -45,10 +45,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
 
         // 4. Create the clone with a link to the original to enable collaborative sync
-        const originalTitle = sharedNote.title || "Untitled Note";
-        const cleanTitle = originalTitle.startsWith("Imported: ") 
-            ? originalTitle 
-            : `Imported: ${originalTitle}`;
+        const cleanTitle = sharedNote.title || "Untitled Note";
 
         const { data: newNote, error: insertError } = await supabase
             .from("notes")

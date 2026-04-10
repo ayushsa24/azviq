@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { AiPopover } from "./AiPopover";
+import { MobileSelectionBar } from "./MobileSelectionBar";
  
 interface FormattingButtonProps {
     editor: Editor;
@@ -76,8 +77,18 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
     const [isAiOpen, setIsAiOpen] = useState(false);
     const [aiCoords, setAiCoords] = useState<{ top: number, left: number } | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const isGeneratingRef = useRef(false);
     const [, setUpdateCount] = useState(0);
+ 
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
  
     useEffect(() => {
         if (!editor) return;
@@ -130,13 +141,19 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
     return (
         <>
+            <MobileSelectionBar 
+                editor={editor}
+                onOpenAi={handleOpenAi}
+                isVisible={isMobile && editor.isEditable && !editor.state.selection.empty && !isAiOpen}
+            />
             <BubbleMenu
                 editor={editor}
                 pluginKey="mainBubbleMenu"
                 updateDelay={250}
                 appendTo={() => document.body}
                 shouldShow={({ editor, state, from, to }) => {
-                    // Hide the standard bubble toolbar if AI menu is open
+                    // Hide if mobile OR if AI menu is open
+                    if (isMobile) return false;
                     if (isAiOpen) return false;
 
                     const { doc, selection } = state;
@@ -201,11 +218,11 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
             {isAiOpen && aiCoords && (
                 <div
-                    className={`z-[2000] drop-shadow-2xl ${isGenerating
-                        ? 'fixed bottom-12 left-1/2 -translate-x-1/2'
+                    className={`z-[2000] drop-shadow-2xl ${isGenerating || isMobile
+                        ? 'fixed bottom-6 left-1/2 -translate-x-1/2'
                         : 'absolute shadow-2xl'
                         }`}
-                    style={isGenerating ? {} : {
+                    style={(isGenerating || isMobile) ? {} : {
                         top: `${Math.max(0, aiCoords.top - 80)}px`,
                         left: `${Math.max(0, aiCoords.left - 50)}px`
                     }}
@@ -310,9 +327,10 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 <button
                     onClick={() => editor.chain().focus().deleteTable().run()}
                     className="p-1.5 rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-1.5 text-xs font-medium"
+                    title="Delete Table"
                 >
                     <Trash2 size={16} />
-                    Delete Table
+                    <span className="hidden md:inline">Delete Table</span>
                 </button>
             </BubbleMenu >
         </>

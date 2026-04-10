@@ -33,7 +33,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
                 *,
                 original_note:original_note_id (
                     share_mode,
-                    user_id
+                    user_id,
+                    user:user_id (
+                        name
+                    )
                 )
             `)
             .eq("id", id)
@@ -203,6 +206,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             .single();
 
         if (error) throw error;
+        
+        // If owner changes title, update all clones to maintain sync
+        if (updateData.title && isOwner) {
+            await supabase
+                .from("notes")
+                .update({ title: updateData.title })
+                .eq("original_note_id", id);
+        }
 
         return NextResponse.json({ note: updatedNote });
     } catch (error: unknown) {

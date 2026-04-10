@@ -20,12 +20,15 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
+import { TaskList } from '@tiptap/extension-task-list'
+import { TaskItem } from '@tiptap/extension-task-item'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { CodeBlockComponent } from '@/components/editor/CodeBlockComponent'
 import { all, createLowlight } from 'lowlight'
 import "highlight.js/styles/atom-one-dark.css";
 import { AiTrigger } from '@/components/editor/AiTrigger';
 import { AiInlineInput } from '@/components/editor/AiInlineInput';
+import { EmojiPicker, ICON_MAP } from '@/components/editor/EmojiPicker';
 import { logRecentActivity } from '@/lib/logRecentActivity';
 import { useStudyTracker } from '@/hooks/useStudyTracker';
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -33,7 +36,7 @@ import { supabase as supabaseClient } from "@/lib/supabase";
 import { ImportersModal } from "@/components/modals/ImportersModal";
 
 const lowlight = createLowlight(all)
-const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
+const StandardEmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 export default function NoteEditorPage() {
     const { id } = useParams() as { id: string };
@@ -72,6 +75,7 @@ export default function NoteEditorPage() {
     const isFetchingRef = React.useRef(true);
     const isOriginalUpdateRef = React.useRef(false); // Flag to prevent infinite loops during sync
     const isLocalUpdateRef = React.useRef(false); // Flag to prevent UI jumping when typing
+    const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const abortControllerRef = React.useRef<AbortController | null>(null);
 
     useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
@@ -92,6 +96,22 @@ export default function NoteEditorPage() {
         };
         return () => { console.error = originalError; };
     }, []);
+
+    {/* Component for Reusable Picker Logic */}
+    const PickerContent = () => (
+        <EmojiPicker
+            theme={typeof document !== 'undefined' && document.documentElement.className.includes('dark') ? 'dark' : 'light'}
+            onSelectIcon={(iconName) => {
+                const currentText = title.replace(/^\[\w+\]\s*/, "");
+                const newTitle = iconName ? `[${iconName}] ${currentText}` : currentText;
+                setTitle(newTitle);
+                titleRef.current = newTitle;
+                if (editor) debouncedSave(editor.getHTML(), newTitle);
+                setShowEmojiPicker(false);
+            }}
+            onClose={() => setShowEmojiPicker(false)}
+        />
+    );
 
     const editor = useEditor({
         extensions: [
@@ -130,6 +150,10 @@ export default function NoteEditorPage() {
             TableRow,
             TableHeader,
             TableCell,
+            TaskList,
+            TaskItem.configure({
+                nested: true,
+            }),
             CodeBlockLowlight.extend({
                 addNodeView() {
                     return ReactNodeViewRenderer(CodeBlockComponent)
@@ -198,7 +222,11 @@ export default function NoteEditorPage() {
             
             // Mark that we are actively typing locally
             isLocalUpdateRef.current = true;
-            setTimeout(() => { isLocalUpdateRef.current = false; }, 2000); // 2s cooldown for sync
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => { 
+                isLocalUpdateRef.current = false; 
+                typingTimeoutRef.current = null;
+            }, 3000); // 3s cooldown for sync
 
             // The owner should always be able to trigger a save unless they explicitly locked it for themselves.
             // Importers are controlled by the parentShareMode.
@@ -357,14 +385,17 @@ export default function NoteEditorPage() {
                         }
                     }
 
-                    // 3. Sync Content (Ignore if typing myself)
-                    if (!isLocalUpdateRef.current && updatedData.content && editor.getHTML() !== updatedData.content) {
-                        const { from, to } = editor.state.selection;
-                        editor.commands.setContent(updatedData.content, { emitUpdate: false });
-                        // Try to preserve cursor position
-                        try {
-                            editor.commands.setTextSelection({ from, to });
-                        } catch { /* pos might be invalid if content changed significantly */ }
+                    // 3. Sync Content (Ignore if typing myself or if content is identical)
+                    if (!isLocalUpdateRef.current && !isSaving && updatedData.content) {
+                        const currentHtml = editor.getHTML();
+                        if (currentHtml !== updatedData.content) {
+                            const { from, to } = editor.state.selection;
+                            editor.commands.setContent(updatedData.content, { emitUpdate: false });
+                            // Try to preserve cursor position
+                            try {
+                                editor.commands.setTextSelection({ from, to });
+                            } catch { /* pos might be invalid if content changed significantly */ }
+                        }
                     }
 
                     setTimeout(() => {
@@ -413,6 +444,19 @@ export default function NoteEditorPage() {
             });
             if (!res.ok) throw new Error("Failed to save note");
 
+            // Sync recent activity display when title changes
+            if (titleToSave !== undefined) {
+                logRecentActivity({
+                    item_id: id,
+                    item_type: "note",
+                    title: titleToSave,
+                    href: `/library/note/${id}`,
+                });
+            } else {
+                // Otherwise just trigger a refresh so any other changes (like icons) reflect
+                window.dispatchEvent(new CustomEvent("recentActivityUpdated"));
+            }
+
             // 2. Collaborative Sync: If this is an import, also update the original source
             // so the owner and other importers can see my changes in real-time.
             if (isClone && note.original_note_id && parentShareMode === 'edit') {
@@ -420,7 +464,6 @@ export default function NoteEditorPage() {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        title: titleToSave !== undefined ? titleToSave : title,
                         content: contentToSave !== undefined ? contentToSave : editor.getHTML(),
                     }),
                 });
@@ -552,7 +595,7 @@ export default function NoteEditorPage() {
         <div className="flex flex-col h-full overflow-y-auto bg-[#F5F3EF] dark:bg-[#1A1A1A] transition-colors relative">
 
             {/* Top Navigation Bar */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-4 pt-2 pb-2.5 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A] transition-colors">
+            <div className="sticky top-0 z-[60] flex items-center justify-between px-4 pt-2 pb-2.5 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A] transition-colors">
                 <div className="flex items-center gap-1 sm:gap-3">
                     {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
                     {!sidebarOpen && (
@@ -781,71 +824,111 @@ export default function NoteEditorPage() {
             )}
 
             {/* Main Editor Area */}
-            <div className={`flex-1 max-w-4xl mx-auto w-full px-6 pt-4 sm:pt-12 pb-[50vh] flex flex-col ${isRevoked ? 'hidden' : 'block'}`}>
-                <div className="flex items-center gap-4 mb-4 sm:mb-8">
-                    <input
-                        id="note-title-input"
-                        type="text"
-                        value={title}
-                        disabled={isLocked || !!note?.original_note_id}
-                        onChange={(e) => {
-                            setTitle(e.target.value);
-                            titleRef.current = e.target.value;
-                            if (editor) debouncedSave(editor.getHTML(), e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                e.preventDefault();
-                                editor?.commands.focus();
+            <div className={`flex-1 max-w-4xl mx-auto w-full px-6 pt-4 sm:pt-10 pb-32 sm:pb-[50vh] flex flex-col ${isRevoked ? 'hidden' : 'block'}`}>
+                <div className="flex flex-col gap-2 mb-10 min-w-0">
+                    
+                    <div className="flex items-center gap-3 w-full px-1">
+                        {/* Selected Icon — Shows BIG on the LEFT */}
+                        {(() => {
+                            const iconMatch = title.match(/^\[(\w+)\]/);
+                            if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                const IconComp = ICON_MAP[iconMatch[1]];
+                                return (
+                                    <div className="relative shrink-0">
+                                        <button
+                                            disabled={isLocked}
+                                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                            className="w-20 h-20 flex items-center justify-center rounded-[24px] hover:bg-[#F0EDE8] dark:hover:bg-[#252525] transition-all duration-300 text-[#252525] dark:text-white border border-transparent hover:border-[#E8E5E0] dark:hover:border-[#3A3A3A]"
+                                        >
+                                            <IconComp size={60} strokeWidth={1} />
+                                        </button>
+                                        {showEmojiPicker && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
+                                                <div className="absolute top-24 left-0 z-50">
+                                                    <PickerContent />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
                             }
-                        }}
-                        placeholder="Note Title"
-                        className="flex-1 w-full text-4xl sm:text-5xl font-bold bg-transparent border-none outline-none text-[#252525] dark:text-white placeholder-[#CFCFCF] dark:placeholder-[#545454]"
-                    />
+                            return null;
+                        })()}
 
-                    {isRevoked && (
-                        <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-3 py-1.5 rounded-full shrink-0 animate-in fade-in duration-300 border border-[#E8E5E0] dark:border-white/10" title="Access Revoked">
-                            <EyeOff size={18} />
-                            <span className="text-[10px] font-bold hidden sm:inline uppercase tracking-wider">Private Access</span>
+                        <input
+                            id="note-title-input"
+                            type="text"
+                            value={title.replace(/^\[\w+\]\s*/, "")}
+                            disabled={isLocked || !!note?.original_note_id}
+                            onChange={(e) => {
+                                const iconMatch = title.match(/^\[(\w+)\]/);
+                                const iconPrefix = iconMatch ? `[${iconMatch[1]}] ` : "";
+                                const newTitle = `${iconPrefix}${e.target.value}`;
+                                setTitle(newTitle);
+                                titleRef.current = newTitle;
+                                if (editor) debouncedSave(editor.getHTML(), newTitle);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    editor?.commands.focus();
+                                }
+                            }}
+                            placeholder="Untitled"
+                            className="flex-1 w-full text-5xl sm:text-6xl font-bold bg-transparent border-none outline-none text-[#252525] dark:text-white placeholder-[#E8E8E8] dark:placeholder-[#3A3A3A] transition-all duration-300"
+                        />
+
+                        {/* Empty State — Show SMALL on the RIGHT */}
+                        {(() => {
+                            const iconMatch = title.match(/^\[(\w+)\]/);
+                            if (!iconMatch) {
+                                return (
+                                    <div className="relative shrink-0">
+                                        <button
+                                            disabled={isLocked}
+                                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[#F0EDE8] dark:hover:bg-[#252525] transition-all duration-300 text-[#545454] dark:text-[#A3A3A3] hover:text-[#252525] dark:hover:text-white"
+                                        >
+                                            <SmilePlus size={24} className="opacity-30" strokeWidth={1.5} />
+                                        </button>
+                                        {showEmojiPicker && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
+                                                <div className="absolute top-12 right-0 z-50">
+                                                    <PickerContent />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+                    </div>
+
+                        {isRevoked && (
+                            <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-3 py-1.5 rounded-full shrink-0 animate-in fade-in duration-300 border border-[#E8E5E0] dark:border-white/10" title="Access Revoked">
+                                <EyeOff size={18} />
+                                <span className="text-[10px] font-bold hidden sm:inline uppercase tracking-wider">Private Access</span>
+                            </div>
+                        )}
+
+                    {note?.original_note_id && (
+                        <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] px-0.5 py-1">
+                            <DownloadCloud size={16} className="text-blue-500" />
+                            <span className="text-sm font-bold tracking-tight">
+                                {note.original_note?.user?.name 
+                                    ? `Imported from ${note.original_note.user.name}` 
+                                    : "Imported from Original Owner"}
+                            </span>
                         </div>
                     )}
-
-                    <div className="relative">
-                        <button
-                            disabled={isLocked}
-                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            className="p-3 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] hover:text-[#252525] dark:hover:text-white rounded-full transition-colors disabled:opacity-30"
-                            title="Add Emoji"
-                        >
-                            <SmilePlus size={28} />
-                        </button>
-
-                        {showEmojiPicker && (
-                            <>
-                                <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setShowEmojiPicker(false)}
-                                />
-                                <div className="absolute top-14 right-0 z-50 shadow-2xl rounded-lg">
-                                    <EmojiPicker
-                                        theme={typeof document !== 'undefined' && document.documentElement.className.includes('dark') ? 'dark' as any : 'light' as any}
-                                        onEmojiClick={(emojiData) => {
-                                            const newTitle = title ? `${title} ${emojiData.emoji}` : emojiData.emoji;
-                                            setTitle(newTitle);
-                                            titleRef.current = newTitle;
-                                            if (editor) debouncedSave(editor.getHTML(), newTitle);
-                                            setShowEmojiPicker(false);
-                                        }}
-                                    />
-                                </div>
-                            </>
-                        )}
-                    </div>
                 </div>
 
                 <div
                     id="editor-container-wrapper"
-                    className="flex-1 min-h-[500px] cursor-text relative pb-[250px]"
+                    className="flex-1 min-h-[500px] cursor-text relative pb-20 sm:pb-[250px]"
                     onClick={(e) => {
                         // Prevent click if we're clicking inside the actual editor content (tiptap)
                         // This allows Tiptap to handle its own clicks normally

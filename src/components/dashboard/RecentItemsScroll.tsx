@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, File as FileIcon, Clock, BookOpen, FlaskConical, ArrowRight } from "lucide-react";
 import useSWR from "swr";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 
 type RecentItem = {
@@ -13,6 +14,7 @@ type RecentItem = {
     item_type: "note" | "pdf" | "exercise" | "revision";
     opened_at: string;
     href: string;
+    original_note_id?: string;
 };
 
 const TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText }> = {
@@ -94,9 +96,19 @@ export default function RecentItemsScroll() {
 
                             {/* Title + time — center */}
                             <div className="flex-1 min-w-0">
-                                <p className="text-[15px] font-semibold text-[#252525] dark:text-white truncate group-hover:text-[#1A1A1A] dark:group-hover:text-white transition-colors leading-tight">
-                                    {item.title}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-[15px] font-semibold text-[#252525] dark:text-white truncate group-hover:text-[#1A1A1A] dark:group-hover:text-white transition-colors leading-tight">
+                                        {item.title.replace(/^\[\w+\]\s*/, "")}
+                                    </p>
+                                    {(() => {
+                                        const iconMatch = item.title.match(/^\[(\w+)\]/);
+                                        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                            const IconComp = ICON_MAP[iconMatch[1]];
+                                            return <IconComp size={16} className="text-[#BABABA] dark:text-[#7D7D7D] shrink-0" strokeWidth={1.5} />;
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
                                 <p className="text-xs text-[#7D7D7D] dark:text-[#545454] mt-0.5">
                                     {timeAgo(item.opened_at)}
                                 </p>
@@ -104,7 +116,7 @@ export default function RecentItemsScroll() {
 
                             {/* Type badge — right */}
                             <span className="text-xs font-medium text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-[#333] px-2.5 py-1 rounded-full flex-shrink-0 self-start mt-0.5">
-                                {config.label}
+                                {item.item_type === "note" && item.original_note_id ? "Imported" : config.label}
                             </span>
                         </button>
                     );

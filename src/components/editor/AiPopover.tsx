@@ -219,7 +219,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     if (isLoading) {
         return (
             <div
-                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto"
+                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-full pointer-events-auto"
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2.5">
@@ -250,7 +250,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     if (isComplete) {
         return (
             <div
-                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto min-w-max"
+                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-full pointer-events-auto min-w-max"
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2 shrink-0">
@@ -281,7 +281,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
     return (
         <div
-            className="flex flex-col md:w-[220px] w-[200px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
+            className="flex flex-col md:w-[220px] w-full max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E8E5E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
             onMouseDown={(e) => e.stopPropagation()}
         >
             <div className="flex items-center gap-2 px-3 py-2 bg-[#F9F8F6] dark:bg-[#1A1A1A] border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
@@ -289,7 +289,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D] dark:text-[#BABABA]">AI Commands</span>
             </div>
 
-            <div className="p-1 grid grid-cols-2 md:flex md:flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div className="p-1 flex flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
                 <>
                     <button
                         onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}
@@ -326,11 +326,11 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                         <CheckCheck size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">Fix Grammar</span>
                     </button>
-
+ 
                     {selectedText && (
                         <button
                             onClick={() => handleSubmit("Answer this")}
-                            className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group col-span-2 md:col-span-1 border border-[#252525] dark:border-white"
+                            className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group border border-[#252525]/20 dark:border-white/20"
                         >
                             <ArrowRight size={14} className="shrink-0" />
                             <span className="truncate">Answer Selection</span>

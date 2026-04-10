@@ -33,7 +33,29 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
         }
 
-        return NextResponse.json({ items: items || [] });
+        // Fetch original_note_id for notes
+        const noteIds = (items || [])
+            .filter(i => i.item_type === "note")
+            .map(i => i.item_id);
+
+        let noteMap: Record<string, string> = {};
+        if (noteIds.length > 0) {
+            const { data: noteData } = await supabase
+                .from("notes")
+                .select("id, original_note_id")
+                .in("id", noteIds);
+
+            if (noteData) {
+                noteMap = noteData.reduce((acc, n) => ({ ...acc, [n.id]: n.original_note_id }), {});
+            }
+        }
+
+        const enrichedItems = (items || []).map(item => ({
+            ...item,
+            original_note_id: item.item_type === "note" ? noteMap[item.item_id] : null
+        }));
+
+        return NextResponse.json({ items: enrichedItems });
     } catch (err) {
         console.error("Error in recent-activity GET:", err);
         return NextResponse.json({ error: "Server error" }, { status: 500 });

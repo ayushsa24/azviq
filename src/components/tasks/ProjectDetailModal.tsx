@@ -469,7 +469,7 @@ export function ProjectDetailModal({
                                                         </button>
                                                     </div>
                                                     {t.due_date && <p className="text-xs text-gray-400 font-medium mt-2">Due {format(new Date(t.due_date), "MMM d")}</p>}
-                                                    {t.linked_document_id && <span className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-gray-300 rounded-md text-[10px] font-semibold"><FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "PDF Linked" : "Note Linked"}</span>}
+                                                    {t.linked_document_id && notes.some(n => n.id === t.linked_document_id) && <span className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-gray-300 rounded-md text-[10px] font-semibold"><FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "PDF Linked" : "Note Linked"}</span>}
                                                     {openMenuId === t.id && (
                                                         <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[180px] context-menu" onClick={(e) => e.stopPropagation()}>
                                                             <button onClick={() => handleToggleTaskPin(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><Pin className="w-4 h-4" />{t.is_pinned ? "Unpin" : "Pin"}</button>

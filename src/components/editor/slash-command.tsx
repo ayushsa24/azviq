@@ -10,19 +10,25 @@ import {
     ListOrdered,
     Quote,
     CodeSquare,
-    Table
+    Table,
+    CheckSquare,
+    Info
 } from 'lucide-react';
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 // 1. Define the commands we want to provide
 export const getSuggestionItems = ({ query }: { query: string }) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
     return [
         {
             title: 'Heading 1',
             description: 'Big section heading',
             icon: <Heading1 size={18} />,
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run();
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).setNode('heading', { level: 1 }).run();
             },
         },
         {
@@ -30,7 +36,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             description: 'Medium section heading',
             icon: <Heading2 size={18} />,
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run();
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).setNode('heading', { level: 2 }).run();
             },
         },
         {
@@ -38,7 +46,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             description: 'Small section heading',
             icon: <Heading3 size={18} />,
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run();
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).setNode('heading', { level: 3 }).run();
             },
         },
         {
@@ -46,7 +56,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             description: 'Create a simple bulleted list',
             icon: <List size={18} />,
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).toggleBulletList().run();
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).toggleBulletList().run();
             },
         },
         {
@@ -54,23 +66,19 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             description: 'Create a numbered list',
             icon: <ListOrdered size={18} />,
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).toggleOrderedList().run();
             },
         },
         {
-            title: 'Quote',
-            description: 'Capture a quote',
-            icon: <Quote size={18} />,
-            command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).setNode('blockquote').run();
-            },
-        },
-        {
-            title: 'Code Block',
-            description: 'Capture a code snippet',
+            title: 'Coding',
+            description: 'Write & Run Code Snippets',
             icon: <CodeSquare size={18} />,
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).setNode('codeBlock').run();
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).setNode('codeBlock').run();
             },
         },
         {
@@ -78,7 +86,29 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             description: 'Insert a 3x3 table',
             icon: <Table size={18} />,
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+            },
+        },
+        {
+            title: 'Checklist',
+            description: 'Action items for your study',
+            icon: <CheckSquare size={18} />,
+            command: ({ editor, range }: any) => {
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).toggleTaskList().run();
+            },
+        },
+        {
+            title: 'Important Note',
+            description: 'Key takeaway or definition',
+            icon: <Info size={18} />,
+            command: ({ editor, range }: any) => {
+                const chain = editor.chain();
+                if (!isMobile) chain.focus();
+                chain.deleteRange(range).insertContent('<div class="callout-block"><p><strong>KEY NOTE:</strong> </p></div>').run();
             },
         },
     ].filter(item => item.title.toLowerCase().startsWith(query.toLowerCase())).slice(0, 10);
@@ -146,6 +176,7 @@ export const CommandList = forwardRef((props: any, ref) => {
                             ? 'bg-[#F0EDE8] dark:bg-[#1A1A1A] text-[#252525] dark:text-white'
                             : 'text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A]'
                             }`}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => selectItem(index)}
                     >
                         <div className={`flex items-center justify-center w-7 h-7 rounded-md border transition-colors ${index === selectedIndex
@@ -207,7 +238,6 @@ export const slashCommandSuggestionOptions = {
                 });
 
                 if (!props.clientRect) return;
-
                 popup = tippy('body', {
                     getReferenceClientRect: props.clientRect,
                     appendTo: () => document.body,
@@ -217,6 +247,11 @@ export const slashCommandSuggestionOptions = {
                     trigger: 'manual',
                     placement: 'bottom-start',
                 });
+
+                // On mobile, hide the keyboard to show the full menu
+                if (window.innerWidth < 768) {
+                    props.editor.commands.blur();
+                }
             },
 
             onUpdate(props: any) {

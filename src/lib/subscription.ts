@@ -37,6 +37,7 @@ export const DAILY_LIMITS = {
   chat: { [PLAN_TIER.FREE]: 40, [PLAN_TIER.LITE]: 200, [PLAN_TIER.PREMIUM]: Infinity },
   vision: { [PLAN_TIER.FREE]: 15, [PLAN_TIER.LITE]: 50, [PLAN_TIER.PREMIUM]: Infinity },
   exercise: { [PLAN_TIER.FREE]: 10, [PLAN_TIER.LITE]: 50, [PLAN_TIER.PREMIUM]: Infinity },
+  personal_ai: { [PLAN_TIER.FREE]: 10, [PLAN_TIER.LITE]: 50, [PLAN_TIER.PREMIUM]: Infinity },
 } as const;
 
 /** PDF upload size limits per tier (in bytes) */

@@ -19,6 +19,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/utils/translations";
 import useSWR from "swr";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -214,7 +215,17 @@ export default function Sidebar({
                       title={item.title}
                     >
                       <ItemIcon className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`} />
-                      <span className="truncate">{item.title}</span>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span className="truncate">{item.title.replace(/^\[\w+\]\s*/, "")}</span>
+                        {(() => {
+                          const iconMatch = item.title.match(/^\[(\w+)\]/);
+                          if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                            const IconComp = ICON_MAP[iconMatch[1]];
+                            return <IconComp size={12} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </Link>
                   );
                 })}

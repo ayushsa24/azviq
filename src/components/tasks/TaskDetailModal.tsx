@@ -303,7 +303,7 @@ export function TaskDetailModal({
                                         <span className="truncate flex-1 text-left">
                                             {localTask.linked_document_id ? (() => {
                                                 const n = notes.find(note => note.id === localTask.linked_document_id);
-                                                if (!n) return "Empty";
+                                                if (!n) return "Deleted Material";
                                                 const ws = workspaces?.find((w) => w.id === n.workspace_id);
                                                 return `${ws ? `[${ws.name}] ` : ""}${n.title} (${n.file_url ? 'PDF' : 'Note'})`;
                                             })() : "Empty"}
@@ -379,7 +379,7 @@ export function TaskDetailModal({
                                         </div>
                                     )}
                                 </div>
-                                {localTask.linked_document_id && (
+                                {localTask.linked_document_id && notes.some(n => n.id === localTask.linked_document_id) && (
                                     <Link
                                         href={`/library/${localTask.linked_document_type}/${localTask.linked_document_id}`}
                                         target="_blank"

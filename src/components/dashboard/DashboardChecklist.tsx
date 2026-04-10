@@ -336,7 +336,7 @@ export default function DashboardChecklist() {
                     ) : (
                         <>
                             {pending.map(item => (
-                                <TodoRow key={item.id} item={item} isDark={isDark} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
+                                <TodoRow key={item.id} item={item} isDark={isDark} notes={notes} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
                             ))}
                             {done.length > 0 && (
                                 <>
@@ -346,7 +346,7 @@ export default function DashboardChecklist() {
                                         <div className="h-px flex-1 bg-[#E8E5E0] dark:bg-[#383838]" />
                                     </div>
                                     {done.map(item => (
-                                        <TodoRow key={item.id} item={item} isDark={isDark} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
+                                        <TodoRow key={item.id} item={item} isDark={isDark} notes={notes} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
                                     ))}
                                 </>
                             )}
@@ -560,7 +560,7 @@ export default function DashboardChecklist() {
                                                     <span className="truncate flex-1 text-left">
                                                         {form.linked_document_id ? (() => {
                                                             const n = notes.find((note: any) => note.id === form.linked_document_id);
-                                                            if (!n) return "Linked Document";
+                                                            if (!n) return "Deleted Material";
                                                             const ws = workspaces?.find((w: any) => w.id === n.workspace_id);
                                                             const wsPrefix = ws ? `[${ws.name}] ` : "";
                                                             return `${wsPrefix}${n.title || "Untitled"} (${n.file_url ? 'PDF' : 'Note'})`;
@@ -676,9 +676,10 @@ export default function DashboardChecklist() {
     );
 }
 
-function TodoRow({ item, isDark, onToggle, onEdit, onDelete }: {
+function TodoRow({ item, isDark, notes, onToggle, onEdit, onDelete }: {
     item: TodoItem;
     isDark: boolean;
+    notes: any[];
     onToggle: (id: string, current: boolean) => void;
     onEdit: (item: TodoItem) => void;
     onDelete: (id: string) => void;
@@ -776,7 +777,7 @@ function TodoRow({ item, isDark, onToggle, onEdit, onDelete }: {
                         <div className="text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase">
                             · {REPEAT_LABELS[item.repeat]}
                         </div>
-                        {item.linked_document_id && (
+                        {item.linked_document_id && notes.some(n => n.id === item.linked_document_id) && (
                             <div className="flex items-center gap-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase">
                                 · {item.linked_document_type === 'note' ? <FileText className="w-2.5 h-2.5 text-[#C2A27A]" /> : <ExternalLink className="w-2.5 h-2.5 text-blue-500" />}
                                 Material

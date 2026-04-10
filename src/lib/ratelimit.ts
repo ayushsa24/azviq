@@ -37,7 +37,7 @@ function getRedis(): Redis | null {
 // Types
 // ---------------------------------------------------------------------------
 
-export type RequestType = "chat" | "vision" | "exercise";
+export type RequestType = "chat" | "vision" | "exercise" | "personal_ai";
 
 export interface RateLimitResult {
   allowed: boolean;
