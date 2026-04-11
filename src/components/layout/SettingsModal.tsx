@@ -266,6 +266,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       chat: { remaining: number; limit: number; reset: number };
       vision: { remaining: number; limit: number; reset: number };
       exercise: { remaining: number; limit: number; reset: number };
+      personal_ai: { remaining: number; limit: number; reset: number };
     }
   } | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -1012,6 +1013,24 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                                 <div 
                                   className="h-full bg-[#C2A27A] transition-all duration-500" 
                                   style={{ width: `${(subscription.usage.exercise.remaining / subscription.usage.exercise.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Personal AI Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Personal AI Teacher</span>
+                              <span className="font-bold">
+                                  {subscription.usage.personal_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.personal_ai.remaining} / ${subscription.usage.personal_ai.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.personal_ai.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.personal_ai.remaining / subscription.usage.personal_ai.limit) * 100}%` }}
                                 />
                               </div>
                             )}

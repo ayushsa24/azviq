@@ -36,29 +36,8 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     const isDark = theme === 'dark';
     const isList = viewMode === "list";
 
-    // Sequential loading logic
-    const [visibleCount, setVisibleCount] = useState(0);
-
-    useEffect(() => {
-        if (!isLoading && exercises.length > 0) {
-            const timer = setInterval(() => {
-                setVisibleCount(prev => {
-                    if (prev >= exercises.length) {
-                        clearInterval(timer);
-                        return prev;
-                    }
-                    return prev + 1;
-                });
-            }, 50); // Reveal one every 50ms for a fast but clear sequential feel
-            return () => clearInterval(timer);
-        } else if (!isLoading && exercises.length === 0) {
-            setVisibleCount(0);
-        }
-    }, [isLoading, exercises.length]);
-
     // Re-sync and Reset
     useEffect(() => {
-        setVisibleCount(0);
         mutate();
     }, [refreshKey, mutate]);
 
@@ -66,7 +45,6 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     // Expose mutate so parent can call after generate
     useEffect(() => {
         (window as any).__refetchExercises = () => {
-            setVisibleCount(0);
             mutate();
         };
         return () => { delete (window as any).__refetchExercises; };
@@ -115,7 +93,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
 
             {/* Content Container */}
             <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
-                {isLoading || (exercises.length > 0 && visibleCount === 0) ? (
+                {isLoading ? (
                     Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-3.5 gap-3 h-44'}`}>
                             {isList ? (
@@ -157,7 +135,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                     </div>
                 ) : (
                     <AnimatePresence mode="popLayout">
-                        {filtered.slice(0, visibleCount).map((ex: any, idx: number) => (
+                        {filtered.map((ex: any, idx: number) => (
                             <motion.div
                                 key={ex.id}
                                 layout

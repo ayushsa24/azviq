@@ -148,7 +148,17 @@ export default function Header({
                     My Profile
                   </button>
                 <button
-                  onClick={() => { setDropdownOpen(false); router.push("/trash"); }}
+                  onClick={() => { 
+                    setDropdownOpen(false); 
+                    const currentFullUrl = window.location.pathname + window.location.search;
+                    const newUrl = `/trash?from=${encodeURIComponent(currentFullUrl)}`;
+                    window.history.pushState(null, '', newUrl);
+                    if (onTrashClick) {
+                      onTrashClick();
+                    } else {
+                      router.push("/trash");
+                    }
+                  }}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
                     ? 'text-[#CFCFCF] hover:bg-[#545454]'
                     : 'text-[#545454] hover:bg-[#F0EDE8]'

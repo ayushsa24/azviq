@@ -29,7 +29,7 @@ export default function ModeToggle({ mode, onChange }: ModeToggleProps) {
         <button
           key={id}
           onClick={() => onChange(id)}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95
+          className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all active:scale-95
             ${mode === id
               ? isDark
                 ? "bg-white text-[#252525] shadow-sm"
@@ -40,7 +40,7 @@ export default function ModeToggle({ mode, onChange }: ModeToggleProps) {
             }`}
         >
           <Icon size={14} />
-          {label}
+          <span className="hidden sm:inline">{label}</span>
         </button>
       ))}
     </div>

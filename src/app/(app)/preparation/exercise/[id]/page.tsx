@@ -2,21 +2,33 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, PanelLeft } from "lucide-react";
 import TakeExercisePage from "@/components/preparation/TakeExercisePage";
 import { logRecentActivity } from "@/lib/logRecentActivity";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 function ExercisePageSkeleton({ onBack }: { onBack: () => void }) {
     const { theme } = useTheme();
+    const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
     const isDark = theme === "dark";
     
     const bgCls = isDark ? "bg-[#2A2A2A]" : "bg-[#E8E5E0]";
     const cardBgCls = isDark ? "bg-[#1E1E1E]" : "bg-white";
 
     return (
-        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
-            <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-1 sm:pt-3 pb-3 border-b shrink-0 ${isDark ? 'border-[#333] bg-[#1A1A1A]' : 'border-[#E8E5E0] bg-[#F5F3EF]'}`}>
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-hidden">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3 px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] transition-colors">
+                {!sidebarOpen && (
+                    <button
+                        onClick={toggleSidebar}
+                        className={`hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0
+                          ${isDark ? 'hover:bg-[#333] text-[#7D7D7D] hover:text-white' : 'hover:bg-[#E8E5E0] text-[#545454] hover:text-[#252525]'}`}
+                        title="Open Sidebar"
+                    >
+                        <PanelLeft className="w-5 h-5" />
+                    </button>
+                )}
                 <button
                     onClick={onBack}
                     className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0
@@ -25,17 +37,9 @@ function ExercisePageSkeleton({ onBack }: { onBack: () => void }) {
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 
-                <div className="flex-1 min-w-0">
-                    <h1 className={`font-bold text-lg sm:text-xl truncate ${isDark ? 'text-white' : 'text-[#252525]'}`}>
-                        Exercise
-                    </h1>
-                </div>
+                <div className="flex-1 min-w-0" />
 
-                {/* Timer Placeholder */}
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${isDark ? 'bg-[#252525] border-[#333]' : 'bg-[#F0EDE8] border-[#E8E5E0]'}`}>
-                    <Clock className="w-4 h-4 text-[#C2A27A]" />
-                    <div className={`w-12 h-3 rounded animate-pulse ${bgCls}`} />
-                </div>
+
             </div>
 
             {/* ── Body ── */}

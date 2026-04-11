@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Home, Library, MessageCircle, CheckSquare, Sparkles } from "lucide-react";
 
-export default function BottomNav() {
+export default function BottomNav({ isFullPageLayer = false }: { isFullPageLayer?: boolean }) {
   const { theme } = useTheme();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -51,7 +52,7 @@ export default function BottomNav() {
     };
   }, []);
 
-  const hidden = isKeyboardOpen || isModalOpen;
+  const hidden = isKeyboardOpen || isModalOpen || isFullPageLayer || searchParams.get("fullscreen") === "true";
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },

@@ -86,43 +86,17 @@ export async function getStreamingChatResponse(
 ): Promise<ReadableStream<Uint8Array>> {
   const provider = MODEL_PROVIDER_MAP[config.model];
 
-  try {
-    switch (provider) {
-      case "gemini":
-        return await callGeminiStream(messages, config);
-
-      case "openai":
-        return await callOpenAIStream(messages, config);
-
-      case "anthropic":
-        return await callClaudeStream(messages, config);
-
-      case "ollama":
-        // callOllamaStream now returns ReadableStream<Uint8Array> directly in our standard format
-        return await callOllamaStream(messages, config);
-
-      default:
-        // Unknown provider — use Gemini as safe default
-        return await callGeminiStream(messages, { ...config, model: DEFAULT_MODEL });
-    }
-  } catch (primaryError) {
-    console.error(`[AI Manager] Primary provider (${provider}) failed:`, primaryError);
-
-    // Determine best fallback: if Ollama failed → try Gemini, if Gemini/others failed → try Ollama
-    try {
-      if (provider === "ollama") {
-        // Ollama is down — fall back to Gemini 2.5 Flash
-        console.log("[AI Manager] Ollama failed, falling back to Gemini 2.5 Flash...");
-        return await callGeminiStream(messages, { ...config, model: DEFAULT_MODEL });
-      } else {
-        // Cloud AI failed — fall back to Ollama (free local)
-        console.log("[AI Manager] Cloud AI failed, falling back to Ollama llama3.2...");
-        return await callOllamaStream(messages, { ...config, model: FALLBACK_MODEL });
-      }
-    } catch (fallbackError) {
-      console.error("[AI Manager] Fallback provider also failed:", fallbackError);
-      throw new Error("All AI providers are currently unavailable. Please try again later.");
-    }
+  switch (provider) {
+    case "gemini":
+      return await callGeminiStream(messages, config);
+    case "openai":
+      return await callOpenAIStream(messages, config);
+    case "anthropic":
+      return await callClaudeStream(messages, config);
+    case "ollama":
+      return await callOllamaStream(messages, config);
+    default:
+      return await callGeminiStream(messages, { ...config, model: DEFAULT_MODEL });
   }
 }
 

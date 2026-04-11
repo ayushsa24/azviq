@@ -36,28 +36,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
     const { data, mutate, isLoading } = useSWR("/api/revision", fetcher);
     const revisions = data?.revisions || [];
 
-    // Sequential loading logic
-    const [visibleCount, setVisibleCount] = useState(0);
-
     useEffect(() => {
-        if (!isLoading && revisions.length > 0) {
-            const timer = setInterval(() => {
-                setVisibleCount(prev => {
-                    if (prev >= revisions.length) {
-                        clearInterval(timer);
-                        return prev;
-                    }
-                    return prev + 1;
-                });
-            }, 50);
-            return () => clearInterval(timer);
-        } else if (!isLoading && revisions.length === 0) {
-            setVisibleCount(0);
-        }
-    }, [isLoading, revisions.length]);
-
-    useEffect(() => {
-        setVisibleCount(0);
         mutate();
     }, [refreshKey, mutate]);
 
@@ -137,7 +116,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
 
     return (
         <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
-            {isLoading || (revisions.length > 0 && visibleCount === 0) ? (
+            {isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-5 gap-3'}`}>
                         {isList ? (
@@ -179,7 +158,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                 </div>
             ) : (
                 <AnimatePresence mode="popLayout">
-                    {filtered.slice(0, visibleCount).map((rev: any) => (
+                    {filtered.map((rev: any) => (
                         <motion.div
                             key={rev.id}
                             layout

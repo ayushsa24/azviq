@@ -22,7 +22,8 @@ const ACTIVITY_LABELS: Record<string, string> = {
     pdf: "PDFs",
     exercise: "Exercises",
     revision: "Revision",
-    ai_teacher: "Chat AI"
+    ai_teacher: "Chat AI",
+    personal_ai: "AI Teacher"
 };
 
 const formatTime = (totalMinutes: number) => {

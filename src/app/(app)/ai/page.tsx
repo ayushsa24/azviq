@@ -1194,7 +1194,7 @@ function AiChatCore() {
             : "bg-[#F0EDE8] text-[#252525]"
           : theme === "dark"
             ? "text-gray-300 hover:bg-[#2A2A2A]"
-            : "text-gray-600 hover:bg-[#F0EDE8]/50"
+            : "text-gray-600 hover:text-[#252525] hover:bg-[#F0EDE8]"
           }`}
       >
         <button
@@ -1376,13 +1376,13 @@ function AiChatCore() {
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:h-full flex flex-col shrink-0 border-r-2 shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-72 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
-          ? "bg-[#1A1A1A] border-[#545454]"
-          : "bg-[#F5F3EF] border-[#E8E5E0]"
-          }`}
+        className={`fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-72 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
+          ? "bg-[#1A1A1A] border-[#2E2E2E]"
+          : "bg-[#FAFAFA] border-[#7D7D7D]/40"
+          } shadow-sm transition-colors`}
       >
         {/* ── Desktop History Sidebar Header ── */}
-        <div className={`hidden md:flex items-center justify-between px-4 h-14 shrink-0 border-b ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
+        <div className={`hidden md:flex items-center justify-between px-4 h-14 shrink-0 border-b ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
           <div className="flex items-center gap-3">
             {!isMainSidebarOpen && (
               <button
@@ -1497,7 +1497,7 @@ function AiChatCore() {
         </div>
 
         {/* Archived Folder (Moved to bottom area) */}
-        <div className={`p-3 pb-16 md:pb-3 border-t shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
+        <div className={`p-3 pb-16 md:pb-3 border-t shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
           <button
             onClick={() => setIsArchivedExpanded(!isArchivedExpanded)}
             className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === "dark" ? "text-gray-300 hover:bg-[#2A2A2A]" : "text-gray-600 hover:bg-[#F0EDE8]"}`}
@@ -1529,7 +1529,7 @@ function AiChatCore() {
                         : "bg-[#F0EDE8] text-[#252525]"
                       : theme === "dark"
                         ? "text-gray-400 hover:bg-[#2A2A2A]"
-                        : "text-gray-500 hover:bg-[#F0EDE8]/50"
+                        : "text-gray-500 hover:text-[#252525] hover:bg-[#F0EDE8]"
                       }`}
                   >
                     <button
@@ -1568,7 +1568,7 @@ function AiChatCore() {
                 onClick={toggleMainSidebar}
                 className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${theme === "dark"
                   ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
-                  : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
+                  : "bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
                   }`}
                 title="Open main menu"
               >
@@ -1577,7 +1577,7 @@ function AiChatCore() {
             )}
             <button
               onClick={() => setIsHistoryOpen(true)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border duration-200 font-medium text-sm ${theme === "dark" ? "border-transparent text-gray-300 hover:text-white hover:bg-[#252525]" : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"}`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border duration-200 font-medium text-sm ${theme === "dark" ? "border-transparent text-gray-300 hover:text-white hover:bg-[#252525]" : "bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"}`}
               title="Open history"
             >
               <HistoryIcon className="w-4 h-4" />
@@ -1602,8 +1602,8 @@ function AiChatCore() {
           {/* Mobile Header Toggle - Moved inside for scroll-away effect */}
           <div
             className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b mb-2 transition-colors duration-300 ease-in-out ${theme === "dark"
-              ? "bg-[#1A1A1A] border-[#545454]"
-              : "bg-[#F5F3EF] border-[#E8E5E0]"
+              ? "bg-[#1A1A1A] border-[#2E2E2E]"
+              : "bg-[#F5F3EF] border-[#7D7D7D]/40"
               }`}
           >
             <div className="flex items-center">
@@ -1863,8 +1863,8 @@ function AiChatCore() {
                                 ? "bg-[#545454] text-white rounded-2xl rounded-tr-none min-w-[50px] text-right"
                                 : "bg-[#F0EDE8] text-gray-900 rounded-2xl rounded-tr-none min-w-[50px] text-right"
                               : theme === "dark"
-                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#545454] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
-                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#E8E5E0] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
+                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
+                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
                               } ${msg.image ? "mt-1 mr-0.5 z-20" : ""}`}
                           >
                             {msg.role === "model" ? (
@@ -2065,7 +2065,7 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`absolute bottom-0 left-0 w-full z-10 px-3 md:px-5 pb-1 md:pb-4 pt-1 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] via-[#161514] via-90% to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] via-[#F5F3EF] via-90% to-transparent'} ${isKeyboardOpen ? 'pb-0' : 'pb-0'}`}>
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-2 sm:px-5 pb-2 md:pb-6 pt-0 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
           {apiError && (
             <div className={`max-w-3xl md:max-w-4xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
               <div className="flex items-center gap-2 text-sm">
@@ -2105,7 +2105,7 @@ function AiChatCore() {
               </button>
             </div>
           )}
-          <div className="max-w-3xl md:max-w-4xl mx-auto flex items-end w-full px-2">
+          <div className="max-w-3xl md:max-w-4xl mx-auto flex items-end w-full px-0 sm:px-2">
             {/* Hidden File Input */}
             <input
               type="file"
@@ -2126,9 +2126,9 @@ function AiChatCore() {
 
             {/* Main Pill Wrapper */}
             <div
-              className={`flex-1 relative rounded-[28px] flex flex-col p-1.5 border transition-all duration-300 ease-in-out ${theme === "dark"
-                ? "bg-[#252525] border-[#444] focus-within:border-[#545454] focus-within:bg-[#2A2A2A]"
-                : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D]"
+              className={`flex-1 relative rounded-full flex flex-col p-1.5 border transition-all duration-300 ease-in-out ${theme === "dark"
+                ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40"
+                : "bg-white border-[#E5E5E5] focus-within:border-[#252525]/20"
                 }`}
             >
               {/* Integrated Image Preview (Sticks to top of pill) */}
@@ -2152,10 +2152,10 @@ function AiChatCore() {
                 <div className="relative flex items-center justify-center shrink-0">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${theme === "dark"
-                      ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white"
-                      : "bg-[#F5F3EF] text-gray-600 hover:text-gray-900 md:bg-transparent md:text-gray-500 md:hover:bg-[#F0EDE8] md:hover:text-[#252525]"
-                      } md:hover:scale-110`}
+                    className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${theme === "dark"
+                      ? "text-gray-400 hover:bg-[#333] hover:text-white"
+                      : "text-gray-500 hover:bg-[#F0EDE8] hover:text-[#252525]"
+                      } hover:scale-110`}
                     title="Attach image"
                   >
                     <Plus className="w-5 h-5" />
@@ -2178,7 +2178,7 @@ function AiChatCore() {
                   }}
                   placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Avyx AI anything..."))}
                   disabled={isQuotaReached && !isLoading}
-                  className={`flex-1 max-h-48 min-h-[44px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-3 text-[15px] outline-none custom-scrollbar leading-tight ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 max-h-48 min-h-[44px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-3 text-[15px] outline-none custom-scrollbar leading-tight font-medium ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
                 />
 
@@ -2188,12 +2188,12 @@ function AiChatCore() {
                     <button
                       onClick={toggleDictation}
                       title="Dictate"
-                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ${isDictating
+                      className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${isDictating
                         ? "bg-red-500 text-white animate-pulse"
                         : theme === "dark"
-                          ? "bg-[#333] text-gray-300 hover:text-white md:bg-transparent md:text-gray-400 md:hover:bg-[#545454] md:hover:text-white"
-                          : "bg-[#F5F3EF] text-gray-600 hover:text-gray-900 md:bg-transparent md:text-gray-500 md:hover:bg-[#F0EDE8] md:hover:text-[#252525]"
-                        } md:hover:scale-110`}
+                          ? "text-gray-400 hover:bg-[#333] hover:text-white"
+                          : "text-gray-500 hover:bg-[#F0EDE8] hover:text-[#252525]"
+                        } hover:scale-110`}
                     >
                       <Mic className="w-[18px] h-[18px]" />
                     </button>

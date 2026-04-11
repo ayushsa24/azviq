@@ -108,7 +108,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     const isPrep = path.includes("/preparation") && (
       (!!params?.get("id") && (params?.get("tab") === "exercise" || params?.get("tab") === "revision")) ||
       path.includes("/preparation/exercise/") ||
-      path.includes("/preparation/revision/")
+      path.includes("/preparation/revision/") ||
+      params?.get("fullscreen") === "true"
     );
     return isPdf || isNote || isPrep;
   };
@@ -130,7 +131,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={`h-[100dvh] overflow-hidden flex flex-col transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'} ${theme === 'dark' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>
+    <div className={`h-[100dvh] overflow-hidden flex flex-col transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'} ${theme === 'dark' ? 'bg-[#1E1E1E] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}>
 
       {mounted && (!isFullPageLayer ? (
         <Sidebar
@@ -184,12 +185,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         flex flex-col overflow-hidden transition-all duration-300 ease-in-out
         ${open ? 'md:pl-56' : 'md:pl-0'}
         ${isKeyboardOpen || isFullPageLayer ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} flex-1 min-h-0
-        ${theme === 'dark' ? 'bg-[#1A1A1A]' : 'bg-[#F5F3EF]'}
+        ${theme === 'dark' ? 'bg-[#1E1E1E]' : 'bg-[#F5F3EF]'}
       `}>
         {mounted && children}
       </main>
 
-      {!isFullPageLayer && mounted && <BottomNav />}
+      {mounted && <BottomNav isFullPageLayer={isFullPageLayer} />}
     </div>
   );
 }

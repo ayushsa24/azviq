@@ -29,11 +29,12 @@ const tabCls = (active: boolean) =>
 export default function PreparationPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<TabType>(() => {
-        const tab = searchParams.get("tab") as TabType | null;
-        return tab && ["exercise", "revision", "personal_ai"].includes(tab) ? tab : "exercise";
-    });
+    
+    // Sync active tab with URL query parameter (?tab=)
+    const activeTab = (searchParams.get("tab") as TabType) || "exercise";
+
     const [search, setSearch] = useState("");
+    const [isFocusMode, setIsFocusMode] = useState(() => searchParams.get("fullscreen") === "true");
     const [isGenerateOpen, setIsGenerateOpen] = useState(false);
     const [isCreateRevisionOpen, setIsCreateRevisionOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
@@ -52,20 +53,31 @@ export default function PreparationPage() {
         localStorage.setItem("preparationViewMode", viewMode);
     }, [viewMode]);
 
-    // Sync tab from URL (e.g. coming back from exercise/revision page with ?tab=exercise)
+    // Clear search and scroll to top when tab changes
     useEffect(() => {
-        const tab = searchParams.get("tab") as TabType | null;
-        if (tab && ["exercise", "revision", "personal_ai"].includes(tab)) {
-            setActiveTab(tab);
-        }
-    }, [searchParams]);
-
-    // Reset scroll to top when tab changes
-    useEffect(() => {
+        setSearch("");
         if (scrollContentRef.current) {
             scrollContentRef.current.scrollTo({ top: 0, behavior: "auto" });
         }
     }, [activeTab]);
+    
+    // Sync Focus Mode to URL
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (isFocusMode) {
+            params.set("fullscreen", "true");
+        } else {
+            params.delete("fullscreen");
+        }
+        router.push(`/preparation?${params.toString()}`, { scroll: false });
+    }, [isFocusMode]);
+
+    // Change tab and update URL query params
+    const handleTabChange = (tabId: TabType) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", tabId);
+        router.push(`/preparation?${params.toString()}`, { scroll: false });
+    };
 
     // Card click handlers — simply navigate to dedicated route pages
     const handleStartExercise = (ex: any) => {
@@ -81,9 +93,10 @@ export default function PreparationPage() {
 
     return (
         <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden relative">
-            <div className="flex h-full flex-col">
+            <div className={`flex h-full flex-col transition-all duration-300 ${isFocusMode ? 'pt-0' : ''}`}>
                 {/* Fixed Header Section (Title + Search + Tabs) */}
-                <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
+                {!isFocusMode && (
+                    <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
                     {/* Title Section */}
                     <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
                         <SidebarToggleButton />
@@ -163,7 +176,7 @@ export default function PreparationPage() {
                             {TABS.map((tab) => (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => handleTabChange(tab.id)}
                                     className={tabCls(activeTab === tab.id)}
                                 >
                                     {tab.label}
@@ -197,12 +210,13 @@ export default function PreparationPage() {
                             </div>
                         )}
                     </div>
-                </div>
+                    </div>
+                )}
 
                 {/* Scrollable Content Area */}
                 <div
                     ref={scrollContentRef}
-                    className="flex-1 overflow-y-auto px-4 sm:px-6 pb-0 mt-2 scrollbar-hide"
+                    className={`flex-1 overflow-y-auto scrollbar-hide transition-all duration-300 ${isFocusMode ? 'px-0 mt-0 h-full' : 'px-4 sm:px-6 mt-2'}`}
                 >
                     {/* Tab content - rendered always but hidden when inactive to preserve state/prevent re-loads */}
                     <div className={activeTab === "exercise" ? "block" : "hidden"}>
@@ -222,7 +236,12 @@ export default function PreparationPage() {
                             viewMode={viewMode}
                         />
                     </div>
-                    {activeTab === "personal_ai" && <PersonalAITab />}
+                    <div className={activeTab === "personal_ai" ? "block h-full" : "hidden"}>
+                        <PersonalAITab 
+                            isFocusMode={isFocusMode}
+                            onFocusModeChange={setIsFocusMode}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -232,7 +251,7 @@ export default function PreparationPage() {
                 onClose={() => setIsGenerateOpen(false)}
                 onSuccess={(newExercise) => {
                     setIsGenerateOpen(false);
-                    setActiveTab("exercise");
+                    handleTabChange("exercise");
                     setRefreshKey(k => k + 1);
                     if (newExercise) {
                         logRecentActivity({
@@ -250,7 +269,7 @@ export default function PreparationPage() {
                 onClose={() => setIsCreateRevisionOpen(false)}
                 onSuccess={(revision) => {
                     setIsCreateRevisionOpen(false);
-                    setActiveTab("revision");
+                    handleTabChange("revision");
                     setRefreshKey(k => k + 1);
                     logRecentActivity({
                         item_id: revision.id,

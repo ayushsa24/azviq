@@ -20,12 +20,13 @@ import {
     AlarmClock,
     Loader2,
     ArrowRight,
-    ExternalLink
+    File as FileIcon
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import useSWR from "swr";
 import { motion, AnimatePresence } from "framer-motion";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 
 type RepeatType = "today" | "daily" | "weekdays" | "weekends" | "custom";
@@ -557,13 +558,25 @@ export default function DashboardChecklist() {
                                                             : "bg-white/50 dark:bg-white/5 border-transparent hover:border-[#D1D1D1] dark:hover:border-[#545454] text-[#7D7D7D] dark:text-[#BABABA]"
                                                         }`}
                                                 >
-                                                    <span className="truncate flex-1 text-left">
+                                                    <span className="truncate flex-1 text-left flex items-center gap-2">
                                                         {form.linked_document_id ? (() => {
                                                             const n = notes.find((note: any) => note.id === form.linked_document_id);
                                                             if (!n) return "Deleted Material";
                                                             const ws = workspaces?.find((w: any) => w.id === n.workspace_id);
                                                             const wsPrefix = ws ? `[${ws.name}] ` : "";
-                                                            return `${wsPrefix}${n.title || "Untitled"} (${n.file_url ? 'PDF' : 'Note'})`;
+                                                            
+                                                            const iconMatch = n.title.match(/^\[(\w+)\]/);
+                                                            const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
+                                                            const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (n.file_url ? FileIcon : FileText);
+
+                                                            return (
+                                                                <>
+                                                                    {wsPrefix && <span className="opacity-50">{wsPrefix}</span>}
+                                                                    {IconComp && <IconComp size={12} className="opacity-60 shrink-0" />}
+                                                                    {cleanTitle || "Untitled"}
+                                                                    <span className="ml-1 opacity-50 text-[10px]">({n.file_url ? 'PDF' : 'Note'})</span>
+                                                                </>
+                                                            );
                                                         })() : "None"}
                                                     </span>
                                                     <ChevronDown className={`w-3.5 h-3.5 ml-2 transition-transform shrink-0 ${showMaterialDropdown ? 'rotate-180' : ''}`} />
@@ -618,8 +631,18 @@ export default function DashboardChecklist() {
                                                                         className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
                                                                     >
                                                                         <div className="flex flex-col min-w-0 pr-2">
-                                                                            <span className="truncate">
-                                                                                {note.title || "Untitled Note"}
+                                                                            <span className="truncate flex items-center gap-2">
+                                                                                {(() => {
+                                                                                    const iconMatch = note.title.match(/^\[(\w+)\]/);
+                                                                                    const cleanTitle = note.title.replace(/^\[\w+\]\s*/, "");
+                                                                                    const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (note.file_url ? FileIcon : FileText);
+                                                                                    return (
+                                                                                        <>
+                                                                                            {IconComp && <IconComp size={12} className="opacity-60 shrink-0" />}
+                                                                                            {cleanTitle || "Untitled Note"}
+                                                                                        </>
+                                                                                    );
+                                                                                })()}
                                                                             </span>
                                                                             <span className="text-[10px] text-gray-500 truncate mt-0.5 flex gap-1">
                                                                                 {wsPrefix && <span className="font-medium text-gray-400">{wsPrefix}</span>}
@@ -777,12 +800,19 @@ function TodoRow({ item, isDark, notes, onToggle, onEdit, onDelete }: {
                         <div className="text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase">
                             · {REPEAT_LABELS[item.repeat]}
                         </div>
-                        {item.linked_document_id && notes.some(n => n.id === item.linked_document_id) && (
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase">
-                                · {item.linked_document_type === 'note' ? <FileText className="w-2.5 h-2.5 text-[#C2A27A]" /> : <ExternalLink className="w-2.5 h-2.5 text-blue-500" />}
-                                Material
-                            </div>
-                        )}
+                        {item.linked_document_id && (() => {
+                            const n = notes.find(note => note.id === item.linked_document_id);
+                            if (!n) return null;
+                            const iconMatch = n.title.match(/^\[(\w+)\]/);
+                            const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
+                            const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (item.linked_document_type === 'note' ? FileText : FileIcon);
+                            return (
+                                <div className="flex items-center gap-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase truncate max-w-[150px]">
+                                    · <IconComp className="w-2.5 h-2.5 opacity-60" />
+                                    <span className="truncate">{cleanTitle}</span>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 

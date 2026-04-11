@@ -194,7 +194,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
     // ══════════════════════════════════════
     if (showResults || (isSubmitted && exercise.status === 'Completed' && !currentQuestion)) {
         return (
-            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-y-auto scrollbar-hide">
+            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-y-auto scrollbar-hide">
                 <div className="max-w-xl mx-auto w-full px-4 sm:px-6 pt-5 sm:pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-8 flex flex-col gap-6">
 
                     {/* Back + title */}
@@ -283,10 +283,10 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
     //  QUIZ SCREEN
     // ══════════════════════════════════════
     return (
-        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-hidden">
 
             {/* ── Top bar ── */}
-            <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-2 sm:pt-2.5 pb-2.5 border-b shrink-0 ${isDark ? 'border-[#333] bg-[#1A1A1A]' : 'border-[#E8E5E0] bg-[#F5F3EF]'}`}>
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3 px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] transition-colors">
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}

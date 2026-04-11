@@ -547,9 +547,9 @@ export default function NoteEditorPage() {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] transition-colors">
+            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors">
                 {/* Clean Loading Header */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A]">
+                <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E]">
                     <div className="flex items-center gap-1 sm:gap-3">
                         {!sidebarOpen && (
                             <button
@@ -592,10 +592,10 @@ export default function NoteEditorPage() {
     }
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto bg-[#F5F3EF] dark:bg-[#1A1A1A] transition-colors relative">
+        <div className="flex flex-col h-full overflow-y-auto bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors relative">
 
             {/* Top Navigation Bar */}
-            <div className="sticky top-0 z-[60] flex items-center justify-between px-4 pt-2 pb-2.5 bg-[#F5F3EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#2A2A2A] transition-colors">
+            <div className="sticky top-0 z-[60] flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] transition-colors">
                 <div className="flex items-center gap-1 sm:gap-3">
                     {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
                     {!sidebarOpen && (
@@ -687,7 +687,7 @@ export default function NoteEditorPage() {
                                 {!note?.original_note_id && (
                                     <button
                                         onClick={handleShare}
-                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors"
+                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1E1E1E] transition-colors"
                                     >
                                         <Share2 size={16} />
                                         Share &amp; Publish
@@ -697,7 +697,7 @@ export default function NoteEditorPage() {
                                     <button
                                         onClick={handleDownloadPdf}
                                         disabled={isDownloadingPdf}
-                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1A1A1A] transition-colors border-t border-[#E8E5E0] dark:border-[#3A3A3A] disabled:opacity-50"
+                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1E1E1E] transition-colors border-t border-[#E8E5E0] dark:border-[#3A3A3A] disabled:opacity-50"
                                     >
                                         {isDownloadingPdf ? (
                                             <Loader2 size={16} className="animate-spin" />
@@ -733,7 +733,7 @@ export default function NoteEditorPage() {
 
                         {/* SHARE PANEL - Now inside the moreMenuRef container */}
                         {showSharePanel && (
-                            <div className="absolute right-0 top-12 w-60 bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#2A2A2A] shadow-2xl rounded-2xl z-[80] p-2 flex flex-col gap-2">
+                            <div className="absolute right-0 top-12 w-60 bg-white dark:bg-[#1E1E1E] border border-[#E8E5E0] dark:border-[#2A2A2A] shadow-2xl rounded-2xl z-[80] p-2 flex flex-col gap-2">
                                 <div className="px-1">
                                     <h3 className="font-bold text-xs text-[#252525] dark:text-white leading-tight">Share Note</h3>
                                     <p className="text-[9px] text-[#7D7D7D]">Control access via a public link.</p>

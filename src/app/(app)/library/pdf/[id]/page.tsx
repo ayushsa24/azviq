@@ -15,7 +15,7 @@ import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const CanvasSkeleton = () => (
-    <div className="w-full h-full min-h-[60vh] flex flex-col items-center p-8 bg-[#E8E5E0] dark:bg-[#161514]">
+    <div className="w-full h-full min-h-[60vh] flex flex-col items-center p-8 bg-[#F5F3EF] dark:bg-[#1E1E1E]">
         <Skeleton className="w-full max-w-[800px] h-full sm:h-[1000px] bg-white dark:bg-[#1C1C1C] rounded-t-md shadow-2xl animate-pulse" />
     </div>
 );
@@ -23,10 +23,10 @@ const CanvasSkeleton = () => (
 const PdfSkeleton = () => {
     const router = require("next/navigation").useRouter();
     return (
-        <div className="flex flex-col h-full bg-[#E8E5E0] dark:bg-[#161514] overflow-hidden relative">
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-hidden relative">
             {/* Elegant Header Skeleton */}
-            <div className="relative sm:static flex flex-col bg-white/90 backdrop-blur-xl dark:bg-[#24221F]/90 border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-50">
-                <div className="flex items-center justify-between px-4 py-3">
+            <div className="relative sm:static flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] z-50 transition-colors">
+                <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2 sm:gap-4">
                         <Skeleton className="w-10 h-10 rounded-xl opacity-50" />
                         <div className="hidden sm:flex flex-col gap-1.5 ml-1">
@@ -639,7 +639,7 @@ export default function PdfEditorPage() {
     const canRedo = historyIdx < history.length - 1;
 
     return (
-        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors overflow-hidden">
 
             {/* Top Navigation Bar — fixed on mobile so keyboard can't push it off screen */}
             {/* On desktop (sm:) it reverts to normal static flow */}
@@ -652,9 +652,9 @@ export default function PdfEditorPage() {
                         commitText();
                     }
                 }}
-                className="relative sm:static flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-0"
+                className="relative sm:static flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+2px)] sm:pt-0"
             >
-                <div className="flex items-center justify-between px-4 pt-2 pb-2.5">
+                <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-1 sm:gap-2">
                     {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
                     {!sidebarOpen && (
@@ -751,10 +751,8 @@ export default function PdfEditorPage() {
                         <span className="hidden sm:inline ml-2">Save</span>
                     </button>
                 </div>
-                </div>
-
-
             </div>
+        </div>
 
             {/* Spacer for fixed header on mobile — height is set dynamically via ResizeObserver */}
             {/* This ensures content is never hidden behind the header regardless of header height */}
@@ -810,7 +808,7 @@ export default function PdfEditorPage() {
                         }
                     }}
                     onContextMenu={(e) => e.preventDefault()}
-                    className={`flex-1 min-w-0 bg-[#E8E5E0] dark:bg-[#161514] overflow-x-hidden relative flex justify-center p-0 pt-0 sm:pt-12 sm:px-12 custom-scrollbar select-none touch-none-callout ${showThumbnails ? 'overflow-hidden' : 'overflow-auto'}`}
+                    className={`flex-1 min-w-0 bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-x-hidden relative flex justify-center p-0 pt-0 sm:pt-12 sm:px-12 custom-scrollbar select-none touch-none-callout ${showThumbnails ? 'overflow-hidden' : 'overflow-auto'}`}
                     style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
                 >
                     <PdfViewerWrapper

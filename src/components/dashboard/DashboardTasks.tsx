@@ -6,6 +6,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { format } from "date-fns";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import useSWR from "swr";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
+import { FileText, File as FileIcon } from "lucide-react";
 
 export default function DashboardTasks() {
     const { theme } = useTheme();
@@ -386,7 +388,7 @@ function TaskRow({ task, projects, workspaces, notes, isDark, setSelectedTask, t
                         <span className={`text-sm font-medium truncate ${task.status === "done" ? "line-through opacity-50" : ""}`}>
                             {task.title}
                         </span>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                             {workspaceName && (
                                 <span className={`text-[10px] font-semibold truncate px-1.5 py-0.5 rounded-md ${isDark ? "text-[#D4AF37] bg-white/5" : "text-[#C2A27A] bg-[#C2A27A]/10"}`}>
                                     {workspaceName}
@@ -397,6 +399,19 @@ function TaskRow({ task, projects, workspaces, notes, isDark, setSelectedTask, t
                                     {projects.find((p: any) => p.id === task.project_id)?.title}
                                 </span>
                             )}
+                        {task.linked_document_id && (() => {
+                            const n = notes.find((note: any) => note.id === task.linked_document_id);
+                            if (!n) return null;
+                            const iconMatch = n.title.match(/^\[(\w+)\]/);
+                            const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
+                            const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (n.file_url ? FileIcon : FileText);
+                            return (
+                                <div className="flex items-center gap-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase truncate max-w-[120px]">
+                                    · <IconComp className="w-2.5 h-2.5 opacity-60" />
+                                    <span className="truncate">{cleanTitle}</span>
+                                </div>
+                            );
+                        })()}
                         </div>
                     </div>
                 </div>

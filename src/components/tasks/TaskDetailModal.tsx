@@ -10,11 +10,13 @@ import {
     ArrowLeft,
     Check,
     ChevronDown,
-    Search
+    Search,
+    File as FileIcon
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { motion, useDragControls } from "framer-motion";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface TaskDetailModalProps {
     task: any | null;
@@ -300,12 +302,23 @@ export function TaskDetailModal({
                                         onClick={() => setIsMaterialDropdownOpen(!isMaterialDropdownOpen)}
                                         className="flex items-center justify-between bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-2 rounded-lg transition-colors w-full cursor-pointer border border-[#E8E5E0] dark:border-[#545454] min-w-0"
                                     >
-                                        <span className="truncate flex-1 text-left">
+                                        <span className="truncate flex-1 text-left flex items-center gap-2">
                                             {localTask.linked_document_id ? (() => {
                                                 const n = notes.find(note => note.id === localTask.linked_document_id);
                                                 if (!n) return "Deleted Material";
                                                 const ws = workspaces?.find((w) => w.id === n.workspace_id);
-                                                return `${ws ? `[${ws.name}] ` : ""}${n.title} (${n.file_url ? 'PDF' : 'Note'})`;
+                                                const iconMatch = n.title.match(/^\[(\w+)\]/);
+                                                const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
+                                                const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (n.file_url ? FileIcon : FileText);
+                                                
+                                                return (
+                                                    <>
+                                                        {ws && <span className="opacity-50">[{ws.name}] </span>}
+                                                        {IconComp && <IconComp size={14} className="opacity-60 inline-block shrink-0" />}
+                                                        {cleanTitle}
+                                                        <span className="ml-1 opacity-50 text-[10px]">({n.file_url ? 'PDF' : 'Note'})</span>
+                                                    </>
+                                                );
                                             })() : "Empty"}
                                         </span>
                                         <ChevronDown className="w-4 h-4 text-gray-400 ml-2" />
@@ -358,8 +371,18 @@ export function TaskDetailModal({
                                                             className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-gray-100 dark:bg-[#333] text-black dark:text-white font-medium" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3A3A3A]"}`}
                                                         >
                                                             <div className="flex flex-col min-w-0 pr-2">
-                                                                <span className="truncate">
-                                                                    {n.title}
+                                                                <span className="truncate flex items-center gap-2">
+                                                                    {(() => {
+                                                                        const iconMatch = n.title.match(/^\[(\w+)\]/);
+                                                                        const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
+                                                                        const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (n.file_url ? FileIcon : FileText);
+                                                                        return (
+                                                                            <>
+                                                                                {IconComp && <IconComp size={14} className="opacity-60 shrink-0" />}
+                                                                                {cleanTitle}
+                                                                            </>
+                                                                        );
+                                                                    })()}
                                                                 </span>
                                                                 <span className="text-[10px] text-gray-500 truncate mt-0.5 flex gap-1">
                                                                     {wsPrefix && <span className="font-medium text-gray-400">{wsPrefix}</span>}
