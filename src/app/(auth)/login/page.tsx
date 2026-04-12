@@ -91,9 +91,9 @@ function LoginForm() {
 
         <div className="flex flex-col items-center mb-4">
           <img 
-            src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
-            alt="Avyx Logo" 
-            className="w-14 h-14 rounded-xl object-cover mb-2" 
+            src="/azviq_logo.png" 
+            alt="Azviq Logo" 
+            className={`w-16 h-16 rounded-xl object-contain mb-2 ${theme === 'dark' ? 'invert' : ''}`} 
           />
           <h1 className={`text-3xl font-bold mb-0.5 tracking-tighter font-[var(--font-lexend)] ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
             Welcome Back

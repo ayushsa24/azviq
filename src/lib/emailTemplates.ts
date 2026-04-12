@@ -86,7 +86,7 @@ export function buildDailyReportEmail({
           <tr>
             <td style="padding:0 0 24px 0; text-align:center;">
               <span style="display:inline-block;background:#252525;color:#fff;font-weight:700;font-size:18px;padding:8px 20px;border-radius:12px;letter-spacing:-0.5px;">
-                Avyx
+                Azviq
               </span>
               <h1 style="font-size:22px;font-weight:700;color:#252525;margin:16px 0 4px;">
                 Daily Study Report
@@ -183,7 +183,7 @@ export function buildDailyReportEmail({
           <!-- Footer -->
           <tr>
             <td style="text-align:center;">
-              <p style="font-size:12px;color:#BABABA;margin:0;">This report was sent by Avyx · Daily Study Tracker</p>
+              <p style="font-size:12px;color:#BABABA;margin:0;">This report was sent by Azviq · Daily Study Tracker</p>
               <p style="font-size:12px;color:#BABABA;margin:4px 0 0;">You received this as a registered family member.</p>
             </td>
           </tr>

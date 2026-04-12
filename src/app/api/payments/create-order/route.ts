@@ -25,8 +25,8 @@ const PLAN_PRICES: Record<string, number> = {
 };
 
 const PLAN_NAMES: Record<string, string> = {
-  lite: "Avyx Lite — Academic Essential (1 Month)",
-  premium: "Avyx Premium — Pro Researcher (1 Month)",
+  lite: "Azviq Lite — Academic Essential (1 Month)",
+  premium: "Azviq Premium — Pro Researcher (1 Month)",
 };
 
 // ---------------------------------------------------------------------------
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     const order = await razorpay.orders.create({
       amount,
       currency: "INR",
-      receipt: `avyx_${plan}_${Date.now()}`,
+      receipt: `azviq_${plan}_${Date.now()}`,
       notes: {
         user_email: session.user.email,
         plan,

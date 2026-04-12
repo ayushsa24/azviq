@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Sparkles, Loader2, ArrowRight, Square, X, Check } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, Square, X, Check, Crown } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface AiInlineInputProps {
     initialTop: number;
@@ -20,9 +21,11 @@ export function AiInlineInput({
     onStreamChunk,
     onDiscard,
 }: AiInlineInputProps) {
+    const { openSettings } = useSettings();
     const [prompt, setPrompt] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -151,6 +154,10 @@ export function AiInlineInput({
                 console.log("AI Generation aborted by user");
             } else {
                 console.error(error);
+                if (error.message.includes("Daily limit reached") || error.message.includes("QUOTA_EXCEEDED")) {
+                    setError(error.message);
+                    return;
+                }
                 alert("Sorry, I encountered an error. Please try again.");
                 onClose();
             }
@@ -168,6 +175,34 @@ export function AiInlineInput({
         }
         onClose();
     };
+
+    if (error) {
+        return (
+            <div
+                ref={containerRef}
+                className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white dark:bg-[#1A1A1A] border border-[#C2A27A]/30 shadow-2xl rounded-full px-4 py-2 pointer-events-auto z-[50] transition-all animate-in slide-in-from-bottom-2 duration-300"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center gap-2.5">
+                    <Crown size={16} className="text-[#C2A27A]" />
+                    <span className="text-xs font-medium text-[#252525] dark:text-[#CFCFCF]">
+                        {error}
+                    </span>
+                </div>
+                <div className="w-px h-4 bg-[#C2A27A]/20 mx-1" />
+                <button
+                    onClick={() => { openSettings("subscription"); onClose(); }}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#C2A27A] hover:bg-[#B19169] text-white text-[10px] font-black uppercase tracking-tight rounded-full transition-all whitespace-nowrap"
+                >
+                    Upgrade
+                </button>
+                <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                    <X size={14} className="text-[#A3A3A3]" />
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div

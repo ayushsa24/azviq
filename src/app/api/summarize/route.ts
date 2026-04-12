@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     const { text } = validation.data;
 
     // --- AI Daily Quota Check ---
-    const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "chat", user.id);
+    const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "note_ai", user.id);
     if (!guard.allowed) {
       return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
     }

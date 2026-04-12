@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     const headerStyle = req.headers.get("X-Response-Style");
     
     const aiConfig = getAIConfig(req, 
-      "You are Avyx AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted using markdown, and educational."
+      "You are Azviq AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted using markdown, and educational."
     );
 
     // If no header, use the user's saved preference

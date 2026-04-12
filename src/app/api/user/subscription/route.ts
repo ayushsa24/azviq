@@ -39,17 +39,19 @@ export async function GET() {
 
     let usage = null;
     if (userId) {
-      const [chatUsage, visionUsage, exerciseUsage, personalAiUsage] = await Promise.all([
+      const [chatUsage, visionUsage, exerciseUsage, personalAiUsage, noteAiUsage] = await Promise.all([
         getUsage("chat", userId, status.tier),
         getUsage("vision", userId, status.tier),
         getUsage("exercise", userId, status.tier),
         getUsage("personal_ai", userId, status.tier),
+        getUsage("note_ai", userId, status.tier),
       ]);
       usage = {
         chat: chatUsage,
         vision: visionUsage,
         exercise: exerciseUsage,
         personal_ai: personalAiUsage,
+        note_ai: noteAiUsage,
       };
     }
 

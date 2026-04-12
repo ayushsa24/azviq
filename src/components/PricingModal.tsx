@@ -36,6 +36,8 @@ const PLANS = [
     tier: 0,
     features: [
       "40 AI chats / day",
+      "30 AI Teacher messages / day",
+      "30 Note Editor AI requests / day",
       "15 vision / image requests / day",
       "10 exercise generations / day",
       "Gemini 2.5 Flash (Fast)",
@@ -56,6 +58,8 @@ const PLANS = [
     badge: "Most Popular",
     features: [
       "200 AI chats / day",
+      "100 AI Teacher messages / day",
+      "100 Note Editor AI requests / day",
       "50 vision / image requests / day",
       "50 exercise generations / day",
       "GPT-4o Mini (High Quality)",
@@ -76,6 +80,7 @@ const PLANS = [
     badge: "Best Value",
     features: [
       "Unlimited AI chats",
+      "Unlimited AI Teacher & Note AI",
       "Unlimited vision / image requests",
       "Unlimited exercise generations",
       "GPT-4o + Claude 3.5 Sonnet (The Best)",
@@ -174,9 +179,9 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
         amount,
         currency,
         order_id: orderId,
-        name: "Avyx",
+        name: "Azviq",
         description: planName,
-        image: "/lavyx_logo.png",
+        image: "/azviq_logo.png",
         theme: { color: "#C2A27A" },
         handler: async (response: any) => {
           const verifyRes = await fetch("/api/payments/verify", {
@@ -229,7 +234,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
             animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
             exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
             transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
-            className={`relative w-full ${isMobile ? 'h-[95vh]' : 'max-w-3xl max-h-[90vh]'} overflow-hidden rounded-t-[20px] sm:rounded-2xl border shadow-2xl flex flex-col
+            className={`relative w-full ${isMobile ? 'h-[95vh]' : 'max-w-5xl max-h-[90vh]'} overflow-hidden rounded-t-[20px] sm:rounded-2xl border shadow-2xl flex flex-col
               ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"}`}
             onClick={(e) => e.stopPropagation()}
           >

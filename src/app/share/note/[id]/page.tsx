@@ -249,7 +249,7 @@ export default function SharedNotePage() {
                     <p className="text-sm text-[#7D7D7D] dark:text-[#7D7D7D] mt-1">The owner hasn&apos;t shared this note publicly.</p>
                 </div>
                 <a href="/" className="px-6 py-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-full text-sm font-semibold hover:opacity-90 transition-colors">
-                    Go to Avyx
+                    Go to Azviq
                 </a>
             </div>
         );
@@ -308,7 +308,7 @@ export default function SharedNotePage() {
                 </button>
 
                 <div className="w-px h-4 bg-[#E8E5E0] dark:bg-[#3A3A3A] hidden sm:block" />
-                <span className="text-xs text-[#BABABA] shrink-0 hidden sm:block">Shared via Avyx</span>
+                <span className="text-xs text-[#BABABA] shrink-0 hidden sm:block">Shared via Azviq</span>
             </div>
 
             <div className="flex flex-col items-center w-full">
@@ -370,7 +370,7 @@ export default function SharedNotePage() {
 
                     <div className="mt-12 pt-6 border-t border-[#E8E5E0] dark:border-[#2E2A26] text-xs text-[#BABABA] text-center transition-colors">
                         Shared via{" "}
-                        <a href="/" className="font-semibold text-[#545454] dark:text-[#7D7D7D] hover:underline">Avyx</a>
+                        <a href="/" className="font-semibold text-[#545454] dark:text-[#7D7D7D] hover:underline">Azviq</a>
                     </div>
                 </div>
             </div>

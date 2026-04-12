@@ -11,7 +11,7 @@ import { AIMessage } from "@/lib/ai/types";
  */
 function buildTeacherPrompt(noteTitle: string, noteContent: string, isPdf: boolean): string {
   const sourceType = isPdf ? "PDF document" : "note";
-  return `You are a dedicated AI Study Teacher named "Avyx Teach". A student has shared a ${sourceType} with you for a study session.
+  return `You are a dedicated AI Study Teacher named "Azviq Teach". A student has shared a ${sourceType} with you for a study session.
 
 DOCUMENT TITLE: "${noteTitle}"
 
@@ -95,7 +95,12 @@ export async function POST(req: Request) {
     }
 
     // --- Build teacher system prompt ---
-    const systemPrompt = buildTeacherPrompt(noteTitle, noteContent, isPdf ?? false);
+    const SAFE_NOTE_LIMIT = 50000;
+    const safeNoteContent = noteContent.length > SAFE_NOTE_LIMIT
+      ? noteContent.slice(0, SAFE_NOTE_LIMIT) + "\n...[Content truncated due to length limits]"
+      : noteContent;
+      
+    const systemPrompt = buildTeacherPrompt(noteTitle, safeNoteContent, isPdf ?? false);
 
     // --- Map to AIMessage format ---
     const aiMessages: AIMessage[] = messages.map((m) => ({

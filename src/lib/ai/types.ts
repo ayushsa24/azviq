@@ -1,5 +1,5 @@
 /**
- * AI Types — Shared definitions for all AI providers in the Avyx system.
+ * AI Types — Shared definitions for all AI providers in the Azviq system.
  */
 
 export type AIProvider = "gemini" | "ollama" | "openai" | "anthropic";

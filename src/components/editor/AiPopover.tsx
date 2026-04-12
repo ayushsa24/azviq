@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check, Crown } from "lucide-react";
 import { Editor } from "@tiptap/react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface AiPopoverProps {
     editor: Editor;
@@ -9,8 +10,10 @@ interface AiPopoverProps {
 }
 
 export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
+    const { openSettings } = useSettings();
     const [isLoading, setIsLoading] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [hasStartedWriting, setHasStartedWriting] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const fullResponseRef = useRef<string>("");
@@ -180,41 +183,76 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
             }
 
             // Keep popover open so user can see it's done
-        } catch (error: any) {
-            if (error.name === "AbortError") {
-                console.log("AI Generation aborted by user");
-                // Finalize what we have
-                if (fullResponseRef.current) {
-                    const { marked } = await import("marked");
-                    const htmlResult = await marked.parse(fullResponseRef.current);
-                    const startPos = command === "Answer this"
-                        ? insertAt + 2
-                        : editor.state.selection.from;
-                    const endPos = startPos + fullResponseRef.current.length;
+    } catch (error: any) {
+        if (error.name === "AbortError") {
+            console.log("AI Generation aborted by user");
+            // Finalize what we have
+            if (fullResponseRef.current) {
+                const { marked } = await import("marked");
+                const htmlResult = await marked.parse(fullResponseRef.current);
+                const startPos = command === "Answer this"
+                    ? insertAt + 2
+                    : editor.state.selection.from;
+                const endPos = startPos + fullResponseRef.current.length;
 
-                    editor.chain()
-                        .focus()
-                        .setTextSelection({ from: startPos, to: endPos })
-                        .deleteSelection()
-                        .insertContentAt(startPos, htmlResult)
-                        .run();
-                    
-                    const finalEndPos = editor.state.selection.to;
-                    insertionRangeRef.current = { from: startPos, to: finalEndPos };
-                    setIsComplete(true);
-                } else {
-                    onClose();
-                }
+                editor.chain()
+                    .focus()
+                    .setTextSelection({ from: startPos, to: endPos })
+                    .deleteSelection()
+                    .insertContentAt(startPos, htmlResult)
+                    .run();
+                
+                const finalEndPos = editor.state.selection.to;
+                insertionRangeRef.current = { from: startPos, to: finalEndPos };
+                setIsComplete(true);
             } else {
-                console.error(error);
-                alert("Sorry, I encountered an error. Please try again.");
                 onClose();
             }
-        } finally {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+        } else {
+            console.error(error);
+            // Handle quota exhaustion specifically
+            if (error.message.includes("Daily limit reached") || error.message.includes("QUOTA_EXCEEDED")) {
+                setError(error.message);
+                return; // Keep popover open to show error
+            }
+            setError("Sorry, I encountered an error. Please try again.");
         }
-    };
+    } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+    }
+};
+
+const handleUpgrade = () => {
+    openSettings("subscription");
+    onClose();
+};
+
+if (error) {
+    return (
+        <div
+            className="flex flex-col w-full md:w-[240px] bg-white dark:bg-[#252525] border border-[#C2A27A]/30 shadow-2xl rounded-xl overflow-hidden pointer-events-auto transition-all animate-in fade-in zoom-in duration-200"
+            onMouseDown={(e) => e.stopPropagation()}
+        >
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#C2A27A]/10 border-b border-[#C2A27A]/20">
+                <Crown size={14} className="text-[#C2A27A]" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B6F4E] dark:text-[#C2A27A]">Action Required</span>
+            </div>
+            <div className="p-3 flex flex-col gap-2">
+                <p className="text-[11px] leading-relaxed text-[#252525] dark:text-[#BABABA]">
+                    {error}
+                </p>
+                <button
+                    onClick={handleUpgrade}
+                    className="flex items-center justify-center gap-2 w-full py-1.5 bg-[#C2A27A] hover:bg-[#B19169] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-sm"
+                >
+                    Upgrade Plan
+                    <ArrowRight size={12} />
+                </button>
+            </div>
+        </div>
+    );
+}
 
     if (isLoading) {
         return (

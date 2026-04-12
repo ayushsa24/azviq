@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(req: Request) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { code, language } = await req.json();
 
         // Map languages properly for paiza.io
@@ -38,8 +45,8 @@ export async function POST(req: Request) {
 
         const runnerId = createData.id;
 
-        // Poll for results (max 15 seconds)
-        for (let i = 0; i < 15; i++) {
+        // Poll for results (max 8 seconds to prevent Vercel 10s default timeouts)
+        for (let i = 0; i < 8; i++) {
             await new Promise(resolve => setTimeout(resolve, 1000));
             const statusRes = await fetch(`https://api.paiza.io/runners/get_details?id=${runnerId}&api_key=guest`);
             const statusData = await statusRes.json();

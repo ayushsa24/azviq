@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     const base64Data = image.split(",")[1] || image;
     const parts = [
       {
-        text: `System Instruction: You are Avyx AI, a premium study assistant. You have been provided an image of some study material. Help the user understand it perfectly. Always format your output beautifully with markdown.\n\nUser Question: ${lastUserMsg.content || "Analyze this study material and explain it simply."}`,
+        text: `System Instruction: You are Azviq AI, a premium study assistant. You have been provided an image of some study material. Help the user understand it perfectly. Always format your output beautifully with markdown.\n\nUser Question: ${lastUserMsg.content || "Analyze this study material and explain it simply."}`,
       },
       {
         inlineData: {

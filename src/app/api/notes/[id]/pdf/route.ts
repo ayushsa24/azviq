@@ -33,6 +33,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             return NextResponse.json({ error: "No PDF file provided" }, { status: 400 });
         }
 
+        // --- Subscription PDF Size Limit Check ---
+        const { getSubscriptionStatus, checkPdfSizeAccess } = await import("@/lib/subscription");
+        const subStatus = await getSubscriptionStatus(session.user.email);
+        const sizeCheck = checkPdfSizeAccess(file.size, subStatus.tier);
+        
+        if (!sizeCheck.allowed) {
+            return NextResponse.json({ error: sizeCheck.error }, { status: 413 });
+        }
+
         // Generate a new clean filename to bust caches
         const fileExt = "pdf";
         const fileName = `${user.id}/${Date.now()}_annotated.${fileExt}`;

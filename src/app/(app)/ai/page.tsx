@@ -51,6 +51,7 @@ import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
+import { compressImage } from "@/lib/utils/image";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -124,6 +125,24 @@ function AiChatCore() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+  const [isHistoryInitialized, setIsHistoryInitialized] = useState(false);
+
+  // Initial load for history sidebar
+  useEffect(() => {
+    const saved = localStorage.getItem("ai_history_open");
+    if (saved !== null) {
+      setIsHistoryOpen(saved === "true");
+    }
+    setIsHistoryInitialized(true);
+  }, []);
+
+  // Save on change for history sidebar
+  useEffect(() => {
+    if (isHistoryInitialized) {
+      localStorage.setItem("ai_history_open", isHistoryOpen.toString());
+    }
+  }, [isHistoryOpen, isHistoryInitialized]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [isArchivedExpanded, setIsArchivedExpanded] = useState(false);
@@ -1376,7 +1395,7 @@ function AiChatCore() {
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[280px] md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-72 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
+        className={`fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[250px] md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-64 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
           ? "bg-[#1A1A1A] border-[#2E2E2E]"
           : "bg-[#FAFAFA] border-[#7D7D7D]/40"
           } shadow-sm transition-colors`}
@@ -1807,14 +1826,21 @@ function AiChatCore() {
                             ref={editFileInputRef}
                             className="hidden"
                             accept="image/*"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setEditImage(reader.result as string);
-                                };
-                                reader.readAsDataURL(file);
+                                try {
+                                  const compressed = await compressImage(file);
+                                  setEditImage(compressed);
+                                } catch (err) {
+                                  console.error("Compression failed:", err);
+                                  // Fallback to original behavior if compression fails
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setEditImage(reader.result as string);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
                               }
                             }}
                           />
@@ -2061,11 +2087,11 @@ function AiChatCore() {
             ))
           )}
 
-          <div ref={messagesEndRef} className="h-1 md:h-4" />
+          <div ref={messagesEndRef} className="h-1 md:h-2" />
         </div>
 
         {/* Input Dock */}
-        <div className={`absolute bottom-0 left-0 w-full z-10 px-2 sm:px-5 pb-2 md:pb-6 pt-0 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-2 sm:px-5 pb-2 md:pb-3 pt-0 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
           {apiError && (
             <div className={`max-w-3xl md:max-w-4xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
               <div className="flex items-center gap-2 text-sm">
@@ -2105,28 +2131,35 @@ function AiChatCore() {
               </button>
             </div>
           )}
-          <div className="max-w-3xl md:max-w-4xl mx-auto flex items-end w-full px-0 sm:px-2">
+          <div className="max-w-2xl md:max-w-[850px] mx-auto flex items-end w-full px-0 sm:px-2">
             {/* Hidden File Input */}
             <input
               type="file"
               ref={fileInputRef}
               className="hidden"
               accept="image/*"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setSelectedImage(reader.result as string);
-                  };
-                  reader.readAsDataURL(file);
+                  try {
+                    const compressed = await compressImage(file);
+                    setSelectedImage(compressed);
+                  } catch (err) {
+                    console.error("Compression failed:", err);
+                    // Fallback
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setSelectedImage(reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }
                 }
               }}
             />
 
             {/* Main Pill Wrapper */}
             <div
-              className={`flex-1 relative rounded-full flex flex-col p-1.5 border transition-all duration-300 ease-in-out ${theme === "dark"
+              className={`flex-1 relative rounded-[28px] flex flex-col p-1.5 border transition-all duration-300 ease-in-out ${theme === "dark"
                 ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40"
                 : "bg-white border-[#E5E5E5] focus-within:border-[#252525]/20"
                 }`}
@@ -2176,7 +2209,7 @@ function AiChatCore() {
                       }
                     }
                   }}
-                  placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Avyx AI anything..."))}
+                  placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Azviq AI anything..."))}
                   disabled={isQuotaReached && !isLoading}
                   className={`flex-1 max-h-48 min-h-[44px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-3 text-[15px] outline-none custom-scrollbar leading-tight font-medium ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
@@ -2241,7 +2274,7 @@ function AiChatCore() {
             </div>
           </div>
           <p className="text-center text-xs opacity-50 mt-1.5 hidden md:block">
-            Avyx AI can make mistakes. Consider verifying critical
+            Azviq AI can make mistakes. Consider verifying critical
             information.
           </p>
         </div>

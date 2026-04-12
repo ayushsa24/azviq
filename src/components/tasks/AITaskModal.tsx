@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Sparkles, Loader2, ChevronDown } from "lucide-react";
+import { X, Sparkles, Loader2, ChevronDown, Crown, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface AITaskModalProps {
     isOpen: boolean;
@@ -19,6 +20,8 @@ export function AITaskModal({
     const [projectId, setProjectId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+    const { openSettings } = useSettings();
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -74,7 +77,11 @@ export function AITaskModal({
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.message || "Something went wrong.");
+            const msg = err.message || "Something went wrong.";
+            setError(msg);
+            if (msg.includes("Daily limit reached") || msg.includes("QUOTA_EXCEEDED")) {
+                setIsQuotaExceeded(true);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -133,9 +140,33 @@ export function AITaskModal({
                         </div>
 
                         {error && (
-                            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-xl flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                {error}
+                            <div className={`mb-4 p-3 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 shadow-sm
+                                ${isQuotaExceeded 
+                                    ? "bg-[#C2A27A]/10 border border-[#C2A27A]/30 text-[#8B6F4E] dark:text-[#C2A27A]" 
+                                    : "bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400"
+                                }`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
+                                    ${isQuotaExceeded ? "bg-[#C2A27A]/20" : "bg-red-500/10"}`}>
+                                    {isQuotaExceeded ? <Crown size={16} className="text-[#C2A27A]" /> : <div className="w-1.5 h-1.5 rounded-full bg-red-500" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-0.5
+                                        ${isQuotaExceeded ? "text-[#C2A27A]" : "text-red-500"}`}>
+                                        {isQuotaExceeded ? "Limit Reached" : "Error"}
+                                    </p>
+                                    <p className="text-xs leading-relaxed">
+                                        {error}
+                                    </p>
+                                    {isQuotaExceeded && (
+                                        <button 
+                                            onClick={() => openSettings("subscription")}
+                                            className="mt-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#C2A27A] hover:underline"
+                                        >
+                                            Upgrade Plan
+                                            <ArrowRight size={10} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
 

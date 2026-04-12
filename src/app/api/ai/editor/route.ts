@@ -34,8 +34,8 @@ export async function POST(req: Request) {
       return apiError("User not found", 404, "USER_NOT_FOUND");
     }
 
-    // 2. Enforce AI Daily Quota & Tier Access (Tracking type: 'chat')
-    const guard = await runSubscriptionGuard(session.user.email, (user.ai_model as any) || "gemini-2.5-flash", "chat", user.id);
+    // 2. Enforce AI Daily Quota & Tier Access (Tracking type: 'note_ai')
+    const guard = await runSubscriptionGuard(session.user.email, (user.ai_model as any) || "gemini-2.5-flash", "note_ai", user.id);
     if (!guard.allowed) {
       return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
     }

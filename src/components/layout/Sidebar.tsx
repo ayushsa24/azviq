@@ -121,12 +121,12 @@ export default function Sidebar({
         {/* ── TOP BRAND HEADER ── */}
         <div className={`flex items-center gap-3 px-4 h-14 shrink-0 border-b ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
           <img
-            src={isDark ? "/lavyx_logo.png" : "/davyx_logo.png"}
-            alt="Avyx Logo"
-            className="w-10 h-10 rounded-lg object-cover shrink-0"
+            src="/azviq_logo.png"
+            alt="Azviq Logo"
+            className="w-11 h-11 rounded-lg object-contain shrink-0 dark:invert"
           />
           <span className={`font-bold text-lg tracking-tighter flex-1 font-[var(--font-lexend)] ${isDark ? "text-white" : "text-[#252525]"}`}>
-            Avyx
+            Azviq
           </span>
           <button
             data-notification-bell

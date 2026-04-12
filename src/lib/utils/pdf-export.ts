@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
 /**
- * Professional PDF Export Utility for Avyx
+ * Professional PDF Export Utility for Azviq
  * Features: High-quality rendering, page-slicing for perfect margins, 
  * repeating headers/footers, and page-break optimization.
  */
@@ -53,7 +53,7 @@ export async function exportToPdf(contentHtml: string, title: string) {
             </div>
             <div class="pdf-content">${contentHtml}</div>
             <div class="pdf-end-branding">
-                <div class="pdf-logo-text">avyx</div>
+                <div class="pdf-logo-text">azviq</div>
                 <div style="font-size: 14px; color: #666;">Elevate Your Productivity via AI</div>
             </div>
         </div>
@@ -93,7 +93,7 @@ export async function exportToPdf(contentHtml: string, title: string) {
             // Header (slightly higher)
             p.setFontSize(9);
             p.setTextColor(180, 180, 180);
-            p.text(`Avyx Workspace  |  ${title}`, 20, 15);
+            p.text(`Azviq Workspace  |  ${title}`, 20, 15);
             p.setDrawColor(240, 240, 240);
             p.line(20, 18, 190, 18);
 
@@ -102,13 +102,13 @@ export async function exportToPdf(contentHtml: string, title: string) {
             p.setTextColor(248, 248, 248);
             p.setFontSize(100);
             p.setFont("helvetica", "bold");
-            p.text("avyx", 105, 148, { angle: 45, align: "center" });
+            p.text("azviq", 105, 148, { angle: 45, align: "center" });
             p.restoreGraphicsState();
 
             // Footer (slightly lower)
             p.setFontSize(9);
             p.setTextColor(180, 180, 180);
-            p.text(`Avyx.in`, 105, 285, { align: "center" });
+            p.text(`Azviq.in`, 105, 285, { align: "center" });
             p.text(`Page ${pageIdx} of ${total}`, 190, 285, { align: "right" });
             p.setDrawColor(240, 240, 240);
             p.line(20, 280, 190, 280);

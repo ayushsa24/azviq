@@ -6,11 +6,12 @@ import React, {
 import {
   Send, Sparkles, User, AlertCircle, CheckCircle2,
   Loader2, Mic, Volume2, StopCircle, MicOff,
-  Maximize2, Minimize2, Trash2, VolumeX, Plus, X,
+  Maximize2, Minimize2, Trash2, VolumeX, Plus, X, Crown, ArrowRight
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSettings } from "@/contexts/SettingsContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,46 +114,64 @@ export default function UnifiedChatPanel({
   sessionId, onSessionCreated
 }: Props) {
   const { theme } = useTheme();
+  const { openSettings } = useSettings();
   const isDark = theme === "dark";
 
   // ── Core state ───────────────────────────────────────────────────────────
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isStarting, setIsStarting] = useState(true);
+  const [isStarting, setIsStarting] = useState(!sessionId); // Only starting if no session exists yet
   const [technicalError, setTechnicalError] = useState<string | null>(null);
 
   // ── Voice state ──────────────────────────────────────────────────────────
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState("");
   const [voiceSupported, setVoiceSupported] = useState(true);
+  const [audioLevel, setAudioLevel]  = useState(0); // 0–1 for orb glow visualization
 
   // ── Refs ─────────────────────────────────────────────────────────────────
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
-  const transcriptRef = useRef("");
-  const modeRef = useRef<Mode>(mode);
-  const justCreatedRef = useRef(false);
+  const messagesEndRef   = useRef<HTMLDivElement>(null);
+  const textareaRef      = useRef<HTMLTextAreaElement>(null);
+  const abortRef         = useRef<AbortController | null>(null);
+  const synthRef         = useRef<SpeechSynthesis | null>(null);
+  const transcriptRef    = useRef("");
+  const modeRef          = useRef<Mode>(mode);
+  const justCreatedRef   = useRef(false);
+  const messagesRef      = useRef<Message[]>([]); // always-fresh snapshot (avoids stale closures)
+  // MediaRecorder-based voice recording refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioStreamRef   = useRef<MediaStream | null>(null);
+  const audioChunksRef   = useRef<Blob[]>([]);
+  const animFrameRef     = useRef<number | null>(null);
 
-  // Keep modeRef in sync
+  // Keep modeRef and messagesRef in sync with latest state
   useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // ── Browser API check ────────────────────────────────────────────────────
+  // ── Browser API check (MediaRecorder + TTS) ──────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const ok = "SpeechRecognition" in window || "webkitSpeechRecognition" in window;
+    // Check MediaRecorder support (replaces Web Speech API)
+    const ok =
+      typeof MediaRecorder !== "undefined" &&
+      typeof navigator.mediaDevices?.getUserMedia === "function";
     setVoiceSupported(ok);
-    if (ok) synthRef.current = window.speechSynthesis;
+    // Initialize TTS + pre-warm voice list
+    if ("speechSynthesis" in window) {
+      synthRef.current = window.speechSynthesis;
+      window.speechSynthesis.getVoices(); // trigger async voice load
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
   }, []);
 
   // ── Cleanup on unmount ───────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
-      recognitionRef.current?.abort();
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      if (audioStreamRef.current) audioStreamRef.current.getTracks().forEach(t => t.stop());
       synthRef.current?.cancel();
     };
   }, []);
@@ -198,9 +217,9 @@ export default function UnifiedChatPanel({
 
   const streamResponse = useCallback(async (
     conversationMessages: Message[],
-    opts: { isInit?: boolean; speakOnDone?: boolean } = {}
+    opts: { isInit?: boolean; speakOnDone?: boolean; detectedLang?: string } = {}
   ) => {
-    const { isInit = false, speakOnDone = false } = opts;
+    const { isInit = false, speakOnDone = false, detectedLang = "en" } = opts;
     setIsLoading(true);
     abortRef.current = new AbortController();
 
@@ -244,7 +263,7 @@ export default function UnifiedChatPanel({
 
       // Speak in voice mode
       if (speakOnDone && modeRef.current === "voice" && fullText) {
-        speakText(fullText, () => {
+        speakText(fullText, detectedLang, () => {
           // Auto-restart mic after speaking
           setTimeout(() => {
             if (modeRef.current === "voice") startListening();
@@ -254,9 +273,7 @@ export default function UnifiedChatPanel({
         setVoiceState("idle");
       }
       // ─── Save Session ───────────────────────────────────────────────────────
-      const finalMessages = isInit
-        ? [...conversationMessages, { role: "assistant", content: fullText }]
-        : [...conversationMessages, { role: "assistant", content: fullText }];
+      const finalMessages = [...conversationMessages, { role: "assistant", content: fullText }];
         
       if (sessionId) {
         fetch(`/api/personal-ai/sessions/${sessionId}`, {
@@ -302,7 +319,7 @@ export default function UnifiedChatPanel({
     setTranscript("");
     setTechnicalError(null);
     synthRef.current?.cancel();
-    recognitionRef.current?.abort();
+    // (recognitionRef removed — now using MediaRecorder)
 
     const init = async () => {
       const initMsgs: Message[] = [{ role: "user", content: "SESSION_START" }];
@@ -313,128 +330,227 @@ export default function UnifiedChatPanel({
     return () => abortRef.current?.abort();
   }, [noteTitle, noteContent, sessionId]); // re-init when note changes and no session is selected
 
-  // ─── TTS ──────────────────────────────────────────────────────────────────
+  // ─── TTS ─ Premium voice selection + sentence-chunked delivery ────────────
 
-  const speakText = useCallback((text: string, onEnd?: () => void) => {
+  /** Pick the best available non-robotic voice for the given language */
+  const pickBestVoice = (voices: SpeechSynthesisVoice[], lang: string): SpeechSynthesisVoice | null => {
+    if (lang === "hi") {
+      return (
+        voices.find(v => v.name.includes("Google हिन्दी")) ||
+        voices.find(v => v.name.includes("Lekha")) ||
+        voices.find(v => v.lang === "hi-IN" && !v.localService) ||
+        voices.find(v => v.lang.startsWith("hi")) ||
+        null
+      );
+    }
+    // English priority: neural > online > local fallback
+    return (
+      voices.find(v => v.name === "Google UK English Male") ||
+      voices.find(v => v.name.includes("Microsoft Mark Online")) ||
+      voices.find(v => v.name.includes("Microsoft David Online")) ||
+      voices.find(v => v.name === "Google US English") ||
+      voices.find(v =>
+        v.name.includes("Natural") &&
+        !v.localService &&
+        v.lang.startsWith("en") &&
+        !v.name.toLowerCase().includes("female")
+      ) ||
+      voices.find(v => !v.localService && v.lang === "en-US") ||
+      voices.find(v => v.lang === "en-US") ||
+      voices.find(v => v.lang.startsWith("en")) ||
+      null
+    );
+  };
+
+  const speakText = useCallback((text: string, lang: string = "en", onEnd?: () => void) => {
     if (!synthRef.current) { onEnd?.(); return; }
     synthRef.current.cancel();
 
-    const spokenText = cleanForSpeech(text);
-    if (!spokenText) { onEnd?.(); return; }
+    const cleaned = cleanForSpeech(text);
+    if (!cleaned.trim()) { onEnd?.(); return; }
 
-    const hindi = isHindi(spokenText);
-    const utterance = new SpeechSynthesisUtterance(spokenText);
-    utterance.lang = hindi ? "hi-IN" : "en-US";
-    utterance.rate = hindi ? 0.88 : 0.93;
-    utterance.pitch = 1.05;
-    utterance.volume = 1.0;
+    // Auto-detect language if mixed or unknown (fall back to script detection)
+    const effectiveLang = (lang === "mixed" || !lang) ? (isHindi(cleaned) ? "hi" : "en") : lang;
 
-    const pickVoice = () => {
-      const voices = synthRef.current!.getVoices();
-      const preferred = hindi
-        ? voices.find((v) =>
-            v.name.includes("Google हिन्दी") ||
-            v.name.includes("Google Hindi") ||
-            v.name.includes("Lekha") ||
-            v.lang.startsWith("hi"))
-        : voices.find((v) =>
-            v.name.includes("Google US English") ||
-            v.name.includes("Samantha") ||
-            v.name.includes("Natural") ||
-            (v.lang === "en-US" && !v.name.includes("eSpeak")));
-      if (preferred) utterance.voice = preferred;
+    // Split into sentence-sized chunks for natural delivery rhythm
+    const sentences = cleaned
+      .split(/(?<=[.!?।\n])\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+    if (sentences.length === 0) { onEnd?.(); return; }
+
+    setVoiceState("speaking");
+
+    const speakNext = (index: number) => {
+      if (index >= sentences.length || modeRef.current === "chat") {
+        setVoiceState("idle");
+        onEnd?.();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(sentences[index]);
+      utterance.lang   = effectiveLang === "hi" ? "hi-IN" : "en-US";
+      utterance.rate   = effectiveLang === "hi" ? 0.85 : 0.88;  // slightly slower = clearer
+      utterance.pitch  = effectiveLang === "hi" ? 1.0  : 0.92;  // lower pitch = authoritative male
+      utterance.volume = 1.0;
+
+      // Apply best available voice (retry if voices not yet loaded)
+      const applyBestVoice = () => {
+        const voices = synthRef.current!.getVoices();
+        const best = pickBestVoice(voices, effectiveLang);
+        if (best) utterance.voice = best;
+      };
+      applyBestVoice();
+      if (synthRef.current!.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener("voiceschanged", applyBestVoice, { once: true });
+      }
+
+      utterance.onend   = () => speakNext(index + 1);
+      utterance.onerror = () => { setVoiceState("idle"); onEnd?.(); };
+
+      synthRef.current!.speak(utterance);
     };
 
-    pickVoice();
-    if (synthRef.current.getVoices().length === 0) {
-      window.speechSynthesis.addEventListener("voiceschanged", pickVoice, { once: true });
-    }
-
-    utterance.onstart = () => setVoiceState("speaking");
-    utterance.onend = () => { setVoiceState("idle"); onEnd?.(); };
-    utterance.onerror = () => { setVoiceState("idle"); onEnd?.(); };
-
-    synthRef.current.speak(utterance);
+    speakNext(0);
   }, []);
 
-  // ─── Speech Recognition ───────────────────────────────────────────────────
+  // ─── Voice Recording (Gemini-powered, MediaRecorder) ──────────────────────
 
-  const startListening = useCallback(() => {
-    if (typeof window === "undefined" || !voiceSupported) return;
-    if (voiceState === "speaking" || voiceState === "thinking") return;
+  const startListening = useCallback(async () => {
+    if (!voiceSupported) return;
+    if (voiceState === "speaking" || voiceState === "thinking" || voiceState === "listening") return;
 
-    setTranscript("");
-    transcriptRef.current = "";
-    setVoiceState("listening");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+      });
 
-    const API = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new API();
-    recognitionRef.current = recognition;
+      audioStreamRef.current = stream;
+      audioChunksRef.current = [];
+      setVoiceState("listening");
+      setTranscript("");
 
-    // Multi-language: try hi-IN first so both languages are captured
-    recognition.lang = "hi-IN";
-    recognition.continuous = false;
-    recognition.interimResults = true;
+      // ── Silence detection via AudioContext analyser ──────────────────────
+      const audioCtx = new AudioContext();
+      const source   = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
 
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
-      const text = Array.from(e.results).map((r) => r[0].transcript).join("");
-      setTranscript(text);
-      transcriptRef.current = text;
-    };
+      const dataArray     = new Uint8Array(analyser.frequencyBinCount);
+      let silenceStartMs: number | null = null;
+      let hasSpoken       = false;
 
-    recognition.onend = () => {
-      const spoken = transcriptRef.current.trim();
-      if (spoken.length > 1) {
-        const userMsg: Message = {
-          role: "user",
-          content: spoken,
-          inputType: "voice",
-        };
-        setMessages((prev) => [...prev, userMsg]);
-        setTranscript("");
-        streamResponse([...messages, userMsg], { speakOnDone: true });
-      } else {
-        setVoiceState("idle");
-      }
-    };
+      const monitorAudio = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const rms = dataArray.reduce((s, v) => s + v, 0) / dataArray.length;
+        setAudioLevel(Math.min(rms / 25, 1));
 
-    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
-      if (e.error !== "no-speech") {
-        console.error("Speech recognition error:", e.error);
-      }
+        if (rms > 10) {
+          hasSpoken      = true;
+          silenceStartMs = null;
+        } else if (hasSpoken) {
+          if (!silenceStartMs) silenceStartMs = Date.now();
+          if (Date.now() - silenceStartMs > 1500) { // 1.5 s of silence → auto-stop
+            audioCtx.close();
+            if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+            return;
+          }
+        }
+        animFrameRef.current = requestAnimationFrame(monitorAudio);
+      };
+      animFrameRef.current = requestAnimationFrame(monitorAudio);
+
+      // ── MediaRecorder setup ───────────────────────────────────────────────
+      const preferred = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"]
+        .find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const recorder  = new MediaRecorder(stream, preferred ? { mimeType: preferred } : undefined);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        audioStreamRef.current = null;
+        setAudioLevel(0);
+
+        const mimeType  = preferred || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (audioBlob.size < 2000) { setVoiceState("idle"); return; }
+
+        setVoiceState("thinking");
+        setTranscript("Transcribing…");
+
+        try {
+          const fd = new FormData();
+          fd.append("audio", audioBlob, `rec.${mimeType.split("/")[1].split(";")[0]}`);
+          fd.append("noteTitle", noteTitle);
+
+          const res  = await fetch("/api/personal-ai/transcribe", { method: "POST", body: fd });
+          const json = await res.json();
+
+          if (!res.ok) {
+            const msg = res.status === 429
+              ? "Voice quota exceeded. Please wait a moment and try again."
+              : (json.error || "Transcription failed. Please try again.");
+            setTechnicalError(msg);
+            setVoiceState("idle");
+            setTranscript("");
+            return;
+          }
+
+          const { transcript: spoken, language: detectedLang } = json;
+
+          if (!spoken) { setVoiceState("idle"); setTranscript(""); return; }
+
+          setTranscript(spoken);
+          const userMsg: Message = { role: "user", content: spoken, inputType: "voice" };
+          setMessages(prev => [...prev, userMsg]);
+          setTranscript("");
+          streamResponse([...messagesRef.current, userMsg], { speakOnDone: true, detectedLang });
+        } catch (err: any) {
+          console.error("Transcription error:", err);
+          setTechnicalError("Voice transcription failed. Please try again.");
+          setVoiceState("idle");
+          setTranscript("");
+        }
+      };
+
+      recorder.start(250);
+    } catch (err: any) {
+      const isDenied = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+      setTechnicalError(
+        isDenied
+          ? "Microphone access denied. Please allow it in your browser settings."
+          : `Could not start recording: ${err.message}`
+      );
       setVoiceState("idle");
-    };
-
-    recognition.start();
-  }, [voiceSupported, voiceState, messages, streamResponse]);
+    }
+  }, [voiceSupported, voiceState, streamResponse, noteTitle]);
 
   const stopAll = useCallback(() => {
-    recognitionRef.current?.abort();
+    if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+    if (audioStreamRef.current) { audioStreamRef.current.getTracks().forEach(t => t.stop()); audioStreamRef.current = null; }
     synthRef.current?.cancel();
     abortRef.current?.abort();
-    setVoiceState("idle");
-    setTranscript("");
-    setIsLoading(false);
+    setVoiceState("idle"); setTranscript(""); setAudioLevel(0); setIsLoading(false);
   }, []);
 
-  // ─── Auto-start mic when entering voice mode ──────────────────────────────
+  // ─── Auto-start mic when entering voice mode ───────────────────────────
 
   useEffect(() => {
-    if (mode === "voice" && !isStarting && voiceState === "idle" && messages.length > 0) {
-      // Small delay to let mode UI finish animating
-      const t = setTimeout(() => {
-        if (modeRef.current === "voice") startListening();
-      }, 600);
-      return () => clearTimeout(t);
-    }
     if (mode === "chat") {
-      // Stop voice when switching to chat
-      recognitionRef.current?.abort();
+      // Full cleanup when switching to text chat
+      if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      if (audioStreamRef.current) { audioStreamRef.current.getTracks().forEach(t => t.stop()); audioStreamRef.current = null; }
       synthRef.current?.cancel();
-      setVoiceState("idle");
-      setTranscript("");
+      setVoiceState("idle"); setTranscript(""); setAudioLevel(0);
     }
-  }, [mode]); // Only fire on mode change
+  }, [mode]);
 
   // ─── Text mode send ───────────────────────────────────────────────────────
 
@@ -464,12 +580,21 @@ export default function UnifiedChatPanel({
     label: string; ringClass: string; btnClass: string; icon: React.ReactNode;
   }> = {
     idle: {
-      label: "Tap to speak",
+      label: "Voice Transcription",
       ringClass: "",
       btnClass: isDark
-        ? "bg-white text-[#252525] hover:bg-white/90"
-        : "bg-[#252525] text-white hover:bg-[#1A1A1A]",
-      icon: <Mic className="w-6 h-6" />,
+        ? "bg-[#2A2A2A] text-[#4A4A4A] cursor-not-allowed"
+        : "bg-[#F0F0F0] text-[#BABABA] cursor-not-allowed",
+      icon: (
+        <span className="relative flex items-center justify-center w-6 h-6">
+          <Mic className="w-6 h-6" />
+          {/* Diagonal cross line */}
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="block w-[2px] h-8 bg-red-500/80 rounded-full"
+              style={{ transform: "rotate(45deg) translateY(-1px)" }} />
+          </span>
+        </span>
+      ),
     },
     listening: {
       label: "Listening…",
@@ -517,7 +642,7 @@ export default function UnifiedChatPanel({
 
       {/* ── Message Bubbles ───────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-2 sm:px-5 pb-32 scroll-smooth">
-        <div className="max-w-4xl mx-auto flex flex-col pt-4 space-y-3 sm:space-y-6">
+        <div className="max-w-5xl mx-auto flex flex-col pt-4 space-y-3 sm:space-y-6">
 
         {/* Case A: New Session Initialization (Show Reading Status) */}
         {isStarting && messages.length === 0 && (
@@ -600,8 +725,8 @@ export default function UnifiedChatPanel({
 
                     {/* Voice mic indicator for user voice messages */}
                     {msg.role === "user" && msg.inputType === "voice" && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold opacity-50 mr-1.5">
-                        <Mic className="w-2.5 h-2.5" />
+                      <span className="float-left mt-1 mr-2 opacity-60">
+                        <Mic className="w-3 h-3" />
                       </span>
                     )}
 
@@ -673,40 +798,77 @@ export default function UnifiedChatPanel({
             : "bg-gradient-to-t from-white via-white/95 to-transparent"
         }`} />
         
-        <div className="max-w-4xl mx-auto w-full relative z-10 px-4 sm:px-6 pb-2 pt-0">
+        <div className="max-w-5xl mx-auto w-full relative z-10 px-2.5 sm:px-6 pb-2 pt-0">
           
           {/* Integrated Technical Error Banner */}
           {technicalError && (
             <div className="mb-2">
-              <div className={`p-2.5 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 shadow-sm
-                ${isDark ? "bg-red-900/40 border border-red-500/30" : "bg-red-50 border border-red-200"}`}>
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider">System Error</p>
-                    <button onClick={() => setTechnicalError(null)} className="text-[#7D7D7D] hover:text-red-500 transition-colors">
-                      <X size={12} />
-                    </button>
+              {(() => {
+                const isQuotaError = String(technicalError).includes("Daily limit reached") || String(technicalError).includes("quota") || String(technicalError).includes("exceeded");
+                
+                if (isQuotaError) {
+                  return (
+                    <div className={`p-3 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 shadow-sm
+                      ${isDark ? "bg-[#C2A27A]/10 border border-[#C2A27A]/30" : "bg-[#F9F8F6] border border-[#C2A27A]/20"}`}>
+                      <div className="w-8 h-8 rounded-full bg-[#C2A27A]/20 flex items-center justify-center shrink-0">
+                        <Crown size={18} className="text-[#C2A27A]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className={`text-[11px] font-black uppercase tracking-widest ${isDark ? "text-[#C2A27A]" : "text-[#8B6F4E]"}`}>
+                            Daily Limit Reached
+                          </p>
+                          <button onClick={() => setTechnicalError(null)} className="text-[#7D7D7D] hover:text-[#C2A27A] transition-colors">
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <p className={`text-[13px] leading-relaxed mb-3 ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
+                          {technicalError}
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => openSettings("subscription")}
+                            className="flex items-center gap-2 px-4 py-1.5 bg-[#C2A27A] hover:bg-[#B19169] text-white text-[10px] font-black uppercase tracking-widest rounded-full transition-all shadow-sm"
+                          >
+                            Upgrade Plan
+                            <ArrowRight size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className={`p-2.5 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 shadow-sm
+                    ${isDark ? "bg-red-900/40 border border-red-500/30" : "bg-red-50 border border-red-200"}`}>
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider">System Error</p>
+                        <button onClick={() => setTechnicalError(null)} className="text-[#7D7D7D] hover:text-red-500 transition-colors">
+                          <X size={12} />
+                        </button>
+                      </div>
+                      <p className={`text-xs leading-relaxed truncate-3-lines ${isDark ? "text-red-200/90" : "text-red-700 font-medium"}`}>
+                        {String(technicalError)}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <button 
+                          onClick={() => {
+                            setTechnicalError(null);
+                            const lastMsgs = [...messages];
+                            if (lastMsgs.length > 0) streamResponse(lastMsgs, { speakOnDone: mode === "voice" });
+                          }}
+                          className="text-[10px] font-bold underline text-red-500 hover:text-red-600 uppercase"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <p className={`text-xs leading-relaxed truncate-3-lines ${isDark ? "text-red-200/90" : "text-red-700 font-medium"}`}>
-                    {technicalError.includes("429") 
-                      ? "You've reached the free API limit. Please wait a moment."
-                      : technicalError}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <button 
-                      onClick={() => {
-                        setTechnicalError(null);
-                        const lastMsgs = [...messages];
-                        if (lastMsgs.length > 0) streamResponse(lastMsgs, { speakOnDone: mode === "voice" });
-                      }}
-                      className="text-[10px] font-bold underline text-red-500 hover:text-red-600 uppercase"
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           )}
 
@@ -776,6 +938,17 @@ export default function UnifiedChatPanel({
                   </div>
                 )}
 
+                {/* Premium feature badge (idle state only) */}
+                {voiceState === "idle" && (
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all
+                    ${isDark
+                      ? "bg-white/10 border-white/10 text-white/90"
+                      : "bg-[#4D4D4D] border-black/10 text-white shadow-sm"}`}>
+                    <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
+                    Premium Feature
+                  </div>
+                )}
+
                 {/* Orb + controls row */}
                 <div className="flex items-center gap-4">
 
@@ -811,11 +984,16 @@ export default function UnifiedChatPanel({
                         if (isVoiceActive) stopAll();
                         else startListening();
                       }}
-                      disabled={isLoading || isStarting}
+                      disabled={isLoading || isStarting || voiceState === "idle"}
                       className={`relative z-10 w-14 h-14 rounded-full flex items-center justify-center
-                        shadow-lg transition-all duration-200 active:scale-95 focus:outline-none
+                        shadow-lg transition-all duration-200 focus:outline-none
                         ${vc.btnClass}
-                        ${isLoading || isStarting ? "opacity-60 cursor-default" : "cursor-pointer"}`}
+                        ${(isLoading || isStarting || voiceState === "idle") ? "opacity-70 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
+                      style={voiceState === "listening" && audioLevel > 0.05 ? {
+                        boxShadow: `0 0 ${10 + audioLevel * 28}px ${4 + audioLevel * 14}px rgba(59,130,246,${0.25 + audioLevel * 0.45})`
+                      } : voiceState === "speaking" ? {
+                        boxShadow: "0 0 20px 8px rgba(16,185,129,0.35)"
+                      } : undefined}
                       title={isVoiceActive ? "Stop" : "Start speaking"}
                     >
                       {vc.icon}
@@ -835,8 +1013,8 @@ export default function UnifiedChatPanel({
                 }`}>
                   {vc.label}
                   {voiceState === "idle" && (
-                    <span className={`block text-[10px] font-normal mt-0.5 ${isDark ? "text-[#3A3A3A]" : "text-[#D0CCC7]"}`}>
-                      Tap to speak · Auto-detects Hindi & English
+                    <span className={`block text-[10px] font-normal mt-0.5 ${isDark ? "text-[#3A3A3A]" : "text-[#CBCBCB]"}`}>
+                      Advanced Voice Mode · Coming Soon
                     </span>
                   )}
                 </p>

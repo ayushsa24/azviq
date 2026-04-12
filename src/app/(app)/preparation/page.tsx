@@ -17,7 +17,7 @@ type TabType = "exercise" | "revision" | "personal_ai";
 const TABS: { id: TabType; label: string }[] = [
     { id: "exercise", label: "Exercise" },
     { id: "revision", label: "Revision" },
-    { id: "personal_ai", label: "Personal AI" },
+    { id: "personal_ai", label: "AI Teacher" },
 ];
 
 const tabCls = (active: boolean) =>
@@ -117,7 +117,7 @@ export default function PreparationPage() {
                                 placeholder={
                                     activeTab === "exercise" ? "Search Exercise" :
                                     activeTab === "revision" ? "Search Revision" :
-                                    "Search Personal AI"
+                                    "Search AI Teacher"
                                 }
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}

@@ -26,7 +26,7 @@ export async function callClaudeStream(
   const systemPrompt =
     messages.find((m) => m.role === "system")?.content ||
     config.systemPrompt ||
-    "You are Avyx AI, a helpful study assistant.";
+    "You are Azviq AI, a helpful study assistant.";
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",

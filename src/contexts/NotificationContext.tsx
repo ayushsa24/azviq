@@ -60,6 +60,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const notifiedRef = useRef<Set<string>>(new Set());
     const isCheckingRef = useRef<boolean>(false);
+    const lastNativePushRef = useRef<number>(0); // Global cooldown for native pushes
 
     // Sync preferences from localStorage on mount and across tabs
     useEffect(() => {
@@ -153,20 +154,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             await fetch("/api/notifications/generate", { method: "POST" });
             await fetchNotifications();
 
-            // Fire native push for newly generated notifications
+            // Fire native push for newly generated notifications with STAGGERING
             if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
                 const afterData = await fetch("/api/notifications").then(r => r.json());
                 const newNotifs: any[] = (afterData.notifications ?? []).filter(
                     (n: any) => !existingIds.has(n.id) &&
                     ["study_reminder", "task_reminder", "streak_protection", "weekly_summary", "weak_subject", "revision_reminder"].includes(n.type)
                 );
-                for (const n of newNotifs) {
-                    new Notification(n.title, {
-                        body: n.message,
-                        icon: "/icon-192.png",
-                        tag: n.id,
-                    });
-                }
+                
+                // Stagger them: send one every 45-60 seconds to avoid bombarding the user
+                newNotifs.forEach((n, index) => {
+                    setTimeout(() => {
+                        // Check global cooldown again in case a To-Do fired in between
+                        const now = Date.now();
+                        const sinceLast = now - lastNativePushRef.current;
+                        
+                        // If something else fired very recently, push this one back even more
+                        const finalDelay = sinceLast < 30000 ? 30000 : 0;
+                        
+                        setTimeout(() => {
+                            new Notification(n.title, {
+                                body: n.message,
+                                icon: "/azviq_logo_whitebg.png",
+                                tag: n.id,
+                            });
+                            lastNativePushRef.current = Date.now();
+                        }, finalDelay);
+
+                    }, index * 45000); // 45s spacing
+                });
             }
         } catch (e) {
             console.error("Failed to generate notifications", e);
@@ -304,13 +320,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 });
                 if (postRes.ok) {
                     await fetchNotifications();
-                    // Fire native system notification if permitted
+                    // Fire native system notification if permitted, with global cooldown awareness
                     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                        new Notification("⏰ To-Do Reminder", {
-                            body: `Time for: ${item.title}`,
-                            icon: "/icon-192.png",
-                            tag: item.id,
-                        });
+                        const now = Date.now();
+                        const sinceLast = now - lastNativePushRef.current;
+                        
+                        // If a system notif just fired, wait a bit
+                        const delay = sinceLast < 30000 ? 30000 - sinceLast : 0;
+                        
+                        setTimeout(() => {
+                            new Notification("⏰ To-Do Reminder", {
+                                body: `Time for: ${item.title}`,
+                                icon: "/azviq_logo_whitebg.png",
+                                tag: item.id,
+                            });
+                            lastNativePushRef.current = Date.now();
+                        }, delay);
                     }
                 }
             }
@@ -371,13 +396,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
                 if (postRes.ok) {
                     await fetchNotifications();
-                    // Native push notification
+                    // Native push notification with stagger
                     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                        new Notification("🗓️ Task Due Today", {
-                            body: `Your task "${task.title}" is due today!`,
-                            icon: "/icon-192.png",
-                            tag: `deadline-${task.id}`,
-                        });
+                        const now = Date.now();
+                        const sinceLast = now - lastNativePushRef.current;
+                        const delay = sinceLast < 30000 ? 30000 - sinceLast : 0;
+
+                        setTimeout(() => {
+                            new Notification("🗓️ Task Due Today", {
+                                body: `Your task "${task.title}" is due today!`,
+                                icon: "/azviq_logo_whitebg.png",
+                                tag: `deadline-${task.id}`,
+                            });
+                            lastNativePushRef.current = Date.now();
+                        }, delay);
                     }
                 }
             }

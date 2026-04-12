@@ -149,10 +149,12 @@ export function TaskDetailModal({
                 exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
                 transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
                 drag={isMobile ? "y" : false}
-                dragConstraints={{ top: 0 }}
-                dragElastic={0.2}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.8 }}
+                dragDirectionLock
                 onDragEnd={(_, info) => {
-                    if (info.offset.y > 100 || info.velocity.y > 500) {
+                    // Close if swiped down significantly or with high velocity
+                    if (isMobile && (info.offset.y > 150 || info.velocity.y > 600)) {
                         onClose();
                     }
                 }}
@@ -199,7 +201,8 @@ export function TaskDetailModal({
                     ref={scrollContainerRef} 
                     onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
                     onPointerDown={(e) => {
-                        if (isMobile && scrollTop <= 0) {
+                        // Allow dragging to start from anywhere if we're at the top of the scroll
+                        if (isMobile && scrollTop <= 5) {
                             dragControls.start(e);
                         }
                     }}
@@ -405,7 +408,6 @@ export function TaskDetailModal({
                                 {localTask.linked_document_id && notes.some(n => n.id === localTask.linked_document_id) && (
                                     <Link
                                         href={`/library/${localTask.linked_document_type}/${localTask.linked_document_id}`}
-                                        target="_blank"
                                         className="text-xs shrink-0 bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded"
                                     >
                                         Open

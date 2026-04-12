@@ -131,6 +131,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing title or file" }, { status: 400 });
     }
 
+    // --- Subscription PDF Size Limit Check ---
+    const { getSubscriptionStatus, checkPdfSizeAccess } = await import("@/lib/subscription");
+    const subStatus = await getSubscriptionStatus(session.user.email);
+    const sizeCheck = checkPdfSizeAccess(file.size, subStatus.tier);
+    
+    if (!sizeCheck.allowed) {
+      return NextResponse.json({ error: sizeCheck.error }, { status: 413 });
+    }
+
     // Upload file to Supabase Storage
     const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}_${file.name}`;
     const buffer = Buffer.from(await file.arrayBuffer());

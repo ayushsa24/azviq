@@ -267,6 +267,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       vision: { remaining: number; limit: number; reset: number };
       exercise: { remaining: number; limit: number; reset: number };
       personal_ai: { remaining: number; limit: number; reset: number };
+      note_ai: { remaining: number; limit: number; reset: number };
     }
   } | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -491,9 +492,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       requestPushPermission();
       return;
     }
-    new Notification("Avyx", {
+    new Notification("Azviq", {
       body: "This is a test notification. Your alerts are perfectly configured!",
-      icon: theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"
+      icon: "/azviq_logo_whitebg.png"
     });
   };
 
@@ -1031,6 +1032,24 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                                 <div 
                                   className="h-full bg-[#C2A27A] transition-all duration-500" 
                                   style={{ width: `${(subscription.usage.personal_ai.remaining / subscription.usage.personal_ai.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Note AI Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Note Editor AI</span>
+                              <span className="font-bold">
+                                  {subscription.usage.note_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.note_ai.remaining} / ${subscription.usage.note_ai.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.note_ai.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.note_ai.remaining / subscription.usage.note_ai.limit) * 100}%` }}
                                 />
                               </div>
                             )}

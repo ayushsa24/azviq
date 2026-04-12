@@ -16,7 +16,7 @@ interface Props {
   onFocusModeChange?: (val: boolean) => void;
 }
 
-export default function PersonalAITab({ isFocusMode = false, onFocusModeChange }: Props) {
+export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }: Props) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -110,7 +110,7 @@ export default function PersonalAITab({ isFocusMode = false, onFocusModeChange }
       setContextError(null);
 
       // 1. Check for existing session first
-      let currentSessionId = preSessionId;
+      let currentSessionId = preSessionId ?? null;
       if (!currentSessionId) {
         const sessionRes = await fetch(`/api/personal-ai/sessions?note_id=${noteId}`);
         if (sessionRes.ok) {

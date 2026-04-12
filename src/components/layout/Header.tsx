@@ -72,9 +72,9 @@ export default function Header({
               ${theme === 'dark' ? 'hover:bg-[#545454] text-white' : 'hover:bg-[#F0EDE8] text-[#252525]'}`}
           >
             <img 
-              src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
-              alt="Avyx Logo" 
-              className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110 group-hover:opacity-0" 
+              src="/azviq_logo.png" 
+              alt="Azviq Logo" 
+              className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:opacity-0 dark:invert" 
             />
 
             {open ? (
@@ -87,7 +87,7 @@ export default function Header({
           {/* TITLE */}
           <span className={`font-bold text-2xl tracking-tighter transition-colors pl-1 cursor-default font-[var(--font-lexend)]
             ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
-            Avyx
+            Azviq
           </span>
         </div>
       </div>

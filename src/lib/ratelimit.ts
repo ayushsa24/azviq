@@ -37,7 +37,7 @@ function getRedis(): Redis | null {
 // Types
 // ---------------------------------------------------------------------------
 
-export type RequestType = "chat" | "vision" | "exercise" | "personal_ai";
+export type RequestType = "chat" | "vision" | "exercise" | "personal_ai" | "note_ai";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -47,6 +47,53 @@ export interface RateLimitResult {
   reset: number;
   error?: string;
 }
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the current date string in IST (Asia/Kolkata) timezone.
+ * Format: YYYY-MM-DD
+ */
+function getISTDateKey(): string {
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    return formatter.format(now);
+  } catch (e) {
+    return new Date().toISOString().split("T")[0];
+  }
+}
+
+/**
+ * Calculate the absolute Unix timestamp (ms) for the next 12:00 AM IST.
+ */
+function getNextISTMidnight(): number {
+  try {
+    const now = new Date();
+    // Get current time in IST string
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istNow = new Date(istString);
+    
+    // Create "Tomorrow 00:00:00" in IST context
+    const tomorrowIST = new Date(istNow);
+    tomorrowIST.setDate(tomorrowIST.getDate() + 1);
+    tomorrowIST.setHours(0, 0, 0, 0);
+    
+    // Calculate the difference between the local-context date and the real 'now'
+    // to get the absolute UTC timestamp for that IST moment.
+    const diffToMidnight = tomorrowIST.getTime() - istNow.getTime();
+    return now.getTime() + diffToMidnight;
+  } catch (e) {
+    // Fallback: 24h from now
+    return Date.now() + (24 * 60 * 60 * 1000);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Core Function
@@ -54,49 +101,43 @@ export interface RateLimitResult {
 
 /**
  * Check if a user has exceeded their daily request limit for a given type.
- * Uses Upstash Redis with a 24-hour sliding window.
- *
- * @param type - The type of request: "chat" | "vision" | "exercise"
- * @param userId - Unique user ID from Supabase
- * @param tier - User's current plan tier (0=Free, 1=Lite, 2=Premium)
+ * Uses Upstash Redis with a fixed daily window synchronized to IST midnight.
  */
 export async function checkRateLimit(
   type: RequestType,
   userId: string,
   tier: PlanTier
 ): Promise<RateLimitResult> {
-  // Premium users are unlimited — skip Redis entirely
   const limit = DAILY_LIMITS[type][tier];
   if (limit === Infinity) {
     return { allowed: true, remaining: Infinity, reset: 0 };
   }
 
   const client = getRedis();
-
-  // If Redis is not configured, allow all requests (fail open during dev)
   if (!client) {
     return { allowed: true, remaining: limit, reset: 0 };
   }
 
-  // Create a rate limiter for this specific type + limit combo
+  const istDate = getISTDateKey();
+  
+  // Each day gets a unique key, effectively resetting at 12 AM IST.
+  // We use a 24h window for internal Upstash counting, but the key rotation 
+  // is what provides the hard reset at midnight.
   const ratelimiter = new Ratelimit({
     redis: client,
-    // Fixed window: `limit` requests per 24 hours
     limiter: Ratelimit.fixedWindow(limit, "24 h"),
-    // Each user+type gets its own key
-    prefix: `avyx:rl:${type}`,
+    prefix: `azviq:rl:${type}:${istDate}`,
   });
 
-  const { success, remaining, reset } = await ratelimiter.limit(userId);
+  const { success, remaining } = await ratelimiter.limit(userId);
+  const reset = getNextISTMidnight();
 
   if (!success) {
-    const resetDate = new Date(reset);
-    const hoursUntilReset = Math.ceil((reset - Date.now()) / 1000 / 60 / 60);
     return {
       allowed: false,
       remaining: 0,
       reset,
-      error: `Daily ${type} limit reached. You have used all ${limit} requests for today. Resets in ~${hoursUntilReset}h (at ${resetDate.toLocaleTimeString()}).`,
+      error: `Daily limit reached for ${type}. This quota resets at 12 AM IST. Please wait until tomorrow or upgrade your plan.`,
     };
   }
 
@@ -105,7 +146,6 @@ export async function checkRateLimit(
 
 /**
  * Get current usage without incrementing the counter.
- * Uses the official Upstash Ratelimit getRemaining() API.
  */
 export async function getUsage(
   type: RequestType,
@@ -119,26 +159,21 @@ export async function getUsage(
 
   const client = getRedis();
   if (!client) {
-    // Redis not configured — return full quota so UI shows correctly in dev
     return { remaining: limit, limit: limit, reset: 0 };
   }
 
   try {
+    const istDate = getISTDateKey();
     const ratelimiter = new Ratelimit({
       redis: client,
       limiter: Ratelimit.fixedWindow(limit, "24 h"),
-      prefix: `avyx:rl:${type}`,
+      prefix: `azviq:rl:${type}:${istDate}`,
     });
 
-    // getRemaining() reads current state WITHOUT incrementing the counter
-    const { remaining, reset } = await ratelimiter.getRemaining(userId);
+    const { remaining } = await ratelimiter.getRemaining(userId);
+    const reset = getNextISTMidnight();
 
-    // Calculate the next window reset time (ms)
-    const windowDuration = 24 * 60 * 60 * 1000;
-    const windowId = Math.floor(Date.now() / windowDuration);
-    const resetMs = reset > 0 ? reset : (windowId + 1) * windowDuration;
-
-    return { remaining: Math.max(0, remaining), limit, reset: resetMs };
+    return { remaining: Math.max(0, remaining), limit, reset };
   } catch (e) {
     console.error("[getUsage]", e);
     return { remaining: limit, limit: limit, reset: 0 };
