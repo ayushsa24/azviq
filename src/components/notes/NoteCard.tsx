@@ -187,15 +187,15 @@ export function NoteCard({
                     )}
                     <h3 className={`font-semibold truncate text-[#252525] dark:text-white transition-colors flex items-center gap-2 ${isList ? "text-sm sm:text-base" : "text-sm mb-1"
                         }`}>
-                        {note.title.replace(/^\[\w+\]\s*/, "")}
                         {(() => {
                             const iconMatch = note.title.match(/^\[(\w+)\]/);
                             if (iconMatch && ICON_MAP[iconMatch[1]]) {
                                 const IconComp = ICON_MAP[iconMatch[1]];
-                                return <IconComp size={16} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                return <IconComp size={isList ? 18 : 16} className="shrink-0" />;
                             }
                             return null;
                         })()}
+                        <span className="truncate">{note.title.replace(/^\[\w+\]\s*/, "")}</span>
                         {note.is_revoked && (
                             <span title="Access Revoked (Private Note)" className="flex items-center">
                                 <EyeOff size={14} className="text-[#7D7D7D] shrink-0" />

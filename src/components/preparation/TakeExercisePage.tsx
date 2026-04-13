@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw, PanelLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw, PanelLeft, FileText, FileIcon } from "lucide-react";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { ICON_MAP } from "../editor/EmojiPicker";
 
 interface Question {
     question: string;
@@ -189,6 +190,17 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
         return isDark ? 'bg-transparent text-[#BABABA] border-[#545454] hover:bg-[#252525]' : 'bg-white text-[#545454] border-[#DEDBD6] hover:bg-[#F0EDE8]';
     };
 
+    const renderIcon = (title: string, size = 18) => {
+        const iconMatch = title.match(/^\[(\w+)\]/);
+        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+            const IconComp = ICON_MAP[iconMatch[1]];
+            return <IconComp size={size} className="shrink-0" />;
+        }
+        return <FileText size={size} className="shrink-0 opacity-60" />;
+    };
+
+    const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
+
     // ══════════════════════════════════════
     //  RESULTS SCREEN
     // ══════════════════════════════════════
@@ -215,7 +227,10 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                         >
                             <ArrowLeft size={18} />
                         </button>
-                        <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1">{exercise.title}</h1>
+                        <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1 flex items-center gap-2">
+                            {renderIcon(exercise.title)}
+                            <span className="truncate">{cleanTitle(exercise.title)}</span>
+                        </h1>
                     </div>
 
                     {/* Big score card */}
@@ -304,8 +319,9 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     <ArrowLeft size={20} />
                 </button>
 
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{exercise.title}</p>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                    {renderIcon(exercise.title, 16)}
+                    <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{cleanTitle(exercise.title)}</p>
                 </div>
 
                 {/* Timer */}

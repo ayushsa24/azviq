@@ -162,7 +162,7 @@ Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
             .insert({
                 user_id: user.id,
                 note_id: note.id,
-                title: `Revision: ${note.title as string}`,
+                title: `Revision: ${(note.title as string).replace(/^\[\w+\]\s*/, "")}`,
                 summary: parsed.summary || "",
                 keywords: parsed.keywords || [],
                 qa_pairs: parsed.qa_pairs || [],

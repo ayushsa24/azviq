@@ -34,6 +34,8 @@ interface NotificationContextType {
     setTodoReminders: (val: boolean) => void;
     taskDueReminders: boolean;
     setTaskDueReminders: (val: boolean) => void;
+    doNotDisturb: boolean;
+    setDoNotDisturb: (val: boolean) => void;
     checkReminders: () => Promise<void>;
 }
 
@@ -55,7 +57,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         studyReminders: true,
         aiAlerts: true,
         todoReminders: true,
-        taskDueReminders: true
+        taskDueReminders: true,
+        doNotDisturb: false
     });
 
     const notifiedRef = useRef<Set<string>>(new Set());
@@ -105,8 +108,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const setAiAlerts = (val: boolean) => updatePrefs({ aiAlerts: val });
     const setTodoReminders = (val: boolean) => updatePrefs({ todoReminders: val });
     const setTaskDueReminders = (val: boolean) => updatePrefs({ taskDueReminders: val });
+    const setDoNotDisturb = (val: boolean) => updatePrefs({ doNotDisturb: val });
 
-    const { studyReminders, aiAlerts, todoReminders, taskDueReminders } = prefs;
+    const { studyReminders, aiAlerts, todoReminders, taskDueReminders, doNotDisturb } = prefs;
+
+    // Listen for storage changes in other tabs to keep settings in sync
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === "notification-prefs" && e.newValue) {
+                try {
+                    const newPrefs = JSON.parse(e.newValue);
+                    setPrefs(newPrefs);
+                    console.log("Notification preferences synced from another tab.");
+                } catch (err) {
+                    console.error("Failed to sync prefs", err);
+                }
+            }
+        };
+        window.addEventListener("storage", handleStorageChange);
+        return () => window.removeEventListener("storage", handleStorageChange);
+    }, []);
+
     useEffect(() => {
         if (typeof window === "undefined" || !("Notification" in window)) {
             setPushPermission("unsupported");
@@ -129,6 +151,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const triggerGenerate = useCallback(async () => {
         if (!studyReminders) return; // Respect preference
+        if (doNotDisturb) return; // DND blocks all notification generation
 
         // Fire once per day (first time app is opened each day)
         const now = new Date();
@@ -155,39 +178,52 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             await fetchNotifications();
 
             // Fire native push for newly generated notifications with STAGGERING
-            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                const afterData = await fetch("/api/notifications").then(r => r.json());
-                const newNotifs: any[] = (afterData.notifications ?? []).filter(
-                    (n: any) => !existingIds.has(n.id) &&
-                    ["study_reminder", "task_reminder", "streak_protection", "weekly_summary", "weak_subject", "revision_reminder"].includes(n.type)
-                );
+            if (typeof window !== "undefined" && "Notification" in window) {
+                console.log("System notification check: permission is", Notification.permission);
                 
-                // Stagger them: send one every 45-60 seconds to avoid bombarding the user
-                newNotifs.forEach((n, index) => {
-                    setTimeout(() => {
-                        // Check global cooldown again in case a To-Do fired in between
-                        const now = Date.now();
-                        const sinceLast = now - lastNativePushRef.current;
-                        
-                        // If something else fired very recently, push this one back even more
-                        const finalDelay = sinceLast < 30000 ? 30000 : 0;
-                        
-                        setTimeout(() => {
-                            new Notification(n.title, {
-                                body: n.message,
-                                icon: "/azviq_logo_whitebg.png",
-                                tag: n.id,
-                            });
-                            lastNativePushRef.current = Date.now();
-                        }, finalDelay);
+                if (Notification.permission === "granted" && !doNotDisturb) {
+                    const afterData = await fetch("/api/notifications").then(r => r.json());
+                    const newNotifs: any[] = (afterData.notifications ?? []).filter(
+                        (n: any) => {
+                            if (existingIds.has(n.id)) return false;
+                            
+                            // Category Filter
+                            if (["weak_subject", "revision_reminder", "ai_task_complete"].includes(n.type) && !aiAlerts) return false;
+                            if (n.type === "study_reminder" && !studyReminders) return false;
+                            
+                            return ["study_reminder", "task_reminder", "streak_protection", "weekly_summary", "weak_subject", "revision_reminder", "ai_task_complete"].includes(n.type);
+                        }
+                    );
 
-                    }, index * 45000); // 45s spacing
-                });
+                    console.log(`Found ${newNotifs.length} new notifications to push.`);
+                    
+                    // Stagger them: send one every 20 seconds
+                    newNotifs.forEach((n, index) => {
+                        setTimeout(() => {
+                            console.log(`Firing native notification: ${n.title}`);
+                            try {
+                                new Notification(n.title, {
+                                    body: n.message,
+                                    icon: "/azviq_logo_whitebg.png",
+                                    tag: n.id,
+                                    requireInteraction: true // Keep it visible until the user acts
+                                });
+                                lastNativePushRef.current = Date.now();
+                            } catch (e) {
+                                console.error("Critical: Native notification failed to fire:", e);
+                            }
+                        }, index * 20000); // 20s spacing
+                    });
+                } else if (Notification.permission === "default") {
+                    console.warn("Notifications are not yet allowed. Permission is 'default'.");
+                } else {
+                    console.error("Notifications are explicitly BLOCKED/DENIED by the browser.");
+                }
             }
         } catch (e) {
             console.error("Failed to generate notifications", e);
         }
-    }, [fetchNotifications, studyReminders]);
+    }, [fetchNotifications, studyReminders, aiAlerts, doNotDisturb]);
 
     // On mount — fetch notifications and trigger daily generate
     useEffect(() => {
@@ -259,7 +295,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Global To-Do Reminder Watcher
     const checkToDos = useCallback(async (isManual = false) => {
         if (!todoReminders) return; // Respect preference
-        if (!isManual && (isCheckingRef.current || document.visibilityState !== "visible")) return;
+        if (doNotDisturb) return; // DND blocks all notifications
+        if (!isManual && isCheckingRef.current) return;
+
+        
+        // Use visible state only to decide if we should do a full UI refresh, 
+        // but background logic should always run.
         
         isCheckingRef.current = true;
         try {
@@ -277,8 +318,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
             const due = todos.filter((item: any) => {
                 if (item.done || !item.time) return false;
+                
                 const itemHHMM = item.time.slice(0, 5);
-                if (itemHHMM !== currentHHMM) return false;
+                const [itemH, itemM] = itemHHMM.split(':').map(Number);
+                const itemTotalMinutes = (itemH * 60) + itemM;
+                const currentTotalMinutes = (now.getHours() * 60) + now.getMinutes();
+
+                // Check if current time is within a 5-minute window of the target time
+                // This prevents missing a notification if there's network lag or the tab was briefly asleep
+                const diff = currentTotalMinutes - itemTotalMinutes;
+                if (diff < 0 || diff > 5) return false;
+
                 let isMatchToday = false;
                 if (item.repeat === "today") {
                     if (!item.created_at) isMatchToday = true;
@@ -320,22 +370,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 });
                 if (postRes.ok) {
                     await fetchNotifications();
-                    // Fire native system notification if permitted, with global cooldown awareness
-                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                        const now = Date.now();
-                        const sinceLast = now - lastNativePushRef.current;
-                        
-                        // If a system notif just fired, wait a bit
-                        const delay = sinceLast < 30000 ? 30000 - sinceLast : 0;
-                        
-                        setTimeout(() => {
-                            new Notification("⏰ To-Do Reminder", {
-                                body: `Time for: ${item.title}`,
-                                icon: "/azviq_logo_whitebg.png",
-                                tag: item.id,
-                            });
-                            lastNativePushRef.current = Date.now();
-                        }, delay);
+                    // Fire native system notification if permitted
+                    if (typeof window !== "undefined" && "Notification" in window) {
+                        console.log(`To-Do found! Permission: ${Notification.permission}`);
+                        if (Notification.permission === "granted" && !doNotDisturb) {
+                            try {
+                                new Notification("⏰ To-Do Reminder", {
+                                    body: `Time for: ${item.title}`,
+                                    icon: "/azviq_logo_whitebg.png",
+                                    tag: item.id,
+                                    requireInteraction: true
+                                });
+                                lastNativePushRef.current = Date.now();
+                                console.log(`To-Do popup fired for: ${item.title}`);
+                            } catch (e) {
+                                console.error("To-Do popup error:", e);
+                            }
+                        }
                     }
                 }
             }
@@ -344,10 +395,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         } finally {
             isCheckingRef.current = false;
         }
-    }, [fetchNotifications, todoReminders]);
+    }, [fetchNotifications, todoReminders, doNotDisturb]);
 
     useEffect(() => {
-        const interval = setInterval(() => checkToDos(), 60000); // Check every 60s
+        const interval = setInterval(() => checkToDos(), 30000); // Check every 30s for better reliability
         checkToDos();
         return () => clearInterval(interval);
     }, [checkToDos]);
@@ -355,7 +406,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Task Deadline Watcher — fires once per day at 9:00 AM
     const checkTaskDeadlines = useCallback(async (isManual = false) => {
         if (!taskDueReminders) return; // Respect preference
+        if (doNotDisturb) return; // DND blocks all notifications
         if (!isManual && document.visibilityState !== "visible") return;
+
         try {
             const now = new Date();
             const currentHour = now.getHours();
@@ -397,7 +450,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 if (postRes.ok) {
                     await fetchNotifications();
                     // Native push notification with stagger
-                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted" && !doNotDisturb) {
                         const now = Date.now();
                         const sinceLast = now - lastNativePushRef.current;
                         const delay = sinceLast < 30000 ? 30000 - sinceLast : 0;
@@ -416,7 +469,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         } catch (err) {
             console.error("Task deadline check failed:", err);
         }
-    }, [fetchNotifications, taskDueReminders]);
+    }, [fetchNotifications, taskDueReminders, doNotDisturb]);
 
     useEffect(() => {
         const interval = setInterval(() => checkTaskDeadlines(), 300000); // Check every 5 mins
@@ -459,6 +512,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             setTodoReminders,
             taskDueReminders,
             setTaskDueReminders,
+            doNotDisturb,
+            setDoNotDisturb,
             checkReminders
         }}>
             {children}

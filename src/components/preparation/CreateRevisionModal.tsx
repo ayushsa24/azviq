@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Modal from "@/components/ui/Modal";
-import { FileText, Sparkles, Loader2, Search, Check, ChevronDown } from "lucide-react";
+import { FileText, Sparkles, Loader2, Search, Check, ChevronDown, File as FileIcon } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface CreateRevisionModalProps {
     isOpen: boolean;
@@ -67,7 +68,11 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
             });
             const data = await res.json();
             if (controller.signal.aborted) return;
-            if (!res.ok) { setError(data.error || "Failed to generate revision"); return; }
+            if (!res.ok) { 
+                const errorMsg = typeof data.error === "string" ? data.error : (data.error?.message || "Failed to generate revision");
+                setError(errorMsg); 
+                return; 
+            }
             onSuccess(data.revision);
         } catch (err: any) {
             if (err.name === "AbortError") return;
@@ -85,6 +90,21 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
         }
         onClose();
     };
+
+    const renderIcon = (title: string, fileUrl?: string | null, size = 16) => {
+        const iconMatch = title.match(/^\[(\w+)\]/);
+        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+            const IconComp = ICON_MAP[iconMatch[1]];
+            return <IconComp size={size} className="shrink-0" />;
+        }
+        return fileUrl ? (
+            <FileIcon size={size} className="shrink-0" />
+        ) : (
+            <FileText size={size} className="shrink-0" />
+        );
+    };
+
+    const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
 
     return (
         <Modal open={isOpen} onClose={handleClose} title="Create Revision">
@@ -113,15 +133,21 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                                         ? "bg-[#1A1A1A] border-[#333] text-white hover:bg-[#252525]"
                                         : "bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] hover:bg-[#E8E5E1]"}`}
                                 >
-                                    <span className="truncate">
+                                    <div className="flex items-center gap-2 truncate">
                                         {selectedNoteId ? (() => {
                                             const fact = notes.find(n => n.id === selectedNoteId);
                                             if (!fact) return "Empty";
                                             const ws = workspaces.find(w => w.id === fact.workspace_id);
-                                            const isPdf = !!(fact.file_url && (!fact.content || fact.content.trim() === ""));
-                                            return `${isPdf ? "📄 " : "📝 "}${ws ? `[${ws.name}] ` : ""}${fact.title}`;
+                                            return (
+                                                <>
+                                                    {renderIcon(fact.title, fact.file_url)}
+                                                    <span className="truncate">
+                                                        {ws ? `[${ws.name}] ` : ""}{cleanTitle(fact.title)}
+                                                    </span>
+                                                </>
+                                            );
                                         })() : "Choose a Note or PDF"}
-                                    </span>
+                                    </div>
                                     <ChevronDown className="w-4 h-4 text-[#BABABA] ml-2" />
                                 </button>
 
@@ -158,14 +184,17 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                                                         }}
                                                         className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525] font-bold" : "text-gray-700 dark:text-gray-300 hover:bg-[#F0EDE8] dark:hover:bg-[#1A1A1A]"}`}
                                                     >
-                                                        <div className="flex flex-col min-w-0 pr-2">
-                                                            <span className="truncate">
-                                                                {isPdf ? "📄 " : "📝 "}{n.title}
-                                                            </span>
-                                                            <span className={`text-[10px] truncate mt-0.5 flex gap-1 ${isSelected ? 'text-white/70 dark:text-black/70' : 'text-gray-500'}`}>
-                                                                {ws && <span className="font-bold">[{ws.name}]</span>}
-                                                                <span>{isPdf ? 'PDF Document' : 'Note'}</span>
-                                                            </span>
+                                                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                                            {renderIcon(n.title, n.file_url, 18)}
+                                                            <div className="flex flex-col min-w-0 pr-2">
+                                                                <span className="truncate">
+                                                                    {cleanTitle(n.title)}
+                                                                </span>
+                                                                <span className={`text-[10px] truncate mt-0.5 flex gap-1 ${isSelected ? 'text-white/70 dark:text-black/70' : 'text-gray-500'}`}>
+                                                                    {ws && <span className="font-bold">[{ws.name}]</span>}
+                                                                    <span>{isPdf ? 'PDF Document' : 'Note'}</span>
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                         {isSelected && <Check className="w-4 h-4 flex-shrink-0" />}
                                                     </button>

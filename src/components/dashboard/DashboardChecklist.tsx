@@ -97,10 +97,11 @@ export default function DashboardChecklist() {
     const [form, setForm] = useState(defaultForm());
     const [initialForm, setInitialForm] = useState(defaultForm());
     const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+    const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false);
     const [materialSearchQuery, setMaterialSearchQuery] = useState("");
     const materialDropdownRef = useRef<HTMLDivElement>(null);
+    const frequencyDropdownRef = useRef<HTMLDivElement>(null);
     const timeInputRef = useRef<HTMLInputElement>(null);
-    const frequencySelectRef = useRef<HTMLSelectElement>(null);
 
     const hasChanged = JSON.stringify(form) !== JSON.stringify(initialForm);
 
@@ -162,6 +163,9 @@ export default function DashboardChecklist() {
         function handleClickOutside(event: MouseEvent) {
             if (materialDropdownRef.current && !materialDropdownRef.current.contains(event.target as Node)) {
                 setShowMaterialDropdown(false);
+            }
+            if (frequencyDropdownRef.current && !frequencyDropdownRef.current.contains(event.target as Node)) {
+                setShowFrequencyDropdown(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
@@ -486,28 +490,48 @@ export default function DashboardChecklist() {
                                     </div>
 
                                     {/* Frequency Row */}
-                                    <div 
-                                        onClick={() => {
-                                            try { (frequencySelectRef.current as any)?.showPicker(); } 
-                                            catch (e) { frequencySelectRef.current?.focus(); }
-                                        }}
-                                        className="grid grid-cols-3 items-center gap-4 group min-h-[32px] cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-lg -mx-2 px-2 transition-colors"
-                                    >
+                                    <div className="grid grid-cols-3 items-center gap-4 group min-h-[32px] relative" ref={frequencyDropdownRef}>
                                         <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] col-span-1">
                                             <RotateCcw className="w-4 h-4 text-[#7D7D7D]/50" />
                                             <span className="text-sm font-medium">Frequency</span>
                                         </div>
-                                        <div className="col-span-2">
-                                            <select
-                                                ref={frequencySelectRef}
-                                                value={form.repeat}
-                                                onChange={e => setForm(f => ({ ...f, repeat: e.target.value as RepeatType }))}
-                                                className="bg-transparent border-none p-1 -ml-1 text-sm font-medium text-[#252525] dark:text-white focus:ring-0 outline-none w-full cursor-pointer appearance-none hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
+                                        <div className="col-span-2 relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowFrequencyDropdown(!showFrequencyDropdown)}
+                                                className={`flex items-center justify-between w-full px-2 py-1.5 rounded-lg border transition-all text-sm
+                                                    ${showFrequencyDropdown 
+                                                        ? "bg-black/5 dark:bg-white/5 border-[#CFCFCF] dark:border-[#444] text-[#252525] dark:text-white" 
+                                                        : "bg-white/50 dark:bg-white/5 border-transparent hover:border-[#D1D1D1] dark:hover:border-[#545454] text-[#252525] dark:text-white"
+                                                    }`}
                                             >
-                                                {Object.entries(REPEAT_LABELS).map(([key, label]) => (
-                                                    <option key={key} value={key} className="bg-[#F5F3EF] dark:bg-[#1A1A1A]">{label}</option>
-                                                ))}
-                                            </select>
+                                                <span className="truncate font-medium">
+                                                    {REPEAT_LABELS[form.repeat]}
+                                                </span>
+                                                <ChevronDown className={`w-3.5 h-3.5 ml-2 transition-transform shrink-0 ${showFrequencyDropdown ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {showFrequencyDropdown && (
+                                                <div className="absolute top-11 right-0 left-0 bg-[#F5F3EF] dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-xl shadow-xl z-[150] p-1 overflow-hidden">
+                                                    {Object.entries(REPEAT_LABELS).map(([key, label]) => {
+                                                        const isSelected = form.repeat === key;
+                                                        return (
+                                                            <button
+                                                                key={key}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setForm(f => ({ ...f, repeat: key as RepeatType }));
+                                                                    setShowFrequencyDropdown(false);
+                                                                }}
+                                                                className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between mt-0.5 first:mt-0 ${isSelected ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
+                                                            >
+                                                                {label}
+                                                                {isSelected && <Check className="w-3 h-3 text-gray-600 dark:text-gray-300" />}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

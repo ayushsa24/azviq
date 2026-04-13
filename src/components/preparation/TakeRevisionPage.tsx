@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { ICON_MAP } from "../editor/EmojiPicker";
 
 interface Keyword { term: string; definition: string; }
 interface QAPair { question: string; answer: string; }
@@ -143,6 +144,17 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
     const kw = revision.keywords || [];
     const currentQA = qa[qaIndex];
 
+    const renderIcon = (title: string, size = 18) => {
+        const iconMatch = title.match(/^\[(\w+)\]/);
+        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+            const IconComp = ICON_MAP[iconMatch[1]];
+            return <IconComp size={size} className="shrink-0" />;
+        }
+        return <FileText size={size} className="shrink-0 opacity-60" />;
+    };
+
+    const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
+
     const tabCls = (t: string) =>
         `px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === t
             ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
@@ -171,7 +183,10 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
                     <ArrowLeft size={20} />
                 </button>
                 <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
-                    <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{revision.title}</p>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {renderIcon(revision.title, 16)}
+                        <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{cleanTitle(revision.title)}</p>
+                    </div>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8E5E0] dark:bg-[#333] shrink-0">
                         <Clock size={11} className="text-[#7D7D7D]" />
                         <span className="text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase tracking-wider">

@@ -94,7 +94,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     todoReminders,
     setTodoReminders,
     taskDueReminders,
-    setTaskDueReminders
+    setTaskDueReminders,
+    doNotDisturb,
+    setDoNotDisturb
   } = useNotifications();
 
   const { data: session } = useSession();
@@ -251,7 +253,6 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     }
   };
 
-  const [doNotDisturb, setDoNotDisturb] = useState(false);
   const [notificationSound, setNotificationSound] = useState("chime");
 
   // AI Model Settings
@@ -490,6 +491,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const sendTestNotification = () => {
     if (pushPermission !== "granted") {
       requestPushPermission();
+      return;
+    }
+    if (doNotDisturb) {
+      alert("Do Not Disturb is currently ON. Turn it off to see the test notification pop up!");
       return;
     }
     new Notification("Azviq", {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FileText, Plus, Trash2, Clock, Search } from "lucide-react";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
@@ -159,8 +160,16 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                             <FileText size={15} />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="text-[14px] font-bold text-[#252525] dark:text-white truncate">
-                                                {ex.title}
+                                            <h3 className="text-[14px] font-bold text-[#252525] dark:text-white truncate flex items-center gap-1.5">
+                                                <span>{ex.title.replace(/^\[\w+\]\s*/, "")}</span>
+                                                {(() => {
+                                                    const iconMatch = ex.title.match(/^\[(\w+)\]/);
+                                                    if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                        const IconComp = ICON_MAP[iconMatch[1]];
+                                                        return <IconComp size={14} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                    }
+                                                    return null;
+                                                })()}
                                             </h3>
                                             <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
                                                 <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(ex.created_at)}</span>
@@ -198,12 +207,30 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
 
                                         {/* Middle: Title & source */}
                                         <div className="flex-1 mt-1.5 overflow-hidden">
-                                            <h3 className="text-[13px] font-bold text-[#252525] dark:text-white leading-tight line-clamp-2 group-hover:text-black dark:group-hover:text-white" title={ex.title}>
-                                                {ex.title}
+                                            <h3 className="text-[13px] font-bold text-[#252525] dark:text-white leading-tight line-clamp-2 group-hover:text-black dark:group-hover:text-white flex items-center gap-1.5" title={ex.title}>
+                                                <span>{ex.title.replace(/^\[\w+\]\s*/, "")}</span>
+                                                {(() => {
+                                                    const iconMatch = ex.title.match(/^\[(\w+)\]/);
+                                                    if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                        const IconComp = ICON_MAP[iconMatch[1]];
+                                                        return <IconComp size={14} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                    }
+                                                    return null;
+                                                })()}
                                             </h3>
                                             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
                                                 <FileText size={10} className="shrink-0" />
-                                                <span className="truncate" title={ex.notes?.title}>{ex.notes?.title || "Unknown source"}</span>
+                                                <span className="truncate flex items-center gap-1.5" title={ex.notes?.title}>
+                                                    {ex.notes?.title?.replace(/^\[\w+\]\s*/, "") || "Unknown source"}
+                                                    {(() => {
+                                                        const iconMatch = ex.notes?.title?.match(/^\[(\w+)\]/);
+                                                        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                            const IconComp = ICON_MAP[iconMatch[1]];
+                                                            return <IconComp size={11} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </span>
                                             </div>
                                         </div>
 

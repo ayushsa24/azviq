@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Loader2, Lock, FileText, Pencil, Eye, Check, Sun, Moon, LogIn, DownloadCloud } from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 const lowlight = createLowlight(all);
 
@@ -263,7 +264,19 @@ export default function SharedNotePage() {
                     <FileText size={15} className="text-[#545454] dark:text-[#7D7D7D]" />
                 </div>
                 
-                <span className="font-bold text-[#252525] dark:text-white truncate">{note.title}</span>
+                <div className="flex items-center gap-2 truncate">
+                    {(() => {
+                        const iconMatch = note.title.match(/^\[(\w+)\]/);
+                        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                            const IconComp = ICON_MAP[iconMatch[1]];
+                            return <IconComp size={16} strokeWidth={2} className="shrink-0 text-[#252525] dark:text-white" />;
+                        }
+                        return null;
+                    })()}
+                    <span className="font-bold text-[#252525] dark:text-white truncate">
+                        {note.title.replace(/^\[\w+\]\s*/, "")}
+                    </span>
+                </div>
 
                 {canEdit && (
                     <span className="text-xs text-[#BABABA] flex items-center gap-1 shrink-0 ml-2">
@@ -314,8 +327,16 @@ export default function SharedNotePage() {
             <div className="flex flex-col items-center w-full">
                 <div className="w-full max-w-3xl px-4 sm:px-8 pt-10 pb-24">
 
-                    <h1 className="text-4xl sm:text-5xl font-bold text-[#252525] dark:text-white mb-8 leading-tight">
-                        {note.title}
+                    <h1 className="text-4xl sm:text-5xl font-bold text-[#252525] dark:text-white mb-8 leading-tight flex items-center gap-4">
+                        {(() => {
+                            const iconMatch = note.title.match(/^\[(\w+)\]/);
+                            if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                const IconComp = ICON_MAP[iconMatch[1]];
+                                return <IconComp size={48} strokeWidth={1} className="shrink-0 text-[#252525] dark:text-white" />;
+                            }
+                            return null;
+                        })()}
+                        <span>{note.title.replace(/^\[\w+\]\s*/, "")}</span>
                     </h1>
 
                     <div id="share-editor-container" className="relative">

@@ -801,8 +801,16 @@ export default function NoteEditorPage() {
                     {/* Show the original title as requested */}
                     <div className="mb-4">
                         <span className="text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-2.5 py-1 rounded-full uppercase tracking-widest mb-2 inline-block font-sans">Access Restricted</span>
-                        <h2 className="text-3xl font-extrabold text-[#252525] dark:text-white leading-tight">
-                            {title}
+                        <h2 className="text-3xl font-extrabold text-[#252525] dark:text-white leading-tight flex items-center gap-3">
+                            {(() => {
+                                const iconMatch = title.match(/^\[(\w+)\]/);
+                                if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                    const IconComp = ICON_MAP[iconMatch[1]];
+                                    return <IconComp size={32} strokeWidth={2} className="shrink-0 text-[#252525] dark:text-white" />;
+                                }
+                                return null;
+                            })()}
+                            <span>{title.replace(/^\[\w+\]\s*/, "")}</span>
                         </h2>
                     </div>
 
