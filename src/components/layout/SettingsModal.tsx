@@ -329,11 +329,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   };
 
   const AI_MODELS = [
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", badge: "Free", desc: "Fast & reliable default", minTier: 0 },
-    { value: "llama3.2", label: "Llama 3.2", badge: "Local", desc: "Runs on your local server", minTier: 0 },
-    { value: "gpt-4o-mini", label: "GPT-4o Mini", badge: "Lite", desc: "High quality intelligence", minTier: 1 },
-    { value: "gpt-4o", label: "GPT-4o", badge: "Premium", desc: "OpenAI's flagship model", minTier: 2 },
-    { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", badge: "Premium", desc: "Nuanced writing & coding", minTier: 2 },
+    { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite ⚡", badge: "Free", desc: "Default engine — high quota & fast", minTier: 0 },
+    { value: "gpt-4o-mini", label: "GPT-4o Mini", badge: "Lite Plan", desc: "High quality OpenAI intelligence", minTier: 1 },
+    { value: "gpt-4o", label: "GPT-4o", badge: "Pro Plan", desc: "OpenAI's most capable model", minTier: 2 },
+    { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", badge: "Pro Plan", desc: "Best for nuanced writing & analysis", minTier: 2 },
   ];
 
   // Parent control — live data from API
@@ -804,7 +803,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                 <div className="pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A] flex justify-between items-end">
                   <div className="flex flex-col">
                     <h3 className="text-sm font-semibold flex items-center gap-2">
-                      Intelligence Settings
+                      AI Chat Model
                       {modelSaveSuccess && (
                         <span className="text-[10px] text-green-500 font-bold animate-in fade-in slide-in-from-left-2 duration-300">
                           (Saved)
@@ -814,7 +813,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                         <Loader2 size={12} className="animate-spin text-[#C2A27A]" />
                       )}
                     </h3>
-                    <p className="text-xs text-[#7D7D7D] mt-0.5">Configure your default workspace AI.</p>
+                    <p className="text-xs text-[#7D7D7D] mt-0.5">Applies to <strong>AI Chat only</strong>. All other features (exercises, revision, vision) always run on Flash-Lite for maximum reliability.</p>
                   </div>
                   {loadingModels ? (
                     <Skeleton className="w-16 h-4 rounded" />
@@ -1068,10 +1067,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   <div className="py-4">
                     <div className={`p-4 rounded-2xl border ${isDark ? "bg-[#C2A27A]/5 border-[#C2A27A]/15" : "bg-[#C2A27A]/5 border-[#C2A27A]/20"}`}>
                       <div className="flex items-center gap-2 mb-2 font-bold text-sm text-[#C2A27A]">
-                        <Crown size={16} /> Advanced Intelligence
+                        <Crown size={16} /> Unlock Powerful AI
                       </div>
                       <p className="text-[11px] leading-relaxed opacity-80">
-                        Premium and Lite models offer superior analysis and accuracy. Upgrade your plan to unlock these models across the entire platform instantly.
+                        Lite plan unlocks <strong>GPT-4o Mini</strong> for AI Chat. Pro plan unlocks <strong>GPT-4o</strong> and <strong>Claude 3.5 Sonnet</strong>. All study tools (exercises, revision, summarize, vision) always run on Gemini Flash-Lite for maximum speed and quota.
                       </p>
                     </div>
                   </div>

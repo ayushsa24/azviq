@@ -2,8 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiError } from "@/lib/api";
-import { getVisionStreamResponse, runSubscriptionGuard } from "@/lib/ai/manager";
-import { generateChatTitle } from "@/lib/ai/providers/ollama";
+import { getVisionStreamResponse, runSubscriptionGuard, generateChatTitle } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -28,8 +28,8 @@ export async function POST(req: Request) {
     if (dbError || !dbUser) return apiError("User not found", 404, "USER_NOT_FOUND");
     const userId = dbUser.id;
 
-    // 2. Enforce AI Daily Quota & Tier Access (Tracking type: 'vision')
-    const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "vision", userId);
+    // 2. Enforce AI Daily Quota & Tier Access (vision always uses FREE_MODEL)
+    const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "vision", userId);
     if (!guard.allowed) {
       return apiError(guard.error || "Subscription limit reached", guard.status || 403, "QUOTA_EXCEEDED");
     }
@@ -69,11 +69,11 @@ export async function POST(req: Request) {
       },
     ];
 
-    // 5. Generate with Vision-capable Gemini model (via AI Manager)
+    // 5. Generate with Vision-capable model via AI Manager (always FREE_MODEL)
     let resultStream: AsyncIterable<{ text: () => string }>;
     try {
       resultStream = await getVisionStreamResponse(parts, {
-        model: "gemini-2.5-flash",
+        model: FREE_MODEL,
         style: "balanced",
         stream: true,
       });

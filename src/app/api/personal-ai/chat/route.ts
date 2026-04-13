@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
 import { getStreamingChatResponse, getAIConfig, runSubscriptionGuard } from "@/lib/ai/manager";
 import { apiError } from "@/lib/api";
-import { AIMessage } from "@/lib/ai/types";
+import { AIMessage, FREE_MODEL } from "@/lib/ai/types";
 
 /**
  * Builds the strict Teacher system prompt by injecting the note's plain text.
@@ -108,14 +108,15 @@ export async function POST(req: Request) {
       content: m.content,
     }));
 
-    // --- Get AI config (model from header or default to Gemini 2.5 Flash) ---
-    const config = getAIConfig(req, systemPrompt);
-
-    // --- Rate Limit & Subscription Guard ---
-    const guard = await runSubscriptionGuard(session.user.email, config.model, "personal_ai", user.id);
+    // --- Rate Limit & Subscription Guard (Personal AI always uses FREE_MODEL for max quota) ---
+    const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "personal_ai", user.id);
     if (!guard.allowed) {
       return apiError(guard.error || "Subscription check failed", guard.status || 403, "SUBSCRIPTION_REQUIRED");
     }
+
+    // --- AI config: always force FREE_MODEL for high-quota Personal AI sessions ---
+    const config = getAIConfig(req, systemPrompt);
+    config.model = FREE_MODEL;
 
     // --- Stream the response ---
     const stream = await getStreamingChatResponse(aiMessages, config);

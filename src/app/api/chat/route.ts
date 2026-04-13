@@ -3,8 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { getAIConfig, getStreamingChatResponse, runSubscriptionGuard } from "@/lib/ai/manager";
-import { generateChatTitle } from "@/lib/ai/providers/ollama";
+import { getAIConfig, getStreamingChatResponse, runSubscriptionGuard, getModelForTier, generateChatTitle } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
 import type { AIMessage } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
@@ -57,8 +57,8 @@ export async function POST(req: Request) {
       return apiError("Forbidden", 403, "FORBIDDEN");
     }
 
-    // 3b. Try to fetch AI preferences — gracefully defaults if columns don't exist yet
-    let userAiModel = "gemini-2.5-flash";
+    // 3b. Fetch AI preferences — gracefully defaults if columns don't exist yet
+    let userAiModel: string = FREE_MODEL;
     let userResponseStyle = "balanced";
     try {
       const { data: prefs } = await supabase
@@ -90,19 +90,21 @@ export async function POST(req: Request) {
       if (insertUserError) throw insertUserError;
     }
 
-    // 5. Get AI config from request headers (or fall back to user's saved preferences)
-    const headerModel = req.headers.get("X-AI-Model");
-    const headerStyle = req.headers.get("X-Response-Style");
-    
-    const aiConfig = getAIConfig(req, 
+    // 5. Resolve model based on subscription tier (tier-safe, silent downgrade)
+    const aiConfig = getAIConfig(req,
       "You are Azviq AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted using markdown, and educational."
     );
 
-    // If no header, use the user's saved preference
-    if (!headerModel) aiConfig.model = (userAiModel as any);
-    if (!headerStyle) aiConfig.style = (userResponseStyle as any);
+    // Determine subscription tier first for model resolution
+    const { getSubscriptionStatus } = await import("@/lib/subscription");
+    const { tier } = await getSubscriptionStatus(session.user.email);
 
-    // 6. Enforce AI Daily Quota & Tier Access (Replaces old 'checkAiDailyQuota')
+    // Resolve the correct model for this user's tier — free users always get FREE_MODEL
+    const resolvedModel = getModelForTier(userAiModel, tier);
+    aiConfig.model = resolvedModel;
+    if (!req.headers.get("X-Response-Style")) aiConfig.style = (userResponseStyle as any);
+
+    // 6. Enforce AI Daily Quota & Tier Access
     const guard = await runSubscriptionGuard(session.user.email, aiConfig.model, "chat", userId);
     if (!guard.allowed) {
       return apiError(guard.error || "Subscription limit reached", guard.status || 403, "QUOTA_EXCEEDED");
@@ -138,7 +140,7 @@ export async function POST(req: Request) {
 
     const aiMessages = mergedMessages;
 
-    // 8. Generate chat title (non-blocking, using Ollama for cheapness)
+    // 8. Generate chat title (non-blocking, using FREE_MODEL for efficiency)
     let titlePromise: Promise<string | null> | null = null;
     if (messages.length === 1 && chatId !== "temp-chat") {
       titlePromise = generateChatTitle(latestUserMessage.content).then(async (title) => {

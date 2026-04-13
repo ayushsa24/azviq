@@ -2,16 +2,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/db";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { runSubscriptionGuard } from "@/lib/ai/manager";
+import { runSubscriptionGuard, getTextResponse } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-const apiKey = process.env.GEMINI_API_KEY || "";
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 // --- Zod Schema ---
 const ExercisePostSchema = z.object({
@@ -104,37 +101,31 @@ export async function POST(req: Request) {
             return apiError("Note not found or unauthorized", 404, "NOTE_NOT_FOUND");
         }
 
-        // 5. AI service check & Quota check
-        if (!genAI) {
-            return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
-        }
-
-        const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "exercise", user.id);
+        // 5. Quota check (always uses FREE_MODEL for exercises)
+        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "exercise", user.id);
         if (!guard.allowed) {
             return apiError(guard.error || "Subscription limit reached", guard.status || 403, "QUOTA_EXCEEDED");
         }
 
         const noteContext = (note.content as string | null) || "Use general knowledge about this topic.";
 
-        // 6. Generate questions with Gemini
+        // 6. Generate questions via AI Manager (FREE_MODEL, central error handling + fallback)
+        const systemPrompt = `You are an expert tutor. Create a ${questionCount}-question multiple-choice quiz based on the user's provided text.
+Return ONLY a raw JSON array of objects. Do not wrap it in markdown codeblocks.
+Each object MUST have this exact structure:
+{"question": "...", "options": ["A", "B", "C", "D"], "correctAnswerIndex": 0, "explanation": "..."}`;
+
+        const prompt = `Topic/Title: ${note.title as string}\n\nContent:\n${noteContext}\n\nGenerate the quiz.`;
+
         let questionsText: string;
         try {
-            const model = genAI.getGenerativeModel({
-                model: "gemini-2.5-flash",
-                systemInstruction: `You are an expert tutor. Create a ${questionCount}-question multiple-choice quiz based on the user's provided text.
-Return ONLY a raw JSON array of objects. Do not wrap it in markdown codeblocks like \`\`\`json\`\`\`.
-Each object MUST have the following structure:
-{
-  "question": "The question text?",
-  "options": ["A", "B", "C", "D"],
-  "correctAnswerIndex": 0,
-  "explanation": "Why this is correct."
-}`,
+            questionsText = await getTextResponse(prompt, {
+                model: FREE_MODEL,
+                style: "precise",
+                systemPrompt,
+                stream: false,
             });
-
-            const prompt = `Topic/Title: ${note.title as string}\n\nContent:\n${noteContext}\n\nGenerate the quiz.`;
-            const response = await model.generateContent(prompt);
-            questionsText = response.response.text().trim()
+            questionsText = questionsText.trim()
                 .replace(/^```json\s*/m, "").replace(/^```\s*/m, "").replace(/```\s*$/m, "").trim();
         } catch {
             return apiError("AI exercise generation failed. Please try again.", 502, "AI_SERVICE_ERROR");

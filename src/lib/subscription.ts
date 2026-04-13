@@ -9,7 +9,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
-import { AIModel, PREMIUM_MODELS } from "@/lib/ai/types";
+import { AIModel, LITE_MODELS, PREMIUM_MODELS } from "@/lib/ai/types";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -23,14 +23,8 @@ export const PLAN_TIER = {
 
 export type PlanTier = (typeof PLAN_TIER)[keyof typeof PLAN_TIER];
 
-/** Models that require Lite (tier >= 1) */
-export const LITE_MODELS: AIModel[] = ["gpt-4o-mini"];
-
-/** Models that require Premium (tier >= 2) */
-export const PREMIUM_ONLY_MODELS: AIModel[] = [
-  "gpt-4o",
-  "claude-3-5-sonnet-20241022",
-];
+// Models imported from types.ts — single source of truth
+// LITE_MODELS and PREMIUM_MODELS are defined in @/lib/ai/types
 
 /** Daily limits per tier — tracked independently per type in Redis */
 export const DAILY_LIMITS = {
@@ -111,11 +105,11 @@ export function checkModelAccess(
   model: AIModel,
   tier: PlanTier
 ): TierCheckResult {
-  if (PREMIUM_ONLY_MODELS.includes(model) && tier < PLAN_TIER.PREMIUM) {
+  if (PREMIUM_MODELS.includes(model) && tier < PLAN_TIER.PREMIUM) {
     return {
       allowed: false,
       tier,
-      error: "This model requires the Premium (Pro) plan. Please upgrade to access GPT-4o and Claude 3.5.",
+      error: "This model requires the Premium plan. Please upgrade to access GPT-4o and Claude 3.5.",
     };
   }
 

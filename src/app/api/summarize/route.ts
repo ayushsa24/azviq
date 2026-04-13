@@ -4,6 +4,7 @@ import { supabase } from "@/lib/db";
 import { apiError, apiSuccess } from "@/lib/api";
 import { z } from "zod";
 import { getTextResponse, runSubscriptionGuard } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -49,20 +50,16 @@ export async function POST(req: Request) {
     const { text } = validation.data;
 
     // --- AI Daily Quota Check ---
-    const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "note_ai", user.id);
+    const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "note_ai", user.id);
     if (!guard.allowed) {
       return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
-    }
-
-    // 3. Summarize using AI Manager (Gemini 2.5 Flash)
+    // 3. Summarize via AI Manager (FREE_MODEL, has retry + fallback built-in)
     let summary: string;
     try {
       summary = await getTextResponse(text, {
-        model: "gemini-2.5-flash",
+        model: FREE_MODEL,
         style: "balanced",
         systemPrompt: "Summarize the following study notes into clear, concise bullet points. Use Markdown formatting.",
         stream: false,

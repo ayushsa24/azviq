@@ -10,18 +10,13 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { AIModel, ResponseStyle } from "@/lib/ai/types";
+import { AIModel, MODEL_PROVIDER_MAP, ResponseStyle, FREE_MODEL } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
 
-const VALID_MODELS: AIModel[] = [
-  "gemini-2.5-flash",
-  "gemini-1.5-pro",
-  "llama3.2",
-  "gpt-4o",
-  "gpt-4o-mini",
-  "claude-3-5-sonnet-20241022",
-];
+// Derive valid models from MODEL_PROVIDER_MAP — single source of truth.
+// If a model is added/removed from types.ts, this automatically updates.
+const VALID_MODELS = Object.keys(MODEL_PROVIDER_MAP) as AIModel[];
 
 const VALID_STYLES: ResponseStyle[] = ["balanced", "creative", "precise"];
 
@@ -44,7 +39,7 @@ export async function GET() {
   if (error || !user) return apiError("User not found", 404, "USER_NOT_FOUND");
 
   return NextResponse.json({
-    ai_model: user.ai_model || "gemini-2.5-flash",
+    ai_model: user.ai_model || FREE_MODEL,
     response_style: user.response_style || "balanced",
   });
 }

@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api";
 import { z } from "zod";
 import { supabase } from "@/lib/db";
 import { getStreamingChatResponse, runSubscriptionGuard } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
 import type { AIMessage, AIModel, ResponseStyle } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,8 @@ export async function POST(req: Request) {
       return apiError("User not found", 404, "USER_NOT_FOUND");
     }
 
-    // 2. Enforce AI Daily Quota & Tier Access (Tracking type: 'note_ai')
-    const guard = await runSubscriptionGuard(session.user.email, (user.ai_model as any) || "gemini-2.5-flash", "note_ai", user.id);
+    // 2. Enforce AI Daily Quota (editor always uses FREE_MODEL regardless of user preference)
+    const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "note_ai", user.id);
     if (!guard.allowed) {
       return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
     }
@@ -74,14 +75,14 @@ export async function POST(req: Request) {
     const aiMessages: AIMessage[] = [{ role: "user", content: fullPrompt }];
     
     const aiConfig = {
-      // Use user's saved model preference; default to Gemini 2.5 Flash
-      model: ((user.ai_model as AIModel) || "gemini-2.5-flash"),
+      // Editor always uses FREE_MODEL — premium models are ONLY for AI Chat
+      model: FREE_MODEL,
       style: ((user.response_style as ResponseStyle) || "balanced"),
       systemPrompt: systemInstruction,
       stream: true,
     };
 
-    // Get streaming response from AI Manager (Gemini primary, Ollama fallback)
+    // Get streaming response from AI Manager
     let aiStream: ReadableStream<Uint8Array>;
     try {
       aiStream = await getStreamingChatResponse(aiMessages, aiConfig);
