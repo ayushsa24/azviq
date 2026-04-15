@@ -141,6 +141,32 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (typeof window === "undefined" || !("Notification" in window)) return;
         const result = await Notification.requestPermission();
         setPushPermission(result);
+
+        // Also register this browser for Web Push so server-side reminders work
+        if (result === "granted" && "serviceWorker" in navigator && "PushManager" in window) {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+                if (vapidKey) {
+                    const padding = "=".repeat((4 - (vapidKey.length % 4)) % 4);
+                    const base64 = (vapidKey + padding).replace(/-/g, "+").replace(/_/g, "/");
+                    const rawData = atob(base64);
+                    const applicationServerKey = Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+                    const subscription = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey,
+                    });
+                    await fetch("/api/push/subscribe", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(subscription.toJSON()),
+                    });
+                    console.log("[Push] Web Push subscription saved.");
+                }
+            } catch (err) {
+                console.error("[Push] Failed to subscribe for Web Push:", err);
+            }
+        }
     }, []);
 
     const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -398,10 +424,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, [fetchNotifications, todoReminders, doNotDisturb]);
 
     useEffect(() => {
-        const interval = setInterval(() => checkToDos(), 30000); // Check every 30s for better reliability
-        checkToDos();
-        return () => clearInterval(interval);
-    }, [checkToDos]);
+        // Legacy polling removed — Todo reminders are now handled server-side by Upstash Workflow.
+        // The workflow fires an API call at exactly the right time, which sends a Web Push notification.
+        // This eliminates the need for constant database polling.
+    }, []);
 
     // Task Deadline Watcher — fires once per day at 9:00 AM
     const checkTaskDeadlines = useCallback(async (isManual = false) => {

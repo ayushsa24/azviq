@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { scheduleTodoNotification } from "@/lib/scheduler";
 
 async function getUser(email: string) {
     const { data } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
@@ -65,6 +66,27 @@ export async function POST(req: Request) {
             .single();
 
         if (error) throw error;
+
+        // Schedule a push notification if a time was set
+        if (todo && time) {
+            const [hours, minutes] = time.split(":").map(Number);
+            const d = new Date();
+            d.setHours(hours, minutes, 0, 0);
+            if (d.getTime() > Date.now()) {
+                const runId = await scheduleTodoNotification({
+                    todoId: todo.id,
+                    userId: user.id,
+                    title: title.trim(),
+                    note: note || undefined,
+                    reminderTime: d.toISOString(),
+                });
+                if (runId) {
+                    await supabase.from("todos").update({ workflow_run_id: runId }).eq("id", todo.id);
+                    todo.workflow_run_id = runId;
+                }
+            }
+        }
+
         return NextResponse.json({ todo }, { status: 201 });
     } catch (err) {
         console.error("POST todos error:", err);

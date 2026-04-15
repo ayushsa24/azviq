@@ -35,8 +35,10 @@
     "@tiptap/suggestion": "^3.20.0",
     "@types/marked": "^5.0.2",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/web-push": "^3.6.4",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "@upstash/workflow": "^1.2.0",
     "bcrypt": "^6.0.0",
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.18.0",
@@ -64,6 +66,7 @@
     "swr": "^2.4.1",
     "tippy.js": "^6.3.7",
     "use-debounce": "^10.1.0",
+    "web-push": "^3.6.7",
     "zod": "^4.3.6"
   },
   "devDependencies": {

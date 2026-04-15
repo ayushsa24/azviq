@@ -745,13 +745,22 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     <h3 className="text-sm font-semibold">Enable Notifications</h3>
                     <p className="text-xs text-[#7D7D7D]">Receive updates and reminders</p>
                   </div>
-                  <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${pushPermission === "granted"
-                      ? "bg-[#C2A27A]"
-                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={requestPushPermission}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${pushPermission === "granted" ? "right-1" : "left-1"
-                      }`} />
-                  </div>
+                  {pushPermission === "granted" ? (
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs text-green-500 flex items-center gap-1 font-medium bg-green-500/10 px-2 py-1 rounded-md">
+                        <CheckCircle size={14} /> Enabled
+                      </span>
+                      <button onClick={requestPushPermission} className="text-[10px] text-[#7D7D7D] underline hover:text-[#252525] dark:hover:text-white cursor-pointer active:scale-95">
+                        Resync Device Token
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
+                        isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      }`} onClick={requestPushPermission}>
+                      <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
