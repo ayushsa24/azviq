@@ -12,6 +12,8 @@
 export type AIProvider = "gemini" | "openai" | "anthropic";
 
 export type AIModel =
+  | "gemini-3.1-flash-lite" // Gemini 3.1 Flash Lite (Stable)
+  | "gemini-1.5-flash-8b"   // Gemini 1.5 Flash-8B (Ultra-Lite / High Quota)
   | "gemini-2.5-flash-lite" // Universal free engine — used EVERYWHERE by default
   | "gemini-2.5-flash"      // Gemini premium tier (future use / vision fallback)
   | "gpt-4o-mini"           // GPT-4o Mini (OpenAI — Lite Plan)
@@ -28,6 +30,8 @@ export const FREE_MODEL: AIModel = "gemini-2.5-flash-lite";
 
 /** Maps each model ID to its provider */
 export const MODEL_PROVIDER_MAP: Record<AIModel, AIProvider> = {
+  "gemini-3.1-flash-lite": "gemini",
+  "gemini-1.5-flash-8b": "gemini",
   "gemini-2.5-flash-lite": "gemini",
   "gemini-2.5-flash": "gemini",
   "gpt-4o-mini": "openai",
@@ -37,6 +41,8 @@ export const MODEL_PROVIDER_MAP: Record<AIModel, AIProvider> = {
 
 /** Human-readable labels for each model */
 export const MODEL_LABELS: Record<AIModel, string> = {
+  "gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite ⚡ (Stable)",
+  "gemini-1.5-flash-8b": "Gemini 1.5 Flash-8B ⚡ (Ultra-Lite)",
   "gemini-2.5-flash-lite": "Gemini 2.5 Flash-Lite ⚡ (Free)",
   "gemini-2.5-flash": "Gemini 2.5 Flash",
   "gpt-4o-mini": "GPT-4o Mini 🔒 (Lite Plan)",

@@ -70,9 +70,9 @@ export async function POST(req: Request) {
     ];
 
     // 5. Generate with Vision-capable model via AI Manager (always FREE_MODEL)
-    let resultStream: AsyncIterable<{ text: () => string }>;
+    let aiStream: ReadableStream<Uint8Array>;
     try {
-      resultStream = await getVisionStreamResponse(parts, {
+      aiStream = await getVisionStreamResponse(parts, {
         model: FREE_MODEL,
         style: "balanced",
         stream: true,
@@ -98,51 +98,49 @@ export async function POST(req: Request) {
       ).catch(() => null);
     }
 
-    // 7. Stream back to client
+    // 7. Pass through stream, accumulate full content, then save to DB
     const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        let fullContent = "";
-        try {
-          for await (const chunk of resultStream) {
-            const chunkText = chunk.text();
-            fullContent += chunkText;
+    const decoder = new TextDecoder();
+    let fullContent = "";
+
+    const transformStream = new TransformStream({
+      async transform(chunk, controller) {
+        const text = decoder.decode(chunk, { stream: true });
+        const lines = text.split("\n").filter(Boolean);
+        for (const line of lines) {
+          try {
+            const parsed = JSON.parse(line) as { message?: { content?: string } };
+            if (parsed.message?.content) {
+              fullContent += parsed.message.content;
+            }
+          } catch { /* ignore non-json */ }
+        }
+        controller.enqueue(chunk);
+      },
+      async flush(controller) {
+        // Save AI response to DB
+        if (chatId !== "temp-chat" && fullContent.trim().length > 0) {
+          await supabase.from("messages").insert({
+            chat_id: chatId,
+            user_id: userId,
+            role: "model",
+            content: fullContent,
+            email: session.user!.email,
+          });
+        }
+
+        if (titlePromise) {
+          const resolvedTitle = await titlePromise;
+          if (resolvedTitle) {
             controller.enqueue(
-              encoder.encode(JSON.stringify({ message: { content: chunkText } }) + "\n")
+              encoder.encode("\n" + JSON.stringify({ __generatedTitle: resolvedTitle }) + "\n")
             );
           }
-
-          // Save AI response to DB
-          if (chatId !== "temp-chat" && fullContent.trim()) {
-            await supabase.from("messages").insert({
-              chat_id: chatId,
-              user_id: userId,
-              role: "model",
-              content: fullContent,
-              email: session.user!.email,
-            });
-          }
-
-          if (titlePromise) {
-            const resolvedTitle = await titlePromise;
-            if (resolvedTitle) {
-              controller.enqueue(
-                encoder.encode("\n" + JSON.stringify({ __generatedTitle: resolvedTitle }) + "\n")
-              );
-            }
-          }
-        } catch (streamErr: any) {
-          console.error("Vision stream error:", streamErr);
-          controller.enqueue(
-            encoder.encode(JSON.stringify({ error: "Response stream interrupted." }) + "\n")
-          );
-        } finally {
-          controller.close();
         }
       },
     });
 
-    return new Response(stream, {
+    return new Response(aiStream.pipeThrough(transformStream), {
       headers: {
         "Content-Type": "application/x-ndjson",
         "Cache-Control": "no-cache",

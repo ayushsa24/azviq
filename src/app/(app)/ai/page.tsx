@@ -869,9 +869,6 @@ function AiChatCore() {
           errorMsg = "This chat is having repeated connection issues. If retrying doesn't work, we recommend starting a fresh chat to clear any broken history.";
         }
 
-        // Restore user's input so they don't have to re-type it upon error
-        if (textToSend && !input) setInput(textToSend);
-
         // Mark the last message as an error if it was a thinking message
         setMessages((prev) => {
           const last = prev[prev.length - 1];
@@ -884,33 +881,20 @@ function AiChatCore() {
           return prev;
         });
 
-        // Save BOTH User message and Error message to DB so history is preserved
+        // Only save the ERROR model message to DB — NOT the user message again
+        // (The backend already saved the user message before streaming started)
         if (chatIdOfRequest !== "temp-chat" && chatIdOfRequest) {
-          // 1. Save the user's prompt message first
           fetch("/api/chat/message", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chatId: chatIdOfRequest,
-              role: "user",
-              content: typeof textToSend === 'object' ? JSON.stringify(textToSend) : textToSend,
-              image: currentImage || undefined
+              role: "model",
+              content: `[ERROR]: ${errorMsg}`,
             }),
-          }).then(() => {
-            // 2. Then save the error bubble message
-            return fetch("/api/chat/message", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                chatId: chatIdOfRequest,
-                role: "model",
-                content: `[ERROR]: ${errorMsg}`,
-              }),
-            });
-          }).then(() => {
-            // Re-sync with SWR cache
-            mutateSessions();
           }).catch((e) => console.error("Failed to save error state to history", e));
+          // NOTE: Do NOT call mutateSessions() here — it would re-sync from DB
+          // showing the user message twice since the backend already saved it.
         }
       }
     } finally {
@@ -923,7 +907,6 @@ function AiChatCore() {
         return next;
       });
       delete activeStreamingTextRef.current[chatIdOfRequest];
-      isSendingRef.current = false;
     }
   };
 
@@ -2091,7 +2074,7 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`absolute bottom-0 left-0 w-full z-10 px-2 sm:px-5 pb-2 md:pb-3 pt-0 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-2 md:pb-3 pt-0 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
           {apiError && (
             <div className={`max-w-3xl md:max-w-4xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
               <div className="flex items-center gap-2 text-sm">
@@ -2131,7 +2114,7 @@ function AiChatCore() {
               </button>
             </div>
           )}
-          <div className="max-w-2xl md:max-w-[850px] mx-auto flex items-end w-full px-0 sm:px-2">
+          <div className="max-w-4xl mx-auto flex items-end w-full px-1 md:px-4 md:pl-16">
             {/* Hidden File Input */}
             <input
               type="file"

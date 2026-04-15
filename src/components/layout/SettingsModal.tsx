@@ -102,13 +102,53 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
-  useEffect(() => {
-    if (isOpen && initialTab) {
-      setActiveTab(initialTab as Tab);
-    }
-  }, [isOpen, initialTab]);
 
   const isDark = theme === "dark";
+
+  // Sync state when URL changes (Back/Forward buttons & Initial Load)
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments[0] === "settings") {
+      const tabFromPath = segments[1] as Tab;
+      const validTabs: Tab[] = ["general", "notifications", "models", "data", "account", "parent_control"];
+      
+      if (tabFromPath && validTabs.includes(tabFromPath)) {
+        if (tabFromPath !== activeTab) {
+          setActiveTab(tabFromPath);
+        }
+      } else if (["chatsharedlink", "notesharedlink", "archivechat", "importnotes", "importchats"].includes(segments[1])) {
+        // These sub-modals belong to the Data tab
+        if (activeTab !== "data") {
+          setActiveTab("data");
+        }
+      } else if (!segments[1] && activeTab !== "general") {
+        // Default to general only for the base /settings route
+        setActiveTab("general");
+      }
+    }
+  }, [pathname, isOpen]);
+
+  // Sync URL when tab changes
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    // Skip URL update if we are currently in a sub-modal route (they manage their own URLs)
+    const subModalRoutes = ["chatsharedlink", "notesharedlink", "archivechat", "importnotes", "importchats"];
+    const segments = pathname.split("/").filter(Boolean);
+    const isSubModal = segments[0] === "settings" && subModalRoutes.includes(segments[1]);
+    
+    if (isSubModal) return;
+
+    const targetPath = activeTab === "general" ? "/settings" : `/settings/${activeTab}`;
+    const currentUrl = new URL(window.location.href);
+    
+    if (currentUrl.pathname !== targetPath) {
+      const newUrl = `${targetPath}?from=${encodeURIComponent(fromParam)}`;
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [activeTab, isOpen, fromParam, pathname]);
 
   // State for Account deletion
   const [isDeleting, setIsDeleting] = useState(false);
@@ -132,12 +172,34 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     }
     return "chat";
   });
+
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [importerModalData, setImporterModalData] = useState<{ type: "chat" | "note", id: string } | null>(null);
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: string | "all", title: string } | null>(null);
   const bulkMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      const subModalMap: Record<string, { tab: Tab, type: "chat" | "note" | "archive" | "import" | "import-chat" }> = {
+        "chatsharedlink": { tab: "data", type: "chat" },
+        "notesharedlink": { tab: "data", type: "note" },
+        "archivechat": { tab: "data", type: "archive" },
+        "importnotes": { tab: "data", type: "import" },
+        "importchats": { tab: "data", type: "import-chat" }
+      };
+
+      if (subModalMap[initialTab]) {
+        const { tab, type } = subModalMap[initialTab];
+        setActiveTab(tab);
+        setLinksType(type);
+        setShowSharedLinks(true);
+      } else {
+        setActiveTab(initialTab as Tab);
+      }
+    }
+  }, [isOpen, initialTab]);
 
   // Handle mobile hardware back button to intuitively close the shared links popup
   useEffect(() => {
@@ -256,7 +318,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [notificationSound, setNotificationSound] = useState("chime");
 
   // AI Model Settings
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash-lite");
   const [responseStyle, setResponseStyle] = useState<"balanced" | "creative" | "precise">("balanced");
   const [isSavingModel, setIsSavingModel] = useState(false);
   const [modelSaveSuccess, setModelSaveSuccess] = useState(false);
@@ -286,9 +348,17 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         fetch("/api/user/subscription").then((r) => r.json())
       ])
         .then(([aiData, subData]) => {
-          if (aiData.ai_model) setSelectedModel(aiData.ai_model);
-          if (aiData.response_style) setResponseStyle(aiData.response_style);
           setSubscription(subData);
+          const userTier = subData?.plan_tier ?? 0;
+          
+          // Enforce default model for free tier, or load saved setting for others
+          if (userTier === 0) {
+            setSelectedModel("gemini-2.5-flash-lite");
+          } else if (aiData.ai_model) {
+            setSelectedModel(aiData.ai_model);
+          }
+          
+          if (aiData.response_style) setResponseStyle(aiData.response_style);
         })
         .catch(() => {})
         .finally(() => {
@@ -329,7 +399,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   };
 
   const AI_MODELS = [
-    { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite ⚡", badge: "Free", desc: "Default engine — high quota & fast", minTier: 0 },
+    { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash ⚡", badge: "Free", desc: "Default engine — high quota & fast", minTier: 0 },
     { value: "gpt-4o-mini", label: "GPT-4o Mini", badge: "Lite Plan", desc: "High quality OpenAI intelligence", minTier: 1 },
     { value: "gpt-4o", label: "GPT-4o", badge: "Pro Plan", desc: "OpenAI's most capable model", minTier: 2 },
     { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", badge: "Pro Plan", desc: "Best for nuanced writing & analysis", minTier: 2 },
@@ -813,7 +883,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                         <Loader2 size={12} className="animate-spin text-[#C2A27A]" />
                       )}
                     </h3>
-                    <p className="text-xs text-[#7D7D7D] mt-0.5">Applies to <strong>AI Chat only</strong>. All other features (exercises, revision, vision) always run on Flash-Lite for maximum reliability.</p>
+                    <p className="text-xs text-[#7D7D7D] mt-0.5">Applies to <strong>AI Chat only</strong>. All other features (exercises, revision, vision) always run on Flash for maximum reliability.</p>
                   </div>
                   {loadingModels ? (
                     <Skeleton className="w-16 h-4 rounded" />
@@ -1070,7 +1140,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                         <Crown size={16} /> Unlock Powerful AI
                       </div>
                       <p className="text-[11px] leading-relaxed opacity-80">
-                        Lite plan unlocks <strong>GPT-4o Mini</strong> for AI Chat. Pro plan unlocks <strong>GPT-4o</strong> and <strong>Claude 3.5 Sonnet</strong>. All study tools (exercises, revision, summarize, vision) always run on Gemini Flash-Lite for maximum speed and quota.
+                        Lite plan unlocks <strong>GPT-4o Mini</strong> for AI Chat. Pro plan unlocks <strong>GPT-4o</strong> and <strong>Claude 3.5 Sonnet</strong>. All study tools (exercises, revision, summarize, vision) always run on Gemini Flash for maximum speed and quota.
                       </p>
                     </div>
                   </div>

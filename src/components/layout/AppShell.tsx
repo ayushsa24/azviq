@@ -9,6 +9,7 @@ import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
 import NotificationPanel from "./NotificationPanel";
 import SettingsModal from "./SettingsModal";
+import { useSettings } from "@/contexts/SettingsContext";
 import TrashModal from "./TrashModal";
 import ProfileModal from "./ProfileModal";
 import PricingModal from "../PricingModal";
@@ -36,6 +37,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       }
     }
   }, [status, session, router]);
+
 
   const isDashboard = pathname === "/dashboard";
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -102,6 +104,34 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fromParam = searchParams.get("from");
+  const { openSettings, isOpen } = useSettings();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Handle Settings Refresh Restoration
+  useEffect(() => {
+    if (isInitialLoad && pathname.startsWith("/settings") && fromParam && !isOpen) {
+      setIsInitialLoad(false);
+      // We are on a settings page that has a background path, but the modal isn't 'open' via context yet.
+      // This happens on a fresh page load/refresh.
+      // To show the background, we must navigate back to it, then reopen the settings.
+      const segments = pathname.split("/").filter(Boolean);
+      const tab = segments[1] || "general";
+      
+      // Navigate to the 'from' page and tell it to reopen settings
+      router.replace(`${fromParam}${fromParam.includes('?') ? '&' : '?'}restore_settings=${tab}`);
+    } else if (isInitialLoad) {
+      setIsInitialLoad(false);
+    }
+  }, [pathname, fromParam, router, isOpen, isInitialLoad]);
+
+  // Handle Restoration on the target page
+  useEffect(() => {
+    const restoreTab = searchParams.get("restore_settings");
+    if (restoreTab) {
+      // Trigger the modal via context
+      openSettings(restoreTab);
+    }
+  }, [searchParams, openSettings]);
   const checkIsFullPage = (path: string, params: URLSearchParams | null) => {
     const isPdf = path.includes("/library/pdf/");
     const isNote = path.includes("/library/note/");

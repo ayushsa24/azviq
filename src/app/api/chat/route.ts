@@ -92,7 +92,7 @@ export async function POST(req: Request) {
 
     // 5. Resolve model based on subscription tier (tier-safe, silent downgrade)
     const aiConfig = getAIConfig(req,
-      "You are Azviq AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted using markdown, and educational."
+      "You are Azviq AI, an intelligent and helpful study companion. Keep answers clear, beautifully formatted, and concise. CRITICAL RULE: DO NOT output massive amounts of code or excessive code blocks. Keep code examples brief and relevant. Limit yourself to at most 1-2 small code blocks unless the user explicitly asks for extensive code."
     );
 
     // Determine subscription tier first for model resolution
@@ -140,15 +140,18 @@ export async function POST(req: Request) {
 
     const aiMessages = mergedMessages;
 
-    // 8. Generate chat title (non-blocking, using FREE_MODEL for efficiency)
+    // 8. Generate chat title (non-blocking, delayed to avoid quota racing with main stream)
     let titlePromise: Promise<string | null> | null = null;
     if (messages.length === 1 && chatId !== "temp-chat") {
-      titlePromise = generateChatTitle(latestUserMessage.content).then(async (title) => {
-        if (title) {
-          await supabase.from("chats").update({ title }).eq("id", chatId);
-        }
-        return title;
-      }).catch(() => null);
+      // Delay by 3s so title generation doesn't exhaust the same quota bucket as the stream
+      titlePromise = new Promise(resolve => setTimeout(resolve, 3000))
+        .then(() => generateChatTitle(latestUserMessage.content))
+        .then(async (title) => {
+          if (title) {
+            await supabase.from("chats").update({ title }).eq("id", chatId);
+          }
+          return title ?? null;
+        }).catch(() => null);
     }
 
     // 9. Get streaming response from AI Manager

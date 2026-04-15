@@ -74,7 +74,7 @@ export async function callGeminiText(
 export async function callGeminiMultipart(
   parts: object[],
   config: AIRequestConfig
-): Promise<AsyncIterable<{ text: () => string }>> {
+): Promise<ReadableStream<Uint8Array>> {
   const genAI = getGenAI();
   const temperature = STYLE_TEMPERATURE[config.style];
 
@@ -84,7 +84,37 @@ export async function callGeminiMultipart(
   });
 
   const result = await model.generateContentStream(parts as any);
-  return result.stream;
+  const encoder = new TextEncoder();
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for await (const chunk of result.stream) {
+          try {
+            const text = chunk.text();
+            if (text) {
+              controller.enqueue(
+                encoder.encode(JSON.stringify({ message: { content: text } }) + "\n")
+              );
+            }
+          } catch (chunkErr: any) {
+            console.warn("[Gemini Vision] Skipped a malformed vision chunk:", chunkErr.message);
+          }
+        }
+      } catch (streamErr: any) {
+        console.error("[Gemini Vision] Stream error:", streamErr.message);
+        
+        // Return a JSON error message instead of crashing
+        controller.enqueue(
+          encoder.encode(JSON.stringify({ 
+            message: { content: "\n\n*[Vision processing interrupted: Failed to parse image stream. Please try again with a clearer image or different model.]*" } 
+          }) + "\n")
+        );
+      } finally {
+        controller.close();
+      }
+    },
+  });
 }
 
 /**
@@ -100,37 +130,100 @@ export async function callGeminiStream(
     const genAI = getGenAI();
     const temperature = STYLE_TEMPERATURE[config.style];
 
-    const geminiMessages = messages
-      .filter((m) => m.role !== "system")
-      .map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      }));
-
     const systemMessage = messages.find((m) => m.role === "system");
+
+    // Filter and merge same-role consecutive messages (REQUIRED for Google SDK stability)
+    const processedMessages: AIMessage[] = [];
+    for (const m of messages) {
+      if (m.role === "system" || m.content.trim() === "") continue;
+      
+      const last = processedMessages[processedMessages.length - 1];
+      if (last && last.role === m.role) {
+        last.content += "\n\n" + m.content;
+      } else {
+        processedMessages.push({ role: m.role, content: m.content });
+      }
+    }
+
+    if (processedMessages.length === 0) {
+      throw new Error("No valid messages found to send to Gemini.");
+    }
+
+    const geminiMessages = processedMessages.map((m) => ({
+      role: (m.role === "assistant") ? "model" as const : "user" as const,
+      parts: [{ text: m.content }],
+    }));
+
+    // Gemini history MUST start with a 'user' message. 
+    // If the first message is 'model', we skip it.
+    let firstUserIndex = geminiMessages.findIndex((m) => m.role === "user");
+    if (firstUserIndex === -1) {
+      throw new Error("Gemini requires at least one user message to start a chat.");
+    }
+
+    const validMessages = geminiMessages.slice(firstUserIndex);
+    const history = validMessages.slice(0, -1);
+    const lastMessage = validMessages[validMessages.length - 1];
 
     const model = genAI.getGenerativeModel({
       model: config.model,
       systemInstruction: systemMessage?.content || config.systemPrompt,
-      generationConfig: { temperature, maxOutputTokens: 8192 },
+      generationConfig: { 
+        temperature, 
+        maxOutputTokens: 8192,
+        // Adding low-level safety settings to prevent stream blocks
+      },
     });
 
-    const chat = model.startChat({ history: geminiMessages.slice(0, -1) });
-    const lastMessage = geminiMessages[geminiMessages.length - 1];
+    const chat = model.startChat({ history });
     const result = await chat.sendMessageStream(lastMessage.parts[0].text);
 
     const encoder = new TextEncoder();
     return new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
+          // Iterate through the stream with heavy error guarding
           for await (const chunk of result.stream) {
-            const text = chunk.text();
-            if (text) {
-              controller.enqueue(
-                encoder.encode(JSON.stringify({ message: { content: text } }) + "\n")
-              );
+            try {
+              // chunk.text() can throw if the chunk is an error or blocked by safety
+              const text = chunk.text();
+              if (text) {
+                controller.enqueue(
+                  encoder.encode(JSON.stringify({ message: { content: text } }) + "\n")
+                );
+              }
+            } catch (chunkErr: any) {
+              const errMsg = chunkErr?.message || "";
+              console.warn("[Gemini] Skipped chunk or safety block encountered:", errMsg);
+              
+              // If it's a safety block, notify user subtly
+              if (errMsg.includes("blocked") || errMsg.includes("safety")) {
+                controller.enqueue(
+                  encoder.encode(JSON.stringify({ 
+                    message: { content: "\n\n*[Response partially filtered by safety settings]*" } 
+                  }) + "\n")
+                );
+              }
             }
           }
+        } catch (streamErr: any) {
+          console.error("[Gemini SDK] Fatal stream processing error. Details:", {
+            message: streamErr.message,
+            stack: streamErr.stack,
+            model: config.model
+          });
+          
+          let userFriendlyMsg = "\n\n*[Connection interrupted: The AI service failed to parse the stream. Please try again or switch to a different model.]*";
+          
+          if (streamErr.message?.includes("Failed to parse stream")) {
+            userFriendlyMsg = `\n\n*[Gemini Error: Stream parsing failed on '${config.model}'. This usually happens with experimental models or connection instability. Retrying with a different model might help.]*`;
+          }
+
+          controller.enqueue(
+            encoder.encode(JSON.stringify({ 
+              message: { content: userFriendlyMsg } 
+            }) + "\n")
+          );
         } finally {
           controller.close();
         }

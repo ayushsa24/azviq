@@ -151,8 +151,14 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 }),
             }).catch(() => {}); // Fire and forget
             setIsSubmitted(true);
-            setShowResults(true);   // go to results screen
-            // onComplete(); // removed so user can see score first
+            
+            // Per user request: 
+            // - On Laptop (>= 768px): Stay on the current question to let user see answers/explanations immediately.
+            // - On Mobile: Show the results summary screen.
+            if (window.innerWidth < 768) {
+                setShowResults(true);
+            }
+            // If laptop, we do nothing else (setIsSubmitted(true) already enables the review UI)
         } catch {
             startTimer(); // resume timer if failed
             alert("Failed to submit exercise results.");

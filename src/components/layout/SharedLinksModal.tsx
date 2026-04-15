@@ -86,7 +86,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
 
   const closeModal = () => {
     setShowSharedLinks(false);
-    window.history.pushState(null, "", `/settings?from=${encodeURIComponent(fromParam)}`);
+    window.history.pushState(null, "", `/settings/data?from=${encodeURIComponent(fromParam)}`);
   };
 
   const rowPy = linksType === "archive" ? "py-4" : "py-3 sm:py-2.5";

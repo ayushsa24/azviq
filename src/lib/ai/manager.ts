@@ -125,10 +125,22 @@ export async function getStreamingChatResponse(
   config: AIRequestConfig
 ): Promise<ReadableStream<Uint8Array>> {
   const provider = MODEL_PROVIDER_MAP[config.model] || "gemini";
+  console.log(`\n[AI Manager] 🚀 STARTING STREAMING REQUEST`);
+  console.log(`[AI Manager] 🤖 Model: ${config.model} | Provider: ${provider}`);
 
   try {
     switch (provider) {
       case "gemini":
+        // For Gemini, if user requested the robust Flash model, we try Lite first to save quota.
+        if (config.model === "gemini-2.5-flash") {
+          try {
+            console.log(`[AI Manager] Trying Lite model first (gemini-2.5-flash-lite) for cost efficiency.`);
+            return await callGeminiStream(messages, { ...config, model: FREE_MODEL });
+          } catch (liteErr) {
+            console.warn(`[AI Manager] Lite failed, falling back to original Flash model.`, (liteErr as Error).message);
+            return await callGeminiStream(messages, config);
+          }
+        }
         return await callGeminiStream(messages, config);
       case "openai":
         return await callOpenAIStream(messages, config);
@@ -138,20 +150,33 @@ export async function getStreamingChatResponse(
         return await callGeminiStream(messages, { ...config, model: FREE_MODEL });
     }
   } catch (primaryError) {
-    console.error(`[AI Manager] Streaming failed for provider '${provider}' / model '${config.model}':`, primaryError);
+    console.error(`[AI Manager] Streaming failed search for fallback logic:`, primaryError);
 
-    // Silent fallback to FREE_MODEL — user doesn't know, they just get a response
-    if (config.model !== FREE_MODEL) {
-      console.log(`[AI Manager] Silently falling back to ${FREE_MODEL} for streaming.`);
+    // Dynamic Fallback Chain:
+    // 1. If original wasn't Lite, try Lite (gemini-2.5-flash-lite)
+    // 2. If Lite fails (or was the original), try Flash (gemini-2.5-flash)
+    
+    if (config.model !== "gemini-2.5-flash-lite") {
+      console.log(`[AI Manager] Falling back to gemini-2.5-flash-lite...`);
       try {
-        return await callGeminiStream(messages, { ...config, model: FREE_MODEL });
-      } catch (fallbackError) {
-        console.error("[AI Manager] Fallback also failed:", fallbackError);
-        throw new Error("AI service is temporarily unavailable. Please try again.");
+        return await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash-lite" });
+      } catch (liteError) {
+        console.warn(`[AI Manager] Lite also failed, trying gemini-2.5-flash...`);
+        try {
+          return await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash" as AIModel });
+        } catch {
+          throw new Error("AI service is temporarily unavailable. Please try again later.");
+        }
+      }
+    } else {
+      // Original was Lite, try Flash directly
+      console.log(`[AI Manager] Lite failed, trying gemini-2.5-flash...`);
+      try {
+        return await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash" as AIModel });
+      } catch {
+        throw primaryError;
       }
     }
-
-    throw primaryError;
   }
 }
 
@@ -169,10 +194,19 @@ export async function getTextResponse(
   config: AIRequestConfig
 ): Promise<string> {
   const provider = MODEL_PROVIDER_MAP[config.model] || "gemini";
+  console.log(`\n[AI Manager] 🚀 STARTING TEXT REQUEST`);
+  console.log(`[AI Manager] 🤖 Model: ${config.model} | Provider: ${provider}`);
 
   try {
     switch (provider) {
       case "gemini":
+        if (config.model === "gemini-2.5-flash") {
+          try {
+            return await callGeminiText(prompt, { ...config, model: FREE_MODEL });
+          } catch {
+            return await callGeminiText(prompt, config);
+          }
+        }
         return await callGeminiText(prompt, config);
       case "openai":
         return await callOpenAIText(prompt, config);
@@ -182,20 +216,26 @@ export async function getTextResponse(
         return await callGeminiText(prompt, { ...config, model: FREE_MODEL });
     }
   } catch (primaryError) {
-    console.error(`[AI Manager] Text failed for provider '${provider}' / model '${config.model}':`, primaryError);
+    console.error(`[AI Manager] Text failed. Searching for fallback...`, primaryError);
 
-    // Silent fallback to FREE_MODEL
-    if (config.model !== FREE_MODEL) {
-      console.log(`[AI Manager] Silently falling back to ${FREE_MODEL} for text.`);
+    // Fallback Chain: Lite -> Flash
+    if (config.model !== "gemini-2.5-flash-lite") {
       try {
-        return await callGeminiText(prompt, { ...config, model: FREE_MODEL });
+        return await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash-lite" });
       } catch {
-        throw new Error("AI text generation failed. Please try again.");
+        try {
+          return await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash" as AIModel });
+        } catch {
+          throw new Error("AI generation failed. Please try again.");
+        }
+      }
+    } else {
+      try {
+        return await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash" as AIModel });
+      } catch {
+        throw primaryError;
       }
     }
-
-    // If we were already on FREE_MODEL and it failed, throw clearly
-    throw new Error("AI service is temporarily unavailable. Please try again.");
   }
 }
 
@@ -210,9 +250,11 @@ export async function getTextResponse(
 export async function getVisionStreamResponse(
   parts: object[],
   config: AIRequestConfig
-): Promise<AsyncIterable<{ text: () => string }>> {
+): Promise<ReadableStream<Uint8Array>> {
   // Vision is always FREE_MODEL — it's the most reliable Gemini multimodal endpoint
   const visionConfig = { ...config, model: FREE_MODEL };
+  console.log(`\n[AI Manager] 🚀 STARTING VISION REQUEST`);
+  console.log(`[AI Manager] 🤖 Model: ${visionConfig.model} | Provider: gemini`);
 
   try {
     return await callGeminiMultipart(parts, visionConfig);

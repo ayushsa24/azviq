@@ -111,11 +111,12 @@ export async function POST(req: Request) {
 
         // 6. Generate questions via AI Manager (FREE_MODEL, central error handling + fallback)
         const systemPrompt = `You are an expert tutor. Create a ${questionCount}-question multiple-choice quiz based on the user's provided text.
-Return ONLY a raw JSON array of objects. Do not wrap it in markdown codeblocks.
+Return ONLY a valid JSON array of objects. 
+CRITICAL: Your response MUST be a single array starting with '[' and ending with ']'. 
 Each object MUST have this exact structure:
 {"question": "...", "options": ["A", "B", "C", "D"], "correctAnswerIndex": 0, "explanation": "..."}`;
 
-        const prompt = `Topic/Title: ${note.title as string}\n\nContent:\n${noteContext}\n\nGenerate the quiz.`;
+        const prompt = `Topic/Title: ${note.title as string}\n\nContent:\n${noteContext}\n\nGenerate the quiz exactly as specified.`;
 
         let questionsText: string;
         try {
@@ -131,13 +132,26 @@ Each object MUST have this exact structure:
             return apiError("AI exercise generation failed. Please try again.", 502, "AI_SERVICE_ERROR");
         }
 
-        // 7. Safely parse AI JSON response
-        let questions: QuizQuestion[];
+        // 7. Safely parse AI JSON response with multi-stage recovery
+        let questions: QuizQuestion[] = [];
         try {
-            questions = JSON.parse(questionsText) as QuizQuestion[];
+            // Stage 1: Standard parse
+            questions = JSON.parse(questionsText);
         } catch {
-            console.error("Exercise: AI returned invalid JSON:", questionsText);
-            return apiError("AI returned an unexpected response format. Please try again.", 502, "AI_PARSE_ERROR");
+            // Stage 2: Attempt to recover individual JSON objects (common in some model outputs)
+            try {
+                const matches = questionsText.match(/\{[\s\S]*?\}/g);
+                if (matches && matches.length > 0) {
+                    questions = matches.map(match => JSON.parse(match));
+                }
+            } catch (recoveryError) {
+                console.error("Exercise: Fatal JSON parse error:", questionsText, recoveryError);
+                return apiError("AI returned an unexpected response format. Please try again.", 502, "AI_PARSE_ERROR");
+            }
+        }
+
+        if (!Array.isArray(questions) || questions.length === 0) {
+            return apiError("AI failed to generate a valid quiz array. Please try again.", 502, "AI_FORMAT_ERROR");
         }
 
         if (!Array.isArray(questions)) {
