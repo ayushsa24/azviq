@@ -66,13 +66,13 @@ export const ImportersModal: React.FC<ImportersModalProps> = ({
     >
       <div 
         className={`rounded-xl shadow-2xl w-full max-w-md border overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 ${
-          theme === 'dark' ? 'bg-[#252525] border-[#3A3A3A]' : 'bg-white border-[#E8E5E0]'
+          theme === "dark" ? "bg-[#1A1A1A] md:bg-[#1F1F1F] border-[#3A3A3A]" : "bg-white border-[#E8E5E0]"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className={`px-6 py-4 border-b flex justify-between items-center ${
-          theme === 'dark' ? 'bg-[#2A2A2A] border-[#3A3A3A]' : 'bg-[#F9F8F6] border-[#E8E5E0]'
+          theme === "dark" ? "bg-[#1A1A1A] md:bg-[#1F1F1F] border-[#3A3A3A]" : "bg-[#F9F8F6] border-[#E8E5E0]"
         }`}>
           <h3 className={`font-semibold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
             <Users size={18} className="text-[#8B7E6D]" />
@@ -150,7 +150,7 @@ export const ImportersModal: React.FC<ImportersModalProps> = ({
 
         {/* Footer */}
         <div className={`px-6 py-4 border-t text-[11px] text-[#8B7E6D] text-center italic ${
-          theme === 'dark' ? 'bg-[#2A2A2A] border-[#3A3A3A]' : 'bg-[#F9F8F6] border-[#E8E5E0]'
+          theme === "dark" ? "bg-[#1A1A1A] md:bg-[#1F1F1F] border-[#3A3A3A]" : "bg-[#F9F8F6] border-[#E8E5E0]"
         }`}>
           {type === 'chat' 
             ? "Users who have imported this chat can view the shared content." 

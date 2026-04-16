@@ -91,7 +91,7 @@ export default function ProfileModal({ open, onClose }: Props) {
             {/* Modal card */}
             <div
                 className={`relative z-10 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden
-          ${isDark ? "bg-[#1A1A1A] border border-[#2E2E2E]" : "bg-white border border-[#7D7D7D]/40"}`}
+          ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border border-[#2E2E2E]" : "bg-white border border-[#7D7D7D]/40"}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

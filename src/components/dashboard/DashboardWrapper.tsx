@@ -44,7 +44,7 @@ export default function DashboardWrapper({ session }: { session: Session }) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-transparent dark:bg-[#1A1A1A] text-[#252525] dark:text-white overflow-hidden transition-colors">
+    <div className="flex flex-col h-full bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-[#252525] dark:text-white overflow-hidden transition-colors">
       <div className="flex-1 w-full overflow-y-auto min-h-0 scrollbar-hide md:scrollbar-default">
         <div className="md:hidden sticky top-0 z-[100] w-full">
           <Header 
@@ -61,9 +61,7 @@ export default function DashboardWrapper({ session }: { session: Session }) {
 
           {/* 1. Greeting, Motivation, Date */}
           <GreetingHeader userName={userName}>
-            <div className="hidden md:block">
-              <SidebarToggleButton />
-            </div>
+            <SidebarToggleButton />
           </GreetingHeader>
 
           {/* 2. Ask AI Prompt Bar */}

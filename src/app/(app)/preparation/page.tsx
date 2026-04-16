@@ -92,11 +92,11 @@ export default function PreparationPage() {
     const isRevisionTab = activeTab === "revision";
 
     return (
-        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden relative">
+        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] overflow-hidden relative">
             <div className={`flex h-full flex-col transition-all duration-300 ${isFocusMode ? 'pt-0' : ''}`}>
                 {/* Fixed Header Section (Title + Search + Tabs) */}
                 {!isFocusMode && (
-                    <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
+                    <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-b border-transparent">
                     {/* Title Section */}
                     <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
                         <SidebarToggleButton />

@@ -185,7 +185,7 @@ export default function DashboardStats() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Study Time Tracker — Loads instantly as it's local */}
             <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 relative z-20 ${isDark
-                ? "hover:bg-white/10 hover:border-[#444]"
+                ? "hover:bg-white/5 hover:border-[#444]"
                 : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
                 } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col pt-3.5 px-3.5 pb-2.5 min-h-[110px] sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:min-h-[88px]`}>
                 <p className="text-xs sm:text-sm font-semibold text-[#545454] dark:text-[#BABABA] sm:hidden mb-1">Study Time Today</p>
@@ -242,7 +242,7 @@ export default function DashboardStats() {
             {isLoadingTasks ? (
                 <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse hidden sm:block"></div>
             ) : (
-                <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/10" : "hover:bg-[#F9F8F6] shadow-md"}`}>
+                <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
                     <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Tasks Due</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDue}</h3></div>
                     <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" /></div>
                 </div>
@@ -257,13 +257,13 @@ export default function DashboardStats() {
             ) : (
                 <>
                     {/* Revision Due — desktop only */}
-                    <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/10" : "hover:bg-[#F9F8F6] shadow-md"}`}>
+                    <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
                         <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Revision Due</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{revisionsDue}</h3></div>
                         <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center"><BookOpen className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" /></div>
                     </div>
 
                     {/* Weak Topics — laptop only */}
-                    <div className={`hidden lg:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/10" : "hover:bg-[#F9F8F6] shadow-md"}`}>
+                    <div className={`hidden lg:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
                         <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Weak Topics</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{weakTopics}</h3></div>
                         <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
                             <Target className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" />

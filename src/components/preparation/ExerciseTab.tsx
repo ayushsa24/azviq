@@ -148,7 +148,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                     ease: [0.23, 1, 0.32, 1]
                                 }}
                                 onClick={() => onStartExercise?.(ex)}
-                                className={`group relative transition-all duration-200 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#3C3C3C] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] hover:border-[#D1CEC8] dark:hover:border-[#545454] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer
+                                className={`group relative transition-all duration-200 bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer
                                     ${isList
                                         ? "flex flex-row items-center gap-4 p-3 rounded-xl h-auto"
                                         : "flex flex-col justify-between p-3.5 rounded-xl h-44"
@@ -156,7 +156,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                             >
                                 {isList ? (
                                     <>
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${getDifficultyBadge(ex.difficulty)}`}>
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#F0EDE8] dark:bg-white/5`}>
                                             <FileText size={15} />
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -192,47 +192,43 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                     </>
                                 ) : (
                                     <>
-                                        {/* Header: Badge + delete */}
                                         <div className="flex items-start justify-between gap-2">
-                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${getDifficultyBadge(ex.difficulty)}`}>
-                                                {ex.difficulty}
-                                            </span>
+                                            <div className="flex-1 overflow-hidden">
+                                                <h3 className="text-[13px] font-bold text-[#252525] dark:text-white leading-tight line-clamp-2 group-hover:text-black dark:group-hover:text-white flex items-center gap-1.5" title={ex.title}>
+                                                    <span>{ex.title.replace(/^\[\w+\]\s*/, "")}</span>
+                                                    {(() => {
+                                                        const iconMatch = ex.title.match(/^\[(\w+)\]/);
+                                                        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                            const IconComp = ICON_MAP[iconMatch[1]];
+                                                            return <IconComp size={14} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </h3>
+                                                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
+                                                    <FileText size={10} className="shrink-0" />
+                                                    <span className="truncate flex items-center gap-1.5" title={ex.notes?.title}>
+                                                        {ex.notes?.title?.replace(/^\[\w+\]\s*/, "") || "Unknown source"}
+                                                        {(() => {
+                                                            const iconMatch = ex.notes?.title?.match(/^\[(\w+)\]/);
+                                                            if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                                const IconComp = ICON_MAP[iconMatch[1]];
+                                                                return <IconComp size={11} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                            </div>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(ex.id); }}
-                                                className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
                                             >
                                                 <Trash2 size={13} />
                                             </button>
                                         </div>
 
-                                        {/* Middle: Title & source */}
-                                        <div className="flex-1 mt-1.5 overflow-hidden">
-                                            <h3 className="text-[13px] font-bold text-[#252525] dark:text-white leading-tight line-clamp-2 group-hover:text-black dark:group-hover:text-white flex items-center gap-1.5" title={ex.title}>
-                                                <span>{ex.title.replace(/^\[\w+\]\s*/, "")}</span>
-                                                {(() => {
-                                                    const iconMatch = ex.title.match(/^\[(\w+)\]/);
-                                                    if (iconMatch && ICON_MAP[iconMatch[1]]) {
-                                                        const IconComp = ICON_MAP[iconMatch[1]];
-                                                        return <IconComp size={14} className="opacity-40 shrink-0" strokeWidth={1.5} />;
-                                                    }
-                                                    return null;
-                                                })()}
-                                            </h3>
-                                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
-                                                <FileText size={10} className="shrink-0" />
-                                                <span className="truncate flex items-center gap-1.5" title={ex.notes?.title}>
-                                                    {ex.notes?.title?.replace(/^\[\w+\]\s*/, "") || "Unknown source"}
-                                                    {(() => {
-                                                        const iconMatch = ex.notes?.title?.match(/^\[(\w+)\]/);
-                                                        if (iconMatch && ICON_MAP[iconMatch[1]]) {
-                                                            const IconComp = ICON_MAP[iconMatch[1]];
-                                                            return <IconComp size={11} className="opacity-40 shrink-0" strokeWidth={1.5} />;
-                                                        }
-                                                        return null;
-                                                    })()}
-                                                </span>
-                                            </div>
-                                        </div>
+                                        <div className="flex-1" /> {/* Spacer */}
 
                                         {/* Footer Section */}
                                         <div className={`mt-3 pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-[#7D7D7D]/20' : 'border-[#7D7D7D]/40'}`}>

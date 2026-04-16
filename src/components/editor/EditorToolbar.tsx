@@ -103,8 +103,9 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
  
     const handleOpenAi = () => {
         if (!editor) return;
-        const { from } = editor.state.selection;
-        const coords = editor.view.coordsAtPos(from);
+        // Use head so the popover opens where the user finished selecting (whether dragging up or down)
+        const pos = editor.state.selection.head ?? editor.state.selection.to;
+        const coords = editor.view.coordsAtPos(pos);
 
         // Find nearest relative parent to calculate absolute position
         const editorEl = editor.view.dom;

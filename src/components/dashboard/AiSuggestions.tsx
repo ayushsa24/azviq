@@ -118,7 +118,7 @@ export default function AiSuggestions() {
                                 ${itemCount > 5 ? "min-h-[260px] max-h-[365px]" : "min-h-[180px] h-auto"} 
                                 md:h-[365px] 
                                 ${isDark
-                                ? "bg-[#252525] border-[#545454] hover:bg-white/10 hover:border-[#444]"
+                                ? "bg-[#252525] border-[#545454] hover:bg-white/5 hover:border-[#444]"
                                 : "bg-white border-[#CFCFCF] hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
                                 } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}
                         >
@@ -186,7 +186,7 @@ export default function AiSuggestions() {
                                     <Link
                                         href={suggestion.action_type || "/"}
                                         className={`mt-2 inline-flex items-center justify-center w-full gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${isDark
-                                            ? "bg-[#1A1A1A] text-white hover:bg-[#333]"
+                                            ? "bg-[#1E1E1E] text-white hover:bg-[#383838]"
                                             : "bg-[#F5F3EF] text-[#252525] hover:bg-[#E8E5E0]"
                                             }`}
                                     >
@@ -247,7 +247,7 @@ function SuggestionItem({ suggestionId, item, isDark, updateStatus, isCompleted 
                 className={`relative z-10 flex items-center justify-between px-3 py-2 rounded-xl transition-all cursor-pointer
                     ${swipeOffset === 0 ? "transition-transform duration-300 ease-out" : ""}
                     ${isDark
-                        ? "bg-[#1A1A1A] text-white hover:bg-[#333]"
+                        ? "bg-[#1E1E1E] text-white hover:bg-[#383838]"
                         : "bg-[#F5F3EF] text-[#252525] hover:bg-[#E8E5E0]"
                     }
                 `}

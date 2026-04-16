@@ -581,11 +581,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       />
 
       {/* Modal Container */}
-      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
+      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
         }`}>
 
         {/* Sidebar (Desktop) / Top Bar (Mobile) */}
-        <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
+        <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
           } ${"w-full sm:w-72"}`}>
 
           {/* Header Area */}
@@ -620,7 +620,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 scrollbar-hide">
-          <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A]" : ""}`}>
+          <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F]" : ""}`}>
 
             {activeTab === "general" && (
               <div className="space-y-4 animate-in slide-in-from-right-4 duration-300 -mt-2">

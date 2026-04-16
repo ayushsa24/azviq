@@ -18,6 +18,9 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     const abortControllerRef = useRef<AbortController | null>(null);
     const fullResponseRef = useRef<string>("");
     const insertionRangeRef = useRef<{ from: number, to: number } | null>(null);
+    const originalContentRef = useRef<string | null>(null);
+    const wasReplacedRef = useRef<boolean>(false);
+    const insertPosRef = useRef<number>(0);
 
     useEffect(() => {
         onGenerating?.(isLoading || isComplete);
@@ -62,6 +65,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
     const handleDiscard = () => {
         if (insertionRangeRef.current && editor) {
+            // First delete what AI generated
             editor.chain()
                 .focus()
                 .deleteRange({
@@ -69,6 +73,14 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                     to: insertionRangeRef.current.to
                 })
                 .run();
+                
+            // Then restore the original content if it was replaced
+            if (wasReplacedRef.current && originalContentRef.current) {
+                editor.chain()
+                    .focus()
+                    .insertContentAt(insertPosRef.current, originalContentRef.current)
+                    .run();
+            }
         }
         onClose();
     };
@@ -81,8 +93,11 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
         setHasStartedWriting(false);
         fullResponseRef.current = "";
         insertionRangeRef.current = null;
+        originalContentRef.current = null;
+        wasReplacedRef.current = false;
         abortControllerRef.current = new AbortController();
         let insertAt = editor.state.selection.from;
+        insertPosRef.current = insertAt;
 
         try {
             const res = await fetch("/api/ai/editor", {
@@ -105,9 +120,17 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
             insertAt = command === "Answer this"
                 ? editor.state.selection.to
                 : editor.state.selection.from;
+            insertPosRef.current = insertAt;
 
-            // If replacing selected text (not "Answer this"), delete the selection first
+            // If replacing selected text (not "Answer this"), store it as HTML and delete the selection
             if (selectedText && command !== "Answer this") {
+                const { DOMSerializer } = await import('prosemirror-model');
+                const fragment = editor.state.selection.content().content;
+                const div = document.createElement('div');
+                div.appendChild(DOMSerializer.fromSchema(editor.schema).serializeFragment(fragment));
+                originalContentRef.current = div.innerHTML;
+                wasReplacedRef.current = true;
+                
                 editor.chain().focus().deleteSelection().run();
             }
 

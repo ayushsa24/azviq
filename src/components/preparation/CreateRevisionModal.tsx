@@ -169,7 +169,7 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                                         </div>
 
                                         <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
-                                            {notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase())).map((n) => {
+                                            {notes.filter(n => !n.is_revoked && n.title.toLowerCase().includes(searchQuery.toLowerCase())).map((n) => {
                                                 const ws = workspaces.find((w) => w.id === n.workspace_id);
                                                 const isPdf = !!(n.file_url && (!n.content || n.content.trim() === ""));
                                                 const isSelected = selectedNoteId === n.id;
@@ -200,7 +200,7 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                                                     </button>
                                                 )
                                             })}
-                                            {notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                            {notes.filter(n => !n.is_revoked && n.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                                                 <div className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                                     No material found
                                                 </div>

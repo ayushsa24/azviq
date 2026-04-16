@@ -279,7 +279,7 @@ export default function DashboardChecklist() {
         <>
             <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 flex flex-col group/card relative
                 ${itemCount > 5 ? "min-h-[220px] max-h-[365px]" : "h-auto"}
-                ${isDark ? "hover:bg-white/10 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
+                ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
                 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
             `}>
                 {/* Header - Fixed */}
@@ -406,14 +406,14 @@ export default function DashboardChecklist() {
                             onDragEnd={(_, info) => {
                                 if (info.offset.y > 100 || info.velocity.y > 500) setShowModal(false);
                             }}
-                            className="bg-[#F5F3EF] dark:bg-[#1A1A1A] w-full h-[95vh] sm:h-auto sm:max-h-[85vh] sm:max-w-3xl rounded-t-[20px] sm:rounded-xl overflow-hidden flex flex-col shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10"
+                            className="bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full h-[95vh] sm:h-auto sm:max-h-[85vh] sm:max-w-3xl rounded-t-[20px] sm:rounded-xl overflow-hidden flex flex-col shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Mobile Drag Handle */}
                             <div className="sm:hidden w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
                                 <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700/50 rounded-full" />
                             </div>                            {/* Modal Header */}
-                            <div className="sticky top-0 z-[100] flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                            <div className="sticky top-0 z-[100] flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
                                 <div className="flex items-center gap-2 min-w-0 pr-4">
                                     <span className="text-xs font-bold text-[#252525] dark:text-gray-200 truncate max-w-[200px] sm:max-w-[400px]">
                                         {form.title || (editingId ? "Edit To-Do" : "New To-Do")}
@@ -753,7 +753,7 @@ function TodoRow({ item, isDark, notes, onToggle, onEdit, onDelete }: {
                 className={`relative z-10 flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all cursor-pointer shadow-sm
                     ${swipeOffset === 0 ? "transition-transform duration-300 ease-out" : ""}
                     ${isDark
-                        ? "bg-[#1A1A1A] text-white hover:bg-[#333]"
+                        ? "bg-[#1E1E1E] text-white hover:bg-[#383838]"
                         : "bg-[#F5F3EF] text-[#252525] hover:bg-[#E8E5E0]"
                     }
                 `}

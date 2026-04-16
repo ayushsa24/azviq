@@ -77,6 +77,7 @@ export default function NoteEditorPage() {
     const isLocalUpdateRef = React.useRef(false); // Flag to prevent UI jumping when typing
     const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const abortControllerRef = React.useRef<AbortController | null>(null);
+    const aiStreamEndPosRef = React.useRef<number | null>(null);
 
     useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
 
@@ -124,6 +125,9 @@ export default function NoteEditorPage() {
             Link.configure({ openOnClick: false }),
             Table.configure({
                 resizable: true,
+                HTMLAttributes: {
+                    style: 'width: 100% !important',
+                },
             }).extend({
                 draggable: true,
                 addKeyboardShortcuts() {
@@ -962,6 +966,7 @@ export default function NoteEditorPage() {
                             contextText={editor ? editor.getText() : ""}
                             onClose={() => {
                                 setAiInlinePos(null);
+                                aiStreamEndPosRef.current = null;
                                 editor?.commands.focus();
                             }}
                             onInsert={(htmlContent) => {
@@ -969,7 +974,7 @@ export default function NoteEditorPage() {
                                     // Start position where AI first began typing
                                     const start = aiInlinePos.from;
                                     // Current cursor position is the end of the raw streamed text
-                                    const end = editor.state.selection.to;
+                                    const end = aiStreamEndPosRef.current !== null ? aiStreamEndPosRef.current : editor.state.selection.to;
 
                                     editor.chain().focus().run(); // bring focus back gracefully
 
@@ -988,19 +993,27 @@ export default function NoteEditorPage() {
                                     }
 
                                     setAiInlinePos(null);
+                                    aiStreamEndPosRef.current = null;
                                 }
                             }}
                             onDiscard={() => {
                                 if (editor && aiInlinePos) {
                                     const start = aiInlinePos.from;
-                                    const end = editor.state.selection.to;
+                                    const end = aiStreamEndPosRef.current !== null ? aiStreamEndPosRef.current : editor.state.selection.to;
                                     editor.chain().focus().deleteRange({ from: start, to: end }).run();
                                     setAiInlinePos(null);
+                                    aiStreamEndPosRef.current = null;
                                 }
                             }}
                             onStreamChunk={(chunk) => {
                                 if (editor) {
-                                    editor.chain().insertContent(chunk).scrollIntoView().run();
+                                    const insertPos = aiStreamEndPosRef.current !== null ? aiStreamEndPosRef.current : editor.state.selection.to;
+                                    editor.chain()
+                                        .insertContentAt(insertPos, chunk)
+                                        .setTextSelection(insertPos + chunk.length)
+                                        .scrollIntoView()
+                                        .run();
+                                    aiStreamEndPosRef.current = insertPos + chunk.length;
                                 }
                             }}
                         />

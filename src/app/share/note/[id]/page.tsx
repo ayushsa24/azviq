@@ -46,6 +46,7 @@ export default function SharedNotePage() {
 
     // AI Trigger State
     const [aiInlinePos, setAiInlinePos] = useState<{ top: number; left: number; from: number } | null>(null);
+    const aiStreamEndPosRef = React.useRef<number | null>(null);
 
     const canEdit = false; // Public shared pages are now strictly view-only. Import to edit.
 
@@ -68,7 +69,12 @@ export default function SharedNotePage() {
             Highlight.configure({ multicolor: true }),
             TextAlign.configure({ types: ["heading", "paragraph"] }),
             Link.configure({ openOnClick: true }),
-            Table.configure({ resizable: true }),
+            Table.configure({ 
+                resizable: true,
+                HTMLAttributes: {
+                    style: 'width: 100% !important',
+                },
+            }),
             TableRow,
             TableHeader,
             TableCell,
@@ -349,17 +355,13 @@ export default function SharedNotePage() {
                                 contextText={editor ? editor.getText() : ""}
                                 onClose={() => {
                                     setAiInlinePos(null);
+                                    aiStreamEndPosRef.current = null;
                                     editor?.commands.focus();
-                                }}
-                                onStreamChunk={(chunk) => {
-                                    if (editor) {
-                                        editor.chain().focus().insertContent(chunk).run();
-                                    }
                                 }}
                                 onInsert={(htmlContent) => {
                                     if (editor && aiInlinePos) {
                                         const start = aiInlinePos.from;
-                                        const end = editor.state.selection.to;
+                                        const end = aiStreamEndPosRef.current !== null ? aiStreamEndPosRef.current : editor.state.selection.to;
                                         editor.chain().focus().run();
                                         try {
                                             editor.chain()
@@ -370,14 +372,27 @@ export default function SharedNotePage() {
                                             console.warn("AI rich text insertion failed schema validation.", err);
                                         }
                                         setAiInlinePos(null);
+                                        aiStreamEndPosRef.current = null;
                                     }
                                 }}
                                 onDiscard={() => {
                                     if (editor && aiInlinePos) {
                                         const start = aiInlinePos.from;
-                                        const end = editor.state.selection.to;
+                                        const end = aiStreamEndPosRef.current !== null ? aiStreamEndPosRef.current : editor.state.selection.to;
                                         editor.chain().focus().deleteRange({ from: start, to: end }).run();
                                         setAiInlinePos(null);
+                                        aiStreamEndPosRef.current = null;
+                                    }
+                                }}
+                                onStreamChunk={(chunk) => {
+                                    if (editor) {
+                                        const insertPos = aiStreamEndPosRef.current !== null ? aiStreamEndPosRef.current : editor.state.selection.to;
+                                        editor.chain()
+                                            .insertContentAt(insertPos, chunk)
+                                            .setTextSelection(insertPos + chunk.length)
+                                            .scrollIntoView()
+                                            .run();
+                                        aiStreamEndPosRef.current = insertPos + chunk.length;
                                     }
                                 }}
                             />

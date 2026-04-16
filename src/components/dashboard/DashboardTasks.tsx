@@ -187,7 +187,7 @@ export default function DashboardTasks() {
         <>
             <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 flex flex-col group/card relative
                 ${displayTasks.length > 5 ? "min-h-[220px] max-h-[365px]" : "h-auto"}
-                ${isDark ? "hover:bg-white/10 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
+                ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
                 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
             `}>
                 {/* Header - Fixed */}
@@ -329,7 +329,7 @@ function TaskRow({ task, projects, workspaces, notes, isDark, setSelectedTask, t
                 className={`relative z-10 flex items-center justify-between px-3 py-2 rounded-xl transition-all cursor-pointer
                     ${swipeOffset === 0 ? "transition-transform duration-300 ease-out" : ""}
                     ${isDark
-                        ? "bg-[#1A1A1A] text-white hover:bg-[#333]"
+                        ? "bg-[#1E1E1E] text-white hover:bg-[#383838]"
                         : "bg-[#F5F3EF] text-[#252525] hover:bg-[#E8E5E0]"
                     }
                 `}

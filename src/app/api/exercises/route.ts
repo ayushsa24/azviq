@@ -92,13 +92,18 @@ export async function POST(req: Request) {
         // 4. Fetch note (ownership-verified)
         const { data: note, error: noteError } = await supabase
             .from("notes")
-            .select("id, title, content, file_url")
+            .select("id, title, content, file_url, original_note_id, original_note:original_note_id (share_mode)")
             .eq("id", noteId)
             .eq("user_id", user.id)
             .single();
 
         if (noteError || !note) {
             return apiError("Note not found or unauthorized", 404, "NOTE_NOT_FOUND");
+        }
+
+        // Security check for revoked imports
+        if (note.original_note_id && note.original_note && (note.original_note as any).share_mode === 'private') {
+            return apiError("Access to this shared material has been revoked by the owner.", 403, "MATERIAL_REVOKED");
         }
 
         // 5. Quota check (always uses FREE_MODEL for exercises)

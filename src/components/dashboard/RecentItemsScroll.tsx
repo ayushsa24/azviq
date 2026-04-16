@@ -84,8 +84,8 @@ export default function RecentItemsScroll() {
                             key={`${item.item_type}-${item.id}`}
                             onClick={() => handleClick(item)}
                             disabled={isNavigating}
-                            className={`group min-w-[240px] max-w-[240px] sm:min-w-[260px] sm:max-w-[260px] bg-white/80 backdrop-blur-md dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 rounded-2xl px-4 py-3.5 shrink-0 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer
-                                hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
+                            className={`group min-w-[240px] max-w-[240px] sm:min-w-[260px] sm:max-w-[260px] bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-2xl px-4 py-3.5 shrink-0 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer
+                                hover:bg-[#F9F8F6] dark:hover:bg-white/5 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
                                 ${isNavigating ? "opacity-60 scale-[0.98]" : ""}
                             `}
                         >

@@ -9,6 +9,7 @@ interface Note {
   id: string;
   title: string;
   file_url?: string | null;
+  is_revoked?: boolean;
 }
 
 interface NoteSelectorProps {
@@ -44,7 +45,7 @@ export default function NoteSelector({
   }, []);
 
   const filteredNotes = notes.filter((n) =>
-    n.title.toLowerCase().includes(searchQuery.toLowerCase())
+    !n.is_revoked && n.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderIcon = (title: string, fileUrl?: string | null) => {

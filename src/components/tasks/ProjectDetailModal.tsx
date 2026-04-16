@@ -241,7 +241,7 @@ export function ProjectDetailModal({
                             onClose();
                         }
                     }}
-                    className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] w-full ${isMobile ? 'h-[95vh]' : 'h-auto max-h-[85vh]'} sm:max-w-5xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
+                    className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full ${isMobile ? 'h-[95vh]' : 'h-auto max-h-[85vh]'} sm:max-w-5xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Mobile Drag Handle */}
@@ -252,7 +252,7 @@ export function ProjectDetailModal({
                     {/* Top Control Bar */}
                     <div 
                         onPointerDown={(e) => isMobile && dragControls.start(e)}
-                        className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A] cursor-grab active:cursor-grabbing">
+                        className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A] cursor-grab active:cursor-grabbing">
                         <div className="flex items-center gap-2 min-w-0 pr-4">
                             <div className="flex items-center gap-1 text-xs text-gray-400 font-medium ml-1 flex-shrink-0">
                                 <span onClick={onClose} className="cursor-pointer hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
@@ -419,7 +419,7 @@ export function ProjectDetailModal({
                         {/* Tasks Content */}
                         <div className="px-4 sm:px-10 flex-1 sm:flex-initial pb-6 custom-scrollbar">
                             {/* Tasks Header - sticky so it pins when scrolled to */}
-                            <div className="sticky top-0 z-10 mb-4 flex items-center justify-between pt-2 pb-2 bg-[#F5F3EF] dark:bg-[#1A1A1A]">
+                            <div className="sticky top-0 z-10 mb-4 flex items-center justify-between pt-2 pb-2 bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F]">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b-[3px] border-black dark:border-white pb-1 inline-block">Tasks</h2>
                                 <button
                                     type="button"
@@ -433,12 +433,12 @@ export function ProjectDetailModal({
                                 </button>
                             </div>
 
-                            <div className="bg-[#F5F3EF] dark:bg-[#1A1A1A] min-h-[300px] overflow-x-auto overscroll-behavior-x-contain pb-4 scrollbar-hide">
+                            <div className="bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] min-h-[300px] overflow-x-auto overscroll-behavior-x-contain pb-4 scrollbar-hide">
                                 <div className="flex gap-4 min-w-max px-1">
                                     {["not_started", "in_progress", "in_review", "done", "archived"].map((status) => (
                                         <div
                                             key={status}
-                                            className="flex flex-col gap-2 min-h-[120px] w-[260px] bg-[#f0ede8] dark:bg-white/5 rounded-xl p-2 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-white/10"
+                                            className="flex flex-col gap-2 min-h-[120px] w-[260px] bg-[#f0ede8] dark:bg-white/5 rounded-xl p-2 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#252525]"
                                             onDragOver={handleDragOver}
                                             onDrop={(e) => handleDrop(e, status)}
                                         >
@@ -455,7 +455,7 @@ export function ProjectDetailModal({
                                                     draggable
                                                     onDragStart={(e) => handleDragStart(e, t.id)}
                                                     onClick={() => onSelectTask(t)}
-                                                    className="relative p-3 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#7D7D7D]/30 rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] transition-all group/card cursor-pointer"
+                                                    className="relative p-3 bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.04)] cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-white/10 transition-all duration-200 group/card cursor-pointer"
                                                 >
                                                     <div className="flex items-center gap-1.5">
                                                         {t.is_pinned && <Pin className="w-3 h-3 text-[#545454] dark:text-white flex-shrink-0" />}

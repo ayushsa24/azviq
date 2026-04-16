@@ -15,6 +15,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface SharedLinksModalProps {
   showSharedLinks: boolean;
@@ -63,10 +64,17 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
   const bulkMenuRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const touchStartX = useRef(0);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth < 640;
+    }
+    return false;
+  });
+  const [mounted, setMounted] = useState(false);
 
-  // Detect mobile
+  // Detect mobile & mark mounted
   useEffect(() => {
+    setMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
     window.addEventListener("resize", checkMobile);
@@ -90,6 +98,28 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
   };
 
   const rowPy = linksType === "archive" ? "py-4" : "py-3 sm:py-2.5";
+
+  const renderIconAndTitle = (title: string, fileUrl?: string | null) => {
+    const rawTitle = title || "Untitled";
+    const iconMatch = rawTitle.match(/^\[(\w+)\]/);
+    if (iconMatch && ICON_MAP[iconMatch[1]]) {
+      const IconComp = ICON_MAP[iconMatch[1]];
+      return (
+        <>
+          <IconComp size={14} className="shrink-0" />
+          <span className="truncate max-w-[200px] sm:max-w-[250px]">{rawTitle.replace(/^\[\w+\]\s*/, "")}</span>
+        </>
+      );
+    }
+    return (
+      <>
+        {fileUrl ? <FileIcon2 size={14} className="shrink-0" /> : <LinkIcon size={14} className="shrink-0" />}
+        <span className="truncate max-w-[200px] sm:max-w-[250px]">{rawTitle}</span>
+      </>
+    );
+  };
+
+  if (!mounted) return null;
 
   return (
     <AnimatePresence>
@@ -115,7 +145,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
               ${isMobile ? "h-[95vh]" : "h-[620px]"}
               rounded-t-[20px] sm:rounded-3xl
               shadow-2xl overflow-hidden flex flex-col
-              ${isDark ? "bg-[#1A1A1A] text-white" : "bg-[#F5F3EF] text-[#252525]"}`}
+              ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-white" : "bg-[#F5F3EF] text-[#252525]"}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Mobile drag handle */}
@@ -125,7 +155,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
 
             {/* ── STICKY HEADER AREA ── */}
             <div 
-              className={`flex-shrink-0 border-b ${isDark ? "bg-[#1A1A1A] border-[#3A3A3A]" : "bg-[#F5F3EF] border-[#D1D1D1]"}`}
+              className={`flex-shrink-0 border-b ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-[#3A3A3A]" : "bg-[#F5F3EF] border-[#D1D1D1]"}`}
               onTouchStart={(e) => {
                 touchStartY.current = e.touches[0].clientY;
                 touchStartX.current = e.touches[0].clientX;
@@ -279,8 +309,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
                               >
-                                <LinkIcon size={14} />
-                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                                {renderIconAndTitle(link.title)}
                               </a>
                             ) : linksType === "import" ? (
                               <div className="flex flex-col gap-0.5">
@@ -290,8 +319,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
                                 >
-                                  <LinkIcon size={14} />
-                                  <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                                  {renderIconAndTitle(link.title, link.file_url)}
                                 </a>
                                 {link.original_note?.user && (
                                   <span className="text-[10px] text-[#7D7D7D] flex items-center gap-1 ml-5">
@@ -308,8 +336,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
                                 >
-                                  <LinkIcon size={14} />
-                                  <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                                  {renderIconAndTitle(link.title)}
                                 </a>
                                 {link.original_shared_chat?.users && (
                                   <span className="text-[10px] text-[#7D7D7D] flex items-center gap-1 ml-5">
@@ -324,8 +351,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                                 target="_blank"
                                 className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
                               >
-                                <LinkIcon size={14} />
-                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
+                                {renderIconAndTitle(link.title, link.file_url)}
                               </a>
                             )}
                             {/* Mobile-only date */}
@@ -427,7 +453,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 400 }}
             className={`relative w-full max-w-[340px] rounded-3xl shadow-2xl p-6 border
-              ${isDark ? "bg-[#1C1C1B] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"}`}
+              ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"}`}
           >
             <div className="flex flex-col items-center text-center space-y-4">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? "bg-[#C2A27A]/10 text-[#C2A27A]" : "bg-[#C2A27A]/10 text-[#B19169]"}`}>
