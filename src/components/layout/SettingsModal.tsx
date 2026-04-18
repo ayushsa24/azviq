@@ -39,8 +39,14 @@ import {
   MoreHorizontal,
   ArchiveRestore,
   Archive as ArchiveIcon,
-  Sparkles
+  Sparkles,
+  Lock,
+  Save,
+  CheckCircle2,
+  Crown
 } from "lucide-react";
+import { SharedLinksModal } from "./SharedLinksModal";
+import { ImportersModal } from "../modals/ImportersModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -88,19 +94,61 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     todoReminders,
     setTodoReminders,
     taskDueReminders,
-    setTaskDueReminders
+    setTaskDueReminders,
+    doNotDisturb,
+    setDoNotDisturb
   } = useNotifications();
 
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
-  useEffect(() => {
-    if (isOpen && initialTab) {
-      setActiveTab(initialTab as Tab);
-    }
-  }, [isOpen, initialTab]);
 
   const isDark = theme === "dark";
+
+  // Sync state when URL changes (Back/Forward buttons & Initial Load)
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments[0] === "settings") {
+      const tabFromPath = segments[1] as Tab;
+      const validTabs: Tab[] = ["general", "notifications", "models", "data", "account", "parent_control"];
+      
+      if (tabFromPath && validTabs.includes(tabFromPath)) {
+        if (tabFromPath !== activeTab) {
+          setActiveTab(tabFromPath);
+        }
+      } else if (["chatsharedlink", "notesharedlink", "archivechat", "importnotes", "importchats"].includes(segments[1])) {
+        // These sub-modals belong to the Data tab
+        if (activeTab !== "data") {
+          setActiveTab("data");
+        }
+      } else if (!segments[1] && activeTab !== "general") {
+        // Default to general only for the base /settings route
+        setActiveTab("general");
+      }
+    }
+  }, [pathname, isOpen]);
+
+  // Sync URL when tab changes
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    // Skip URL update if we are currently in a sub-modal route (they manage their own URLs)
+    const subModalRoutes = ["chatsharedlink", "notesharedlink", "archivechat", "importnotes", "importchats"];
+    const segments = pathname.split("/").filter(Boolean);
+    const isSubModal = segments[0] === "settings" && subModalRoutes.includes(segments[1]);
+    
+    if (isSubModal) return;
+
+    const targetPath = activeTab === "general" ? "/settings" : `/settings/${activeTab}`;
+    const currentUrl = new URL(window.location.href);
+    
+    if (currentUrl.pathname !== targetPath) {
+      const newUrl = `${targetPath}?from=${encodeURIComponent(fromParam)}`;
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [activeTab, isOpen, fromParam, pathname]);
 
   // State for Account deletion
   const [isDeleting, setIsDeleting] = useState(false);
@@ -115,43 +163,76 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
            pathname.includes("/settings/archivechat");
   });
   
-  const [linksType, setLinksType] = useState<"chat" | "note" | "archive">(() => {
+  const [linksType, setLinksType] = useState<"chat" | "note" | "archive" | "import" | "import-chat">(() => {
     if (typeof window !== "undefined") {
       if (pathname.includes("/settings/notesharedlink")) return "note";
       if (pathname.includes("/settings/archivechat")) return "archive";
+      if (pathname.includes("/settings/importnotes")) return "import";
+      if (pathname.includes("/settings/importchats")) return "import-chat";
     }
     return "chat";
   });
+
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [importerModalData, setImporterModalData] = useState<{ type: "chat" | "note", id: string } | null>(null);
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: string | "all", title: string } | null>(null);
   const bulkMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close bulk menu on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (bulkMenuRef.current && !bulkMenuRef.current.contains(e.target as Node)) {
-        setShowBulkMenu(false);
+    if (isOpen && initialTab) {
+      const subModalMap: Record<string, { tab: Tab, type: "chat" | "note" | "archive" | "import" | "import-chat" }> = {
+        "chatsharedlink": { tab: "data", type: "chat" },
+        "notesharedlink": { tab: "data", type: "note" },
+        "archivechat": { tab: "data", type: "archive" },
+        "importnotes": { tab: "data", type: "import" },
+        "importchats": { tab: "data", type: "import-chat" }
+      };
+
+      if (subModalMap[initialTab]) {
+        const { tab, type } = subModalMap[initialTab];
+        setActiveTab(tab);
+        setLinksType(type);
+        setShowSharedLinks(true);
+      } else {
+        setActiveTab(initialTab as Tab);
+      }
+    }
+  }, [isOpen, initialTab]);
+
+  // Handle mobile hardware back button to intuitively close the shared links popup
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentPath = window.location.pathname;
+      const isSubModalRoute = currentPath.includes("/settings/notesharedlink") || 
+                              currentPath.includes("/settings/chatsharedlink") || 
+                              currentPath.includes("/settings/archivechat");
+
+      if (!isSubModalRoute && showSharedLinks) {
+        setShowSharedLinks(false);
       }
     };
-    if (showBulkMenu) {
-      document.addEventListener("mousedown", handler);
-    }
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showBulkMenu]);
+    
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [showSharedLinks]);
 
   const { data: sharedLinksData, mutate: mutateSharedLinks, error: sharedLinksError } = useSWR(
     showSharedLinks ? (
       linksType === "chat" ? "/api/share/chat" :
         linksType === "note" ? "/api/share/note" :
-          "/api/chat/history"
+          linksType === "import" ? "/api/notes?imported=true&all=true" :
+            linksType === "import-chat" ? "/api/chat/history?imported=true&all=true" :
+              "/api/chat/history?archived=true"
     ) : null
   );
   const sharedLinks = (
     linksType === "chat" ? sharedLinksData?.links :
       linksType === "note" ? sharedLinksData?.notes :
-        sharedLinksData?.chats?.filter((c: any) => c.is_archived)
+        linksType === "import" ? sharedLinksData?.notes :
+          linksType === "import-chat" ? sharedLinksData?.chats :
+            sharedLinksData?.chats?.filter((c: any) => c.is_archived)
   ) || [];
   const isLoadingLinks = !sharedLinksData && !sharedLinksError && showSharedLinks;
 
@@ -191,12 +272,38 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     }
   };
 
+  const handleArchiveAllHistory = async () => {
+    try {
+      setIsBulkDeleting(true);
+      await fetch("/api/chat/history/bulk", { method: "PATCH" });
+      mutateSharedLinks();
+      // Also mutate the main history if we have access to it, 
+      // but usually SWR handles it if they share the same key or are refreshed.
+    } catch (e) {
+      console.error("Failed bulk archive", e);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleDeleteAllHistory = async () => {
+    try {
+      setIsBulkDeleting(true);
+      await fetch("/api/chat/history/bulk", { method: "DELETE" });
+      mutateSharedLinks();
+    } catch (e) {
+      console.error("Failed bulk delete archives", e);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const handleDeleteAll = async () => {
     try {
       setIsBulkDeleting(true);
       const url = linksType === "chat" ? "/api/share/chat/bulk" :
         linksType === "note" ? "/api/share/note/bulk" :
-          "/api/chat/archive/bulk";
+          "/api/chat/history/bulk";
 
       await fetch(url, { method: "DELETE" });
       mutateSharedLinks();
@@ -208,8 +315,95 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     }
   };
 
-  const [doNotDisturb, setDoNotDisturb] = useState(false);
   const [notificationSound, setNotificationSound] = useState("chime");
+
+  // AI Model Settings
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash-lite");
+  const [responseStyle, setResponseStyle] = useState<"balanced" | "creative" | "precise">("balanced");
+  const [isSavingModel, setIsSavingModel] = useState(false);
+  const [modelSaveSuccess, setModelSaveSuccess] = useState(false);
+  const [subscription, setSubscription] = useState<{ 
+    plan_tier: number; 
+    plan_name: string; 
+    usage?: {
+      chat: { remaining: number; limit: number; reset: number };
+      vision: { remaining: number; limit: number; reset: number };
+      exercise: { remaining: number; limit: number; reset: number };
+      personal_ai: { remaining: number; limit: number; reset: number };
+      note_ai: { remaining: number; limit: number; reset: number };
+    }
+  } | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [loadingModels, setLoadingModels] = useState(false);
+
+  // Fetch AI settings and subscription from Supabase when models tab opens
+  useEffect(() => {
+    if (activeTab === "models" && isOpen) {
+      setLoadingModels(true);
+      // Fetch AI settings and subscription in parallel
+      Promise.all([
+        fetch("/api/user/ai-settings").then((r) => r.json()),
+        fetch("/api/user/subscription").then((r) => r.json())
+      ])
+        .then(([aiData, subData]) => {
+          setSubscription(subData);
+          const userTier = subData?.plan_tier ?? 0;
+          
+          // Enforce default model for free tier, or load saved setting for others
+          if (userTier === 0) {
+            setSelectedModel("gemini-2.5-flash-lite");
+          } else if (aiData.ai_model) {
+            setSelectedModel(aiData.ai_model);
+          }
+          
+          if (aiData.response_style) setResponseStyle(aiData.response_style);
+        })
+        .catch(() => {})
+        .finally(() => {
+          setLoadingModels(false);
+        });
+    }
+  }, [activeTab, isOpen]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSaveModelSettings = async (newModel?: string, newStyle?: string) => {
+    setIsSavingModel(true);
+    try {
+      await fetch("/api/user/ai-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          ai_model: newModel || selectedModel, 
+          response_style: newStyle || responseStyle 
+        }),
+      });
+      setModelSaveSuccess(true);
+      setTimeout(() => setModelSaveSuccess(false), 2000);
+    } catch (err) {
+      console.error("Failed to save model settings", err);
+    } finally {
+      setIsSavingModel(false);
+    }
+  };
+
+  const AI_MODELS = [
+    { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash ⚡", badge: "Free", desc: "Default engine — high quota & fast", minTier: 0 },
+    { value: "gpt-4o-mini", label: "GPT-4o Mini", badge: "Lite Plan", desc: "High quality OpenAI intelligence", minTier: 1 },
+    { value: "gpt-4o", label: "GPT-4o", badge: "Pro Plan", desc: "OpenAI's most capable model", minTier: 2 },
+    { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", badge: "Pro Plan", desc: "Best for nuanced writing & analysis", minTier: 2 },
+  ];
 
   // Parent control — live data from API
   const { data: pcData, mutate: mutatePC } = useSWR(
@@ -225,7 +419,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [savingSettings, setSavingSettings] = useState(false);
   const [localTarget, setLocalTarget] = useState("unlimited");
   const [customTarget, setCustomTarget] = useState("");
-  const [localControlEnabled, setLocalControlEnabled] = useState(true);
+  const [localControlEnabled, setLocalControlEnabled] = useState(false);
   const [localRestrictedMode, setLocalRestrictedMode] = useState(true);
   const [localReportTime, setLocalReportTime] = useState("20:00");
   const [isCustomTime, setIsCustomTime] = useState(false);
@@ -256,7 +450,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       const res = await fetch("/api/parent-control", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ family_email: newFamilyEmail.trim() }),
+        body: JSON.stringify({ 
+          family_email: newFamilyEmail.trim(),
+          control_enabled: localControlEnabled,
+          restricted_mode: localRestrictedMode,
+          daily_target_hours: localTarget === "custom" ? parseFloat(customTarget) || 0 : (localTarget === "unlimited" ? null : parseFloat(localTarget)),
+          report_time: localReportTime
+        }),
       });
       const json = await res.json();
       if (!res.ok) { setEmailError(json.error || "Failed to add email"); }
@@ -277,13 +477,21 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     } finally { setRemovingId(null); }
   };
 
-  const handleSaveParentSettings = async () => {
+  const handleSaveParentSettings = async (
+    targetParam?: number | null,
+    restrictedParam?: boolean,
+    controlParam?: boolean,
+    timeParam?: string
+  ) => {
     setSavingSettings(true);
-    let target = null;
-    if (localTarget === "custom") {
-      target = parseFloat(customTarget) || 0;
-    } else if (localTarget !== "unlimited") {
-      target = parseFloat(localTarget);
+    
+    let finalTarget = targetParam !== undefined ? targetParam : null;
+    if (targetParam === undefined) {
+      if (localTarget === "custom") {
+        finalTarget = parseFloat(customTarget) || 0;
+      } else if (localTarget !== "unlimited") {
+        finalTarget = parseFloat(localTarget);
+      }
     }
 
     try {
@@ -291,14 +499,20 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          daily_target_hours: target,
-          restricted_mode: localRestrictedMode,
-          control_enabled: localControlEnabled,
-          report_time: localReportTime,
+          daily_target_hours: finalTarget,
+          restricted_mode: restrictedParam !== undefined ? restrictedParam : localRestrictedMode,
+          control_enabled: controlParam !== undefined ? controlParam : localControlEnabled,
+          report_time: timeParam !== undefined ? timeParam : localReportTime,
         }),
       });
+      setModelSaveSuccess(true);
+      setTimeout(() => setModelSaveSuccess(false), 2000);
       mutatePC();
-    } finally { setSavingSettings(false); }
+    } catch (err) {
+      console.error("Failed to save parent settings", err);
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -354,9 +568,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       requestPushPermission();
       return;
     }
-    new Notification("Avyx", {
+    if (doNotDisturb) {
+      alert("Do Not Disturb is currently ON. Turn it off to see the test notification pop up!");
+      return;
+    }
+    new Notification("Azviq", {
       body: "This is a test notification. Your alerts are perfectly configured!",
-      icon: theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"
+      icon: "/azviq_logo_whitebg.png"
     });
   };
 
@@ -369,11 +587,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       />
 
       {/* Modal Container */}
-      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
+      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
         }`}>
 
         {/* Sidebar (Desktop) / Top Bar (Mobile) */}
-        <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
+        <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
           } ${"w-full sm:w-72"}`}>
 
           {/* Header Area */}
@@ -408,7 +626,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 scrollbar-hide">
-          <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A]" : ""}`}>
+          <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F]" : ""}`}>
 
             {activeTab === "general" && (
               <div className="space-y-4 animate-in slide-in-from-right-4 duration-300 -mt-2">
@@ -533,13 +751,22 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     <h3 className="text-sm font-semibold">Enable Notifications</h3>
                     <p className="text-xs text-[#7D7D7D]">Receive updates and reminders</p>
                   </div>
-                  <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${pushPermission === "granted"
-                      ? "bg-[#C2A27A]"
-                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={requestPushPermission}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${pushPermission === "granted" ? "right-1" : "left-1"
-                      }`} />
-                  </div>
+                  {pushPermission === "granted" ? (
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs text-green-500 flex items-center gap-1 font-medium bg-green-500/10 px-2 py-1 rounded-md">
+                        <CheckCircle size={14} /> Enabled
+                      </span>
+                      <button onClick={requestPushPermission} className="text-[10px] text-[#7D7D7D] underline hover:text-[#252525] dark:hover:text-white cursor-pointer active:scale-95">
+                        Resync Device Token
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
+                        isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      }`} onClick={requestPushPermission}>
+                      <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
@@ -658,56 +885,277 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
             
             {activeTab === "models" && (
               <div className="space-y-0 animate-in slide-in-from-right-4 duration-300 -mt-2">
-                {/* Section Title - Standardized */}
-                <div className="pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
-                  <h3 className="text-sm font-semibold">AI Models</h3>
-                  <p className="text-xs text-[#7D7D7D] mt-0.5">Select the intelligence that powers your workspace.</p>
+                <div className="pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A] flex justify-between items-end">
+                  <div className="flex flex-col">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      AI Chat Model
+                      {modelSaveSuccess && (
+                        <span className="text-[10px] text-green-500 font-bold animate-in fade-in slide-in-from-left-2 duration-300">
+                          (Saved)
+                        </span>
+                      )}
+                      {isSavingModel && (
+                        <Loader2 size={12} className="animate-spin text-[#C2A27A]" />
+                      )}
+                    </h3>
+                    <p className="text-xs text-[#7D7D7D] mt-0.5">Applies to <strong>AI Chat only</strong>. All other features (exercises, revision, vision) always run on Flash for maximum reliability.</p>
+                  </div>
+                  {loadingModels ? (
+                    <Skeleton className="w-16 h-4 rounded" />
+                  ) : (
+                    subscription && (
+                      <div className={`px-2 py-0.5 rounded text-[10px] font-bold border border-[#C2A27A]/20 bg-[#C2A27A]/10 text-[#C2A27A]`}>
+                        {subscription.plan_name.toUpperCase()}
+                      </div>
+                    )
+                  )}
                 </div>
 
                 <div className="divide-y divide-[#E8E5E0] dark:divide-[#3A3A3A]">
-                  <div className="flex flex-col gap-2 py-4">
-                    <h3 className="text-sm font-semibold">Current Model</h3>
-                    <div className="relative">
-                      <select 
-                        className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
-                          ${isDark 
-                            ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]" 
-                            : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
-                        `}
-                      >
-                        <option value="gpt-4o">GPT-4o (Most Intelligent)</option>
-                        <option value="gpt-4-mini">GPT-4o Mini (Fast & Cheap)</option>
-                        <option value="claude-3-5">Claude 3.5 Sonnet (Nuanced)</option>
-                        <option value="gemini-1-5">Gemini 1.5 Pro (Deep Memory)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 py-4 pb-6">
-                    <h3 className="text-sm font-semibold">Response Style</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      {["Balanced", "Creative", "Precise"].map((style) => (
+                  {/* Active AI Model */}
+                  <div className="flex flex-col gap-2 py-4" ref={dropdownRef}>
+                    <h3 className="text-sm font-semibold">Active AI Model</h3>
+                    {loadingModels ? (
+                      <Skeleton className="h-12 w-full" />
+                    ) : (
+                      <div className="relative">
+                        {/* Dropdown Trigger */}
                         <button
-                          key={style}
-                          className={`py-2 pt-1.5 rounded-xl border text-xs font-semibold transition-all active:scale-95
-                            ${style === "Balanced" 
-                              ? isDark ? "bg-white text-[#1A1A1A] border-white" : "bg-[#252525] text-white border-[#252525]"
-                              : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"}
-                          `}
+                          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all
+                            ${isDark ? "bg-[#252525] border-[#3A3A3A] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"}`}
                         >
-                          {style}
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-[#C2A27A]" />
+                            <span className="font-medium">
+                              {AI_MODELS.find(m => m.value === selectedModel)?.label || "Select Model"}
+                            </span>
+                          </div>
+                          <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-90" : ""}`} />
                         </button>
-                      ))}
+
+                        {/* Dropdown Content */}
+                        {isDropdownOpen && (
+                          <div className={`absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border shadow-xl overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-2 duration-200
+                            ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-white border-[#E8E5E0]"}`}
+                          >
+                            {AI_MODELS.map((m) => {
+                              const userTier = subscription?.plan_tier ?? 0;
+                              const isLocked = m.minTier > userTier;
+                              const isSelected = selectedModel === m.value;
+                              
+                              return (
+                                <button
+                                  key={m.value}
+                                  onClick={() => {
+                                    if (!isLocked) {
+                                      setSelectedModel(m.value);
+                                      setIsDropdownOpen(false);
+                                      handleSaveModelSettings(m.value, responseStyle);
+                                    }
+                                  }}
+                                  className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors
+                                    ${isSelected 
+                                      ? isDark ? "bg-white/5" : "bg-black/5" 
+                                      : isLocked ? "opacity-40 cursor-not-allowed" : isDark ? "hover:bg-white/5" : "hover:bg-black/5"}`}
+                                >
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs font-semibold ${isSelected ? "text-[#C2A27A]" : ""}`}>{m.label}</span>
+                                      {m.minTier > 0 && (
+                                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase
+                                          ${m.minTier === 1 ? "bg-blue-500/10 text-blue-400" : "bg-amber-500/10 text-[#C2A27A]"}`}>
+                                          {m.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] opacity-60 leading-tight">{m.desc}</span>
+                                  </div>
+                                  {isLocked ? (
+                                    <Lock size={12} className="shrink-0 opacity-40" />
+                                  ) : isSelected ? (
+                                    <Check size={14} className="shrink-0 text-[#C2A27A]" />
+                                  ) : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Response Style */}
+                  <div className="flex flex-col gap-2 py-4">
+                    <h3 className="text-sm font-semibold">Response Style</h3>
+                    <p className="text-xs text-[#7D7D7D] mb-1">Controls how the AI writes its answers.</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {loadingModels ? (
+                        <>
+                          <Skeleton className="h-14 w-full" />
+                          <Skeleton className="h-14 w-full" />
+                          <Skeleton className="h-14 w-full" />
+                        </>
+                      ) : (
+                        (["balanced", "creative", "precise"] as const).map((style) => {
+                          const labels = { balanced: "Balanced", creative: "Creative", precise: "Precise" };
+                          const descs = { balanced: "Smart defaults", creative: "Imaginative", precise: "Exact & factual" };
+                          const isActive = responseStyle === style;
+                          return (
+                            <button
+                              key={style}
+                              onClick={() => {
+                                setResponseStyle(style);
+                                handleSaveModelSettings(selectedModel, style);
+                              }}
+                              className={`flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all active:scale-95 gap-1 ${
+                                isActive
+                                  ? isDark ? "bg-[#C2A27A] text-white border-[#C2A27A]" : "bg-[#252525] text-white border-[#252525]"
+                                  : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"
+                              }`}
+                            >
+                              <span>{labels[style]}</span>
+                              <span className="text-[9px] font-normal opacity-60">{descs[style]}</span>
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
 
-                  <div className="py-6 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
-                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 dark:bg-white/5 dark:border-white/10">
-                      <div className="flex items-center gap-2 mb-2 font-bold text-sm text-blue-500 dark:text-blue-400">
-                        <Sparkles size={16} /> Advanced Modeling
+                  {/* Daily Quota & Usage */}
+                  {loadingModels ? (
+                    <div className="flex flex-col gap-4 py-5 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
+                      <div className="flex justify-between items-center mb-1">
+                        <Skeleton className="h-10 w-48" />
+                        <Skeleton className="h-6 w-24" />
+                      </div>
+                      <div className="space-y-4">
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                      </div>
+                    </div>
+                  ) : (
+                    subscription?.usage && (
+                      <div className="flex flex-col gap-3 py-5 border-t border-[#E8E5E0] dark:border-[#3A3A3A]">
+                        <div className="flex items-center justify-between mb-1">
+                          <div>
+                            <h3 className="text-sm font-bold">Daily Quota & Usage</h3>
+                            <p className="text-[11px] text-[#7D7D7D]">Your remaining model requests for today</p>
+                          </div>
+                          {subscription.usage.chat.reset > 0 && (
+                            <div className={`px-2 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5
+                              ${isDark ? "bg-white/5 border-white/10 text-[#BABABA]" : "bg-black/5 border-black/5 text-[#545454]"}`}>
+                              <Clock className="w-3 h-3" />
+                              Refreshes in {Math.ceil((subscription.usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 mt-1">
+                          {/* Chat Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>AI Chats</span>
+                              <span className="font-bold">
+                                {subscription.usage.chat.limit === Infinity ? "Unlimited" : `${subscription.usage.chat.remaining} / ${subscription.usage.chat.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.chat.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.chat.remaining / subscription.usage.chat.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Vision Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Vision & Images</span>
+                              <span className="font-bold">
+                                  {subscription.usage.vision.limit === Infinity ? "Unlimited" : `${subscription.usage.vision.remaining} / ${subscription.usage.vision.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.vision.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.vision.remaining / subscription.usage.vision.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Exercise Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Exercise Generation</span>
+                              <span className="font-bold">
+                                  {subscription.usage.exercise.limit === Infinity ? "Unlimited" : `${subscription.usage.exercise.remaining} / ${subscription.usage.exercise.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.exercise.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.exercise.remaining / subscription.usage.exercise.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Personal AI Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Personal AI Teacher</span>
+                              <span className="font-bold">
+                                  {subscription.usage.personal_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.personal_ai.remaining} / ${subscription.usage.personal_ai.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.personal_ai.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.personal_ai.remaining / subscription.usage.personal_ai.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Note AI Usage */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-medium">
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Note Editor AI</span>
+                              <span className="font-bold">
+                                  {subscription.usage.note_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.note_ai.remaining} / ${subscription.usage.note_ai.limit}`}
+                              </span>
+                            </div>
+                            {subscription.usage.note_ai.limit !== Infinity && (
+                              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
+                                <div 
+                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                  style={{ width: `${(subscription.usage.note_ai.remaining / subscription.usage.note_ai.limit) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {/* Info Card */}
+                  <div className="py-4">
+                    <div className={`p-4 rounded-2xl border ${isDark ? "bg-[#C2A27A]/5 border-[#C2A27A]/15" : "bg-[#C2A27A]/5 border-[#C2A27A]/20"}`}>
+                      <div className="flex items-center gap-2 mb-2 font-bold text-sm text-[#C2A27A]">
+                        <Crown size={16} /> Unlock Powerful AI
                       </div>
                       <p className="text-[11px] leading-relaxed opacity-80">
-                        Switching models affects the accuracy and personality of the AI assistant across all your chats and notes. This change is applied instantly to everyone on your account.
+                        Lite plan unlocks <strong>GPT-4o Mini</strong> for AI Chat. Pro plan unlocks <strong>GPT-4o</strong> and <strong>Claude 3.5 Sonnet</strong>. All study tools (exercises, revision, summarize, vision) always run on Gemini Flash for maximum speed and quota.
                       </p>
                     </div>
                   </div>
@@ -757,7 +1205,39 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     </button>
                   </div>
 
-                  {/* Archived Chats */}
+                  {/* Imported chats */}
+                  <div className="flex items-center justify-between py-4">
+                    <span className="text-sm font-medium">Imported chats</span>
+                    <button
+                      onClick={() => { 
+                        setLinksType("import-chat"); 
+                        setShowSharedLinks(true); 
+                        window.history.pushState(null, '', `/settings/importchats?from=${encodeURIComponent(fromParam)}`);
+                      }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                        }`}
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Imported Notes */}
+                  <div className="flex items-center justify-between py-4">
+                    <span className="text-sm font-medium">Imported notes</span>
+                    <button
+                      onClick={() => { 
+                        setLinksType("import"); 
+                        setShowSharedLinks(true); 
+                        window.history.pushState(null, '', `/settings/importnotes?from=${encodeURIComponent(fromParam)}`);
+                      }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                        }`}
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Archived chats */}
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Archived chats</span>
                     <button
@@ -776,29 +1256,25 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   {/* Archive All */}
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Archive all chats</span>
-                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
+                    <button 
+                      onClick={() => setDeleteConfirmTarget({ id: "archive-all-history", title: "all your active chats" })}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
                       }`}>
                       Archive all
                     </button>
                   </div>
 
-                  {/* Delete All */}
+                  {/* Delete All Archives */}
                   <div className="flex items-center justify-between py-4">
-                    <span className="text-sm font-medium">Delete all chats</span>
-                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-transparent border-red-200 text-red-600 hover:bg-red-50"
+                    <span className="text-sm font-medium">Delete all archived chats</span>
+                    <button 
+                      onClick={() => setDeleteConfirmTarget({ id: "delete-all-archives", title: "all your archived chats permanently" })}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-transparent border-red-200 text-red-600 hover:bg-red-50"
                       }`}>
                       Delete all
                     </button>
                   </div>
 
-                  {/* Export Data */}
-                  <div className="flex items-center justify-between py-3.5">
-                    <span className="text-sm font-medium">Export data</span>
-                    <button className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                      }`}>
-                      Export
-                    </button>
-                  </div>
                 </div>
               </div>
             )}
@@ -864,13 +1340,27 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                 {/* Master Controls */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold">Parental Control Mode</h3>
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      Parental Control Mode
+                      {modelSaveSuccess && (
+                        <span className="text-[10px] text-green-500 font-bold animate-in fade-in slide-in-from-left-2 duration-300">
+                          (Saved)
+                        </span>
+                      )}
+                      {savingSettings && (
+                        <Loader2 size={12} className="animate-spin text-[#C2A27A]" />
+                      )}
+                    </h3>
                     <p className="text-xs text-[#7D7D7D]">Enable monitoring and safety features</p>
                   </div>
                   <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${localControlEnabled
                       ? "bg-[#C2A27A]"
                       : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                    }`} onClick={() => setLocalControlEnabled(!localControlEnabled)}>
+                    }`} onClick={() => {
+                      const next = !localControlEnabled;
+                      setLocalControlEnabled(next);
+                      handleSaveParentSettings(undefined, undefined, next);
+                    }}>
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${localControlEnabled ? "right-1" : "left-1"
                       }`} />
                   </div>
@@ -952,7 +1442,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${localRestrictedMode
                         ? "bg-[#C2A27A]"
                         : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
-                      }`} onClick={() => setLocalRestrictedMode(!localRestrictedMode)}>
+                      }`} onClick={() => {
+                        const next = !localRestrictedMode;
+                        setLocalRestrictedMode(next);
+                        handleSaveParentSettings(undefined, next);
+                      }}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${localRestrictedMode ? "right-1" : "left-1"
                         }`} />
                     </div>
@@ -966,7 +1460,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       {localTarget !== "custom" ? (
                         <select
                           value={localTarget}
-                          onChange={(e) => setLocalTarget(e.target.value)}
+                          onChange={(e) => {
+                            setLocalTarget(e.target.value);
+                            if (e.target.value !== "custom") {
+                              const t = e.target.value === "unlimited" ? null : parseFloat(e.target.value);
+                              handleSaveParentSettings(t);
+                            }
+                          }}
                           className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
                             ${isDark
                               ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]"
@@ -989,7 +1489,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                               min="0.5"
                               max="24"
                               value={customTarget}
-                              onChange={(e) => setCustomTarget(e.target.value)}
+                              onChange={(e) => {
+                                setCustomTarget(e.target.value);
+                                handleSaveParentSettings(parseFloat(e.target.value) || 0);
+                              }}
                               placeholder="Enter hours (e.g. 2.5)"
                               className={`w-full p-3 pr-16 rounded-xl border text-sm outline-none transition-all
                                 ${isDark
@@ -1002,7 +1505,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                             </div>
                           </div>
                           <button
-                            onClick={() => setLocalTarget("unlimited")}
+                            onClick={() => {
+                              setLocalTarget("unlimited");
+                              handleSaveParentSettings(null);
+                            }}
                             className={`flex-shrink-0 px-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center
                               ${isDark
                                 ? "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10"
@@ -1046,7 +1552,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                             <input
                               type="time"
                               value={localReportTime}
-                              onChange={(e) => setLocalReportTime(e.target.value)}
+                              onChange={(e) => {
+                                setLocalReportTime(e.target.value);
+                                handleSaveParentSettings(undefined, undefined, undefined, e.target.value);
+                              }}
                               onClick={(e) => (e.target as any).showPicker?.()}
                               className={`w-full p-3 rounded-xl border text-sm outline-none transition-all cursor-pointer
                                 ${isDark
@@ -1057,8 +1566,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                           </div>
                           <button
                             onClick={() => {
-                              setLocalReportTime("20:00");
+                              const defaultTime = "20:00";
+                              setLocalReportTime(defaultTime);
                               setIsCustomTime(false);
+                              handleSaveParentSettings(undefined, undefined, undefined, defaultTime);
                             }}
                             className={`flex-shrink-0 px-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center
                               ${isDark
@@ -1074,16 +1585,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     </div>
                   </div>
 
-                  {/* Save Settings Button */}
-                  <button
-                    onClick={handleSaveParentSettings}
-                    disabled={savingSettings}
-                    className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 ${isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"
-                      }`}
-                  >
-                    {savingSettings && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Save Settings
-                  </button>
+                  {/* Save Settings Button - Removed as requested, using auto-save */}
 
                   {/* Info box */}
                   <div className="mt-4 p-4 rounded-2xl bg-[#C2A27A]/10 border border-[#C2A27A]/20">
@@ -1114,210 +1616,37 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         </div>
       </div>
 
-      {/* Shared Links Sub-Modal */}
-      {showSharedLinks && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 sm:p-4 overflow-y-auto scrollbar-hide">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => {
-            setShowSharedLinks(false);
-            window.history.pushState(null, '', `/settings?from=${encodeURIComponent(fromParam)}`);
-          }} />
-          <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl rounded-none sm:rounded-3xl shadow-2xl transition-colors overflow-hidden border-0 animate-in zoom-in-95 duration-200 flex flex-col my-auto ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E] text-white" : "bg-[#F5F3EF] border-[#E8E5E0] text-[#252525]"
-            }`}>
-            <div className="shrink-0 transition-all duration-200 bg-[#F5F3EF] dark:bg-[#1A1A1A]">
-              <div className={`flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF] dark:bg-transparent h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
-                <h3 className="text-lg font-bold sm:text-2xl">
-                  {linksType === "chat" ? "Chat Shared Links" :
-                    linksType === "note" ? "Note Shared Links" :
-                      "Archived Chats"}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowSharedLinks(false);
-                    window.history.pushState(null, '', `/settings?from=${encodeURIComponent(fromParam)}`);
-                  }}
-                  className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                  title="Close"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
+      <SharedLinksModal
+        showSharedLinks={showSharedLinks}
+        setShowSharedLinks={setShowSharedLinks}
+        linksType={linksType}
+        isDark={isDark}
+        fromParam={fromParam}
+        isLoadingLinks={isLoadingLinks}
+        sharedLinks={sharedLinks}
+        showBulkMenu={showBulkMenu}
+        setShowBulkMenu={setShowBulkMenu}
+        deleteConfirmTarget={deleteConfirmTarget}
+        setDeleteConfirmTarget={setDeleteConfirmTarget}
+        revokingId={revokingId}
+        isBulkDeleting={isBulkDeleting}
+        handleRevokeLink={handleRevokeLink}
+        handleUnarchive={handleUnarchive}
+        handleDeleteAll={handleDeleteAll}
+        handleArchiveAllHistory={handleArchiveAllHistory}
+        handleDeleteAllHistory={handleDeleteAllHistory}
+        onViewImporters={(type, id) => {
+          setImporterModalData({ type, id });
+        }}
+      />
 
-            <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide relative">
-              <table className="w-full text-left border-collapse table-fixed">
-                <thead className={`sticky top-0 z-10 text-[11px] uppercase tracking-wider font-bold shadow-sm ${isDark ? "bg-[#1A1A1A] text-[#7D7D7D]" : "bg-[#F5F3EF] text-[#545454]"}`}>
-                  <tr className="border-b border-[#E8E5E0] dark:border-[#545454]">
-                    <th className="px-6 py-3 sm:py-4 w-[40%] text-left">Name</th>
-                    <th className="px-6 py-3 sm:py-4 w-[15%] hidden sm:table-cell text-center">Type</th>
-                    <th className="px-6 py-3 sm:py-4 w-[30%] hidden sm:table-cell text-center">
-                      {linksType === "archive" ? "Date" : "Date shared"}
-                    </th>
-                    <th className="px-6 py-3 sm:py-4 w-[15%] text-right pr-6 relative">
-                      <button
-                        onClick={() => setShowBulkMenu(!showBulkMenu)}
-                        className={`p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 ${showBulkMenu ? "bg-black/5 dark:bg-white/10" : ""}`}
-                      >
-                        <MoreHorizontal size={16} className="ml-auto" />
-                      </button>
-
-                      {/* Bulk Actions Menu (Just the trigger) */}
-                      {showBulkMenu && (
-                        <div
-                          ref={bulkMenuRef}
-                          className={`absolute top-full right-6 mt-1 w-48 rounded-2xl shadow-2xl z-[50] overflow-hidden border animate-in slide-in-from-top-2 duration-200 ${isDark ? "bg-[#1C1C1B] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"
-                            }`}
-                        >
-                          <div className="p-2">
-                            <button
-                              onClick={() => {
-                                setDeleteConfirmTarget({ id: "all", title: linksType === "archive" ? "All Archives" : "All Shared Links" });
-                                setShowBulkMenu(false);
-                              }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                            >
-                              <Trash2 size={14} />
-                              Delete All {linksType === "archive" ? "Archives" : "Links"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#333]/10 dark:divide-white/5">
-                  {isLoadingLinks ? (
-                    [...Array(3)].map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td className="px-6 py-4 w-[40%]"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-3/4"></div></td>
-                        <td className="px-6 py-4 w-[15%] hidden sm:table-cell"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-12"></div></td>
-                        <td className="px-6 py-4 w-[30%] hidden sm:table-cell"><div className="h-4 bg-gray-200 dark:bg-[#333] rounded w-24"></div></td>
-                        <td className="px-6 py-4 w-[15%]"></td>
-                      </tr>
-                    ))
-                  ) : sharedLinks.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-[#7D7D7D]">
-                        No {linksType === "archive" ? "archived chats" : "shared links"} found.
-                      </td>
-                    </tr>
-                  ) : (
-                    sharedLinks.map((link: any) => (
-                      <tr key={link.id} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-[#E8E5E0]/10 dark:border-white/5 last:border-b-0`}>
-                        <td className="px-6 py-3 sm:py-4 w-[40%] text-sm font-medium">
-                          <div className="flex flex-col gap-0.5">
-                            {linksType === "archive" ? (
-                                <a
-                                  href={`/ai/${link.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
-                                >
-                                <LinkIcon size={14} />
-                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
-                              </a>
-                            ) : (
-                              <a
-                                href={linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`}
-                                target="_blank"
-                                className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors"
-                              >
-                                <LinkIcon size={14} />
-                                <span className="truncate max-w-[200px] sm:max-w-[250px]">{link.title}</span>
-                              </a>
-                            )}
-                            {/* Mobile-only date display */}
-                            <span className="text-[10px] text-[#7D7D7D] font-normal sm:hidden mt-1">
-                              {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3 sm:py-4 w-[15%] hidden sm:table-cell text-center">
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${isDark ? "bg-[#333] text-[#BABABA]" : "bg-[#E8E5E0] text-[#545454]"}`}>
-                            {linksType === "archive" ? "Archive" : (linksType === "chat" ? "Chat" : "Note")}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 sm:py-4 w-[30%] text-xs text-[#7D7D7D] hidden sm:table-cell text-center">
-                          {new Date(link.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                        </td>
-                        <td className="px-6 py-3 sm:py-4 w-[15%] text-right pr-6">
-                          <div className="flex items-center justify-end gap-3 sm:gap-5">
-                            {linksType === "archive" ? (
-                              <button
-                                onClick={() => handleUnarchive(link.id)}
-                                disabled={revokingId === link.id}
-                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
-                                title="Unarchive chat"
-                              >
-                                {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <ArchiveRestore size={14} />}
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => window.open(linksType === "chat" ? `/share/chat/${link.id}` : `/share/note/${link.id}`, '_blank')}
-                                className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-[#1C1C1B] text-[#BABABA] hover:text-white" : "hover:bg-white text-[#545454] hover:text-[#252525]"}`}
-                                title={`View ${linksType}`}
-                              >
-                                {linksType === "chat" ? <MessageSquare size={14} /> : <FileIcon2 size={14} />}
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => setDeleteConfirmTarget({ id: link.id, title: link.title || `Untitled ${linksType}` })}
-                              disabled={revokingId === link.id}
-                              className={`p-1.5 rounded-lg transition-all hover:scale-110 ${isDark ? "hover:bg-red-500/10 text-red-500 hover:text-red-600" : "hover:bg-red-50 text-red-500 hover:text-red-700"}`}
-                              title={`Delete ${linksType === "archive" ? "chat" : "link"}`}
-                            >
-                              {revokingId === link.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* Centered Delete Confirmation Dialog */}
-            {deleteConfirmTarget && (
-              <div className="absolute inset-0 z-[500] flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in" onClick={() => setDeleteConfirmTarget(null)} />
-                <div className={`relative w-full max-w-[340px] rounded-3xl shadow-2xl p-6 border animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1C1C1B] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"
-                  }`}>
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 group animate-bounce">
-                      <Trash2 size={24} />
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="text-lg font-bold">Are you sure?</h4>
-                      <p className="text-sm text-[#7D7D7D] leading-relaxed">
-                        Are you sure you want to delete <span className="text-red-500 font-bold">"{deleteConfirmTarget.title}"</span>? <br />This action cannot be undone.
-                      </p>
-                    </div>
-                    <div className="flex flex-col w-full gap-2 pt-2">
-                      <button
-                        onClick={() => {
-                          if (deleteConfirmTarget.id === "all") handleDeleteAll();
-                          else handleRevokeLink(deleteConfirmTarget.id);
-                          setDeleteConfirmTarget(null);
-                        }}
-                        className="w-full py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:scale-95 transition-all shadow-lg"
-                      >
-                        {isBulkDeleting ? <Loader2 size={16} className="animate-spin mx-auto" /> : "YES, DELETE"}
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmTarget(null)}
-                        className={`w-full py-3 rounded-2xl font-bold text-sm transition-all ${isDark ? "hover:bg-[#2E2E2E] text-[#BABABA]" : "hover:bg-gray-100 text-[#7D7D7D]"
-                          }`}
-                      >
-                        CANCEL
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <ImportersModal 
+        isOpen={!!importerModalData}
+        onClose={() => setImporterModalData(null)}
+        type={importerModalData?.type || "chat"}
+        id={importerModalData?.id || ""}
+        theme={theme}
+      />
     </div>
   );
 }

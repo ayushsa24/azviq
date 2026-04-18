@@ -34,6 +34,8 @@ interface NotificationContextType {
     setTodoReminders: (val: boolean) => void;
     taskDueReminders: boolean;
     setTaskDueReminders: (val: boolean) => void;
+    doNotDisturb: boolean;
+    setDoNotDisturb: (val: boolean) => void;
     checkReminders: () => Promise<void>;
 }
 
@@ -55,11 +57,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         studyReminders: true,
         aiAlerts: true,
         todoReminders: true,
-        taskDueReminders: true
+        taskDueReminders: true,
+        doNotDisturb: false
     });
 
     const notifiedRef = useRef<Set<string>>(new Set());
     const isCheckingRef = useRef<boolean>(false);
+    const lastNativePushRef = useRef<number>(0); // Global cooldown for native pushes
 
     // Sync preferences from localStorage on mount and across tabs
     useEffect(() => {
@@ -104,8 +108,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const setAiAlerts = (val: boolean) => updatePrefs({ aiAlerts: val });
     const setTodoReminders = (val: boolean) => updatePrefs({ todoReminders: val });
     const setTaskDueReminders = (val: boolean) => updatePrefs({ taskDueReminders: val });
+    const setDoNotDisturb = (val: boolean) => updatePrefs({ doNotDisturb: val });
 
-    const { studyReminders, aiAlerts, todoReminders, taskDueReminders } = prefs;
+    const { studyReminders, aiAlerts, todoReminders, taskDueReminders, doNotDisturb } = prefs;
+
+    // Listen for storage changes in other tabs to keep settings in sync
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === "notification-prefs" && e.newValue) {
+                try {
+                    const newPrefs = JSON.parse(e.newValue);
+                    setPrefs(newPrefs);
+                    console.log("Notification preferences synced from another tab.");
+                } catch (err) {
+                    console.error("Failed to sync prefs", err);
+                }
+            }
+        };
+        window.addEventListener("storage", handleStorageChange);
+        return () => window.removeEventListener("storage", handleStorageChange);
+    }, []);
+
     useEffect(() => {
         if (typeof window === "undefined" || !("Notification" in window)) {
             setPushPermission("unsupported");
@@ -118,6 +141,32 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (typeof window === "undefined" || !("Notification" in window)) return;
         const result = await Notification.requestPermission();
         setPushPermission(result);
+
+        // Also register this browser for Web Push so server-side reminders work
+        if (result === "granted" && "serviceWorker" in navigator && "PushManager" in window) {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+                if (vapidKey) {
+                    const padding = "=".repeat((4 - (vapidKey.length % 4)) % 4);
+                    const base64 = (vapidKey + padding).replace(/-/g, "+").replace(/_/g, "/");
+                    const rawData = atob(base64);
+                    const applicationServerKey = Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+                    const subscription = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey,
+                    });
+                    await fetch("/api/push/subscribe", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(subscription.toJSON()),
+                    });
+                    console.log("[Push] Web Push subscription saved.");
+                }
+            } catch (err) {
+                console.error("[Push] Failed to subscribe for Web Push:", err);
+            }
+        }
     }, []);
 
     const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -128,6 +177,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const triggerGenerate = useCallback(async () => {
         if (!studyReminders) return; // Respect preference
+        if (doNotDisturb) return; // DND blocks all notification generation
 
         // Fire once per day (first time app is opened each day)
         const now = new Date();
@@ -153,25 +203,53 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             await fetch("/api/notifications/generate", { method: "POST" });
             await fetchNotifications();
 
-            // Fire native push for newly generated notifications
-            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                const afterData = await fetch("/api/notifications").then(r => r.json());
-                const newNotifs: any[] = (afterData.notifications ?? []).filter(
-                    (n: any) => !existingIds.has(n.id) &&
-                    ["study_reminder", "task_reminder", "streak_protection", "weekly_summary", "weak_subject", "revision_reminder"].includes(n.type)
-                );
-                for (const n of newNotifs) {
-                    new Notification(n.title, {
-                        body: n.message,
-                        icon: "/icon-192.png",
-                        tag: n.id,
+            // Fire native push for newly generated notifications with STAGGERING
+            if (typeof window !== "undefined" && "Notification" in window) {
+                console.log("System notification check: permission is", Notification.permission);
+                
+                if (Notification.permission === "granted" && !doNotDisturb) {
+                    const afterData = await fetch("/api/notifications").then(r => r.json());
+                    const newNotifs: any[] = (afterData.notifications ?? []).filter(
+                        (n: any) => {
+                            if (existingIds.has(n.id)) return false;
+                            
+                            // Category Filter
+                            if (["weak_subject", "revision_reminder", "ai_task_complete"].includes(n.type) && !aiAlerts) return false;
+                            if (n.type === "study_reminder" && !studyReminders) return false;
+                            
+                            return ["study_reminder", "task_reminder", "streak_protection", "weekly_summary", "weak_subject", "revision_reminder", "ai_task_complete"].includes(n.type);
+                        }
+                    );
+
+                    console.log(`Found ${newNotifs.length} new notifications to push.`);
+                    
+                    // Stagger them: send one every 20 seconds
+                    newNotifs.forEach((n, index) => {
+                        setTimeout(() => {
+                            console.log(`Firing native notification: ${n.title}`);
+                            try {
+                                new Notification(n.title, {
+                                    body: n.message,
+                                    icon: "/azviq_logo_whitebg.png",
+                                    tag: n.id,
+                                    requireInteraction: true // Keep it visible until the user acts
+                                });
+                                lastNativePushRef.current = Date.now();
+                            } catch (e) {
+                                console.error("Critical: Native notification failed to fire:", e);
+                            }
+                        }, index * 20000); // 20s spacing
                     });
+                } else if (Notification.permission === "default") {
+                    console.warn("Notifications are not yet allowed. Permission is 'default'.");
+                } else {
+                    console.error("Notifications are explicitly BLOCKED/DENIED by the browser.");
                 }
             }
         } catch (e) {
             console.error("Failed to generate notifications", e);
         }
-    }, [fetchNotifications, studyReminders]);
+    }, [fetchNotifications, studyReminders, aiAlerts, doNotDisturb]);
 
     // On mount — fetch notifications and trigger daily generate
     useEffect(() => {
@@ -243,7 +321,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Global To-Do Reminder Watcher
     const checkToDos = useCallback(async (isManual = false) => {
         if (!todoReminders) return; // Respect preference
-        if (!isManual && (isCheckingRef.current || document.visibilityState !== "visible")) return;
+        if (doNotDisturb) return; // DND blocks all notifications
+        if (!isManual && isCheckingRef.current) return;
+
+        
+        // Use visible state only to decide if we should do a full UI refresh, 
+        // but background logic should always run.
         
         isCheckingRef.current = true;
         try {
@@ -261,8 +344,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
             const due = todos.filter((item: any) => {
                 if (item.done || !item.time) return false;
+                
                 const itemHHMM = item.time.slice(0, 5);
-                if (itemHHMM !== currentHHMM) return false;
+                const [itemH, itemM] = itemHHMM.split(':').map(Number);
+                const itemTotalMinutes = (itemH * 60) + itemM;
+                const currentTotalMinutes = (now.getHours() * 60) + now.getMinutes();
+
+                // Check if current time is within a 5-minute window of the target time
+                // This prevents missing a notification if there's network lag or the tab was briefly asleep
+                const diff = currentTotalMinutes - itemTotalMinutes;
+                if (diff < 0 || diff > 5) return false;
+
                 let isMatchToday = false;
                 if (item.repeat === "today") {
                     if (!item.created_at) isMatchToday = true;
@@ -305,12 +397,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 if (postRes.ok) {
                     await fetchNotifications();
                     // Fire native system notification if permitted
-                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                        new Notification("⏰ To-Do Reminder", {
-                            body: `Time for: ${item.title}`,
-                            icon: "/icon-192.png",
-                            tag: item.id,
-                        });
+                    if (typeof window !== "undefined" && "Notification" in window) {
+                        console.log(`To-Do found! Permission: ${Notification.permission}`);
+                        if (Notification.permission === "granted" && !doNotDisturb) {
+                            try {
+                                new Notification("⏰ To-Do Reminder", {
+                                    body: `Time for: ${item.title}`,
+                                    icon: "/azviq_logo_whitebg.png",
+                                    tag: item.id,
+                                    requireInteraction: true
+                                });
+                                lastNativePushRef.current = Date.now();
+                                console.log(`To-Do popup fired for: ${item.title}`);
+                            } catch (e) {
+                                console.error("To-Do popup error:", e);
+                            }
+                        }
                     }
                 }
             }
@@ -319,18 +421,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         } finally {
             isCheckingRef.current = false;
         }
-    }, [fetchNotifications, todoReminders]);
+    }, [fetchNotifications, todoReminders, doNotDisturb]);
 
     useEffect(() => {
-        const interval = setInterval(() => checkToDos(), 60000); // Check every 60s
-        checkToDos();
-        return () => clearInterval(interval);
-    }, [checkToDos]);
+        // Legacy polling removed — Todo reminders are now handled server-side by Upstash Workflow.
+        // The workflow fires an API call at exactly the right time, which sends a Web Push notification.
+        // This eliminates the need for constant database polling.
+    }, []);
 
     // Task Deadline Watcher — fires once per day at 9:00 AM
     const checkTaskDeadlines = useCallback(async (isManual = false) => {
         if (!taskDueReminders) return; // Respect preference
+        if (doNotDisturb) return; // DND blocks all notifications
         if (!isManual && document.visibilityState !== "visible") return;
+
         try {
             const now = new Date();
             const currentHour = now.getHours();
@@ -371,20 +475,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
                 if (postRes.ok) {
                     await fetchNotifications();
-                    // Native push notification
-                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                        new Notification("🗓️ Task Due Today", {
-                            body: `Your task "${task.title}" is due today!`,
-                            icon: "/icon-192.png",
-                            tag: `deadline-${task.id}`,
-                        });
+                    // Native push notification with stagger
+                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted" && !doNotDisturb) {
+                        const now = Date.now();
+                        const sinceLast = now - lastNativePushRef.current;
+                        const delay = sinceLast < 30000 ? 30000 - sinceLast : 0;
+
+                        setTimeout(() => {
+                            new Notification("🗓️ Task Due Today", {
+                                body: `Your task "${task.title}" is due today!`,
+                                icon: "/azviq_logo_whitebg.png",
+                                tag: `deadline-${task.id}`,
+                            });
+                            lastNativePushRef.current = Date.now();
+                        }, delay);
                     }
                 }
             }
         } catch (err) {
             console.error("Task deadline check failed:", err);
         }
-    }, [fetchNotifications, taskDueReminders]);
+    }, [fetchNotifications, taskDueReminders, doNotDisturb]);
 
     useEffect(() => {
         const interval = setInterval(() => checkTaskDeadlines(), 300000); // Check every 5 mins
@@ -427,6 +538,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             setTodoReminders,
             taskDueReminders,
             setTaskDueReminders,
+            doNotDisturb,
+            setDoNotDisturb,
             checkReminders
         }}>
             {children}

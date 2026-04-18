@@ -64,7 +64,14 @@ export async function POST(req: Request) {
 
         const { data, error } = await supabase
             .from("parent_control")
-            .insert({ user_id: userId, family_email })
+            .insert({ 
+                user_id: userId, 
+                family_email,
+                daily_target_hours: daily_target_hours !== undefined ? daily_target_hours : null,
+                restricted_mode: restricted_mode !== undefined ? restricted_mode : true,
+                control_enabled: control_enabled !== undefined ? control_enabled : false,
+                report_time: report_time !== undefined ? report_time : "20:00"
+            })
             .select()
             .single();
 

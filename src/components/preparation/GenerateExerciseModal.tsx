@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Modal from "@/components/ui/Modal";
-import { FileText, SearchCode, Sparkles, CheckCircle2, Search, Check, ChevronDown } from "lucide-react";
+import { FileText, SearchCode, Sparkles, CheckCircle2, Search, Check, ChevronDown, File as FileIcon } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface GenerateExerciseModalProps {
     isOpen: boolean;
@@ -91,6 +92,21 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
 
     const selectedNote = notes.find((n: any) => n.id === selectedFile);
 
+    const renderIcon = (title: string, fileUrl?: string | null, size = 16) => {
+        const iconMatch = title.match(/^\[(\w+)\]/);
+        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+            const IconComp = ICON_MAP[iconMatch[1]];
+            return <IconComp size={size} className="shrink-0" />;
+        }
+        return fileUrl ? (
+            <FileIcon size={size} className="shrink-0" />
+        ) : (
+            <FileText size={size} className="shrink-0" />
+        );
+    };
+
+    const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
+
     return (
         <Modal open={isOpen} onClose={handleClose} title="Generate Exercise">
             <div className={`py-4 ${isDark ? 'text-[#CFCFCF]' : 'text-[#252525]'}`}>
@@ -120,14 +136,21 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                                         : 'bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] hover:bg-[#E8E5E1]'
                                         }`}
                                 >
-                                    <span className="truncate">
+                                    <div className="flex items-center gap-2 truncate">
                                         {selectedFile ? (() => {
                                             const fact = notes.find(n => n.id === selectedFile);
                                             if (!fact) return "Empty";
                                             const ws = workspaces.find(w => w.id === fact.workspace_id);
-                                            return `${ws ? `[${ws.name}] ` : ""}${fact.title} (${fact.file_url ? 'PDF' : 'Note'})`;
+                                            return (
+                                                <>
+                                                    {renderIcon(fact.title, fact.file_url)}
+                                                    <span className="truncate">
+                                                        {ws ? `[${ws.name}] ` : ""}{cleanTitle(fact.title)}
+                                                    </span>
+                                                </>
+                                            );
                                         })() : "Choose a Note or PDF"}
-                                    </span>
+                                    </div>
                                     <ChevronDown className="w-4 h-4 text-[#BABABA] ml-2" />
                                 </button>
 
@@ -149,7 +172,7 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                                         </div>
 
                                         <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
-                                            {notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase())).map((n) => {
+                                            {notes.filter(n => !n.is_revoked && n.title.toLowerCase().includes(searchQuery.toLowerCase())).map((n) => {
                                                 const ws = workspaces.find((w) => w.id === n.workspace_id);
                                                 const wsPrefix = ws ? `[${ws.name}] ` : "";
                                                 const isSelected = selectedFile === n.id;
@@ -164,20 +187,23 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                                                         }}
                                                         className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525] font-bold" : "text-gray-700 dark:text-gray-300 hover:bg-[#F0EDE8] dark:hover:bg-[#1A1A1A]"}`}
                                                     >
-                                                        <div className="flex flex-col min-w-0 pr-2">
-                                                            <span className="truncate">
-                                                                {n.title}
-                                                            </span>
-                                                            <span className={`text-[10px] truncate mt-0.5 flex gap-1 ${isSelected ? 'text-white/70 dark:text-black/70' : 'text-gray-500'}`}>
-                                                                {wsPrefix && <span className="font-bold">{wsPrefix}</span>}
-                                                                <span>{n.file_url ? 'PDF Document' : 'Note'}</span>
-                                                            </span>
+                                                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                                            {renderIcon(n.title, n.file_url, 18)}
+                                                            <div className="flex flex-col min-w-0 pr-2">
+                                                                <span className="truncate">
+                                                                    {cleanTitle(n.title)}
+                                                                </span>
+                                                                <span className={`text-[10px] truncate mt-0.5 flex gap-1 ${isSelected ? 'text-white/70 dark:text-black/70' : 'text-gray-500'}`}>
+                                                                    {wsPrefix && <span className="font-bold">{wsPrefix}</span>}
+                                                                    <span>{n.file_url ? 'PDF Document' : 'Note'}</span>
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                         {isSelected && <Check className="w-4 h-4 flex-shrink-0" />}
                                                     </button>
                                                 )
                                             })}
-                                            {notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                            {notes.filter(n => !n.is_revoked && n.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                                                 <div className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                                     No material found
                                                 </div>

@@ -2,14 +2,11 @@ import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiError } from "@/lib/api";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { checkAiDailyQuota } from "@/lib/ai-tracking";
+import { getVisionStreamResponse, runSubscriptionGuard, generateChatTitle } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-const apiKey = process.env.GEMINI_API_KEY || "";
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function POST(req: Request) {
   try {
@@ -31,23 +28,25 @@ export async function POST(req: Request) {
     if (dbError || !dbUser) return apiError("User not found", 404, "USER_NOT_FOUND");
     const userId = dbUser.id;
 
-    // 2. Quota Check
-    const quota = await checkAiDailyQuota(userId);
-    if (!quota.success) {
-      return apiError("Daily AI Usage Cap Reached.", 429, "QUOTA_EXCEEDED");
+    // 2. Enforce AI Daily Quota & Tier Access (vision always uses FREE_MODEL)
+    const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "vision", userId);
+    if (!guard.allowed) {
+      return apiError(guard.error || "Subscription limit reached", guard.status || 403, "QUOTA_EXCEEDED");
     }
 
-    if (!genAI) return apiError("Gemini API not configured.", 503, "AI_NOT_CONFIGURED");
+    if (!process.env.GEMINI_API_KEY) {
+      return apiError("Gemini API not configured.", 503, "AI_NOT_CONFIGURED");
+    }
 
-    // 3. Save User Message to DB (Now with ID-based persistence)
+    // 3. Save User Message to DB
     const lastUserMsg = messages[messages.length - 1];
     if (chatId !== "temp-chat") {
-      const contentToSave = image 
-        ? JSON.stringify({ text: lastUserMsg.content, image: image })
+      const contentToSave = image
+        ? JSON.stringify({ text: lastUserMsg.content, image })
         : lastUserMsg.content;
 
       await supabase.from("messages").upsert({
-        id: lastUserMsg.id, // Update if ID exists
+        id: lastUserMsg.id,
         chat_id: chatId,
         user_id: userId,
         role: "user",
@@ -56,131 +55,97 @@ export async function POST(req: Request) {
       });
     }
 
-    // 4. Prepare Gemini Vision Input
-    // Using the exact version IDs available in your project dashboard
-    const primaryModelId = "gemini-2.5-flash";
-    const fallbackModelId = "gemini-2.0-flash";
-    
-    let model = genAI.getGenerativeModel({ model: primaryModelId });
-
-    // Handle Image: Remove data URL prefix if present
+    // 4. Prepare vision parts for Gemini
     const base64Data = image.split(",")[1] || image;
-    
-    // Create the content parts
     const parts = [
-      { text: `System Instruction: You are Avyx AI, a premium study assistant. You have been provided an image of some study material. Help the user understand it perfectly. Always format your output beautifully with markdown.\n\nUser Question: ${lastUserMsg.content || "Analyze this study material and explain it simply."}` },
+      {
+        text: `System Instruction: You are Azviq AI, a premium study assistant. You have been provided an image of some study material. Help the user understand it perfectly. Always format your output beautifully with markdown.\n\nUser Question: ${lastUserMsg.content || "Analyze this study material and explain it simply."}`,
+      },
       {
         inlineData: {
-          mimeType: "image/jpeg", 
+          mimeType: "image/jpeg",
           data: base64Data,
-        }
-      }
+        },
+      },
     ];
 
-    // 5. Generate Content with robust error handling and auto-fallback
-    let result;
+    // 5. Generate with Vision-capable model via AI Manager (always FREE_MODEL)
+    let aiStream: ReadableStream<Uint8Array>;
     try {
-      result = await model.generateContentStream(parts);
+      aiStream = await getVisionStreamResponse(parts, {
+        model: FREE_MODEL,
+        style: "balanced",
+        stream: true,
+      });
     } catch (err: any) {
-      console.error("Gemini Vision Generation FULL ERROR:", JSON.stringify(err, null, 2));
-      
-      // AUTO-FALLBACK: If the 2.5 model isn't ready, try 2.0
-      if (err.status === 404 || err.message?.includes("404")) {
-        try {
-          console.log("Retrying with fallback model-2.0...");
-          model = genAI.getGenerativeModel({ model: fallbackModelId });
-          result = await model.generateContentStream(parts);
-        } catch (fallbackErr: any) {
-           console.error("Fallback Vision also failed:", fallbackErr);
-           return apiError("Vision model not available. Please check your Gemini AI Studio settings.", 503, "MODEL_NOT_FOUND");
-        }
-      } else if (err.message?.includes("429") || err.status === 429) {
-        return apiError("Free Tier limit reached. Please wait a minute and try again.", 429, "RATE_LIMIT_EXCEEDED");
-      } else {
-        throw err;
+      console.error("Vision generation error:", err);
+      if (err.status === 429 || err.message?.includes("429")) {
+        return apiError("Free Tier limit reached. Please wait and try again.", 429, "RATE_LIMIT_EXCEEDED");
       }
+      return apiError("Vision model unavailable. Please try again.", 503, "MODEL_NOT_FOUND");
     }
 
-    // 5. Generate a title on the first message if this is a new chat (non-blocking)
+    // 6. Generate title (non-blocking)
     let titlePromise: Promise<string | null> | null = null;
     if (messages.length === 1 && chatId !== "temp-chat") {
-      // Use Ollama to generate a summary title based on the user question
-      titlePromise = fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "llama3.2",
-          prompt: `Based on the following query about study material in an image, generate a very short, concise 2 to 4 word summary title for the chat. Examples: "Biology Diagram Analysis", "Math Problem Help", "Chemistry Paper Study". Message: "${lastUserMsg.content || "Analyze this image"}"`,
-          stream: false,
-        }),
-      })
-        .then(async (res) => {
-          if (res.ok) {
-            const titleData = await res.json() as { response: string };
-            const newTitle = titleData.response.trim().replace(/['"]/g, "");
-            await supabase
-              .from("chats")
-              .update({ title: newTitle })
-              .eq("id", chatId);
-            return newTitle;
+      titlePromise = generateChatTitle(lastUserMsg.content || "Analyze this image").then(
+        async (title) => {
+          if (title) {
+            await supabase.from("chats").update({ title }).eq("id", chatId);
           }
-          return null;
-        })
-        .catch((e) => {
-          console.error("Could not generate vision title with Ollama", e);
-          return null;
-        });
+          return title;
+        }
+      ).catch(() => null);
     }
 
+    // 7. Pass through stream, accumulate full content, then save to DB
     const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        let fullContent = "";
-        try {
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            fullContent += chunkText;
-            controller.enqueue(encoder.encode(JSON.stringify({ message: { content: chunkText } }) + "\n"));
-          }
+    const decoder = new TextDecoder();
+    let fullContent = "";
 
-          // Save AI response to DB
-          if (chatId !== "temp-chat" && fullContent.trim()) {
-             await supabase.from("messages").insert({
-              chat_id: chatId,
-              user_id: userId,
-              role: "model",
-              content: fullContent,
-              email: session.user!.email,
-            });
-          }
-
-          // Alert client to the updated title in real-time
-          if (titlePromise) {
-            const resolvedTitle = await titlePromise;
-            if (resolvedTitle) {
-              controller.enqueue(
-                encoder.encode(
-                  "\n" + JSON.stringify({ __generatedTitle: resolvedTitle }) + "\n"
-                )
-              );
+    const transformStream = new TransformStream({
+      async transform(chunk, controller) {
+        const text = decoder.decode(chunk, { stream: true });
+        const lines = text.split("\n").filter(Boolean);
+        for (const line of lines) {
+          try {
+            const parsed = JSON.parse(line) as { message?: { content?: string } };
+            if (parsed.message?.content) {
+              fullContent += parsed.message.content;
             }
+          } catch { /* ignore non-json */ }
+        }
+        controller.enqueue(chunk);
+      },
+      async flush(controller) {
+        // Save AI response to DB
+        if (chatId !== "temp-chat" && fullContent.trim().length > 0) {
+          await supabase.from("messages").insert({
+            chat_id: chatId,
+            user_id: userId,
+            role: "model",
+            content: fullContent,
+            email: session.user!.email,
+          });
+        }
+
+        if (titlePromise) {
+          const resolvedTitle = await titlePromise;
+          if (resolvedTitle) {
+            controller.enqueue(
+              encoder.encode("\n" + JSON.stringify({ __generatedTitle: resolvedTitle }) + "\n")
+            );
           }
-        } catch (streamErr: any) {
-          console.error("Stream processing error:", streamErr);
-          controller.enqueue(encoder.encode(JSON.stringify({ error: "Response stream interrupted." }) + "\n"));
-        } finally {
-          controller.close();
         }
       },
     });
 
-    return new Response(stream, {
+    return new Response(aiStream.pipeThrough(transformStream), {
       headers: {
         "Content-Type": "application/x-ndjson",
         "Cache-Control": "no-cache",
       },
     });
-
   } catch (error: any) {
     console.error("Vision API Error:", error);
     return apiError("Vision processing failed.", 500, "INTERNAL_SERVER_ERROR");

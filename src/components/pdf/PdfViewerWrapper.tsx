@@ -65,14 +65,14 @@ export default function PdfViewerWrapper({
       >
         {Array.from({ length: numPages }, (_, i) => {
           const pg = i + 1;
-          const isActive = currentPage === pg && typeof window !== "undefined" && window.innerWidth < 640;
+          const isActive = currentPage === pg;
           return (
             <div
               key={pg}
               id={`thumb-item-${pg}`}
               className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 ${
                 isActive
-                  ? "border-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.3)] scale-[1.02]"
+                  ? "border-[#E8E5E0] dark:border-[#545454] bg-[#F0EDE8] dark:bg-[#252525]"
                   : "border-transparent hover:border-[#E8E5E0] dark:hover:border-[#545454]"
               }`}
               onClick={() => onThumbnailClick?.(pg)}
@@ -85,9 +85,9 @@ export default function PdfViewerWrapper({
                 className="shadow-sm bg-white"
               />
               <div
-                className={`text-center py-1 text-xs font-medium transition-colors ${
+                className={`text-center py-1 text-xs font-semibold transition-colors ${
                   isActive
-                    ? "text-[#3B82F6] bg-blue-50 dark:bg-blue-900/20"
+                    ? "text-[#252525] dark:text-white bg-[#E8E5E0] dark:bg-[#333]"
                     : "text-[#545454] dark:text-[#7D7D7D] bg-[#F5F3EF] dark:bg-[#1A1A1A]"
                 }`}
               >

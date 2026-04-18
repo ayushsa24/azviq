@@ -22,7 +22,8 @@ const ACTIVITY_LABELS: Record<string, string> = {
     pdf: "PDFs",
     exercise: "Exercises",
     revision: "Revision",
-    ai_teacher: "Chat AI"
+    ai_teacher: "Chat AI",
+    personal_ai: "AI Teacher"
 };
 
 const formatTime = (totalMinutes: number) => {
@@ -220,8 +221,8 @@ export default function StudyConsistency() {
     };
 
     return (
-        <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 relative group/card mb-4 md:mb-0
-            ${isDark ? "hover:bg-white/10 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
+        <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 relative z-[40] group/card mb-4 md:mb-0
+            ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
             shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
         `}>
             {/* Header - Standardized */}

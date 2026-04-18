@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { X, User, Edit3, Save, Camera, Trash2 } from "lucide-react";
 
@@ -11,6 +12,8 @@ interface Props {
 
 export default function ProfileModal({ open, onClose }: Props) {
     const { theme } = useTheme();
+    const searchParams = useSearchParams();
+    const fromParam = searchParams.get("from") || "/dashboard";
     const isDark = theme === "dark";
 
     const [editing, setEditing] = useState(false);
@@ -56,6 +59,13 @@ export default function ProfileModal({ open, onClose }: Props) {
         setAvatarPreview("");
     };
 
+    const handleCloseModal = () => {
+        if (typeof window !== "undefined") {
+            window.history.pushState(null, '', fromParam);
+        }
+        onClose();
+    };
+
     const handleSave = async () => {
         const userId = localStorage.getItem("userId");
         if (!userId) return;
@@ -84,14 +94,14 @@ export default function ProfileModal({ open, onClose }: Props) {
         /* Backdrop */
         <div
             className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-            onClick={onClose}
+            onClick={handleCloseModal}
         >
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
             {/* Modal card */}
             <div
                 className={`relative z-10 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden
-          ${isDark ? "bg-[#1A1A1A] border border-[#2E2E2E]" : "bg-white border border-[#7D7D7D]/40"}`}
+          ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border border-[#2E2E2E]" : "bg-white border border-[#7D7D7D]/40"}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -111,7 +121,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                                 <Edit3 className="w-3 h-3" /> Edit
                             </button>
                         )}
-                        <button onClick={onClose} className={`p-1.5 rounded-xl transition-colors ${isDark ? "hover:bg-[#2E2E2E] text-[#7D7D7D]" : "hover:bg-[#CFCFCF] text-[#9E9E9E]"}`}>
+                        <button onClick={handleCloseModal} className={`p-1.5 rounded-xl transition-colors ${isDark ? "hover:bg-[#2E2E2E] text-[#7D7D7D]" : "hover:bg-[#CFCFCF] text-[#9E9E9E]"}`}>
                             <X className="w-4 h-4" />
                         </button>
                     </div>

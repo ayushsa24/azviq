@@ -43,3 +43,4 @@ next-env.d.ts
 # GSD (Get Shit Done) - local context only
 .gsd-core/
 out.json
+README.md

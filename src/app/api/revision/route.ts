@@ -5,11 +5,13 @@ import { authOptions } from "@/lib/auth";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { checkAiDailyQuota } from "@/lib/ai-tracking";
+import { runSubscriptionGuard, getTextResponse } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+// PDF path still uses SDK directly (binary multipart can't go through text manager)
 const apiKey = process.env.GEMINI_API_KEY || "";
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
@@ -31,7 +33,7 @@ export async function GET() {
 
         const { data: revisions, error } = await supabase
             .from("revisions")
-            .select("*, notes(title)")
+            .select("id, title, created_at, note_id, notes(title)")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false });
 
@@ -74,7 +76,7 @@ export async function POST(req: Request) {
         // 4. Fetch the note (ownership-verified)
         const { data: note, error: noteError } = await supabase
             .from("notes")
-            .select("id, title, content, file_url")
+            .select("id, title, content, file_url, original_note_id, original_note:original_note_id (share_mode)")
             .eq("id", noteId)
             .eq("user_id", user.id)
             .single();
@@ -82,18 +84,20 @@ export async function POST(req: Request) {
         if (noteError || !note)
             return apiError("Note not found", 404, "NOTE_NOT_FOUND");
 
+        // Security check for revoked imports
+        if (note.original_note_id && note.original_note && (note.original_note as any).share_mode === 'private') {
+            return apiError("Access to this shared material has been revoked by the owner.", 403, "MATERIAL_REVOKED");
+        }
+
         const isPdf = !!(note.file_url && (!note.content || (note.content as string).trim() === ""));
 
         if (!isPdf && !note.content)
             return apiError("Note has no content to generate a revision from.", 400, "EMPTY_NOTE");
 
-        // 5. AI service & Quota check
-        if (!genAI)
-            return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
-
-        const quota = await checkAiDailyQuota(user.id);
-        if (!quota.success) {
-            return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
+        // 5. Quota check (always uses FREE_MODEL for revision)
+        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "note_ai", user.id);
+        if (!guard.allowed) {
+            return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
         }
 
         const systemInstruction = `You are an expert revision tutor. Based on the provided note, produce a structured JSON object with exactly these three fields:
@@ -103,29 +107,20 @@ export async function POST(req: Request) {
   "qa_pairs": [{ "question": "A review question?", "answer": "The answer." }]
 }
 
-IMPORTANT — For the "summary" field, generate a COMPACT, SCANNABLE revision sheet that covers every major heading and topic from the note:
+IMPORTANT — For the "summary" field, generate a COMPACT, SCANNABLE revision sheet covering every major heading:
 - Use ## for each major heading/topic from the note.
-- Under each heading, use one of these formats (choose whichever fits best):
-  • 3-5 bullet points (- point) summarizing the key facts.
-  • A 2-3 line definition or explanation for concepts.
-  • A markdown table (| Col1 | Col2 |) for comparisons, lists of types, steps, or properties.
-- Keep each section SHORT and FOCUSED — the entire summary should be quick to scan, not read like an essay.
-- Use **bold** to highlight the most important terms or values in each section.
-- Cover ALL important topics from the note — don't skip any headings.
-- Separate sections with a blank line.
+- Under each heading, use bullet points, definitions, or markdown tables.
+- Bold the most important terms. Keep sections short and focused.
+- Cover ALL topics. Return ONLY the raw JSON — no markdown code fences.`;
 
-For "keywords": 8-12 items.
-For "qa_pairs": 6-10 items.
-
-Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
-
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
-
-        // 6. Generate content with explicit error handling
+        // 6. Generate content
         let revisionText: string;
         try {
-            let response;
             if (isPdf) {
+                // PDF path: must use SDK directly (binary multipart inline data)
+                if (!genAI) return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
+                const model = genAI.getGenerativeModel({ model: FREE_MODEL, systemInstruction });
+
                 const pdfRes = await fetch(note.file_url as string);
                 if (!pdfRes.ok)
                     return apiError("Failed to fetch PDF file for processing.", 502, "PDF_FETCH_ERROR");
@@ -133,15 +128,22 @@ Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
                 const pdfBuffer = await pdfRes.arrayBuffer();
                 const pdfBase64 = Buffer.from(pdfBuffer).toString("base64");
 
-                response = await model.generateContent([
+                const response = await model.generateContent([
                     { inlineData: { mimeType: "application/pdf", data: pdfBase64 } },
                     `Note Title: ${note.title as string}\n\nThis is a PDF document. Generate the revision object covering all topics in the PDF.`,
                 ]);
+                revisionText = response.response.text();
             } else {
+                // Text path: route through AI Manager (has retry + fallback logic)
                 const prompt = `Note Title: ${note.title as string}\n\nContent:\n${note.content as string}\n\nGenerate the revision object.`;
-                response = await model.generateContent(prompt);
+                revisionText = await getTextResponse(prompt, {
+                    model: FREE_MODEL,
+                    style: "precise",
+                    systemPrompt: systemInstruction,
+                    stream: false,
+                });
             }
-            revisionText = response.response.text().trim()
+            revisionText = revisionText.trim()
                 .replace(/^```json\s*/m, "").replace(/^```\s*/m, "").replace(/```\s*$/m, "").trim();
         } catch {
             return apiError("AI revision generation failed. Please try again.", 502, "AI_SERVICE_ERROR");
@@ -162,7 +164,7 @@ Return ONLY the raw JSON object — no markdown code fences, no backticks.`;
             .insert({
                 user_id: user.id,
                 note_id: note.id,
-                title: `Revision: ${note.title as string}`,
+                title: `Revision: ${(note.title as string).replace(/^\[\w+\]\s*/, "")}`,
                 summary: parsed.summary || "",
                 keywords: parsed.keywords || [],
                 qa_pairs: parsed.qa_pairs || [],

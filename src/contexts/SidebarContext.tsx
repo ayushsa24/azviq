@@ -16,6 +16,23 @@ const SidebarContext = createContext<SidebarContextType>({
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [open, setOpen] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    // Initial load
+    useEffect(() => {
+        const saved = localStorage.getItem("sidebar_open");
+        if (saved !== null) {
+            setOpen(saved === "true");
+        }
+        setIsInitialized(true);
+    }, []);
+
+    // Save on change
+    useEffect(() => {
+        if (isInitialized) {
+            localStorage.setItem("sidebar_open", open.toString());
+        }
+    }, [open, isInitialized]);
 
     const toggle = () => setOpen(o => !o);
 

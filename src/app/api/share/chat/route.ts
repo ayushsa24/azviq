@@ -69,7 +69,7 @@ export async function GET() {
 
         const { data: links, error } = await supabase
             .from("shared_chats")
-            .select("id, title, created_at")
+            .select("id, title, created_at, chat_id")
             .eq("user_id", dbUser.id)
             .order("created_at", { ascending: false });
 
@@ -79,46 +79,5 @@ export async function GET() {
     } catch (err) {
         console.error("[share/chat GET]", err);
         return NextResponse.json({ error: "Failed to list shares" }, { status: 500 });
-    }
-}
-
-// DELETE /api/share/chat/[id] — revoke a shared link
-export async function DELETE(req: Request, { params }: { params: any }) {
-    try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const id = (await params).id;
-
-        const adminSupabase = createClient(
-            process.env.SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-
-        // Verify ownership
-        const { data: dbUser } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (!dbUser) {
-            return NextResponse.json({ error: "User not found" }, { status: 403 });
-        }
-
-        const { error } = await adminSupabase
-            .from("shared_chats")
-            .delete()
-            .eq("id", id)
-            .eq("user_id", dbUser.id);
-
-        if (error) throw error;
-
-        return NextResponse.json({ success: true });
-    } catch (err) {
-        console.error("[share/chat/:id DELETE]", err);
-        return NextResponse.json({ error: "Failed to delete shared link." }, { status: 500 });
     }
 }

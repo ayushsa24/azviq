@@ -6,12 +6,27 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useUser } from "@/contexts/UserContext";
-import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings, Trash2 } from "lucide-react";
+import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings, Trash2, Crown } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useRouter } from "next/navigation";
 
-export default function Header({ onMenuClick, open, onTrashClick, onProfileClick }: { onMenuClick: () => void; open: boolean; onTrashClick?: () => void; onProfileClick?: () => void }) {
+export default function Header({ 
+  onMenuClick, 
+  open, 
+  onTrashClick, 
+  onProfileClick, 
+  onUpgradeClick,
+  variant = "fixed"
+}: { 
+  onMenuClick: () => void; 
+  open: boolean; 
+  onTrashClick?: () => void; 
+  onProfileClick?: () => void; 
+  onUpgradeClick?: () => void;
+  variant?: "fixed" | "sticky" | "relative"
+}) {
   const router = useRouter();
   const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
@@ -19,6 +34,7 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
   const { user } = useUser();
   const { openSettings } = useSettings();
+  const { openProfile } = useProfile();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -40,7 +56,7 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
   };
 
   return (
-    <header className={`h-[calc(3.25rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(env(safe-area-inset-top,0px)+8px)] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out fixed z-50 ${theme === 'dark'
+    <header className={`h-[calc(3.25rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(env(safe-area-inset-top,0px)+8px)] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out ${variant} z-50 ${theme === 'dark'
       ? 'bg-[#1A1A1A] border-[#545454]'
       : 'bg-[#F5F3EF] border-[#E8E5E0]'
       } ${open
@@ -58,9 +74,9 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
               ${theme === 'dark' ? 'hover:bg-[#545454] text-white' : 'hover:bg-[#F0EDE8] text-[#252525]'}`}
           >
             <img 
-              src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
-              alt="Avyx Logo" 
-              className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110 group-hover:opacity-0" 
+              src="/azviq_logo.png" 
+              alt="Azviq Logo" 
+              className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:opacity-0 dark:invert" 
             />
 
             {open ? (
@@ -73,7 +89,7 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
           {/* TITLE */}
           <span className={`font-bold text-2xl tracking-tighter transition-colors pl-1 cursor-default font-[var(--font-lexend)]
             ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
-            Avyx
+            Azviq
           </span>
         </div>
       </div>
@@ -125,7 +141,13 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
               : 'bg-white border-[#E8E5E0]'
               }`}>
                   <button
-                    onClick={() => { setDropdownOpen(false); router.push("/profile"); }}
+                    onClick={() => { 
+                      setDropdownOpen(false); 
+                      const currentFullUrl = window.location.pathname + window.location.search;
+                      const newUrl = `/profile?from=${encodeURIComponent(currentFullUrl)}`;
+                      window.history.pushState(null, '', newUrl);
+                      openProfile(); 
+                    }}
                     className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${theme === 'dark'
                       ? 'text-[#CFCFCF] hover:bg-[#545454]'
                       : 'text-[#545454] hover:bg-[#F0EDE8]'
@@ -134,7 +156,17 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
                     My Profile
                   </button>
                 <button
-                  onClick={() => { setDropdownOpen(false); router.push("/trash"); }}
+                  onClick={() => { 
+                    setDropdownOpen(false); 
+                    const currentFullUrl = window.location.pathname + window.location.search;
+                    const newUrl = `/trash?from=${encodeURIComponent(currentFullUrl)}`;
+                    window.history.pushState(null, '', newUrl);
+                    if (onTrashClick) {
+                      onTrashClick();
+                    } else {
+                      router.push("/trash");
+                    }
+                  }}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
                     ? 'text-[#CFCFCF] hover:bg-[#545454]'
                     : 'text-[#545454] hover:bg-[#F0EDE8]'
@@ -143,13 +175,28 @@ export default function Header({ onMenuClick, open, onTrashClick, onProfileClick
                   Trash Bin
                 </button>
                 <button
-                  onClick={() => { setDropdownOpen(false); router.push("/settings"); }}
+                  onClick={() => { 
+                    setDropdownOpen(false); 
+                    const currentFullUrl = window.location.pathname + window.location.search;
+                    const newUrl = `/settings?from=${encodeURIComponent(currentFullUrl)}`;
+                    window.history.pushState(null, '', newUrl);
+                    openSettings(); 
+                  }}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer ${theme === 'dark'
                     ? 'text-[#CFCFCF] hover:bg-[#545454]'
                     : 'text-[#545454] hover:bg-[#F0EDE8]'
                     }`}>
                   <Settings className="w-4 h-4" />
                   Settings
+                </button>
+                <button
+                  onClick={() => { setDropdownOpen(false); onUpgradeClick?.(); }}
+                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer border-t border-b ${theme === 'dark'
+                    ? 'text-[#C2A27A] border-[#545454] hover:bg-[#545454]'
+                    : 'text-[#8B6F4E] border-[#E8E5E0] hover:bg-[#F0EDE8]'
+                    }`}>
+                  <Crown className="w-4 h-4" />
+                  <span className="font-bold">Upgrade Plan</span>
                 </button>
 
 

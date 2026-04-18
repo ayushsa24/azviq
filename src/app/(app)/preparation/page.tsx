@@ -1,29 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
-import { Skeleton } from "@/components/ui/Skeleton";
 
 import ExerciseTab from "@/components/preparation/ExerciseTab";
 import RevisionTab from "@/components/preparation/RevisionTab";
 import PersonalAITab from "@/components/preparation/PersonalAITab";
 import GenerateExerciseModal from "@/components/preparation/GenerateExerciseModal";
 import CreateRevisionModal from "@/components/preparation/CreateRevisionModal";
-import TakeExercisePage from "@/components/preparation/TakeExercisePage";
-import TakeRevisionPage from "@/components/preparation/TakeRevisionPage";
 import { logRecentActivity } from "@/lib/logRecentActivity";
-import useSWR from "swr";
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 type TabType = "exercise" | "revision" | "personal_ai";
 
 const TABS: { id: TabType; label: string }[] = [
     { id: "exercise", label: "Exercise" },
     { id: "revision", label: "Revision" },
-    { id: "personal_ai", label: "Personal AI" },
+    { id: "personal_ai", label: "AI Teacher" },
 ];
 
 const tabCls = (active: boolean) =>
@@ -34,233 +28,75 @@ const tabCls = (active: boolean) =>
 
 export default function PreparationPage() {
     const router = useRouter();
-    const pathname = usePathname();
-    const [activeTab, setActiveTab] = useState<TabType>("exercise");
+    const searchParams = useSearchParams();
+    
+    // Sync active tab with URL query parameter (?tab=)
+    const activeTab = (searchParams.get("tab") as TabType) || "exercise";
+
     const [search, setSearch] = useState("");
+    const [isFocusMode, setIsFocusMode] = useState(() => searchParams.get("fullscreen") === "true");
     const [isGenerateOpen, setIsGenerateOpen] = useState(false);
     const [isCreateRevisionOpen, setIsCreateRevisionOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
         if (typeof window !== "undefined") {
-            const saved = localStorage.getItem('preparationViewMode');
+            const saved = localStorage.getItem("preparationViewMode");
             if (saved === "grid" || saved === "list") return saved;
         }
         return "grid";
     });
 
+    const scrollContentRef = useRef<HTMLDivElement>(null);
+
     // Save view mode preference
     useEffect(() => {
-        localStorage.setItem('preparationViewMode', viewMode);
+        localStorage.setItem("preparationViewMode", viewMode);
     }, [viewMode]);
 
-    // Full-page exercise state
-    const [activeExercise, setActiveExercise] = useState<any | null>(null);
-    // Full-page revision state
-    const [activeRevision, setActiveRevision] = useState<any | null>(null);
-    const [isAutoLoading, setIsAutoLoading] = useState(false);
-    const processedIdRef = useRef<string | null>(null);
-
-    const scrollContentRef = useRef<HTMLDivElement>(null);
-    const searchParams = useSearchParams();
-
-    // Deep-link: auto-open exercise or revision from URL params (e.g. from Recent Activity)
+    // Clear search and scroll to top when tab changes
     useEffect(() => {
-        // IMPORTANT: Ignore URL updates when viewing global overlays so we don't close the current file.
-        if (pathname === "/settings" || pathname === "/trash" || pathname.startsWith("/settings/")) {
-            return;
-        }
-
-        const tabParam = searchParams.get("tab") as TabType | null;
-        const idParam = searchParams.get("id");
-
-        // Only react if the ID in the URL actually changed
-        if (idParam === processedIdRef.current) return;
-        processedIdRef.current = idParam;
-
-        if (tabParam && ["exercise", "revision", "personal_ai"].includes(tabParam)) {
-            setActiveTab(tabParam);
-        }
-
-        if (!idParam) {
-            setActiveExercise(null);
-            setActiveRevision(null);
-            return;
-        }
-
-        // Clear existing views so the new one can take over
-        if (!activeExercise || activeExercise.id !== idParam) setActiveExercise(null);
-        if (!activeRevision || activeRevision.id !== idParam) setActiveRevision(null);
-
-        async function autoOpen() {
-            if (activeExercise?.id === idParam || activeRevision?.id === idParam) return;
-            
-            setIsAutoLoading(true);
-            if (tabParam === "exercise") {
-                try {
-                    const res = await fetch(`/api/exercises/${idParam}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.exercise) {
-                            setActiveExercise(data.exercise);
-                            logRecentActivity({
-                                item_id: data.exercise.id,
-                                item_type: "exercise",
-                                title: data.exercise.title || "Untitled Exercise",
-                                href: `/preparation?tab=exercise&id=${data.exercise.id}`,
-                            });
-                        }
-                    }
-                } catch (e) { console.error("Failed to load exercise", e); }
-            } else if (tabParam === "revision") {
-                try {
-                    const res = await fetch(`/api/revision/${idParam}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.revision) {
-                            setActiveRevision(data.revision);
-                            logRecentActivity({
-                                item_id: data.revision.id,
-                                item_type: "revision",
-                                title: data.revision.title || "Untitled Revision",
-                                href: `/preparation?tab=revision&id=${data.revision.id}`,
-                            });
-                        }
-                    }
-                } catch (e) { console.error("Failed to load revision", e); }
-            }
-            setIsAutoLoading(false);
-        }
-
-        autoOpen();
-    }, [searchParams]);
-
-    // Reset scroll to top when tab changes
-    useEffect(() => {
+        setSearch("");
         if (scrollContentRef.current) {
             scrollContentRef.current.scrollTo({ top: 0, behavior: "auto" });
         }
     }, [activeTab]);
+    
+    // Sync Focus Mode to URL
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (isFocusMode) {
+            params.set("fullscreen", "true");
+        } else {
+            params.delete("fullscreen");
+        }
+        router.push(`/preparation?${params.toString()}`, { scroll: false });
+    }, [isFocusMode]);
 
-    // URL sync happens via the useEffect deep-link logic at the top.
-    // Standard router navigation now handles hardware back buttons.
+    // Change tab and update URL query params
+    const handleTabChange = (tabId: TabType) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", tabId);
+        router.push(`/preparation?${params.toString()}`, { scroll: false });
+    };
 
+    // Card click handlers — simply navigate to dedicated route pages
     const handleStartExercise = (ex: any) => {
-        setActiveExercise(ex);
-        processedIdRef.current = ex.id;
-        logRecentActivity({
-            item_id: ex.id,
-            item_type: "exercise",
-            title: ex.title || "Untitled Exercise",
-            href: `/preparation?tab=exercise&id=${ex.id}`,
-        });
-        router.push(`/preparation?tab=exercise&id=${ex.id}`);
+        router.push(`/preparation/exercise/${ex.id}`);
     };
 
     const handleOpenRevision = (rev: any) => {
-        setActiveRevision(rev);
-        processedIdRef.current = rev.id;
-        logRecentActivity({
-            item_id: rev.id,
-            item_type: "revision",
-            title: rev.title || "Untitled Revision",
-            href: `/preparation?tab=revision&id=${rev.id}`,
-        });
-        router.push(`/preparation?tab=revision&id=${rev.id}`);
-    };
-
-    const handleBack = () => {
-        // If we have history (like coming from Dashboard/Recent Activity), go back there!
-        // This handles the user requirement "where to i come there i go"
-        if (typeof window !== "undefined" && window.history.length > 1) {
-            router.back();
-            return;
-        }
-
-        // Local state cleanup fallback if no history
-        if (activeExercise || activeRevision || searchParams.get("id")) {
-            setActiveExercise(null);
-            setActiveRevision(null);
-            processedIdRef.current = null;
-            if (searchParams.get("id")) {
-                router.push("/preparation", { scroll: false });
-            }
-            return;
-        }
-
-        router.push("/preparation");
+        router.push(`/preparation/revision/${rev.id}`);
     };
 
     const isExerciseTab = activeTab === "exercise";
     const isRevisionTab = activeTab === "revision";
-    const isFullPageOpen = !!activeExercise || !!activeRevision || !!searchParams.get("id");
 
     return (
-        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden relative">
-            {/* Full-page views rendered as absolute overlays to keep main list mounted */}
-            {activeRevision && (
-                <div className="absolute inset-0 z-50 bg-white dark:bg-[#1A1A1A]">
-                    <TakeRevisionPage
-                        revision={activeRevision}
-                        onBack={handleBack}
-                    />
-                </div>
-            )}
-            {activeExercise && (
-                <div className="absolute inset-0 z-50 bg-white dark:bg-[#1A1A1A]">
-                    <TakeExercisePage
-                        exercise={activeExercise}
-                        onBack={handleBack}
-                        onComplete={() => {
-                            setRefreshKey(k => k + 1);
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* Deep-link Loading Skeleton Overlays */}
-            {isAutoLoading && (
-                <div className="absolute inset-0 z-[101] bg-[#F5F3EF] dark:bg-[#1A1A1A] flex flex-col transition-colors">
-                    {/* Header Skeleton */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E5E0] dark:border-[#2A2A2A] bg-white/50 dark:bg-white/5">
-                        <div className="flex items-center gap-4">
-                            <Skeleton className="w-10 h-10 rounded-full" />
-                            <Skeleton className="w-48 h-6 rounded-md" />
-                        </div>
-                        <Skeleton className="w-24 h-9 rounded-full" />
-                    </div>
-
-                    {/* Content Skeleton */}
-                    <div className="flex-1 max-w-5xl mx-auto w-full p-6 sm:p-10 space-y-8">
-                        <div className="space-y-4">
-                            <Skeleton className="w-1/3 h-4 rounded-md opacity-60" />
-                            <Skeleton className="w-full h-12 rounded-xl" />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4 p-6 rounded-2xl border border-dashed border-[#E8E5E0] dark:border-[#3A3A3A]">
-                                <Skeleton className="w-1/2 h-6 rounded-md mb-4" />
-                                <Skeleton className="w-full h-4 rounded-md" />
-                                <Skeleton className="w-full h-4 rounded-md" />
-                                <Skeleton className="w-3/4 h-4 rounded-md" />
-                            </div>
-                            <div className="space-y-4 p-6 rounded-2xl border border-dashed border-[#E8E5E0] dark:border-[#3A3A3A]">
-                                <Skeleton className="w-1/2 h-6 rounded-md mb-4" />
-                                <Skeleton className="w-full h-4 rounded-md" />
-                                <Skeleton className="w-full h-4 rounded-md" />
-                                <Skeleton className="w-3/4 h-4 rounded-md" />
-                            </div>
-                        </div>
-
-                        <div className="mt-10 space-y-4">
-                            <Skeleton className="w-full h-32 rounded-2xl" />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className={`flex h-full flex-col ${isFullPageOpen ? 'hidden' : 'flex'}`}>
+        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] overflow-hidden relative">
+            <div className={`flex h-full flex-col transition-all duration-300 ${isFocusMode ? 'pt-0' : ''}`}>
                 {/* Fixed Header Section (Title + Search + Tabs) */}
-                <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] border-b border-transparent">
+                {!isFocusMode && (
+                    <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-b border-transparent">
                     {/* Title Section */}
                     <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
                         <SidebarToggleButton />
@@ -281,7 +117,7 @@ export default function PreparationPage() {
                                 placeholder={
                                     activeTab === "exercise" ? "Search Exercise" :
                                     activeTab === "revision" ? "Search Revision" :
-                                    "Search Personal AI"
+                                    "Search AI Teacher"
                                 }
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -340,7 +176,7 @@ export default function PreparationPage() {
                             {TABS.map((tab) => (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => handleTabChange(tab.id)}
                                     className={tabCls(activeTab === tab.id)}
                                 >
                                     {tab.label}
@@ -374,33 +210,39 @@ export default function PreparationPage() {
                             </div>
                         )}
                     </div>
-                </div>
+                    </div>
+                )}
 
                 {/* Scrollable Content Area */}
                 <div
                     ref={scrollContentRef}
-                    className="flex-1 overflow-y-auto px-4 sm:px-6 pb-0 mt-2 scrollbar-hide"
+                    className={`flex-1 overflow-y-auto scrollbar-hide transition-all duration-300 ${isFocusMode ? 'px-0 mt-0 h-full' : 'px-4 sm:px-6 mt-2'}`}
                 >
                     {/* Tab content - rendered always but hidden when inactive to preserve state/prevent re-loads */}
-                <div className={activeTab === "exercise" ? "block" : "hidden"}>
-                    <ExerciseTab
-                        search={search}
-                        onNeedGenerate={() => setIsGenerateOpen(true)}
-                        refreshKey={refreshKey}
-                        onStartExercise={handleStartExercise}
-                        viewMode={viewMode}
-                    />
+                    <div className={activeTab === "exercise" ? "block" : "hidden"}>
+                        <ExerciseTab
+                            search={search}
+                            onNeedGenerate={() => setIsGenerateOpen(true)}
+                            refreshKey={refreshKey}
+                            onStartExercise={handleStartExercise}
+                            viewMode={viewMode}
+                        />
+                    </div>
+                    <div className={activeTab === "revision" ? "block" : "hidden"}>
+                        <RevisionTab
+                            search={search}
+                            refreshKey={refreshKey}
+                            onOpenRevision={handleOpenRevision}
+                            viewMode={viewMode}
+                        />
+                    </div>
+                    <div className={activeTab === "personal_ai" ? "block h-full" : "hidden"}>
+                        <PersonalAITab 
+                            isFocusMode={isFocusMode}
+                            onFocusModeChange={setIsFocusMode}
+                        />
+                    </div>
                 </div>
-                <div className={activeTab === "revision" ? "block" : "hidden"}>
-                    <RevisionTab
-                        search={search}
-                        refreshKey={refreshKey}
-                        onOpenRevision={handleOpenRevision}
-                        viewMode={viewMode}
-                    />
-                </div>
-                {activeTab === "personal_ai" && <PersonalAITab />}
-            </div>
             </div>
 
             {/* Modals */}
@@ -409,18 +251,16 @@ export default function PreparationPage() {
                 onClose={() => setIsGenerateOpen(false)}
                 onSuccess={(newExercise) => {
                     setIsGenerateOpen(false);
-                    setActiveTab("exercise");
+                    handleTabChange("exercise");
                     setRefreshKey(k => k + 1);
                     if (newExercise) {
-                        setActiveExercise(newExercise);
                         logRecentActivity({
                             item_id: newExercise.id,
                             item_type: "exercise",
                             title: newExercise.title || "Untitled Exercise",
-                            href: `/preparation?tab=exercise&id=${newExercise.id}`,
+                            href: `/preparation/exercise/${newExercise.id}`,
                         });
-                        // Update URL so back button works correctly
-                        router.push(`/preparation?tab=exercise&id=${newExercise.id}`);
+                        router.push(`/preparation/exercise/${newExercise.id}`);
                     }
                 }}
             />
@@ -429,18 +269,15 @@ export default function PreparationPage() {
                 onClose={() => setIsCreateRevisionOpen(false)}
                 onSuccess={(revision) => {
                     setIsCreateRevisionOpen(false);
-                    setActiveTab("revision");
+                    handleTabChange("revision");
                     setRefreshKey(k => k + 1);
-                    // Immediately open the new revision full-page
-                    setActiveRevision(revision);
                     logRecentActivity({
                         item_id: revision.id,
                         item_type: "revision",
                         title: revision.title || "Untitled Revision",
-                        href: `/preparation?tab=revision&id=${revision.id}`,
+                        href: `/preparation/revision/${revision.id}`,
                     });
-                    // Update URL so back button works correctly
-                    router.push(`/preparation?tab=revision&id=${revision.id}`);
+                    router.push(`/preparation/revision/${revision.id}`);
                 }}
             />
         </div>

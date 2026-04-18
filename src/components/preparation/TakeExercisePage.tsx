@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw, PanelLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw, PanelLeft, FileText, FileIcon } from "lucide-react";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { ICON_MAP } from "../editor/EmojiPicker";
 
 interface Question {
     question: string;
@@ -150,8 +151,14 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                 }),
             }).catch(() => {}); // Fire and forget
             setIsSubmitted(true);
-            setShowResults(true);   // go to results screen
-            // onComplete(); // removed so user can see score first
+            
+            // Per user request: 
+            // - On Laptop (>= 768px): Stay on the current question to let user see answers/explanations immediately.
+            // - On Mobile: Show the results summary screen.
+            if (window.innerWidth < 768) {
+                setShowResults(true);
+            }
+            // If laptop, we do nothing else (setIsSubmitted(true) already enables the review UI)
         } catch {
             startTimer(); // resume timer if failed
             alert("Failed to submit exercise results.");
@@ -189,13 +196,24 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
         return isDark ? 'bg-transparent text-[#BABABA] border-[#545454] hover:bg-[#252525]' : 'bg-white text-[#545454] border-[#DEDBD6] hover:bg-[#F0EDE8]';
     };
 
+    const renderIcon = (title: string, size = 18) => {
+        const iconMatch = title.match(/^\[(\w+)\]/);
+        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+            const IconComp = ICON_MAP[iconMatch[1]];
+            return <IconComp size={size} className="shrink-0" />;
+        }
+        return <FileText size={size} className="shrink-0 opacity-60" />;
+    };
+
+    const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
+
     // ══════════════════════════════════════
     //  RESULTS SCREEN
     // ══════════════════════════════════════
     if (showResults || (isSubmitted && exercise.status === 'Completed' && !currentQuestion)) {
         return (
-            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-y-auto scrollbar-hide">
-                <div className="max-w-xl mx-auto w-full px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-8 flex flex-col gap-6">
+            <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-y-auto scrollbar-hide">
+                <div className="max-w-xl mx-auto w-full px-4 sm:px-6 pt-5 sm:pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-8 flex flex-col gap-6">
 
                     {/* Back + title */}
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -215,7 +233,10 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                         >
                             <ArrowLeft size={18} />
                         </button>
-                        <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1">{exercise.title}</h1>
+                        <h1 className="text-base font-bold text-[#252525] dark:text-white truncate flex-1 flex items-center gap-2">
+                            {renderIcon(exercise.title)}
+                            <span className="truncate">{cleanTitle(exercise.title)}</span>
+                        </h1>
                     </div>
 
                     {/* Big score card */}
@@ -283,10 +304,10 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
     //  QUIZ SCREEN
     // ══════════════════════════════════════
     return (
-        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] overflow-hidden">
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-hidden">
 
             {/* ── Top bar ── */}
-            <div className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 border-b shrink-0 ${isDark ? 'border-[#333] bg-[#1A1A1A]' : 'border-[#E8E5E0] bg-[#F5F3EF]'}`}>
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3 px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] transition-colors">
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}
@@ -304,8 +325,9 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
                     <ArrowLeft size={20} />
                 </button>
 
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{exercise.title}</p>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                    {renderIcon(exercise.title, 16)}
+                    <p className="text-sm font-bold text-[#252525] dark:text-white truncate">{cleanTitle(exercise.title)}</p>
                 </div>
 
                 {/* Timer */}

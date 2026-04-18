@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "next/navigation";
 import { useNotifications, Notification } from "@/contexts/NotificationContext";
-import { Bell, X, CheckCheck, Trash2, BookOpen, AlertTriangle, Clock, TrendingUp, Calendar, BarChart2, Flame, ArrowLeft, ListTodo, Zap, CalendarClock } from "lucide-react";
+import { Bell, X, AlertTriangle, Trash2, Clock, TrendingUp, Calendar, BarChart2, Flame, ListTodo, Zap, CalendarClock, BookOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 
@@ -32,35 +32,41 @@ export default function NotificationPanel() {
     const [activeConfirmId, setActiveConfirmId] = useState<string | null>(null);
     const router = useRouter();
     const panelRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const touchStartY = useRef(0);
+    const touchStartX = useRef(0);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
 
     // Handle mobile hardware back button
     useEffect(() => {
-        if (panelOpen && typeof window !== "undefined" && window.innerWidth < 768) {
-            // Push state so back button doesn't exit the app
+        if (panelOpen && typeof window !== "undefined" && isMobile) {
             window.history.pushState({ modal: 'notifications' }, "");
-
             const handlePopState = () => {
                 setPanelOpen(false);
-                router.push("/dashboard");
             };
-
             window.addEventListener("popstate", handlePopState);
             return () => window.removeEventListener("popstate", handlePopState);
         }
-    }, [panelOpen, setPanelOpen, router]);
+    }, [panelOpen, setPanelOpen, isMobile]);
 
     const handleClose = () => {
         setPanelOpen(false);
-        if (typeof window !== "undefined" && window.innerWidth < 768) {
+        if (typeof window !== "undefined" && isMobile) {
             router.push("/dashboard");
         }
     };
 
-    // Close on outside click
+    // Close on outside click (Desktop only)
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-                // Check if click was on the bell button (has data-notification-bell attr)
+            if (!isMobile && panelRef.current && !panelRef.current.contains(e.target as Node)) {
                 const target = e.target as HTMLElement;
                 if (target.closest("[data-notification-bell]")) return;
                 setPanelOpen(false);
@@ -68,101 +74,161 @@ export default function NotificationPanel() {
         };
         if (panelOpen) document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
-    }, [panelOpen, setPanelOpen]);
-
-    if (!panelOpen) return null;
+    }, [panelOpen, setPanelOpen, isMobile]);
 
     return (
-        <div
-            ref={panelRef}
-            className={`
-                fixed z-[200] flex flex-col
-                inset-0 w-full h-[100dvh]
-                md:inset-auto md:top-[60px] md:left-56 md:w-[360px] md:h-auto md:bottom-auto md:max-h-[calc(100vh-120px)]
-                md:rounded-xl md:shadow-2xl md:border
-                ${isDark
-                    ? "bg-[#1A1A1A] md:border-[#3A3A3A] text-white"
-                    : "bg-[#F5F3EF] md:bg-white md:border-[#E8E5E0] text-[#252525]"
-                }
-                animate-in slide-in-from-bottom md:slide-in-from-left duration-200
-            `}
-        >
-            {/* Header */}
-            <div className={`flex items-center justify-between px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-4 md:px-5 md:pt-3 md:pb-3 border-b shrink-0 ${isDark ? "border-[#333]" : "border-[#E8E5E0]"}`}>
-                <div className="flex items-center gap-2">
-                    <Bell className="w-5 h-5 md:w-4 md:h-4" />
-                    <span className="font-extrabold text-xl md:font-semibold md:text-sm">Notifications</span>
-                    {unreadCount > 0 && (
-                        <span className="bg-[#C2A27A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                            {unreadCount}
-                        </span>
+        <AnimatePresence>
+            {panelOpen && (
+                <>
+                    {/* Backdrop for Mobile */}
+                    {isMobile && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm"
+                            onClick={handleClose}
+                        />
                     )}
-                </div>
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={handleClose}
-                        className={`p-1.5 rounded-lg transition-colors ${isDark ? "hover:bg-[#333] text-[#BABABA]" : "hover:bg-[#F0EDE8] text-[#545454]"}`}
-                    >
-                        <X className="w-5 h-5 md:w-4 md:h-4" />
-                    </button>
-                </div>
-            </div>
 
-            {/* Push Notification Enable Banner */}
-            {pushPermission === "default" && (
-                <div className={`mx-3 mt-2 mb-0 flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
-                    isDark ? "bg-[#C2A27A]/10 border-[#C2A27A]/20" : "bg-amber-50 border-amber-200"
-                }`}>
-                    <Zap className="w-4 h-4 shrink-0 text-[#C2A27A]" />
-                    <p className={`text-[11px] flex-1 leading-tight ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
-                        Enable phone alerts for To-Do reminders
-                    </p>
-                    <button
-                        onClick={requestPushPermission}
-                        className="px-3 py-1 bg-[#C2A27A] hover:bg-[#B08F67] text-white text-[11px] font-bold rounded-full shrink-0 transition-all active:scale-95"
+                    <motion.div
+                        ref={panelRef}
+                        initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95, y: -10 }}
+                        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+                        exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95, y: -10 }}
+                        transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
+                        className={`
+                            fixed z-[500] flex flex-col overflow-hidden
+                            ${isMobile 
+                                ? "inset-x-0 bottom-0 h-[95vh] rounded-t-[20px]" 
+                                : "top-[60px] left-56 w-[360px] max-h-[calc(100vh-120px)] rounded-xl shadow-2xl border"
+                            }
+                            ${isDark
+                                ? "bg-[#1A1A1A] md:border-[#3A3A3A] text-white"
+                                : "bg-[#F5F3EF] md:bg-white md:border-[#E8E5E0] text-[#252525]"
+                            }
+                        `}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        Enable
-                    </button>
-                </div>
+                        {/* Mobile Drag Handle */}
+                        {isMobile && (
+                            <div className="w-full flex justify-center pt-3 pb-1 flex-shrink-0">
+                                <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700/50 rounded-full" />
+                            </div>
+                        )}
+
+                        {/* Header */}
+                        <div 
+                            className={`flex items-center justify-between px-4 sm:px-6 pt-2 pb-2.5 md:px-5 md:pt-3 md:pb-3 border-b shrink-0 ${isDark ? "border-[#333]" : "border-[#E8E5E0]"}`}
+                            onTouchStart={(e) => {
+                                touchStartY.current = e.touches[0].clientY;
+                                touchStartX.current = e.touches[0].clientX;
+                            }}
+                            onTouchEnd={(e) => {
+                                if (!isMobile) return;
+                                const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+                                const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+                                if (deltaY > 80 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                                    handleClose();
+                                }
+                            }}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Bell className="w-5 h-5 md:w-4 md:h-4" />
+                                <span className="font-extrabold text-xl md:font-semibold md:text-sm">Notifications</span>
+                                {unreadCount > 0 && (
+                                    <span className="bg-[#C2A27A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={handleClose}
+                                    className={`p-1.5 rounded-lg transition-colors ${isDark ? "hover:bg-[#333] text-[#BABABA]" : "hover:bg-[#F0EDE8] text-[#545454]"}`}
+                                >
+                                    <X className="w-5 h-5 md:w-4 md:h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Push Notification Enable Banner */}
+                        {pushPermission === "default" && (
+                            <div className={`mx-3 mt-2 mb-0 flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
+                                isDark ? "bg-[#C2A27A]/10 border-[#C2A27A]/20" : "bg-amber-50 border-amber-200"
+                            }`}>
+                                <Zap className="w-4 h-4 shrink-0 text-[#C2A27A]" />
+                                <p className={`text-[11px] flex-1 leading-tight ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
+                                    Enable phone alerts for To-Do reminders
+                                </p>
+                                <button
+                                    onClick={requestPushPermission}
+                                    className="px-3 py-1 bg-[#C2A27A] hover:bg-[#B08F67] text-white text-[11px] font-bold rounded-full shrink-0 transition-all active:scale-95"
+                                >
+                                    Enable
+                                </button>
+                            </div>
+                        )}
+
+                        {/* List */}
+                        <div 
+                            ref={scrollContainerRef}
+                            className="flex-1 overflow-y-auto scrollbar-hide overscroll-contain"
+                            onTouchStart={(e) => {
+                                touchStartY.current = e.touches[0].clientY;
+                                touchStartX.current = e.touches[0].clientX;
+                            }}
+                            onTouchEnd={(e) => {
+                                if (!isMobile) return;
+                                const el = scrollContainerRef.current;
+                                if (!el) return;
+                                const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+                                const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+                                
+                                // Only close if it's a clear downswipe (deltaY > 80) and NOT a side swipe
+                                if (deltaY > 80 && Math.abs(deltaY) > Math.abs(deltaX) && el.scrollTop <= 0) {
+                                    handleClose();
+                                }
+                            }}
+                        >
+                            {isLoading && notifications.length === 0 ? (
+                                <div className="flex flex-col gap-3 p-4">
+                                    {[1,2,3].map(i => (
+                                        <div key={i} className={`h-16 rounded-xl animate-pulse ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
+                                    ))}
+                                </div>
+                            ) : notifications.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                    <Bell className={`w-10 h-10 mb-3 ${isDark ? "text-[#545454]" : "text-[#CFCFCF]"}`} />
+                                    <p className={`text-sm font-medium ${isDark ? "text-[#7D7D7D]" : "text-[#545454]"}`}>
+                                        No notifications yet
+                                    </p>
+                                    <p className={`text-xs mt-1 ${isDark ? "text-[#545454]" : "text-[#9E9E9E]"}`}>
+                                        Study daily to get smart reminders!
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="p-2 space-y-1">
+                                    <AnimatePresence initial={false}>
+                                        {notifications.map((n) => (
+                                            <NotificationItem
+                                                key={n.id}
+                                                notification={n}
+                                                isDark={isDark}
+                                                activeConfirmId={activeConfirmId}
+                                                setActiveConfirmId={setActiveConfirmId}
+                                                onRead={markAsRead}
+                                                onDelete={deleteNotification}
+                                            />
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </>
             )}
-
-            {/* List */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
-                {isLoading && notifications.length === 0 ? (
-                    <div className="flex flex-col gap-3 p-4">
-                        {[1,2,3].map(i => (
-                            <div key={i} className={`h-16 rounded-xl animate-pulse ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
-                        ))}
-                    </div>
-                ) : notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                        <Bell className={`w-10 h-10 mb-3 ${isDark ? "text-[#545454]" : "text-[#CFCFCF]"}`} />
-                        <p className={`text-sm font-medium ${isDark ? "text-[#7D7D7D]" : "text-[#545454]"}`}>
-                            No notifications yet
-                        </p>
-                        <p className={`text-xs mt-1 ${isDark ? "text-[#545454]" : "text-[#9E9E9E]"}`}>
-                            Study daily to get smart reminders!
-                        </p>
-                    </div>
-                ) : (
-                    <div className="p-2 space-y-1">
-                        <AnimatePresence initial={false}>
-                            {notifications.map((n) => (
-                                <NotificationItem
-                                    key={n.id}
-                                    notification={n}
-                                    isDark={isDark}
-                                    activeConfirmId={activeConfirmId}
-                                    setActiveConfirmId={setActiveConfirmId}
-                                    onRead={markAsRead}
-                                    onDelete={deleteNotification}
-                                />
-                            ))}
-                        </AnimatePresence>
-                    </div>
-                )}
-            </div>
-        </div>
+        </AnimatePresence>
     );
 }
 
@@ -227,7 +293,7 @@ function NotificationItem({
             case "weak_subject":
                 if (payload) {
                     if (payload.startsWith("revision:")) {
-                        router.push(`/preparation?tab=revision&id=${payload.split(":")[1]}`);
+                        router.push(`/preparation/revision/${payload.split(":")[1]}`);
                     } else if (payload.startsWith("note:")) {
                         router.push(`/library/note/${payload.split(":")[1]}`);
                     } else if (payload.startsWith("pdf:")) {
@@ -240,7 +306,7 @@ function NotificationItem({
                             router.push("/preparation?tab=exercise");
                         } else {
                             // Assume old revision id
-                            router.push(`/preparation?tab=revision&id=${payload}`);
+                            router.push(`/preparation/revision/${payload}`);
                         }
                     }
                 } else {

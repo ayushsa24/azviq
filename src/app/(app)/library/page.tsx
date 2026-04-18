@@ -30,6 +30,13 @@ export default function NotesPage() {
       return "grid";
     }
   );
+
+  const tabCls = (active: boolean) =>
+    `px-1 py-2.5 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${active
+      ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
+      : "border-transparent text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
+    }`;
+
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
 
   useEffect(() => {
@@ -346,8 +353,8 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white px-4 sm:px-6 lg:px-8 overflow-hidden transition-colors">
-      <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2">
+    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-[#252525] dark:text-white overflow-hidden transition-colors">
+      <div className="flex items-center gap-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-6 pb-2 px-4 sm:px-6">
         <SidebarToggleButton />
         {activeWorkspace && (
           <button
@@ -370,7 +377,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="flex flex-row justify-between items-center gap-3 mb-3 w-full">
+      <div className="flex flex-row justify-between items-center gap-3 mb-3 w-full px-4 sm:px-6">
         <div className="relative flex-1 sm:w-80 sm:flex-none">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
           <input
@@ -432,55 +439,34 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="flex pb-2 mb-4 transition-colors justify-between items-center gap-3 w-full relative border-b border-[#E8E5E0] dark:border-[#3A3A3A]/40">
-        <div className="relative flex-1 overflow-hidden">
-          <div
-            className="flex overflow-x-auto flex-nowrap py-1 space-x-1.5 sm:space-x-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x w-full pr-10"
-          >
+      <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-2 justify-between items-end px-4 sm:px-6">
+        <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
             {!activeWorkspace && (
               <button
                 onClick={() => setActiveTab("workspaces")}
-                className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "workspaces"
-                  ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
-                  : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
-                  }`}
+                className={tabCls(activeTab === "workspaces")}
               >
                 Workspaces
               </button>
             )}
             <button
               onClick={() => setActiveTab("notes")}
-              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "notes"
-                ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
-                : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
-                }`}
+              className={tabCls(activeTab === "notes")}
             >
               Notes
             </button>
             <button
               onClick={() => setActiveTab("pdfs")}
-              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "pdfs"
-                ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
-                : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
-                }`}
+              className={tabCls(activeTab === "pdfs")}
             >
               PDFs
             </button>
             <button
               onClick={() => setActiveTab("favourites")}
-              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap snap-start transition-all duration-200 ${activeTab === "favourites"
-                ? "bg-[#E8E5E0] dark:bg-[#2E2E2E] text-[#252525] dark:text-white shadow-sm"
-                : "text-[#545454] dark:text-[#BABABA] hover:bg-white/50 dark:hover:bg-white/5"
-                }`}
+              className={tabCls(activeTab === "favourites")}
             >
               Favourites
             </button>
-          </div>
-
-          {/* Right Scroll Indicator for Mobile */}
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#F5F3EF] dark:from-[#1A1A1A] to-transparent pointer-events-none flex justify-end items-center pr-0 sm:hidden">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7D7D7D] dark:text-[#545454]"><path d="m9 18 6-6-6-6" /></svg>
-          </div>
         </div>
 
         <div className="flex gap-2 pb-2 shrink-0">
@@ -508,7 +494,7 @@ export default function NotesPage() {
       </div>
 
       {/* SCROLLABLE CONTENT AREA */}
-      <div className="flex-1 flex flex-col overflow-y-auto min-h-0 pr-2 pb-0">
+      <div className="flex-1 flex flex-col overflow-y-auto min-h-0 px-4 sm:px-6 mt-2 scrollbar-hide">
         {isLoading ? (
           <div className={
             viewMode === "grid"
@@ -543,44 +529,42 @@ export default function NotesPage() {
             ))}
           </div>
         ) : activeTab === "workspaces" && !activeWorkspace ? (
-          filteredWorkspaces.length > 0 ? (
-            <div className={
-              viewMode === "grid"
-                ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
-                : "grid grid-cols-1 lg:grid-cols-2 gap-4"
-            }>
-              {filteredWorkspaces.map((ws) => (
-                <WorkspaceCard
-                  key={ws.id}
-                  workspace={ws}
-                  onClick={handleOpenWorkspace}
-                  viewMode={viewMode}
-                  onRename={handleRenameWorkspaceClick}
-                  onDelete={handleDeleteWorkspaceClick}
-                  onTogglePin={handleTogglePinWorkspace}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#E8E5E0] dark:border-[#545454] rounded-2xl transition-colors">
-              <div className="w-16 h-16 mb-4 rounded-full bg-white/80 backdrop-blur-md dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
-                <Search size={28} className="text-[#252525] dark:text-white transition-colors" />
-              </div>
-              <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1 transition-colors">No workspaces found</h3>
-              <p className="text-sm">
-                {searchQuery
-                  ? "Try adjusting your search query."
-                  : "Create a workspace to organize your files."}
-              </p>
-            </div>
-          )
-        ) : filteredNotes.length > 0 ? (
           <div className={
             viewMode === "grid"
               ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
               : "grid grid-cols-1 lg:grid-cols-2 gap-4"
           }>
-            {filteredNotes.map((note) => (
+            {filteredWorkspaces.length > 0 ? filteredWorkspaces.map((ws) => (
+              <WorkspaceCard
+                key={ws.id}
+                workspace={ws}
+                onClick={handleOpenWorkspace}
+                viewMode={viewMode}
+                onRename={handleRenameWorkspaceClick}
+                onDelete={handleDeleteWorkspaceClick}
+                onTogglePin={handleTogglePinWorkspace}
+              />
+            )) : (
+              <div className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}>
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
+                  <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
+                </div>
+                <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
+                <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
+                  {searchQuery
+                    ? "Try adjusting your search query."
+                    : "Create your first workspace to get started."}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className={
+            viewMode === "grid"
+              ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
+              : "grid grid-cols-1 lg:grid-cols-2 gap-4"
+          }>
+            {filteredNotes.length > 0 ? filteredNotes.map((note) => (
               <NoteCard
                 key={note.id}
                 note={note}
@@ -593,21 +577,21 @@ export default function NotesPage() {
                 onTogglePin={handleTogglePin}
                 isPinnedOverride={activeTab === "favourites" ? !!note.is_pinned_in_favourites : !!note.is_pinned}
               />
-            ))}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-[#545454] dark:text-[#7D7D7D] border-2 border-dashed border-[#DEDBD6] dark:border-[#545454] rounded-2xl transition-colors">
-            <div className="w-16 h-16 mb-4 rounded-full bg-white/80 backdrop-blur-md dark:bg-[#252525] flex items-center justify-center shadow-sm transition-colors">
-              <Search size={28} className="text-[#252525] dark:text-[#CFCFCF] transition-colors" />
-            </div>
-            <h3 className="text-lg font-bold text-[#252525] dark:text-[#CFCFCF] mb-1 transition-colors">No files found</h3>
-            <p className="text-sm">
-              {searchQuery
-                ? "Try adjusting your search query."
-                : activeWorkspace
-                  ? "Upload a file or create a note in this workspace."
-                  : "Upload a file or create a note to get started."}
-            </p>
+            )) : (
+              <div className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}>
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
+                  <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
+                </div>
+                <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
+                <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
+                  {searchQuery
+                    ? "Try adjusting your search query."
+                    : activeWorkspace
+                      ? "Upload a file or create a note in this workspace."
+                      : "Upload a file or create a note to get started."}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

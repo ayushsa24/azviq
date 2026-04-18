@@ -23,12 +23,27 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const workspaceId = url.searchParams.get("workspace_id");
     const all = url.searchParams.get("all") === "true";
+    const imported = url.searchParams.get("imported") === "true";
 
+    // Fetch notes with original share status
     let query = supabase
       .from("notes")
-      .select("*")
+      .select(`
+        *,
+        original_note:original_note_id (
+          share_mode,
+          user:user_id (
+            name,
+            email
+          )
+        )
+      `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
+
+    if (imported) {
+      query = query.not("original_note_id", "is", null);
+    }
 
     if (!all) {
       if (workspaceId) {
@@ -38,11 +53,26 @@ export async function GET(req: Request) {
       }
     }
 
-    const { data: notes, error } = await query;
+    const { data: notes, error } = await (query as any);
 
     if (error) throw error;
 
-    return NextResponse.json({ notes });
+    // SECURITY REDACTION: Wipe content for any note that was revoked via original source
+    const securedNotes = notes?.map((note: any) => {
+      const isOriginalOwner = note.original_note?.user_id === user.id;
+      
+      // If access is private AND the current user is NOT the original creator
+      if (note.original_note_id && !isOriginalOwner && note.original_note?.share_mode === 'private') {
+        return {
+          ...note,
+          content: "<p>Access to this shared material has been restricted by the owner.</p>",
+          is_revoked: true // Add flag to let the UI show an icon
+        };
+      }
+      return note;
+    }) || [];
+
+    return NextResponse.json({ notes: securedNotes });
   } catch (error) {
     console.error("GET notes error:", error);
     return NextResponse.json({ error: "Failed to fetch notes" }, { status: 500 });
@@ -99,6 +129,15 @@ export async function POST(req: Request) {
 
     if (!title || !file) {
       return NextResponse.json({ error: "Missing title or file" }, { status: 400 });
+    }
+
+    // --- Subscription PDF Size Limit Check ---
+    const { getSubscriptionStatus, checkPdfSizeAccess } = await import("@/lib/subscription");
+    const subStatus = await getSubscriptionStatus(session.user.email);
+    const sizeCheck = checkPdfSizeAccess(file.size, subStatus.tier);
+    
+    if (!sizeCheck.allowed) {
+      return NextResponse.json({ error: sizeCheck.error }, { status: 413 });
     }
 
     // Upload file to Supabase Storage

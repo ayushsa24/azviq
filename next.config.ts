@@ -6,7 +6,9 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: ["*.trycloudflare.com", "localhost:3000"],
+      bodySizeLimit: "20mb",
     },
+    middlewareClientMaxBodySize: "20mb",
     // Safe optimizations to keep the dev server stable and fast
     optimizePackageImports: [
       "lucide-react",

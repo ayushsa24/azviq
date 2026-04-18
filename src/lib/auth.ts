@@ -40,6 +40,13 @@ export const authOptions: NextAuthOptions = {
 
         if (!match) return null;
 
+        // Block unverified users — they must verify email before logging in
+        if (!data.is_verified) {
+          // Returning null causes NextAuth to set error=CredentialsSignin
+          // The login page detects this and shows the "verify email" message
+          throw new Error("AccountNotVerified");
+        }
+
         return {
           id: data.id,
           email: data.email,
@@ -82,6 +89,7 @@ export const authOptions: NextAuthOptions = {
                 avatar_url: user.image || null,
                 password_hash: "OAUTH_USER", // Required by DB but not used for Google users
                 is_onboarded: false,
+                is_verified: true, // Auto-verified via Google
               },
             ]);
 

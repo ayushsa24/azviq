@@ -72,41 +72,4 @@ export async function DELETE(req: Request, { params }: { params: any }) {
     }
 }
 
-// PATCH /api/share/note/[id] — public edit
-export async function PATCH(req: Request, { params }: { params: any }) {
-    try {
-        const id = (await params).id;
-        const body = await req.json();
-
-        const supabase = createClient(
-            process.env.SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-
-        const { data: existing } = await supabase
-            .from("notes")
-            .select("share_mode")
-            .eq("id", id)
-            .single();
-
-        if (!existing || existing.share_mode !== "edit") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        }
-
-        const updateData: any = {};
-        if (body.title !== undefined) updateData.title = body.title;
-        if (body.content !== undefined) updateData.content = body.content;
-
-        const { data: note, error } = await supabase
-            .from("notes")
-            .update(updateData)
-            .eq("id", id)
-            .select("id, title, content, share_mode")
-            .single();
-
-        if (error) throw error;
-        return NextResponse.json({ note });
-    } catch (err) {
-        return NextResponse.json({ error: "Internal Error" }, { status: 500 });
-    }
-}
+// PATCH method removed as public shared notes are now strictly view-only.

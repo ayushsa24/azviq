@@ -57,6 +57,7 @@ export default function SharedChatPage() {
         localStorage.setItem("import_shared_chat", JSON.stringify({
             title: shared.title,
             messages: shared.messages,
+            original_shared_chat_id: id // Store the shared chat ID as original
         }));
         const destination = "/ai?from_share=1";
         if (status === "authenticated") {
@@ -213,7 +214,7 @@ export default function SharedChatPage() {
                     {isDark ? <Sun size={14} /> : <Moon size={14} />}
                 </button>
                 <div className={`w-px h-4 hidden sm:block ${isDark ? "bg-[#545454]" : "bg-[#E8E5E0]"}`} />
-                <span className={`text-xs shrink-0 hidden sm:block ${isDark ? "text-gray-400" : "text-[#7D7D7D]"}`}>Shared via Avyx</span>
+                <span className={`text-xs shrink-0 hidden sm:block ${isDark ? "text-gray-400" : "text-[#7D7D7D]"}`}>Shared via Azviq</span>
             </div>
 
             {/* Chat Messages */}
@@ -279,19 +280,19 @@ export default function SharedChatPage() {
             {/* Bottom CTA */}
             <div className={`border-t py-10 flex flex-col items-center gap-4 text-center px-4 ${isDark ? "border-[#545454]" : "border-[#E8E5E0]"}`}>
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold ${isDark ? "bg-white text-[#252525]" : "bg-[#252525] text-white"}`}>
-                    <img src={isDark ? "/lavyx_logo.png" : "/davyx_logo.png"} alt="Avyx" className="w-10 h-10 object-contain" />
+                    <img src="/azviq_logo.png" alt="Azviq" className={`w-12 h-12 object-contain ${isDark ? 'invert' : ''}`} />
                 </div>
                 <div>
                     <p className={`font-bold ${isDark ? "text-white" : "text-[#252525]"}`}>Continue this conversation</p>
-                    <p className={`text-sm ${isDark ? "text-gray-400" : "text-[#BABABA]"}`}>Sign in to Avyx and pick up right where this chat left off.</p>
+                    <p className={`text-sm ${isDark ? "text-gray-400" : "text-[#BABABA]"}`}>Sign in to Azviq and pick up right where this chat left off.</p>
                 </div>
                 <button
                     onClick={handleContinue}
                     className={`px-6 py-2.5 rounded-2xl font-semibold text-sm hover:opacity-90 active:scale-95 transition-all ${isDark ? "bg-white text-[#252525]" : "bg-[#252525] text-white"}`}
                 >
-                    Continue in Avyx →
+                    Continue in Azviq →
                 </button>
-                <p className={`text-xs ${isDark ? "text-[#545454]" : "text-[#BABABA]"}`}>Shared via Avyx AI</p>
+                <p className={`text-xs ${isDark ? "text-[#545454]" : "text-[#BABABA]"}`}>Shared via Azviq AI</p>
             </div>
         </div>
     );

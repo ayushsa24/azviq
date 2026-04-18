@@ -28,6 +28,7 @@ import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
 import { AITaskModal } from "@/components/tasks/AITaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
+import { AnimatePresence } from "framer-motion";
 
 export default function TasksPage() {
   const { data: tasksData, mutate: mutateTasks, isLoading: isTasksLoading } = useSWR("/api/tasks", fetcher);
@@ -64,6 +65,31 @@ export default function TasksPage() {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: "auto" });
     }
   }, []);
+
+  // Prevent background scrolling when any modal is open
+  useEffect(() => {
+    const isAnyModalOpen = !!(
+      selectedTask || 
+      selectedProject || 
+      selectedProjectTask || 
+      isProjectModalOpen || 
+      isAIModalOpen
+    );
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+      // Optional: Add a padding-right if the scrollbar disappears to prevent jump
+      // const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      // document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.overflow = 'unset';
+      // document.body.style.paddingRight = '0px';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedTask, selectedProject, selectedProjectTask, isProjectModalOpen, isAIModalOpen]);
   const [dateFilter, setDateFilter] = useState("");            // yyyy-mm-dd
   const [projectDropdownFilter, setProjectDropdownFilter] = useState("all"); // project id or 'all'
   const [showTaskFavorites, setShowTaskFavorites] = useState(false);
@@ -403,7 +429,7 @@ export default function TasksPage() {
     }`;
 
   return (
-    <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] overflow-hidden">
+    <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] overflow-hidden">
       {/* ── Scrollable main area ── */}
       <div
         ref={scrollContainerRef}
@@ -497,7 +523,7 @@ export default function TasksPage() {
                     <div
                       key={p.id}
                       onClick={() => setSelectedProject(p)}
-                      className="relative min-w-[200px] h-32 rounded-xl bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col justify-between cursor-pointer hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] transition-all group"
+                      className="relative min-w-[200px] h-32 rounded-xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 p-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col justify-between cursor-pointer hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-white/10 transition-all duration-200 group"
                     >
                       {/* Title row */}
                       <div className="flex items-center gap-1.5">
@@ -553,7 +579,7 @@ export default function TasksPage() {
                 TASKS SECTION
             ══════════════════════════════ */}
           <div className="relative mt-6" ref={tasksSectionRef}>
-            <div className="sticky top-0 z-20 bg-[#F5F3EF]/95 backdrop-blur-md dark:bg-[#1A1A1A]/95 pt-4 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6">
+            <div className="sticky top-0 z-20 bg-[#F5F3EF]/95 backdrop-blur-md dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 pt-4 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6 transition-colors">
               <h2 className="text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white mb-3">Tasks</h2>
 
               {/* Row 1: [Search + ⭐]  ................  [New Task →] */}
@@ -594,7 +620,7 @@ export default function TasksPage() {
               </div>
 
               {/* Row 2: View Toggle Tabs — clean, no extra buttons */}
-              <div className="flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4">
+              <div className="flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4 md:dark:bg-[#1F1F1F] md:px-3 md:rounded-t-xl transition-colors">
                 <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
                   <button onClick={() => setTaskView("kanban")} className={tabCls(taskView === "kanban")}>
                     <LayoutGrid size={14} className="inline mr-1.5" />Kanban
@@ -611,7 +637,7 @@ export default function TasksPage() {
 
             {/* ── Kanban View ── */}
             {taskView === "kanban" && (
-              <div className="bg-white/80 backdrop-blur-md dark:bg-white/5 rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto w-full max-w-full">
+              <div className="bg-white/80 backdrop-blur-md dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto w-full max-w-full transition-colors">
                 <div className="flex gap-4">
                   {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
@@ -626,7 +652,7 @@ export default function TasksPage() {
                   ) : ["not_started", "in_progress", "in_review", "done", "archived"].map((status) => (
                     <div
                       key={status}
-                      className="flex flex-col gap-2 min-h-[200px] min-w-[260px] flex-1 bg-[#f0ede8] dark:bg-white/5 rounded-xl p-3 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-white/10"
+                      className="flex flex-col gap-2 min-h-[200px] min-w-[260px] flex-1 bg-[#f0ede8] dark:bg-white/5 rounded-xl p-3 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#252525]"
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, status)}
                     >
@@ -651,7 +677,7 @@ export default function TasksPage() {
                             key={t.id}
                             draggable
                             onDragStart={(e) => handleDragStart(e, t.id)}
-                            className="relative p-3 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#7D7D7D]/30 rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] transition-all group/card"
+                            className="relative p-3 bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.04)] cursor-grab active:cursor-grabbing hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-white/10 transition-all duration-200 group/card"
                           >
                             <div onClick={() => setSelectedTask(t)} className="cursor-pointer">
                               <div className="flex items-center gap-1.5">
@@ -679,7 +705,7 @@ export default function TasksPage() {
                                 </button>
                               </div>
                               {t.due_date && <p className="text-xs text-gray-500 mt-2">Due {format(new Date(t.due_date), "MMM d")}</p>}
-                              {t.linked_document_id && (
+                              {t.linked_document_id && notes.some((n: any) => n.id === t.linked_document_id) && (
                                 <Link href={`/library/${t.linked_document_type}/${t.linked_document_id}`} className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 rounded text-[10px] font-semibold transition-colors" onClick={(e) => e.stopPropagation()}>
                                   <FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "Open PDF" : "Open Note"}
                                 </Link>
@@ -855,26 +881,32 @@ export default function TasksPage() {
         projects={projects}
       />
 
-      <TaskDetailModal
-        task={selectedTask}
-        onClose={() => setSelectedTask(null)}
-        projects={projects}
-        notes={notes}
-        workspaces={workspaces}
-        onTaskUpdated={handleTaskUpdated}
-      />
+      <AnimatePresence mode="wait">
+        {selectedTask && (
+          <TaskDetailModal
+            task={selectedTask}
+            onClose={() => setSelectedTask(null)}
+            projects={projects}
+            notes={notes}
+            workspaces={workspaces}
+            onTaskUpdated={handleTaskUpdated}
+          />
+        )}
 
-      <ProjectDetailModal
-        project={selectedProject}
-        onClose={() => { setSelectedProject(null); setSelectedProjectTask(null); }}
-        tasks={tasks}
-        notes={notes}
-        workspaces={workspaces}
-        onProjectUpdated={handleProjectUpdated}
-        onTaskUpdated={refetchData}
-        selectedTask={selectedProjectTask}
-        onSelectTask={setSelectedProjectTask}
-      />
+        {selectedProject && (
+          <ProjectDetailModal
+            project={selectedProject}
+            onClose={() => { setSelectedProject(null); setSelectedProjectTask(null); }}
+            tasks={tasks}
+            notes={notes}
+            workspaces={workspaces}
+            onProjectUpdated={handleProjectUpdated}
+            onTaskUpdated={refetchData}
+            selectedTask={selectedProjectTask}
+            onSelectTask={setSelectedProjectTask}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Project 3-dot dropdown — fixed so it escapes overflow scroll */}
       {/* Project/Task 3-dot dropdown — fixed so it escapes overflow scroll and auto-corrects position */}

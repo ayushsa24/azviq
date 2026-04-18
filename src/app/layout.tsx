@@ -27,8 +27,15 @@ const lexend = Lexend({
 });
 
 export const metadata: Metadata = {
-  title: "Avyx",
+  title: "Azviq",
   description: "AI-powered study companion",
+  icons: {
+    icon: [
+      { url: "/icon-light.png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-dark.png", media: "(prefers-color-scheme: dark)" },
+    ],
+    apple: "/icon-light.png",
+  },
 };
 
 export const viewport: Viewport = {

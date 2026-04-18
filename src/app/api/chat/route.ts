@@ -3,12 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { checkAiDailyQuota } from "@/lib/ai-tracking";
+import { getAIConfig, getStreamingChatResponse, runSubscriptionGuard, getModelForTier, generateChatTitle } from "@/lib/ai/manager";
+import { FREE_MODEL } from "@/lib/ai/types";
+import type { AIMessage } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120; // Extended for Ollama local model responses
 
-// --- Zod Schema: Validate the exact shape of incoming requests ---
+
 const MessageSchema = z.object({
   id: z.string().optional(),
   role: z.enum(["user", "model", "system", "assistant"]),
@@ -36,15 +38,15 @@ export async function POST(req: Request) {
       return apiError("Invalid request data", 400, "VALIDATION_ERROR", validation.error.flatten());
     }
 
-    const { chatId, messages, image } = validation.data;
+    const { chatId, messages } = validation.data;
 
-    // 2. Authenticate the request
+    // 2. Authenticate
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
       return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    // 3. Verify userId belongs to authenticated user
+    // 3. Verify user — only select 'id' to avoid errors if ai_model column doesn't exist yet
     const { data: dbUser, error: dbError } = await supabase
       .from("users")
       .select("id")
@@ -52,132 +54,119 @@ export async function POST(req: Request) {
       .single();
 
     if (dbError || !dbUser) {
-      return apiError("Forbidden: You do not have permission to perform this action.", 403, "FORBIDDEN");
+      return apiError("Forbidden", 403, "FORBIDDEN");
     }
-    const userId = dbUser.id;
 
+    // 3b. Fetch AI preferences — gracefully defaults if columns don't exist yet
+    let userAiModel: string = FREE_MODEL;
+    let userResponseStyle = "balanced";
+    try {
+      const { data: prefs } = await supabase
+        .from("users")
+        .select("ai_model, response_style")
+        .eq("id", dbUser.id)
+        .single();
+      if (prefs?.ai_model) userAiModel = prefs.ai_model;
+      if (prefs?.response_style) userResponseStyle = prefs.response_style;
+    } catch {
+      // Columns don't exist yet — use defaults
+    }
+
+    const userId = dbUser.id;
     const latestUserMessage = messages[messages.length - 1];
 
-    // 4. Save user message to Supabase (Skip if temporary)
+    // 4. Save user message to Supabase
     if (chatId !== "temp-chat") {
-      const contentToSave = image 
-        ? JSON.stringify({ text: latestUserMessage.content, image: image })
-        : latestUserMessage.content;
-
       const { error: insertUserError } = await supabase
         .from("messages")
         .upsert({
-          id: latestUserMessage.id, // If provided, update this message
+          id: latestUserMessage.id,
           chat_id: chatId,
           user_id: userId,
           role: "user",
-          content: contentToSave,
+          content: latestUserMessage.content,
           email: session.user.email,
         });
       if (insertUserError) throw insertUserError;
     }
 
-    // --- AI Daily Quota Check ---
-    const quota = await checkAiDailyQuota(userId);
-    if (!quota.success) {
-      return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
-    }
-
-    // 5. Format messages for Ollama with robust cleaning
-    const cleanMessages = messages.filter((m) => 
-      !m.content.includes("[ERROR]:") && 
-      !m.content.includes("Oops! Something went wrong")
+    // 5. Resolve model based on subscription tier (tier-safe, silent downgrade)
+    const aiConfig = getAIConfig(req,
+      "You are Azviq AI, an intelligent and helpful study companion. Keep answers clear, beautifully formatted, and concise. CRITICAL RULE: DO NOT output massive amounts of code or excessive code blocks. Keep code examples brief and relevant. Limit yourself to at most 1-2 small code blocks unless the user explicitly asks for extensive code."
     );
 
-    const formattedMessages: { role: string; content: string }[] = [];
-    let lastRole: string | null = null;
+    // Determine subscription tier first for model resolution
+    const { getSubscriptionStatus } = await import("@/lib/subscription");
+    const { tier } = await getSubscriptionStatus(session.user.email);
 
+    // Resolve the correct model for this user's tier — free users always get FREE_MODEL
+    const resolvedModel = getModelForTier(userAiModel, tier);
+    aiConfig.model = resolvedModel;
+    if (!req.headers.get("X-Response-Style")) aiConfig.style = (userResponseStyle as any);
+
+    // 6. Enforce AI Daily Quota & Tier Access
+    const guard = await runSubscriptionGuard(session.user.email, aiConfig.model, "chat", userId);
+    if (!guard.allowed) {
+      return apiError(guard.error || "Subscription limit reached", guard.status || 403, "QUOTA_EXCEEDED");
+    }
+
+    // 7. Format messages for the AI manager — merge consecutive same-role messages
+    // This is REQUIRED for Ollama which errors if two user/assistant messages appear consecutively
+    const cleanMessages = messages.filter(
+      (m) => !m.content.includes("[ERROR]:") && !m.content.includes("Oops! Something went wrong")
+    );
+
+    const mergedMessages: AIMessage[] = [];
+    let lastRole: string | null = null;
     for (const msg of cleanMessages) {
       let content = msg.content;
-      
-      // If message is JSON-encoded (likely from a vision prompt), extract the text part
-      if (msg.role === "user" && content.trim().startsWith('{')) {
+      // If JSON-encoded (vision prompt), extract text part
+      if (msg.role === "user" && content.trim().startsWith("{")) {
         try {
-          const parsed = JSON.parse(content);
+          const parsed = JSON.parse(content) as { text?: string; content?: string };
           content = parsed.text || parsed.content || content;
-        } catch (e) {
-          // Fallback to original content if not valid JSON
-        }
+        } catch { /* fallback to original */ }
       }
 
-      if (msg.role === lastRole) {
-        // Merge consecutive messages of the same role (avoids Ollama/Llama validation errors)
-        if (formattedMessages.length > 0) {
-          formattedMessages[formattedMessages.length - 1].content += "\n\n" + content;
-        }
+      const normalizedRole = msg.role === "model" ? "assistant" : msg.role as "user" | "assistant" | "system";
+      if (normalizedRole === lastRole && mergedMessages.length > 0) {
+        // Merge into previous message instead of adding duplicate role
+        mergedMessages[mergedMessages.length - 1].content += "\n\n" + content;
       } else {
-        formattedMessages.push({ role: msg.role, content });
-        lastRole = msg.role;
+        mergedMessages.push({ role: normalizedRole, content });
+        lastRole = normalizedRole;
       }
     }
 
-    formattedMessages.unshift({
-      role: "system",
-      content:
-        "You are Avyx AI, a highly intelligent and helpful AI study companion. Keep answers clear, beautifully formatted, and educational.",
-    });
+    const aiMessages = mergedMessages;
 
-    // 6. Call the local Ollama API with streaming
-    let response: Response;
+    // 8. Generate chat title (non-blocking, delayed to avoid quota racing with main stream)
+    let titlePromise: Promise<string | null> | null = null;
+    if (messages.length === 1 && chatId !== "temp-chat") {
+      // Delay by 3s so title generation doesn't exhaust the same quota bucket as the stream
+      titlePromise = new Promise(resolve => setTimeout(resolve, 3000))
+        .then(() => generateChatTitle(latestUserMessage.content))
+        .then(async (title) => {
+          if (title) {
+            await supabase.from("chats").update({ title }).eq("id", chatId);
+          }
+          return title ?? null;
+        }).catch(() => null);
+    }
+
+    // 9. Get streaming response from AI Manager
+    let aiStream: ReadableStream<Uint8Array>;
     try {
-      response = await fetch("http://localhost:11434/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "llama3.2",
-          messages: formattedMessages,
-          stream: true,
-        }),
-      });
+      aiStream = await getStreamingChatResponse(aiMessages, aiConfig);
     } catch {
       return apiError("AI service is unavailable. Please try again later.", 503, "AI_SERVICE_UNAVAILABLE");
     }
 
-    if (!response.ok) {
-      console.error("Ollama error:", await response.text());
-      return apiError("AI service returned an error. Is Ollama running?", 502, "AI_SERVICE_ERROR");
-    }
-
+    // 10. Pass through stream, accumulate full content, then save to DB
     const encoder = new TextEncoder();
-    const decoder = new TextDecoder("utf-8");
+    const decoder = new TextDecoder();
     let fullContent = "";
-    let titlePromise: Promise<string | null> | null = null;
 
-    // 7. Generate a title on the first message (non-blocking)
-    if (messages.length === 1 && chatId !== "temp-chat") {
-      titlePromise = fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "llama3.2",
-          prompt: `Based on the following first message of a chat, generate a very short, concise 2 to 4 word summary title for the chat. Do not use quotes or punctuation.\n\nMessage: "${latestUserMessage.content}"`,
-          stream: false,
-        }),
-      })
-        .then(async (res) => {
-          if (res.ok) {
-            const titleData = await res.json() as { response: string };
-            const newTitle = titleData.response.trim().replace(/['"]/g, "");
-            await supabase
-              .from("chats")
-              .update({ title: newTitle })
-              .eq("id", chatId);
-            return newTitle;
-          }
-          return null;
-        })
-        .catch((e) => {
-          console.error("Could not generate title with Ollama", e);
-          return null;
-        });
-    }
-
-    // 8. Return Streaming Response
     const transformStream = new TransformStream({
       async transform(chunk, controller) {
         const text = decoder.decode(chunk, { stream: true });
@@ -189,13 +178,12 @@ export async function POST(req: Request) {
               fullContent += parsed.message.content;
             }
           } catch {
-            // Ignore non-JSON lines in the stream
+            // Ignore non-JSON lines
           }
         }
         controller.enqueue(chunk);
       },
       async flush(controller) {
-        // Save the complete AI response after stream ends
         if (chatId !== "temp-chat" && fullContent.trim().length > 0) {
           await supabase.from("messages").insert({
             chat_id: chatId,
@@ -206,23 +194,18 @@ export async function POST(req: Request) {
           });
         }
 
-        // Alert client to the updated title
         if (titlePromise) {
           const resolvedTitle = await titlePromise;
           if (resolvedTitle) {
             controller.enqueue(
-              encoder.encode(
-                "\n" +
-                  JSON.stringify({ __generatedTitle: resolvedTitle }) +
-                  "\n",
-              ),
+              encoder.encode("\n" + JSON.stringify({ __generatedTitle: resolvedTitle }) + "\n")
             );
           }
         }
       },
     });
 
-    return new Response(response.body!.pipeThrough(transformStream), {
+    return new Response(aiStream.pipeThrough(transformStream), {
       headers: {
         "Content-Type": "application/x-ndjson",
         "Cache-Control": "no-cache",

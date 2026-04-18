@@ -53,7 +53,12 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        alert("Invalid email or password");
+        if (result.error === "AccountNotVerified") {
+          setEmailError("Account not verified");
+          alert("Your email is not verified. Please sign up again with the same email to receive a new verification code.");
+        } else {
+          alert("Invalid email or password");
+        }
         setLoading(false);
         return;
       }
@@ -91,9 +96,9 @@ function LoginForm() {
 
         <div className="flex flex-col items-center mb-4">
           <img 
-            src={theme === 'dark' ? "/lavyx_logo.png" : "/davyx_logo.png"} 
-            alt="Avyx Logo" 
-            className="w-14 h-14 rounded-xl object-cover mb-2" 
+            src="/azviq_logo.png" 
+            alt="Azviq Logo" 
+            className={`w-16 h-16 rounded-xl object-contain mb-2 ${theme === 'dark' ? 'invert' : ''}`} 
           />
           <h1 className={`text-3xl font-bold mb-0.5 tracking-tighter font-[var(--font-lexend)] ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
             Welcome Back
@@ -131,7 +136,12 @@ function LoginForm() {
           </div>
 
           <div className="mb-4">
-            <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Password</label>
+            <div className="flex justify-between items-end mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider opacity-60">Password</label>
+              <Link href="/forgot-password" className="text-[10px] font-bold underline opacity-40 hover:opacity-100 transition-opacity">
+                Forgot password?
+              </Link>
+            </div>
             <PasswordInput
               placeholder="••••••••"
               value={password}

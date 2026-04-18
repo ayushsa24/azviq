@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check, Crown } from "lucide-react";
 import { Editor } from "@tiptap/react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface AiPopoverProps {
     editor: Editor;
@@ -9,12 +10,17 @@ interface AiPopoverProps {
 }
 
 export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
+    const { openSettings } = useSettings();
     const [isLoading, setIsLoading] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [hasStartedWriting, setHasStartedWriting] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const fullResponseRef = useRef<string>("");
     const insertionRangeRef = useRef<{ from: number, to: number } | null>(null);
+    const originalContentRef = useRef<string | null>(null);
+    const wasReplacedRef = useRef<boolean>(false);
+    const insertPosRef = useRef<number>(0);
 
     useEffect(() => {
         onGenerating?.(isLoading || isComplete);
@@ -59,6 +65,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
     const handleDiscard = () => {
         if (insertionRangeRef.current && editor) {
+            // First delete what AI generated
             editor.chain()
                 .focus()
                 .deleteRange({
@@ -66,6 +73,14 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                     to: insertionRangeRef.current.to
                 })
                 .run();
+                
+            // Then restore the original content if it was replaced
+            if (wasReplacedRef.current && originalContentRef.current) {
+                editor.chain()
+                    .focus()
+                    .insertContentAt(insertPosRef.current, originalContentRef.current)
+                    .run();
+            }
         }
         onClose();
     };
@@ -78,8 +93,11 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
         setHasStartedWriting(false);
         fullResponseRef.current = "";
         insertionRangeRef.current = null;
+        originalContentRef.current = null;
+        wasReplacedRef.current = false;
         abortControllerRef.current = new AbortController();
         let insertAt = editor.state.selection.from;
+        insertPosRef.current = insertAt;
 
         try {
             const res = await fetch("/api/ai/editor", {
@@ -102,9 +120,17 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
             insertAt = command === "Answer this"
                 ? editor.state.selection.to
                 : editor.state.selection.from;
+            insertPosRef.current = insertAt;
 
-            // If replacing selected text (not "Answer this"), delete the selection first
+            // If replacing selected text (not "Answer this"), store it as HTML and delete the selection
             if (selectedText && command !== "Answer this") {
+                const { DOMSerializer } = await import('prosemirror-model');
+                const fragment = editor.state.selection.content().content;
+                const div = document.createElement('div');
+                div.appendChild(DOMSerializer.fromSchema(editor.schema).serializeFragment(fragment));
+                originalContentRef.current = div.innerHTML;
+                wasReplacedRef.current = true;
+                
                 editor.chain().focus().deleteSelection().run();
             }
 
@@ -180,46 +206,81 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
             }
 
             // Keep popover open so user can see it's done
-        } catch (error: any) {
-            if (error.name === "AbortError") {
-                console.log("AI Generation aborted by user");
-                // Finalize what we have
-                if (fullResponseRef.current) {
-                    const { marked } = await import("marked");
-                    const htmlResult = await marked.parse(fullResponseRef.current);
-                    const startPos = command === "Answer this"
-                        ? insertAt + 2
-                        : editor.state.selection.from;
-                    const endPos = startPos + fullResponseRef.current.length;
+    } catch (error: any) {
+        if (error.name === "AbortError") {
+            console.log("AI Generation aborted by user");
+            // Finalize what we have
+            if (fullResponseRef.current) {
+                const { marked } = await import("marked");
+                const htmlResult = await marked.parse(fullResponseRef.current);
+                const startPos = command === "Answer this"
+                    ? insertAt + 2
+                    : editor.state.selection.from;
+                const endPos = startPos + fullResponseRef.current.length;
 
-                    editor.chain()
-                        .focus()
-                        .setTextSelection({ from: startPos, to: endPos })
-                        .deleteSelection()
-                        .insertContentAt(startPos, htmlResult)
-                        .run();
-                    
-                    const finalEndPos = editor.state.selection.to;
-                    insertionRangeRef.current = { from: startPos, to: finalEndPos };
-                    setIsComplete(true);
-                } else {
-                    onClose();
-                }
+                editor.chain()
+                    .focus()
+                    .setTextSelection({ from: startPos, to: endPos })
+                    .deleteSelection()
+                    .insertContentAt(startPos, htmlResult)
+                    .run();
+                
+                const finalEndPos = editor.state.selection.to;
+                insertionRangeRef.current = { from: startPos, to: finalEndPos };
+                setIsComplete(true);
             } else {
-                console.error(error);
-                alert("Sorry, I encountered an error. Please try again.");
                 onClose();
             }
-        } finally {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+        } else {
+            console.error(error);
+            // Handle quota exhaustion specifically
+            if (error.message.includes("Daily limit reached") || error.message.includes("QUOTA_EXCEEDED")) {
+                setError(error.message);
+                return; // Keep popover open to show error
+            }
+            setError("Sorry, I encountered an error. Please try again.");
         }
-    };
+    } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+    }
+};
+
+const handleUpgrade = () => {
+    openSettings("subscription");
+    onClose();
+};
+
+if (error) {
+    return (
+        <div
+            className="flex flex-col w-full md:w-[240px] bg-white dark:bg-[#252525] border border-[#C2A27A]/30 shadow-2xl rounded-xl overflow-hidden pointer-events-auto transition-all animate-in fade-in zoom-in duration-200"
+            onMouseDown={(e) => e.stopPropagation()}
+        >
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#C2A27A]/10 border-b border-[#C2A27A]/20">
+                <Crown size={14} className="text-[#C2A27A]" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B6F4E] dark:text-[#C2A27A]">Action Required</span>
+            </div>
+            <div className="p-3 flex flex-col gap-2">
+                <p className="text-[11px] leading-relaxed text-[#252525] dark:text-[#BABABA]">
+                    {error}
+                </p>
+                <button
+                    onClick={handleUpgrade}
+                    className="flex items-center justify-center gap-2 w-full py-1.5 bg-[#C2A27A] hover:bg-[#B19169] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-sm"
+                >
+                    Upgrade Plan
+                    <ArrowRight size={12} />
+                </button>
+            </div>
+        </div>
+    );
+}
 
     if (isLoading) {
         return (
             <div
-                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto"
+                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-full pointer-events-auto"
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2.5">
@@ -250,7 +311,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     if (isComplete) {
         return (
             <div
-                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl rounded-full pointer-events-auto min-w-max"
+                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-full pointer-events-auto min-w-max"
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2 shrink-0">
@@ -281,7 +342,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
     return (
         <div
-            className="flex flex-col md:w-[220px] w-[200px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
+            className="flex flex-col md:w-[220px] w-full max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E8E5E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
             onMouseDown={(e) => e.stopPropagation()}
         >
             <div className="flex items-center gap-2 px-3 py-2 bg-[#F9F8F6] dark:bg-[#1A1A1A] border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
@@ -289,7 +350,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D] dark:text-[#BABABA]">AI Commands</span>
             </div>
 
-            <div className="p-1 grid grid-cols-2 md:flex md:flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div className="p-1 flex flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
                 <>
                     <button
                         onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}
@@ -326,11 +387,11 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                         <CheckCheck size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">Fix Grammar</span>
                     </button>
-
+ 
                     {selectedText && (
                         <button
                             onClick={() => handleSubmit("Answer this")}
-                            className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group col-span-2 md:col-span-1 border border-[#252525] dark:border-white"
+                            className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group border border-[#252525]/20 dark:border-white/20"
                         >
                             <ArrowRight size={14} className="shrink-0" />
                             <span className="truncate">Answer Selection</span>

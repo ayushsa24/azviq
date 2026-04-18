@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/db";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { checkAiDailyQuota } from "@/lib/ai-tracking";
+import { runSubscriptionGuard } from "@/lib/ai/manager";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -44,9 +44,9 @@ export async function POST(req: Request) {
         }
 
         // --- AI Daily Quota Check ---
-        const quota = await checkAiDailyQuota(dbUser.id);
-        if (!quota.success) {
-            return apiError("Daily AI Usage Cap Reached (200/day). Please try again tomorrow.", 429, "QUOTA_EXCEEDED");
+        const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "chat", dbUser.id);
+        if (!guard.allowed) {
+            return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
         }
 
         // 2. Parse and validate input

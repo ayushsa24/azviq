@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
 // GET — Fetch recent activity for the logged-in user
-export async function GET() {
+export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user?.email) {
@@ -33,7 +33,29 @@ export async function GET() {
             return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
         }
 
-        return NextResponse.json({ items: items || [] });
+        // Fetch original_note_id for notes
+        const noteIds = (items || [])
+            .filter(i => i.item_type === "note")
+            .map(i => i.item_id);
+
+        let noteMap: Record<string, string> = {};
+        if (noteIds.length > 0) {
+            const { data: noteData } = await supabase
+                .from("notes")
+                .select("id, original_note_id")
+                .in("id", noteIds);
+
+            if (noteData) {
+                noteMap = noteData.reduce((acc, n) => ({ ...acc, [n.id]: n.original_note_id }), {});
+            }
+        }
+
+        const enrichedItems = (items || []).map(item => ({
+            ...item,
+            original_note_id: item.item_type === "note" ? noteMap[item.item_id] : null
+        }));
+
+        return NextResponse.json({ items: enrichedItems });
     } catch (err) {
         console.error("Error in recent-activity GET:", err);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -65,26 +87,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing required fields: item_id, item_type, href" }, { status: 400 });
         }
 
-        // Explicitly delete any existing entry for this item first to avoid duplicates
-        // We delete by title (which is shared between a Note, its Exercise, and its Revision)
-        // This ensures the Recent Activity list only shows the single most recent interaction for a given material.
-        const itemTitle = title || "Untitled";
-        await supabase
-            .from("recent_activity")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("title", itemTitle);
-
-        // Insert as new, giving it the latest timestamp
+        // Insert or update securely, giving it the latest timestamp
+        // we use upsert matching the unique constraint in the db!
         const { error } = await supabase
             .from("recent_activity")
-            .insert({
+            .upsert({
                 user_id: user.id,
                 item_id,
                 item_type,
                 title: title || "Untitled",
                 href,
                 opened_at: new Date().toISOString(),
+            }, { 
+                onConflict: 'user_id, item_id, item_type' 
             });
 
         if (error) {

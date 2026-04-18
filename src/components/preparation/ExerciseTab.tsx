@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FileText, Plus, Trash2, Clock, Search } from "lucide-react";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
@@ -36,29 +37,8 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     const isDark = theme === 'dark';
     const isList = viewMode === "list";
 
-    // Sequential loading logic
-    const [visibleCount, setVisibleCount] = useState(0);
-
-    useEffect(() => {
-        if (!isLoading && exercises.length > 0) {
-            const timer = setInterval(() => {
-                setVisibleCount(prev => {
-                    if (prev >= exercises.length) {
-                        clearInterval(timer);
-                        return prev;
-                    }
-                    return prev + 1;
-                });
-            }, 50); // Reveal one every 50ms for a fast but clear sequential feel
-            return () => clearInterval(timer);
-        } else if (!isLoading && exercises.length === 0) {
-            setVisibleCount(0);
-        }
-    }, [isLoading, exercises.length]);
-
     // Re-sync and Reset
     useEffect(() => {
-        setVisibleCount(0);
         mutate();
     }, [refreshKey, mutate]);
 
@@ -66,7 +46,6 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     // Expose mutate so parent can call after generate
     useEffect(() => {
         (window as any).__refetchExercises = () => {
-            setVisibleCount(0);
             mutate();
         };
         return () => { delete (window as any).__refetchExercises; };
@@ -115,20 +94,34 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
 
             {/* Content Container */}
             <div className={isList ? "grid grid-cols-1 lg:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
-                {isLoading || (exercises.length > 0 && visibleCount === 0) ? (
+                {isLoading ? (
                     Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className={`p-5 rounded-xl border flex flex-col gap-3 animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'}`}>
-                            <div className="flex items-start justify-between gap-2">
-                                <div className={`h-5 w-16 rounded ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                                <div className={`h-6 w-6 rounded-lg ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                            </div>
-                            <div className={`w-9 h-9 rounded-xl mt-2 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                            <div className={`h-5 w-3/4 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                            <div className={`h-3 w-1/2 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-
-                            <div className="mt-4 pt-4 border-t flex items-center justify-between border-gray-100 dark:border-[#545454]/30">
-                                <div className={`h-4 w-20 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                            </div>
+                        <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-3.5 gap-3 h-44'}`}>
+                            {isList ? (
+                                <>
+                                    <div className={`w-8 h-8 rounded-lg shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`} />
+                                    <div className="flex-1">
+                                        <div className={`h-4 w-3/4 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-3 w-1/4 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between">
+                                        <div className={`h-4 w-12 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-6 w-6 rounded-lg ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className={`h-4 w-full rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-4 w-2/3 rounded mt-1.5 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-3 w-1/2 rounded mt-3 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                    <div className="pt-2.5 border-t border-gray-100 dark:border-[#545454]/30 flex justify-between">
+                                        <div className={`h-3 w-16 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                        <div className={`h-5 w-10 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ))
                 ) : filtered.length === 0 ? (
@@ -143,7 +136,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                     </div>
                 ) : (
                     <AnimatePresence mode="popLayout">
-                        {filtered.slice(0, visibleCount).map((ex: any, idx: number) => (
+                        {filtered.map((ex: any, idx: number) => (
                             <motion.div
                                 key={ex.id}
                                 layout
@@ -155,7 +148,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                     ease: [0.23, 1, 0.32, 1]
                                 }}
                                 onClick={() => onStartExercise?.(ex)}
-                                className={`group relative transition-all duration-200 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#7D7D7D]/40 dark:border-[#3C3C3C] hover:bg-[#F9F8F6] dark:hover:bg-[#1A1A1A] hover:border-[#D1CEC8] dark:hover:border-[#545454] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer
+                                className={`group relative transition-all duration-200 bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer
                                     ${isList
                                         ? "flex flex-row items-center gap-4 p-3 rounded-xl h-auto"
                                         : "flex flex-col justify-between p-3.5 rounded-xl h-44"
@@ -163,12 +156,20 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                             >
                                 {isList ? (
                                     <>
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${getDifficultyBadge(ex.difficulty)}`}>
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#F0EDE8] dark:bg-white/5`}>
                                             <FileText size={15} />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="text-[14px] font-bold text-[#252525] dark:text-white truncate">
-                                                {ex.title}
+                                            <h3 className="text-[14px] font-bold text-[#252525] dark:text-white truncate flex items-center gap-1.5">
+                                                <span>{ex.title.replace(/^\[\w+\]\s*/, "")}</span>
+                                                {(() => {
+                                                    const iconMatch = ex.title.match(/^\[(\w+)\]/);
+                                                    if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                        const IconComp = ICON_MAP[iconMatch[1]];
+                                                        return <IconComp size={14} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                    }
+                                                    return null;
+                                                })()}
                                             </h3>
                                             <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
                                                 <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(ex.created_at)}</span>
@@ -191,29 +192,43 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                     </>
                                 ) : (
                                     <>
-                                        {/* Header: Badge + delete */}
                                         <div className="flex items-start justify-between gap-2">
-                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${getDifficultyBadge(ex.difficulty)}`}>
-                                                {ex.difficulty}
-                                            </span>
+                                            <div className="flex-1 overflow-hidden">
+                                                <h3 className="text-[13px] font-bold text-[#252525] dark:text-white leading-tight line-clamp-2 group-hover:text-black dark:group-hover:text-white flex items-center gap-1.5" title={ex.title}>
+                                                    <span>{ex.title.replace(/^\[\w+\]\s*/, "")}</span>
+                                                    {(() => {
+                                                        const iconMatch = ex.title.match(/^\[(\w+)\]/);
+                                                        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                            const IconComp = ICON_MAP[iconMatch[1]];
+                                                            return <IconComp size={14} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </h3>
+                                                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
+                                                    <FileText size={10} className="shrink-0" />
+                                                    <span className="truncate flex items-center gap-1.5" title={ex.notes?.title}>
+                                                        {ex.notes?.title?.replace(/^\[\w+\]\s*/, "") || "Unknown source"}
+                                                        {(() => {
+                                                            const iconMatch = ex.notes?.title?.match(/^\[(\w+)\]/);
+                                                            if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                                const IconComp = ICON_MAP[iconMatch[1]];
+                                                                return <IconComp size={11} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                            </div>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(ex.id); }}
-                                                className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
                                             >
                                                 <Trash2 size={13} />
                                             </button>
                                         </div>
 
-                                        {/* Middle: Title & source */}
-                                        <div className="flex-1 mt-1.5 overflow-hidden">
-                                            <h3 className="text-[13px] font-bold text-[#252525] dark:text-white leading-tight line-clamp-2 group-hover:text-black dark:group-hover:text-white" title={ex.title}>
-                                                {ex.title}
-                                            </h3>
-                                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#7D7D7D] dark:text-[#BABABA]">
-                                                <FileText size={10} className="shrink-0" />
-                                                <span className="truncate" title={ex.notes?.title}>{ex.notes?.title || "Unknown source"}</span>
-                                            </div>
-                                        </div>
+                                        <div className="flex-1" /> {/* Spacer */}
 
                                         {/* Footer Section */}
                                         <div className={`mt-3 pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-[#7D7D7D]/20' : 'border-[#7D7D7D]/40'}`}>

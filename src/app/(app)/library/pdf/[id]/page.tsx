@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
@@ -14,48 +14,75 @@ import { logRecentActivity } from "@/lib/logRecentActivity";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-const PdfSkeleton = () => (
-    <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
-        {/* Skeleton Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A]">
-            <div className="flex items-center gap-3">
-                <Skeleton className="w-8 h-8 rounded-lg" />
-                <Skeleton className="w-8 h-8 rounded-lg" />
-                <Skeleton className="w-32 h-5 rounded-md" />
-            </div>
-            <div className="flex items-center gap-3">
-                <Skeleton className="w-8 h-8 rounded-lg" />
-                <Skeleton className="w-8 h-8 rounded-lg" />
-                <div className="w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1 hidden sm:block" />
-                <Skeleton className="w-24 h-9 rounded-md hidden sm:block" />
-                <Skeleton className="w-20 h-9 rounded-md hidden sm:block" />
-            </div>
-        </div>
-
-        <div className="flex flex-1 overflow-hidden">
-            {/* Skeleton Sidebar - Laptop only */}
-            <div className="hidden sm:flex flex-col w-40 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex flex-col gap-2">
-                        <Skeleton className="w-full h-32 rounded-lg opacity-40 animate-pulse" />
-                        <Skeleton className="w-1/2 h-2 mx-auto rounded-md opacity-30" />
-                    </div>
-                ))}
-            </div>
-
-            {/* Skeleton Main View */}
-            <div className="flex-1 bg-[#E8E5E0] dark:bg-[#161514] p-4 sm:p-12 overflow-hidden flex justify-center">
-                <Skeleton className="w-full max-w-3xl h-full rounded-sm opacity-50 animate-pulse" />
-            </div>
-        </div>
+const CanvasSkeleton = () => (
+    <div className="w-full h-full min-h-[60vh] flex flex-col items-center p-8 bg-[#F5F3EF] dark:bg-[#1E1E1E]">
+        <Skeleton className="w-full max-w-[800px] h-full sm:h-[1000px] bg-white dark:bg-[#1C1C1C] rounded-t-md shadow-2xl animate-pulse" />
     </div>
 );
+
+const PdfSkeleton = () => {
+    const router = require("next/navigation").useRouter();
+    return (
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-hidden relative">
+            {/* Elegant Header Skeleton */}
+            <div className="relative sm:static flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] z-50 transition-colors">
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <Skeleton className="w-10 h-10 rounded-xl opacity-50" />
+                        <div className="hidden sm:flex flex-col gap-1.5 ml-1">
+                            <Skeleton className="w-48 h-4 rounded-md opacity-60" />
+                            <Skeleton className="w-24 h-3 rounded-md opacity-40" />
+                        </div>
+                    </div>
+                    
+                    {/* Tool Skeleton */}
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl opacity-40" />
+                        <Skeleton className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl opacity-40" />
+                    </div>
+                </div>
+
+                {/* Desktop Toolbar Skeleton */}
+                <div className="hidden sm:flex items-center justify-center gap-2 pb-3 px-4">
+                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
+                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
+                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
+                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
+                </div>
+            </div>
+
+            <div className="flex flex-1 overflow-hidden">
+                {/* Skeleton Sidebar - Laptop only */}
+                <div className="hidden sm:flex flex-col w-40 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="flex flex-col gap-2">
+                            <Skeleton className="w-full h-32 rounded-lg opacity-40 animate-pulse" />
+                        </div>
+                    ))}
+                </div>
+
+                {/* Main View Skeleton (A4 Page style) */}
+                <div className="flex-1 overflow-hidden flex flex-col items-center pt-8 sm:pt-12 px-4 sm:px-12 pb-24 sm:pb-12">
+                     <Skeleton className="w-full max-w-[800px] h-full sm:h-[1000px] bg-white dark:bg-[#1C1C1C] rounded-t-md shadow-2xl animate-pulse" />
+                </div>
+            </div>
+
+            {/* Mobile Toolbar Skeleton */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#24221F]/90 backdrop-blur-xl border-t border-[#E8E5E0] dark:border-[#2A2A2A] p-2 pb-[env(safe-area-inset-bottom)] flex overflow-x-auto gap-2 z-50">
+                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
+                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
+                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
+                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
+            </div>
+        </div>
+    );
+};
 
 // Dynamically import PdfViewerWrapper to prevent pdfjs-dist from running through
 // Next.js SSR Webpack (which causes the 'Object.defineProperty' crash)
 const PdfViewerWrapper = dynamic(() => import("@/components/pdf/PdfViewerWrapper"), {
     ssr: false,
-    loading: () => <PdfSkeleton />,
+    loading: () => <CanvasSkeleton />,
 });
 
 type Tool = "select" | "pen" | "eraser" | "highlight" | "text";
@@ -103,6 +130,7 @@ export default function PdfEditorPage() {
     const [textItalic, setTextItalic] = useState(false);
     const [textUnderline, setTextUnderline] = useState(false);
     const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
+    const [showFontMenu, setShowFontMenu] = useState(false);
 
     // Pending text input
     const [textInput, setTextInput] = useState<TextInput | null>(null);
@@ -118,12 +146,25 @@ export default function PdfEditorPage() {
     const [currentPage, setCurrentPage] = useState(1); // Track current active page for sidebar highlighting
 
     const pageContainerRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const fontButtonRef = useRef<HTMLButtonElement>(null);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
     // Ref to the header div for direct DOM manipulation (no re-render)
     const headerRef = useRef<HTMLDivElement>(null);
     const toolbarRef = useRef<HTMLDivElement>(null);
     // Ref to the spacer div that compensates for the fixed header height on mobile
     const headerSpacerRef = useRef<HTMLDivElement>(null);
     const thumbnailSidebarRef = useRef<HTMLDivElement>(null); // Ref for thumbnail sidebar to sync scrolling
+    const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const textValueRef = useRef("");
+    const textInputRef = useRef<any>(null);
+
+    useLayoutEffect(() => {
+        textValueRef.current = textValue;
+    }, [textValue]);
+
+    useLayoutEffect(() => {
+        textInputRef.current = textInput;
+    }, [textInput]);
 
     // Worker is managed inside PdfViewerWrapper — no setup needed here
 
@@ -182,21 +223,13 @@ export default function PdfEditorPage() {
         const initialHeight = vv.height;
 
         const update = () => {
-            // Correct the header position so it stays at the top of the visible area
-            if (headerRef.current) {
-                headerRef.current.style.top = `${vv.offsetTop}px`;
-            }
+            // Header is no longer fixed, so it doesn't need counter-scrolling
             // Keyboard is considered open if viewport shrank by more than 120px
             const keyboardOpen = vv.height < initialHeight - 120;
             
             // Bring the tools bar up above the keyboard on mobile
-            if (toolbarRef.current) {
-                if (keyboardOpen && window.innerWidth < 640) {
-                     toolbarRef.current.style.top = `${vv.offsetTop + vv.height - toolbarRef.current.offsetHeight}px`;
-                } else {
-                     toolbarRef.current.style.top = ''; // revert to native CSS flow
-                }
-            }
+            // Toolbar position is now handled by CSS fixed bottom-0 when keyboard is open
+            // No manual top adjustment needed to prevent JS-induced bounce
             
             setIsKeyboardOpen(keyboardOpen);
         };
@@ -240,19 +273,14 @@ export default function PdfEditorPage() {
         return () => observer.disconnect();
     }, [numPages, zoomLevel]); // Re-bind if page count or zoom (and thus heights) change
 
-    // ── Live sync: scroll thumbnail sidebar to current page ───────────────────
+    // ── Auto-scroll the thumbnail sidebar to keep the current page in view ──
     useEffect(() => {
-        // Only trigger auto-scroll for mobile users; laptop users prefer a static sidebar
-        if (!thumbnailSidebarRef.current || currentPage === 0 || window.innerWidth >= 640) return;
-        
-        const thumbElement = document.getElementById(`thumb-item-${currentPage}`);
-        if (thumbElement) {
-            thumbElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest'
-            });
+        if (!showThumbnails && window.innerWidth < 640) return;
+        const thumb = document.getElementById(`thumb-item-${currentPage}`);
+        if (thumb) {
+            thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-    }, [currentPage]);
+    }, [currentPage, showThumbnails]);
     // Observe container width for responsive PDF pages
     useEffect(() => {
         if (!documentContainerRef.current) return;
@@ -473,15 +501,18 @@ export default function PdfEditorPage() {
     };
 
     const commitText = () => {
-        if (!textInput || !textValue.trim()) {
+        const val = textValueRef.current;
+        const input = textInputRef.current;
+        if (!input || !val.trim()) {
             setTextInput(null);
+            setTextValue("");
             return;
         }
-        addAnnotation(textInput.pageNum, {
+        addAnnotation(input.pageNum, {
             kind: "text",
-            x: textInput.x,
-            y: textInput.y,
-            text: textValue,
+            x: input.x,
+            y: input.y,
+            text: val,
             color: currentColor,
             fontSize: textFontSize,
             bold: textBold,
@@ -576,6 +607,8 @@ export default function PdfEditorPage() {
 
     const toolBtn = (tool: Tool, icon: React.ReactNode, label: string, extraClass = "") =>
         <button
+            onPointerDown={(e) => e.preventDefault()}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => setActiveTool(tool)}
             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-medium transition-all ${extraClass} ${activeTool === tool
                 ? "bg-[#252525] text-white shadow-md"
@@ -606,12 +639,22 @@ export default function PdfEditorPage() {
     const canRedo = historyIdx < history.length - 1;
 
     return (
-        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#161514] overflow-hidden">
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors overflow-hidden">
 
             {/* Top Navigation Bar — fixed on mobile so keyboard can't push it off screen */}
             {/* On desktop (sm:) it reverts to normal static flow */}
-            <div ref={headerRef} className="fixed top-0 left-0 right-0 sm:static flex flex-col bg-white/80 backdrop-blur-md dark:bg-[#24221F] border-b border-[#E8E5E0] dark:border-[#2A2A2A] shadow-sm z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+8px)] sm:pt-0">
-                <div className="flex items-center justify-between px-4 py-3">
+            <div 
+                ref={headerRef} 
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                    // If we're editing text and click header (but not a tool button which is separate), commit it
+                    if (textInputRef.current) {
+                        commitText();
+                    }
+                }}
+                className="relative sm:static flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+2px)] sm:pt-0"
+            >
+                <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-1 sm:gap-2">
                     {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
                     {!sidebarOpen && (
@@ -648,6 +691,8 @@ export default function PdfEditorPage() {
 
                 <div className="flex items-center gap-1 sm:gap-2">
                     <button
+                        onPointerDown={(e) => e.preventDefault()}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={undo}
                         disabled={!canUndo}
                         className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
@@ -656,6 +701,8 @@ export default function PdfEditorPage() {
                         <Undo2 size={18} />
                     </button>
                     <button
+                        onPointerDown={(e) => e.preventDefault()}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={redo}
                         disabled={!canRedo}
                         className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
@@ -704,14 +751,12 @@ export default function PdfEditorPage() {
                         <span className="hidden sm:inline ml-2">Save</span>
                     </button>
                 </div>
-                </div>
-
-
             </div>
+        </div>
 
             {/* Spacer for fixed header on mobile — height is set dynamically via ResizeObserver */}
             {/* This ensures content is never hidden behind the header regardless of header height */}
-            <div ref={headerSpacerRef} className="sm:hidden flex-shrink-0" />
+
 
             {/* Main Content Area — vertical on mobile, horizontal on laptop */}
             <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden relative">
@@ -719,7 +764,7 @@ export default function PdfEditorPage() {
                 {/* Mobile Overlay - Closes sidebar when tapped outside */}
                 {showThumbnails && (
                     <div 
-                        className="sm:hidden absolute inset-0 z-10 bg-black/50 transition-opacity backdrop-blur-sm"
+                        className="sm:hidden absolute inset-0 z-40 bg-black/60 transition-opacity backdrop-blur-sm"
                         onClick={() => setShowThumbnails(false)}
                     />
                 )}
@@ -728,10 +773,16 @@ export default function PdfEditorPage() {
                 {/* Left Sidebar - Thumbnails: Always show on laptop, toggle on mobile as overlay */}
                 <div 
                     ref={thumbnailSidebarRef}
+                    onClick={(e) => {
+                        // If we're editing text and click sidebar (but not a tool button which is separate), commit it
+                        if (textInputRef.current) {
+                            commitText();
+                        }
+                    }}
                     onPointerDown={(e) => e.stopPropagation()}
                     className={`
                     flex-col w-40 flex-shrink-0 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors
-                    ${showThumbnails ? 'flex absolute top-[calc(env(safe-area-inset-top,0px)+52px)] bottom-0 left-0 z-40 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
+                    ${showThumbnails ? 'flex absolute top-0 bottom-0 left-0 z-50 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
                 `}>
                     <PdfViewerWrapper
                         fileUrl={note.file_url}
@@ -748,7 +799,18 @@ export default function PdfEditorPage() {
                 </div>
 
                 {/* Center Canvas Area - min-w-0 is crucial for flex-1 to not overflow siblings */}
-                <div ref={documentContainerRef} className="flex-1 min-w-0 bg-[#E8E5E0] dark:bg-[#161514] overflow-auto overflow-x-hidden relative flex justify-center p-0 pt-[calc(env(safe-area-inset-top,0px)+52px)] sm:pt-12 sm:px-12 custom-scrollbar">
+                <div 
+                    ref={documentContainerRef} 
+                    onClick={(e) => {
+                        // If we're editing text and click outside the editor group, commit it
+                        if (textInputRef.current && !(e.target as Element).closest('.group')) {
+                            commitText();
+                        }
+                    }}
+                    onContextMenu={(e) => e.preventDefault()}
+                    className={`flex-1 min-w-0 bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-x-hidden relative flex justify-center p-0 pt-0 sm:pt-12 sm:px-12 custom-scrollbar select-none touch-none-callout ${showThumbnails ? 'overflow-hidden' : 'overflow-auto'}`}
+                    style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                >
                     <PdfViewerWrapper
                         fileUrl={note.file_url}
                         mode="full"
@@ -810,11 +872,24 @@ export default function PdfEditorPage() {
                                                 autoFocus
                                                 value={textValue}
                                                 onChange={(e) => setTextValue(e.target.value)}
-                                                onBlur={(e) => {
-                                                    // Only commit if clicking outside the drag handle
-                                                    if (!e.relatedTarget || !(e.relatedTarget as Element).closest('.group')) {
-                                                        commitText();
+                                                onFocus={() => {
+                                                    if (commitTimerRef.current) {
+                                                        clearTimeout(commitTimerRef.current);
+                                                        commitTimerRef.current = null;
                                                     }
+                                                }}
+                                                onBlur={(e) => {
+                                                    // On mobile, relatedTarget is often null.
+                                                    // We use a small timeout to see if focus comes back (e.g. after clicking a formatting button)
+                                                    commitTimerRef.current = setTimeout(() => {
+                                                        // Only commit if we haven't refocused already
+                                                        if (document.activeElement !== textareaRef.current) {
+                                                            const groupElement = (e.relatedTarget as Element)?.closest?.('.group');
+                                                            if (!e.relatedTarget || !groupElement) {
+                                                                commitText();
+                                                            }
+                                                        }
+                                                    }, 150);
                                                 }}
                                                 onKeyDown={(e) => {
                                                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitText(); }
@@ -825,7 +900,7 @@ export default function PdfEditorPage() {
                                                 className="bg-transparent border-0 border-b-2 border-dashed border-[#3B82F6] focus:border-solid outline-none resize-none overflow-hidden leading-tight p-0 mt-[-4px] select-text pointer-events-auto"
                                                 style={{
                                                     color: currentColor,
-                                                    fontSize: textFontSize,
+                                                    fontSize: `${textFontSize}px`,
                                                     fontFamily: textFontFamily,
                                                     fontWeight: textBold ? "bold" : "normal",
                                                     fontStyle: textItalic ? "italic" : "normal",
@@ -844,11 +919,16 @@ export default function PdfEditorPage() {
                 </div>
                 {/* Right Sidebar - Tools (Bottom on Mobile, Right on Desktop) */}
                 {/* On mobile, if the keyboard is open, this docks above the keyboard. If closed, docks at bottom. */}
-                <div ref={toolbarRef} className={`
-                    flex-shrink-0 w-full sm:w-56 h-auto sm:h-full bg-white dark:bg-[#24221F] border-t sm:border-t-0 sm:border-l border-[#E8E5E0] dark:border-[#2A2A2A] py-2 px-4 pb-1 sm:pb-4 sm:p-4 flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-5 transition-all duration-500 overflow-x-auto sm:overflow-y-auto custom-scrollbar flex
-                    ${activeTool === "select" ? 'sm:justify-start justify-center' : 'justify-start'}
-                    ${isKeyboardOpen ? 'fixed left-0 right-0 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] !pb-3 bg-white/95 backdrop-blur-md sm:static sm:bg-white sm:backdrop-blur-none' : 'static'}
-                `}>
+                <div 
+                    ref={toolbarRef} 
+                    onPointerDown={(e) => e.preventDefault()}
+                    style={{ touchAction: 'manipulation' }}
+                    className={`
+                        flex-shrink-0 w-full sm:w-56 h-auto sm:h-full bg-white dark:bg-[#24221F] border-t sm:border-t-0 sm:border-l border-[#E8E5E0] dark:border-[#2A2A2A] py-2 px-4 pb-1 sm:pb-4 sm:p-4 flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-5 transition-all duration-500 overflow-x-auto sm:overflow-y-auto custom-scrollbar flex
+                        ${activeTool === "select" ? 'sm:justify-start justify-center' : 'justify-start'}
+                        ${isKeyboardOpen ? 'fixed left-0 right-0 bottom-0 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] !pb-3 bg-white/95 backdrop-blur-md sm:static sm:bg-white sm:backdrop-blur-none' : 'static'}
+                    `}
+                >
 
                     {/* Tool Selection */}
                     <div className="flex flex-row sm:grid sm:grid-cols-2 gap-3 sm:gap-2 flex-shrink-0">
@@ -932,6 +1012,8 @@ export default function PdfEditorPage() {
                                 ].map((color) => (
                                     <button
                                         key={color}
+                                        onPointerDown={(e) => e.preventDefault()}
+                                        onMouseDown={(e) => e.preventDefault()}
                                         onClick={() => setCurrentColor(color)}
                                         className={`w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 ${currentColor === color ? "border-[#252525] dark:border-white shadow-sm ring-1 ring-[#252525]/20 dark:ring-white/20" : "border-[#E8E5E0] dark:border-[#3A3A3A]"}`}
                                         style={{ backgroundColor: color }}
@@ -963,30 +1045,79 @@ export default function PdfEditorPage() {
 
                             <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 w-auto sm:w-full flex-shrink-0">
                                 <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Typography</span>
-                                <div className="flex flex-row sm:flex-col items-center sm:items-stretch gap-2">
-                                    <select
-                                        value={textFontFamily}
-                                        onChange={(e) => setTextFontFamily(e.target.value)}
-                                        className="text-[10px] sm:text-xs h-8 sm:h-9 w-[110px] sm:w-auto px-1 sm:px-2 flex-shrink-0 rounded-md border border-[#E8E5E0] dark:border-[#3A3A3A] bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white outline-none"
+                                <div className={`flex flex-row sm:flex-col items-center sm:items-stretch gap-2 transition-all ${showFontMenu ? 'relative z-[110]' : 'relative'}`}>
+                                    <button
+                                        ref={fontButtonRef}
+                                        onPointerDown={(e) => e.preventDefault()}
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        onClick={() => {
+                                            if (!showFontMenu) {
+                                                const rect = fontButtonRef.current?.getBoundingClientRect();
+                                                if (rect) {
+                                                    setMenuPos({ 
+                                                        top: rect.top, 
+                                                        left: rect.left,
+                                                        width: rect.width
+                                                    });
+                                                }
+                                            }
+                                            setShowFontMenu(!showFontMenu);
+                                        }}
+                                        className={`text-[10px] sm:text-xs h-8 sm:h-9 w-[110px] sm:w-auto px-2 flex-shrink-0 rounded-md border text-[#252525] dark:text-white flex items-center justify-between gap-1 transition-all active:scale-95
+                                            ${showFontMenu 
+                                                ? 'border-[#3B82F6] bg-blue-50 dark:bg-blue-900/20' 
+                                                : 'border-[#E8E5E0] dark:border-[#3A3A3A] bg-[#F5F3EF] dark:bg-[#1A1A1A]'
+                                            }
+                                        `}
                                     >
-                                        {["Times New Roman", "Arial", "Georgia", "Courier New", "Verdana", "Trebuchet MS"].map(f => (
-                                            <option key={f} value={f}>{f}</option>
-                                        ))}
-                                    </select>
+                                        <span className="truncate" style={{ fontFamily: textFontFamily }}>{textFontFamily}</span>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`transition-transform duration-200 ${showFontMenu ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
+                                    </button>
                                 </div>
                             </div>
+                            
+                            {/* Font Size Adjustments */}
+                            <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 flex-shrink-0">
+                                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Size</span>
+                                <div className="flex gap-1 border sm:border-0 border-[#E8E5E0] dark:border-[#3A3A3A] sm:border-transparent rounded-md p-0.5 sm:p-0">
+                                    <button
+                                        onPointerDown={(e) => e.preventDefault()}
+                                        onClick={() => setTextFontSize(s => Math.max(8, s - 2))}
+                                        title="Decrease font size"
+                                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white transition-all active:scale-90"
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M4 20l5-15h2l5 15M6 15h8M18 12h5" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        onPointerDown={(e) => e.preventDefault()}
+                                        onClick={() => setTextFontSize(s => Math.min(128, s + 2))}
+                                        title="Increase font size"
+                                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white transition-all active:scale-95"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M4 20l5-15h2l5 15M6 15h8M18 12h6M21 9v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 flex-shrink-0">
                                 <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Style</span>
                                 <div className="flex gap-1 border sm:border-0 border-[#E8E5E0] dark:border-[#3A3A3A] sm:border-transparent rounded-md p-0.5 sm:p-0">
                                     <button
+                                        onPointerDown={(e) => e.preventDefault()}
                                         onClick={() => setTextBold(b => !b)}
                                         className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md font-bold text-sm transition-all ${textBold ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
                                     >B</button>
                                     <button
+                                        onPointerDown={(e) => e.preventDefault()}
                                         onClick={() => setTextItalic(i => !i)}
                                         className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md italic text-sm transition-all ${textItalic ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
                                     >I</button>
                                     <button
+                                        onPointerDown={(e) => e.preventDefault()}
                                         onClick={() => setTextUnderline(u => !u)}
                                         className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md underline text-sm transition-all ${textUnderline ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
                                     >U</button>
@@ -999,6 +1130,7 @@ export default function PdfEditorPage() {
                                     {(["left", "center", "right"] as const).map((align) => (
                                         <button
                                             key={align}
+                                            onPointerDown={(e) => e.preventDefault()}
                                             onClick={() => setTextAlign(align)}
                                             className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs transition-all ${textAlign === align ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
                                         >
@@ -1013,6 +1145,47 @@ export default function PdfEditorPage() {
                     )}
                 </div>
             </div>
+            {/* Global Font Menu Overlay */}
+            {showFontMenu && (
+                <div 
+                    className="fixed inset-0 z-[100]"
+                    onPointerDown={(e) => {
+                        e.preventDefault();
+                        setShowFontMenu(false);
+                    }}
+                >
+                    <div 
+                        className="fixed bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#3A3A3A] rounded-lg shadow-2xl py-1 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-[101]"
+                        style={{
+                            // Check if it should be above or below based on screen height
+                            top: menuPos.top > window.innerHeight / 2 
+                                ? 'auto' 
+                                : `${menuPos.top + (window.innerWidth < 640 ? 36 : 40)}px`,
+                            bottom: menuPos.top > window.innerHeight / 2 
+                                ? `${window.innerHeight - menuPos.top + 8}px` 
+                                : 'auto',
+                            left: `${menuPos.left}px`,
+                            width: `${Math.max(140, menuPos.width)}px`
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        {["Times New Roman", "Arial", "Georgia", "Courier New", "Verdana", "Trebuchet MS"].map(f => (
+                            <button
+                                key={f}
+                                onPointerDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                    setTextFontFamily(f);
+                                    setShowFontMenu(false);
+                                }}
+                                style={{ fontFamily: f }}
+                                className={`w-full text-left px-4 py-2.5 text-xs transition-colors ${textFontFamily === f ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "text-[#252525] dark:text-white active:bg-gray-100 dark:active:bg-[#2A2A2A]"}`}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

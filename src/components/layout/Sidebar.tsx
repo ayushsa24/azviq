@@ -11,14 +11,16 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell, HelpCircle, Trash2
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell, HelpCircle, Trash2, Crown
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/utils/translations";
 import useSWR from "swr";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -42,12 +44,14 @@ export default function Sidebar({
   open,
   isHovered = false,
   onMouseLeave,
-  onTrashClick
+  onTrashClick,
+  onUpgradeClick
 }: {
   open: boolean;
   isHovered?: boolean;
   onMouseLeave?: () => void;
   onTrashClick?: () => void;
+  onUpgradeClick?: () => void;
 }) {
   const { theme, toggleTheme } = useTheme();
   const { language } = useLanguage();
@@ -60,7 +64,7 @@ export default function Sidebar({
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
   const { user: profile } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const { isProfileOpen, openProfile, closeProfile } = useProfile();
   const { data: recentData, mutate: mutateRecent } = useSWR("/api/recent-activity", fetcher, {
     revalidateOnFocus: true,
   });
@@ -118,12 +122,12 @@ export default function Sidebar({
         {/* ── TOP BRAND HEADER ── */}
         <div className={`flex items-center gap-3 px-4 h-14 shrink-0 border-b ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
           <img
-            src={isDark ? "/lavyx_logo.png" : "/davyx_logo.png"}
-            alt="Avyx Logo"
-            className="w-10 h-10 rounded-lg object-cover shrink-0"
+            src="/azviq_logo.png"
+            alt="Azviq Logo"
+            className="w-11 h-11 rounded-lg object-contain shrink-0 dark:invert"
           />
           <span className={`font-bold text-lg tracking-tighter flex-1 font-[var(--font-lexend)] ${isDark ? "text-white" : "text-[#252525]"}`}>
-            Avyx
+            Azviq
           </span>
           <button
             data-notification-bell
@@ -212,7 +216,17 @@ export default function Sidebar({
                       title={item.title}
                     >
                       <ItemIcon className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`} />
-                      <span className="truncate">{item.title}</span>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span className="truncate">{item.title.replace(/^\[\w+\]\s*/, "")}</span>
+                        {(() => {
+                          const iconMatch = item.title.match(/^\[(\w+)\]/);
+                          if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                            const IconComp = ICON_MAP[iconMatch[1]];
+                            return <IconComp size={12} className="opacity-40 shrink-0" strokeWidth={1.5} />;
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </Link>
                   );
                 })}
@@ -233,7 +247,13 @@ export default function Sidebar({
 
               {/* Profile header — click to open profile page */}
               <button
-                onClick={() => { setMenuOpen(false); router.push("/profile"); }}
+                onClick={() => { 
+                  setMenuOpen(false); 
+                  const currentFullUrl = window.location.pathname + window.location.search;
+                  const newUrl = `/profile?from=${encodeURIComponent(currentFullUrl)}`;
+                  window.history.pushState(null, '', newUrl);
+                  openProfile(); 
+                }}
                 className={`w-full text-left px-4 py-3 border-b transition-colors
                   ${isDark ? "border-[#3A3A3A] hover:bg-[#2E2E2E]" : "border-[#F0EDE8] hover:bg-[#CFCFCF]"}`}
               >
@@ -258,7 +278,7 @@ export default function Sidebar({
                 <Settings className="w-4 h-4" /> {translations[language].settings}
               </button>
 
-              {/* Trash (Added here as well) */}
+              {/* Trash */}
               <button
                 onClick={() => { 
                   setMenuOpen(false); 
@@ -271,6 +291,23 @@ export default function Sidebar({
                   ${isDark ? "text-white hover:bg-[#333]" : "text-[#252525] hover:bg-[#CFCFCF]"}`}
               >
                 <Trash2 className="w-4 h-4" /> Trash
+              </button>
+
+              {/* ✨ Upgrade Plan */}
+              <button
+                onClick={() => { setMenuOpen(false); onUpgradeClick?.(); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-all
+                  ${isDark
+                    ? "text-[#C2A27A] hover:bg-[#C2A27A]/10"
+                    : "text-[#8B6F4E] hover:bg-[#C2A27A]/10"
+                  }`}
+              >
+                <Crown className="w-4 h-4" />
+                Upgrade Plan
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full
+                  ${isDark ? "bg-[#C2A27A]/20 text-[#C2A27A]" : "bg-[#C2A27A]/15 text-[#8B6F4E]"}`}>
+                  PRO
+                </span>
               </button>
 
 
@@ -322,8 +359,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      {/* Profile modal — rendered outside aside so it can center on screen */}
-      <ProfileModal open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
+      {/* Profile modal is now managed globally by AppShell */}
     </>
   );
 }

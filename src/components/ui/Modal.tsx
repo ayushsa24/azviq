@@ -26,7 +26,7 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className={`w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all scale-100 ${isDark ? 'bg-[#1A1A1A] border border-[#333]' : 'bg-white'
+        className={`w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all scale-100 ${isDark ? "bg-[#1A1A1A] md:bg-[#1F1F1F] border border-[#333]" : "bg-white"
           }`}
         onClick={(e) => e.stopPropagation()}
       >
