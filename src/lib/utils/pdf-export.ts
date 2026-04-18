@@ -6,8 +6,33 @@ import html2canvas from "html2canvas";
  * Features: High-quality rendering, page-slicing for perfect margins, 
  * repeating headers/footers, and page-break optimization.
  */
-export async function exportToPdf(contentHtml: string, title: string) {
-    console.log("[PDF] Starting professional export for:", title);
+
+const ICON_TO_EMOJI: Record<string, string> = {
+    FileText: "📄", Book: "📖", Calendar: "📅", CheckCircle: "✅", Target: "🎯", Star: "⭐", 
+    Music: "🎵", Video: "🎥", Camera: "📷", Image: "🖼️", Palette: "🎨", Smile: "😊", 
+    User: "👤", Users: "👥", Home: "🏠", Briefcase: "💼", Code: "💻", Terminal: "📟",
+    Settings: "⚙️", Search: "🔍", Bell: "🔔", Mail: "✉️", Send: "📤", Link: "🔗",
+    MapPin: "📍", Globe: "🌐", Zap: "⚡", Flame: "🔥", Heart: "❤️", Coffee: "☕"
+};
+
+function parseEmojiTitle(rawTitle: string) {
+    const iconMatch = rawTitle.match(/^\[(\w+)\]\s*(.*)$/);
+    if (iconMatch) {
+        const iconName = iconMatch[1];
+        const cleanTitle = iconMatch[2] || "Untitled";
+        const emoji = ICON_TO_EMOJI[iconName] || "";
+        return { 
+            emoji, 
+            cleanTitle, 
+            fullDisplayTitle: emoji ? `${emoji} ${cleanTitle}` : cleanTitle 
+        };
+    }
+    return { emoji: "", cleanTitle: rawTitle, fullDisplayTitle: rawTitle };
+}
+
+export async function exportToPdf(contentHtml: string, rawTitle: string) {
+    const { emoji, cleanTitle, fullDisplayTitle } = parseEmojiTitle(rawTitle);
+    console.log("[PDF] Starting professional export for:", fullDisplayTitle);
     
     // 1. Create a high-fidelity rendering container
     const container = document.createElement("div");
@@ -49,7 +74,7 @@ export async function exportToPdf(contentHtml: string, title: string) {
         </style>
         <div class="pdf-body">
             <div class="pdf-title-box">
-                <h1 class="pdf-main-title">${title}</h1>
+                <h1 class="pdf-main-title">${cleanTitle}</h1>
             </div>
             <div class="pdf-content">${contentHtml}</div>
             <div class="pdf-end-branding">
@@ -89,11 +114,11 @@ export async function exportToPdf(contentHtml: string, title: string) {
         
         const totalPages = Math.ceil(canvas.height / pxPerUsablePage);
 
-        const drawBranding = (p: jsPDF, pageIdx: number, total: number) => {
+        const drawBranding = (p: jsPDF, pageIdx: number, total: number, displayTitle: string) => {
             // Header (slightly higher)
             p.setFontSize(9);
             p.setTextColor(180, 180, 180);
-            p.text(`Azviq Workspace  |  ${title}`, 20, 15);
+            p.text(`Azviq Workspace  |  ${displayTitle}`, 20, 15);
             p.setDrawColor(240, 240, 240);
             p.line(20, 18, 190, 18);
 
@@ -135,14 +160,16 @@ export async function exportToPdf(contentHtml: string, title: string) {
             const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.95);
             const sliceHeightMm = (currentSlicePx * pageWidth) / canvas.width;
             
-            // Draw branding elements
-            drawBranding(doc, i, totalPages);
+            // Draw branding elements (using clean title without emoji)
+            drawBranding(doc, i, totalPages, cleanTitle);
             
             // Add content with clear separation from header (start at 32mm)
             doc.addImage(sliceData, "JPEG", 0, marginY, pageWidth, sliceHeightMm);
         }
 
-        doc.save(`${title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+        // Sanitize filename and use clean title
+        const safeFileName = cleanTitle.replace(/[<>:"/\\|?*]/g, '_').trim();
+        doc.save(`${safeFileName || "Untitled"}.pdf`);
 
     } catch (err) {
         console.error("[PDF Export Error]", err);

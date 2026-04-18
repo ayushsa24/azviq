@@ -9,6 +9,7 @@ import { useUser } from "@/contexts/UserContext";
 import { Menu, Bell, Bot, User, Sun, Moon, LogOut, ChevronDown, ZoomIn, ZoomOut, RotateCcw, PanelLeft, PanelLeftClose, Settings, Trash2, Crown } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useRouter } from "next/navigation";
 
 export default function Header({ 
@@ -33,6 +34,7 @@ export default function Header({
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
   const { user } = useUser();
   const { openSettings } = useSettings();
+  const { openProfile } = useProfile();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +141,13 @@ export default function Header({
               : 'bg-white border-[#E8E5E0]'
               }`}>
                   <button
-                    onClick={() => { setDropdownOpen(false); router.push("/profile"); }}
+                    onClick={() => { 
+                      setDropdownOpen(false); 
+                      const currentFullUrl = window.location.pathname + window.location.search;
+                      const newUrl = `/profile?from=${encodeURIComponent(currentFullUrl)}`;
+                      window.history.pushState(null, '', newUrl);
+                      openProfile(); 
+                    }}
                     className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors rounded-t-xl cursor-pointer ${theme === 'dark'
                       ? 'text-[#CFCFCF] hover:bg-[#545454]'
                       : 'text-[#545454] hover:bg-[#F0EDE8]'

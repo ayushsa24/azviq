@@ -419,7 +419,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [savingSettings, setSavingSettings] = useState(false);
   const [localTarget, setLocalTarget] = useState("unlimited");
   const [customTarget, setCustomTarget] = useState("");
-  const [localControlEnabled, setLocalControlEnabled] = useState(true);
+  const [localControlEnabled, setLocalControlEnabled] = useState(false);
   const [localRestrictedMode, setLocalRestrictedMode] = useState(true);
   const [localReportTime, setLocalReportTime] = useState("20:00");
   const [isCustomTime, setIsCustomTime] = useState(false);
@@ -450,7 +450,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       const res = await fetch("/api/parent-control", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ family_email: newFamilyEmail.trim() }),
+        body: JSON.stringify({ 
+          family_email: newFamilyEmail.trim(),
+          control_enabled: localControlEnabled,
+          restricted_mode: localRestrictedMode,
+          daily_target_hours: localTarget === "custom" ? parseFloat(customTarget) || 0 : (localTarget === "unlimited" ? null : parseFloat(localTarget)),
+          report_time: localReportTime
+        }),
       });
       const json = await res.json();
       if (!res.ok) { setEmailError(json.error || "Failed to add email"); }

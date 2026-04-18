@@ -25,68 +25,51 @@ export async function GET(req: Request) {
     const allChats = searchParams.get("all") === "true";
     const importedOnly = searchParams.get("imported") === "true";
 
-    // Fetch chats for the user
-    let query = supabase
+    // Fetch chats for the user (only metadata, messages loaded on-demand)
+    const { data: chats, error } = await supabase
       .from("chats")
       .select(`
         *,
-        messages(*),
         original_shared_chat:shared_chats!original_shared_chat_id(
           id,
           user_id,
           users:users!user_id(name, email)
         ),
-        share_links:shared_chats!chat_id(id)
+        share_links:shared_chats!chat_id(id),
+        messages:messages(count)
       `)
-      .eq("user_id", userId);
-
-    if (importedOnly) {
-      query = query.not("original_shared_chat_id", "is", null);
-    } else if (allChats) {
-      // Don't filter by is_archived, get everything
-    } else if (archivedOnly) {
-      query = query.eq("is_archived", true);
-    } else {
-      query = query.eq("is_archived", false); // Default to non-archived
-    }
-
-    const { data: chats, error } = await query
+      .eq("user_id", userId)
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false });
 
     if (error) throw error;
 
-    // Ensure messages are strictly ordered chronologically
-    const sortedChats = chats.map((chat) => ({
-      ...chat,
-      messages: chat.messages
-        ? chat.messages.sort(
-            (a: { created_at: string }, b: { created_at: string }) =>
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime(),
-          )
-        : [],
-    }));
+    // Filter based on search parameters and message count
+    const filteredChats = chats.filter((chat: any) => {
+      // 1. Filter out chats with 0 messages (unless pinned OR just created)
+      const messageCount = chat.messages?.[0]?.count || 0;
+      const isVeryNew = new Date().getTime() - new Date(chat.created_at).getTime() < 60000; // 60s grace period
+      const hasContent = messageCount > 0 || chat.is_pinned || isVeryNew;
+      if (!hasContent) return false;
 
-    // Sort by latest message manually to handle history updates without a database column change
-    sortedChats.sort((a, b) => {
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
+      // 2. Filter based on archived/imported status
+      if (importedOnly) {
+        return !!chat.original_shared_chat_id;
+      }
+      
+      if (allChats) {
+        return true;
+      }
 
-      const aLatest =
-        a.messages.length > 0
-          ? new Date(a.messages[a.messages.length - 1].created_at).getTime()
-          : new Date(a.created_at).getTime();
+      if (archivedOnly) {
+        return !!chat.is_archived;
+      }
 
-      const bLatest =
-        b.messages.length > 0
-          ? new Date(b.messages[b.messages.length - 1].created_at).getTime()
-          : new Date(b.created_at).getTime();
-
-      return bLatest - aLatest;
+      // Default: only non-archived chats
+      return !chat.is_archived;
     });
 
-    return Response.json({ chats: sortedChats });
+    return Response.json({ chats: filteredChats });
   } catch (error) {
     console.error("History API Error:", error);
     return Response.json({ error: "Failed to fetch history" }, { status: 500 });

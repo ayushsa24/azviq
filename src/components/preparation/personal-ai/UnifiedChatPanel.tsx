@@ -6,7 +6,7 @@ import React, {
 import {
   Send, Sparkles, User, AlertCircle, CheckCircle2,
   Loader2, Mic, Volume2, StopCircle, MicOff,
-  Maximize2, Minimize2, Trash2, VolumeX, Plus, X, Crown, ArrowRight
+  Maximize2, Minimize2, Trash2, VolumeX, Plus, X, Crown, ArrowRight, Square
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -212,6 +212,13 @@ export default function UnifiedChatPanel({
     };
     fetchSession();
   }, [sessionId]);
+
+  // Laptop-only: Always keep input active
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      textareaRef.current?.focus();
+    }
+  }, []);
 
   // ─── Stream AI Response ───────────────────────────────────────────────────
 
@@ -561,6 +568,10 @@ export default function UnifiedChatPanel({
     setMessages(updated);
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    // Laptop-only: Keep keyboard active after sending
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      textareaRef.current?.focus();
+    }
     await streamResponse(updated);
   }, [input, isLoading, isStarting, messages, streamResponse]);
 
@@ -641,15 +652,15 @@ export default function UnifiedChatPanel({
       )}
 
       {/* ── Message Bubbles ───────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-2 sm:px-5 pb-32 scroll-smooth">
-        <div className="max-w-5xl mx-auto flex flex-col pt-4 space-y-3 sm:space-y-6">
+      <div className="flex-1 overflow-y-auto px-1 sm:px-4 pb-32 scroll-smooth">
+        <div className="flex flex-col pt-4 space-y-3 sm:space-y-6">
 
         {/* Case A: New Session Initialization (Show Reading Status) */}
         {isStarting && messages.length === 0 && (
-          <div className="flex gap-3 animate-in fade-in duration-300">
+          <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 animate-in fade-in duration-300">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
               ${isDark ? "bg-[#252525] border border-[#545454]" : "bg-[#F0EDE8] border border-[#7D7D7D]/30"}`}>
-              <Sparkles className="w-4 h-4 text-[#C2A27A]" />
+              <Sparkles className="w-5 h-5 text-[#C2A27A]" />
             </div>
             <div className={`px-4 py-3 rounded-2xl rounded-tl-sm text-sm flex items-center gap-2
               ${isDark ? "bg-[#252525] text-white border border-[#545454]" : "bg-[#F0EDE8] text-[#252525]"}`}>
@@ -663,16 +674,16 @@ export default function UnifiedChatPanel({
         {!isStarting && isLoading && messages.length === 0 && (
           <div className="space-y-4 animate-in fade-in duration-500">
             {/* AI Skeleton 1 */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 items-start">
               <div className={`w-8 h-8 rounded-full shrink-0 animate-pulse ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
-              <div className="flex flex-col gap-2 w-full max-w-[70%]">
+              <div className="flex flex-col gap-2 w-full md:w-[calc(100%-48px)] max-w-full">
                 <div className={`h-4 rounded-lg animate-pulse w-3/4 ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
                 <div className={`h-4 rounded-lg animate-pulse w-1/2 ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
               </div>
             </div>
             {/* User Skeleton */}
-            <div className="flex gap-3 justify-end">
-              <div className="flex flex-col gap-2 w-full max-w-[60%] items-end">
+            <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 justify-end items-start">
+              <div className="flex flex-col gap-2 items-end max-w-md">
                 <div className={`h-4 rounded-lg animate-pulse w-3/4 ${isDark ? "bg-white/10" : "bg-[#252525]/10"}`} />
               </div>
               <div className={`w-8 h-8 rounded-full shrink-0 animate-pulse ${isDark ? "bg-white/10" : "bg-[#252525]/10"}`} />
@@ -690,17 +701,17 @@ export default function UnifiedChatPanel({
             return (
               <div
                 key={idx}
-                className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : ""}`}
+                className={`group flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {/* AI Avatar */}
                 {msg.role === "assistant" && (
-                  <div className={`hidden sm:flex w-7 h-7 rounded-full items-center justify-center shrink-0 mt-1
+                  <div className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center shrink-0 mt-1
                     ${isDark ? "bg-[#252525] border border-[#545454]" : "bg-[#F0EDE8] border border-[#7D7D7D]/30"}`}>
-                    <Sparkles className="w-3.5 h-3.5 text-[#C2A27A]" />
+                    <Sparkles className="w-5 h-5 text-[#C2A27A]" />
                   </div>
                 )}
 
-                <div className={`flex flex-col gap-1 max-w-[95%] sm:max-w-[82%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <div className={`flex flex-col gap-1 min-w-0 ${msg.role === "user" ? "items-end max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}>
                   {/* Correction / Correct badge */}
                   {msg.role === "assistant" && msgType !== "normal" && (
                     <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full w-fit
@@ -726,7 +737,7 @@ export default function UnifiedChatPanel({
                     {/* Voice mic indicator for user voice messages */}
                     {msg.role === "user" && msg.inputType === "voice" && (
                       <span className="float-left mt-1 mr-2 opacity-60">
-                        <Mic className="w-3 h-3" />
+                        <Mic className="w-4 h-4" />
                       </span>
                     )}
 
@@ -774,9 +785,9 @@ export default function UnifiedChatPanel({
 
                 {/* User Avatar */}
                 {msg.role === "user" && (
-                  <div className={`hidden sm:flex w-7 h-7 rounded-full items-center justify-center shrink-0 mt-1
+                  <div className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center shrink-0 mt-1
                     ${isDark ? "bg-white/10 border border-white/20" : "bg-[#252525]/10 border border-[#252525]/20"}`}>
-                    <User className="w-3.5 h-3.5" />
+                    <User className="w-5 h-5" />
                   </div>
                 )}
               </div>
@@ -798,7 +809,7 @@ export default function UnifiedChatPanel({
             : "bg-gradient-to-t from-white via-white/95 to-transparent"
         }`} />
         
-        <div className="max-w-5xl mx-auto w-full relative z-10 px-2.5 sm:px-6 pb-2 pt-0">
+        <div className={`${isFocusMode ? "max-w-4xl md:pl-16" : "max-w-2xl"} mx-auto w-full relative z-10 px-1 md:px-4 pb-2 pt-0`}>
           
           {/* Integrated Technical Error Banner */}
           {technicalError && (
@@ -875,42 +886,50 @@ export default function UnifiedChatPanel({
 
           {/* ── TEXT MODE ── */}
           {mode === "chat" && (
-            <div className="pt-1 pb-0 sm:p-4">
-              <div className={`relative flex items-center w-full transition-all duration-300
+            <div className="pt-1 pb-0">
+              <div className={`relative flex flex-col w-full transition-all duration-300 p-1
                 ${isDark 
                   ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40" 
                   : "bg-white border-[#E5E5E5] focus-within:border-[#252525]/20"}
-                border rounded-full min-h-[52px] px-3
+                border rounded-[28px]
               `}>
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={handleTextareaChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask anything"
-                  rows={1}
-                  disabled={isLoading || isStarting}
-                  className="flex-1 bg-transparent px-3 py-3 outline-none resize-none max-h-48 text-[15px]
-                    text-[#252525] dark:text-white placeholder-[#9E9E9E] disabled:opacity-50 transition-all font-medium"
-                />
-                
-                <div className="flex items-center pr-1">
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || isLoading || isStarting}
-                    className={`flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-95
-                      ${!input.trim() || isLoading || isStarting
-                        ? (isDark ? "bg-[#333] text-[#555]" : "bg-[#F5F5F5] text-[#BABABA]")
-                        : (isDark ? "bg-white text-[#252525] hover:bg-neutral-100" : "bg-[#252525] text-white hover:bg-[#1A1A1A]")
-                      }`}
-                  >
-                    {isLoading
-                      ? <Loader2 size={16} className="animate-spin" />
-                      : <Send size={16} className={input.trim() ? "translate-x-0.5" : ""} />}
-                  </button>
+                <div className="flex items-center px-1">
+                  <textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={handleTextareaChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask anything"
+                    rows={1}
+                    disabled={isLoading || isStarting}
+                    className="flex-1 bg-transparent px-3 py-2 outline-none resize-none max-h-48 text-[15px] min-h-[40px] leading-tight
+                      text-[#252525] dark:text-white placeholder-[#9E9E9E] disabled:opacity-50 transition-all font-medium"
+                  />
+                  
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handleSend}
+                      disabled={!input.trim() || isLoading || isStarting}
+                      className={`flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-90
+                        ${!input.trim() || isLoading || isStarting
+                          ? (isDark ? "bg-[#333] text-[#555]" : "bg-[#F5F5F5] text-[#BABABA]")
+                          : (isDark ? "bg-white text-[#252525] hover:bg-neutral-100" : "bg-[#252525] text-white hover:bg-[#1A1A1A]")
+                        }`}
+                    >
+                      {isLoading
+                        ? <Square size={12} className="fill-current" />
+                        : <Send size={14} />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+          )}
+
+          {isFocusMode && (
+            <p className="text-center text-[11px] opacity-40 mt-1.5 hidden md:block select-none">
+              Azviq AI is your teacher. Study and discuss based on this {isPdf ? "PDF" : "note"}.
+            </p>
           )}
 
         {/* ── VOICE MODE ── */}
@@ -961,7 +980,7 @@ export default function UnifiedChatPanel({
                           ? "bg-white/5 hover:bg-white/10 text-[#BABABA]"
                           : "bg-black/5 hover:bg-black/10 text-[#545454]"}`}
                     >
-                      <StopCircle className="w-3.5 h-3.5" />
+                      <Square className="w-3 h-3 fill-current" />
                       Stop
                     </button>
                   )}

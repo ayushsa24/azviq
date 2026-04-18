@@ -16,6 +16,7 @@ import {
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/utils/translations";
 import useSWR from "swr";
@@ -63,7 +64,7 @@ export default function Sidebar({
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
   const { user: profile } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const { isProfileOpen, openProfile, closeProfile } = useProfile();
   const { data: recentData, mutate: mutateRecent } = useSWR("/api/recent-activity", fetcher, {
     revalidateOnFocus: true,
   });
@@ -246,7 +247,13 @@ export default function Sidebar({
 
               {/* Profile header — click to open profile page */}
               <button
-                onClick={() => { setMenuOpen(false); router.push("/profile"); }}
+                onClick={() => { 
+                  setMenuOpen(false); 
+                  const currentFullUrl = window.location.pathname + window.location.search;
+                  const newUrl = `/profile?from=${encodeURIComponent(currentFullUrl)}`;
+                  window.history.pushState(null, '', newUrl);
+                  openProfile(); 
+                }}
                 className={`w-full text-left px-4 py-3 border-b transition-colors
                   ${isDark ? "border-[#3A3A3A] hover:bg-[#2E2E2E]" : "border-[#F0EDE8] hover:bg-[#CFCFCF]"}`}
               >
@@ -352,8 +359,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      {/* Profile modal */}
-      <ProfileModal open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
+      {/* Profile modal is now managed globally by AppShell */}
     </>
   );
 }

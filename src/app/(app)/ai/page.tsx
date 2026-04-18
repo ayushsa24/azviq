@@ -48,7 +48,7 @@ import { ImportersModal } from "@/components/modals/ImportersModal";
 import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSession } from "next-auth/react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/utils/image";
@@ -93,8 +93,17 @@ function AiChatCore() {
   // Initialize directly from URL so first render has the right chat
   const { theme } = useTheme();
   const { open: isMainSidebarOpen, toggle: toggleMainSidebar } = useSidebar();
+  const { mutate: globalMutate } = useSWRConfig();
 
   useStudyTracker({ activityType: 'ai_teacher', isEnabled: true });
+
+  const [activeChatId, setActiveChatId] = useState<string | null>(urlChatId || null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+  const [isHistoryInitialized, setIsHistoryInitialized] = useState(false);
 
   const { data: session, status } = useSession();
   const { data: sessionData, mutate: mutateSessions, error: sessionError, isLoading: isHistoryLoading } = useSWR(
@@ -104,6 +113,17 @@ function AiChatCore() {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: 10000, // 10 seconds deduping
+    }
+  );
+
+  const { data: messagesData, mutate: mutateMessages, isLoading: isMessagesLoading } = useSWR(
+    status === "authenticated" && activeChatId && !activeChatId.startsWith("temp-") && activeChatId !== "temp-chat"
+      ? `/api/chat/${activeChatId}/messages`
+      : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 10000,
     }
   );
 
@@ -119,13 +139,7 @@ function AiChatCore() {
   const usage = subscription?.usage;
 
 
-  const [activeChatId, setActiveChatId] = useState<string | null>(urlChatId || null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
-  const [isHistoryInitialized, setIsHistoryInitialized] = useState(false);
+
 
   // Initial load for history sidebar
   useEffect(() => {
@@ -228,44 +242,44 @@ function AiChatCore() {
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
-  // Handle persisted vision images in the chat history
+  // Handle loading and processing of messages for the active chat
   useEffect(() => {
-    if (activeChatId && sessionData?.chats) {
-      const activeChat = sessionData.chats.find((c: ChatSession) => c.id === activeChatId);
-      if (activeChat) {
-        const processedMessages = (activeChat.messages || []).map((msg: Message) => {
-          // Robust check for JSON content (all edited messages with images/structured text)
-          if (msg.role === "user" && msg.content?.trim().startsWith('{')) {
-            try {
-              const parsed = JSON.parse(msg.content);
-              return {
-                ...msg,
-                content: parsed.text || parsed.content || msg.content,
-                image: parsed.image || msg.image
-              };
-            } catch (e) {
-              return msg;
-            }
-          }
-          // Detect saved error messages
-          const hasErrorMarker = msg.role === "model" && msg.content?.includes('[ERROR]:');
-          if (hasErrorMarker) {
+    // CRITICAL: If we are currently sending or streaming, do NOT let SWR overwrite local state.
+    // This prevents the flickering and message disappearance during initial generation.
+    if (isSendingRef.current || isLoading) return;
+
+    if (activeChatId && messagesData?.messages) {
+      const processedMessages = messagesData.messages.map((msg: Message) => {
+        // Robust check for JSON content (all edited messages with images/structured text)
+        if (msg.role === "user" && msg.content?.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(msg.content);
             return {
               ...msg,
-              content: msg.content.replace('[ERROR]:', '').trim(),
-              isError: true
+              content: parsed.text || parsed.content || msg.content,
+              image: parsed.image || msg.image
             };
+          } catch (e) {
+            return msg;
           }
-          return msg;
-        });
-        setMessages(processedMessages);
-      } else {
-        setMessages([]);
-      }
-    } else if (!activeChatId) {
-      setMessages([]);
+        }
+        // Detect saved error messages
+        const hasErrorMarker = msg.role === "model" && msg.content?.includes('[ERROR]:');
+        if (hasErrorMarker) {
+          return {
+            ...msg,
+            content: msg.content.replace('[ERROR]:', '').trim(),
+            isError: true
+          };
+        }
+        return msg;
+      });
+      setMessages(processedMessages);
+    } else if (!activeChatId || activeChatId === "temp-chat") {
+      // Don't clear messages if it's a new/temp chat (messages managed locally there)
+      if (!activeChatId) setMessages([]);
     }
-  }, [activeChatId, sessionData]);
+  }, [activeChatId, messagesData, isLoading]); // Added isLoading to dependency for better sync after completion
 
 
 
@@ -284,6 +298,13 @@ function AiChatCore() {
         abortControllerRef.current.abort();
       }
     };
+  }, []);
+
+  // Laptop-only: Always keep input active
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      inputRef.current?.focus();
+    }
   }, []);
 
 
@@ -428,7 +449,7 @@ function AiChatCore() {
     }
     const hasImport = !!localStorage.getItem("import_shared_chat");
     if (!activeChatId && !hasImport) {
-      startNewChat(false);
+      startNewChat();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyLoaded]);
@@ -483,67 +504,14 @@ function AiChatCore() {
     }
   }, [messages, activeChatId, atBottom]);
 
-  const startNewChat = async (shouldClose: boolean | React.MouseEvent | React.KeyboardEvent = true) => {
-    // Save current drafting area before switching to a new chat
-    if (activeChatId) {
-      setChatDrafts(prev => ({
-        ...prev,
-        [activeChatId]: { text: input, image: selectedImage }
-      }));
-    }
 
-    const actuallyClose = typeof shouldClose === 'boolean' ? shouldClose : true;
-    // Prevent creating multiple empty chats if one already exists
-    const existingEmptyChat = sessions.find(
-      (s) => !s.is_archived && (!s.messages || s.messages.length === 0),
-    );
-    if (existingEmptyChat) {
-      switchChat(existingEmptyChat.id, !!existingEmptyChat.is_archived, actuallyClose);
-      return;
-    }
-
-    if (status !== "authenticated") return;
-
-    // Optimistically create locally
-    const optimisticId = `temp-${Date.now()}`;
-    const newChatSession: ChatSession = {
-      id: optimisticId,
-      title: "New Chat",
-      messages: [],
-      created_at: new Date().toISOString()
-    };
-
-    mutateSessions(
-      (current: { chats: ChatSession[] } | undefined) => ({
-        ...current,
-        chats: [newChatSession, ...(current?.chats || [])]
-      }) as { chats: ChatSession[] },
-      { revalidate: false }
-    );
-
-    setActiveChatId(optimisticId);
+  const startNewChat = () => {
+    setActiveChatId(null);
     setMessages([]);
-    window.history.pushState(null, '', `/ai/${optimisticId}`);
-    if (window.innerWidth < 768 && actuallyClose) setIsSidebarOpen(false);
-
-    try {
-      const res = await fetch("/api/chat/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Chat" }),
-      });
-      const data = await res.json();
-
-      if (data.chat) {
-        // Swap out optimistic chat for real one
-        mutateSessions();
-        setActiveChatId(data.chat.id);
-        window.history.replaceState(null, '', `/ai/${data.chat.id}`);
-      }
-    } catch (err) {
-      console.error("Failed to create chat");
-      mutateSessions(); // Revert
-    }
+    setInput("");
+    setSelectedImage(null);
+    router.push("/ai", { scroll: false });
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
   const toggleTemporaryChat = () => {
@@ -567,7 +535,10 @@ function AiChatCore() {
     }
 
     // 2. Switch the active chat
-    setActiveChatId(chatId);
+    if (chatId !== activeChatId) {
+      setActiveChatId(chatId);
+      setMessages([]); // Clear current messages while new ones load
+    }
 
     // 3. Load the draft for the new chat
     const draft = chatDrafts[chatId];
@@ -599,12 +570,12 @@ function AiChatCore() {
     if (isSendingRef.current) return;
     setApiError(null);
 
-    const chatIdOfRequest = activeChatId;
+    let chatIdOfRequest = activeChatId;
     const textToSend = overrideText || input;
     const currentImage = overrideText !== undefined ? editImage : selectedImage;
 
     // Allow sending if there is either text OR an image
-    if ((!textToSend.trim() && !currentImage) || !chatIdOfRequest) return;
+    if ((!textToSend.trim() && !currentImage)) return;
 
     if (status !== "authenticated") return;
 
@@ -637,10 +608,16 @@ function AiChatCore() {
     setEditingMessageIdx(null);
     setIsLoading(true);
     setIsActuallySending(true);
-    setGeneratingChatIds(prev => new Set(prev).add(chatIdOfRequest));
+    if (chatIdOfRequest) {
+      const id = chatIdOfRequest;
+      setGeneratingChatIds(prev => new Set(prev).add(id));
+    }
 
-    // Explicitly blur the input on mobile to hide the keyboard after sending
-    if (window.innerWidth < 768) {
+    // Laptop-only: Always keep input active after sending
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      inputRef.current?.focus();
+    } else if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      // Explicitly blur the input on mobile to hide the keyboard after sending
       inputRef.current?.blur();
       // Also blur any active document elements
       if (document.activeElement instanceof HTMLElement) {
@@ -652,34 +629,83 @@ function AiChatCore() {
     // and looks more deliberate, as requested.
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Immediately move this chat to the top within SWR and ensure it's marked as non-empty
+    // Move this chat to the top within SWR sessions list
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
       if (!currentData || !currentData.chats) return currentData;
       const current = currentData.chats.find((s: ChatSession) => s.id === chatIdOfRequest);
       if (!current) return currentData;
 
-      const updatedMessages = cutHistoryAtIndex !== undefined
-        ? [...previousMessages, newMsg, thinkingMsg]
-        : [...(current.messages || []), newMsg, thinkingMsg];
-
       const updatedCurrent = {
         ...current,
-        messages: updatedMessages,
       };
       const others = currentData.chats.filter((s: ChatSession) => s.id !== chatIdOfRequest);
 
       return { ...currentData, chats: [updatedCurrent, ...others] };
     }, { revalidate: false });
 
+    // Also update the message cache optimistically if we have a real chat ID
+    if (chatIdOfRequest && !chatIdOfRequest.startsWith('temp-') && chatIdOfRequest !== 'temp-chat') {
+      mutateMessages((current: { messages: Message[] } | undefined) => {
+        const updatedMessages = cutHistoryAtIndex !== undefined
+          ? [...previousMessages, newMsg, thinkingMsg]
+          : [...(current?.messages || []), newMsg, thinkingMsg];
+        return { ...current, messages: updatedMessages };
+      }, { revalidate: false });
+    }
+
     let aiResponseText = "";
     let topicTitle: string | null = null;
 
     try {
+      // 1. Create chat session if it doesn't exist yet (draft mode)
+      // Only create if we DON'T have a chat ID. If it's "temp-chat", we keep it ephemeral.
+      if (!chatIdOfRequest) {
+        const res = await fetch("/api/chat/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: textToSend.slice(0, 40) }),
+        });
+        const data = await res.json();
+        if (data.chat) {
+          chatIdOfRequest = data.chat.id;
+
+          // Pre-populate the message cache for the new ID immediately
+          // so SWR doesn't start with an empty or loading state when we switch IDs
+          const optimisticMessages = [...previousMessages, newMsg, thinkingMsg];
+          globalMutate(`/api/chat/${chatIdOfRequest}/messages`,
+            { messages: optimisticMessages },
+            { revalidate: false }
+          );
+
+          setActiveChatId(chatIdOfRequest);
+          window.history.replaceState(null, '', `/ai/${chatIdOfRequest}`);
+
+          // Optimistically update the sessions (sidebar) list
+          mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
+            const existingChats = currentData?.chats || [];
+            // Add the new chat from backend to the top of the list
+            return {
+              ...(currentData || {}),
+              chats: [data.chat, ...existingChats]
+            };
+          }, { revalidate: false });
+          
+          // Add to generating set with the new ID
+          setGeneratingChatIds(prev => {
+            const next = new Set(prev);
+            if (chatIdOfRequest) next.add(chatIdOfRequest);
+            return next;
+          });
+        } else {
+          throw new Error("Failed to create chat session");
+        }
+      }
+
       // If this was an edit, delete all messages AT or AFTER the current edit index in the database
       if (cutHistoryAtIndex !== undefined && chatIdOfRequest !== "temp-chat") {
         const lastOriginalMsg = messages[cutHistoryAtIndex];
         if (lastOriginalMsg?.created_at || lastOriginalMsg?.id) {
-          const params = new URLSearchParams({ chatId: chatIdOfRequest });
+          const params = new URLSearchParams({ chatId: chatIdOfRequest as string });
           if (lastOriginalMsg.created_at) params.set("after", lastOriginalMsg.created_at);
           if (lastOriginalMsg.id) params.set("messageId", lastOriginalMsg.id);
 
@@ -701,7 +727,7 @@ function AiChatCore() {
       );
 
       const payload = {
-        chatId: activeChatId,
+        chatId: chatIdOfRequest,
         messages: [...filteredHistory, newMsg], // send clean history context
         image: currentImage || null,
       };
@@ -757,7 +783,7 @@ function AiChatCore() {
             if (parsed.message?.content) {
               const chunkText = parsed.message.content;
               aiResponseText += chunkText;
-              activeStreamingTextRef.current[chatIdOfRequest] = aiResponseText;
+              if (chatIdOfRequest) activeStreamingTextRef.current[chatIdOfRequest] = aiResponseText;
 
               // Only update local messages state if we are still viewing this chat
               if (currentChatIdRef.current === chatIdOfRequest) {
@@ -785,13 +811,13 @@ function AiChatCore() {
       // Also clear any drafts for this chat since message is now sent
       setChatDrafts(prev => {
         const updated = { ...prev };
-        delete updated[chatIdOfRequest];
+        if (chatIdOfRequest) delete updated[chatIdOfRequest];
         return updated;
       });
 
       mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
         if (!currentData || !currentData.chats) return currentData;
-        const updatedChat = currentData.chats.find((s: ChatSession) => s.id === activeChatId);
+        const updatedChat = currentData.chats.find((s: ChatSession) => s.id === chatIdOfRequest);
         if (!updatedChat) return currentData;
 
         const updated: ChatSession = {
@@ -804,7 +830,7 @@ function AiChatCore() {
           ],
         };
 
-        const others = currentData.chats.filter((s: ChatSession) => s.id !== activeChatId);
+        const others = currentData.chats.filter((s: ChatSession) => s.id !== chatIdOfRequest);
         return { ...currentData, chats: [updated, ...others] };
       }, false);
     } catch (error: any) {
@@ -847,12 +873,12 @@ function AiChatCore() {
           }, false);
 
           // Save the partial message to the database
-          if (activeChatId !== "temp-chat") {
+          if (chatIdOfRequest !== "temp-chat") {
             fetch("/api/chat/message", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                chatId: activeChatId,
+                chatId: chatIdOfRequest,
                 role: "model",
                 content: aiResponseText,
               }),
@@ -901,12 +927,14 @@ function AiChatCore() {
       setIsLoading(false);
       setIsActuallySending(false);
       isSendingRef.current = false;
-      setGeneratingChatIds((prev) => {
-        const next = new Set(prev);
-        next.delete(chatIdOfRequest);
-        return next;
-      });
-      delete activeStreamingTextRef.current[chatIdOfRequest];
+      if (chatIdOfRequest) {
+        setGeneratingChatIds((prev) => {
+          const next = new Set(prev);
+          next.delete(chatIdOfRequest as string);
+          return next;
+        });
+        delete activeStreamingTextRef.current[chatIdOfRequest];
+      }
     }
   };
 
@@ -1098,7 +1126,7 @@ function AiChatCore() {
         const res = await fetch("/api/chat/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             title: importData!.title || "Shared Chat",
             original_shared_chat_id: importData!.original_shared_chat_id
           }),
@@ -1137,12 +1165,7 @@ function AiChatCore() {
 
   const activeChats = filteredSessions.filter((s) => !s.is_archived);
   const pinnedChats = activeChats.filter((s) => s.is_pinned);
-  const unpinnedChats = activeChats
-    .filter((s) => !s.is_pinned)
-    .filter((s) => {
-      const isEmpty = !s.messages || s.messages.length === 0;
-      return !isEmpty; // Always hide empty chats until a message is sent
-    });
+  const unpinnedChats = activeChats.filter((s) => !s.is_pinned);
   const archivedChats = sessions.filter((s) => s.is_archived);
 
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1486,12 +1509,16 @@ function AiChatCore() {
                 : "Failed to load chat history."}
             </div>
           )}
-          {activeChats.length === 0 && !sessionError && !isHistoryLoading && (
-            <p
-              className={`text-center mt-6 text-sm ${theme === "dark" ? "text-[#BABABA]" : "text-gray-400"}`}
-            >
-              No previous chats found.
-            </p>
+          {pinnedChats.length === 0 && unpinnedChats.length === 0 && !sessionError && !isHistoryLoading && (
+            <div className="flex flex-col items-center justify-center mt-10 text-center opacity-80">
+              <MessageCircle className="w-8 h-8 mb-3 opacity-30" />
+              <p className={`text-sm font-medium ${theme === "dark" ? "text-[#BABABA]" : "text-gray-500"}`}>
+                Nothing here
+              </p>
+              <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                Create a new chat
+              </p>
+            </div>
           )}
 
           {pinnedChats.map((session) => renderSessionItem(session))}
@@ -1599,46 +1626,51 @@ function AiChatCore() {
               setShowScrollDown(!isNearBottom);
             }
           }}
-          className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-hide md:scrollbar-default pb-[100px] md:p-6 md:pb-[120px] space-y-4 md:space-y-6"
+          className={`absolute inset-0 scrollbar-hide md:scrollbar-default space-y-4 md:space-y-6 md:p-6 ${messages.length === 0
+            ? "overflow-hidden"
+            : "overflow-y-auto overflow-x-hidden pb-[140px] md:pb-[160px]"
+            }`}
         >
-          {/* Mobile Header Toggle - Moved inside for scroll-away effect */}
-          <div
-            className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b mb-2 transition-colors duration-300 ease-in-out ${theme === "dark"
-              ? "bg-[#1A1A1A] border-[#2E2E2E]"
-              : "bg-[#F5F3EF] border-[#7D7D7D]/40"
-              }`}
-          >
-            <div className="flex items-center">
+          {/* Mobile Header Toggle - Only show if messages or loading */}
+          {(messages.length > 0 || isHistoryLoading || isMessagesLoading) && (
+            <div
+              className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b mb-2 transition-colors duration-300 ease-in-out ${theme === "dark"
+                ? "bg-[#1A1A1A] border-[#2E2E2E]"
+                : "bg-[#F5F3EF] border-[#7D7D7D]/40"
+                }`}
+            >
+              <div className="flex items-center">
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                <span className="font-semibold text-sm truncate max-w-[150px]">
+                  {activeChatId === "temp-chat"
+                    ? "Temporary Chat"
+                    : sessions.find((s) => s.id === activeChatId)?.title ||
+                    "Chat History"}
+                </span>
+              </div>
               <button
-                onClick={() => setIsSidebarOpen(true)}
-                className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-              <span className="font-semibold text-sm truncate max-w-[150px]">
-                {activeChatId === "temp-chat"
-                  ? "Temporary Chat"
-                  : sessions.find((s) => s.id === activeChatId)?.title ||
-                  "Chat History"}
-              </span>
-            </div>
-            <button
-              onClick={toggleTemporaryChat}
-              className={`p-2 rounded-lg transition-colors ${
-                activeChatId === "temp-chat"
+                onClick={toggleTemporaryChat}
+                className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
                   ? theme === "dark"
                     ? "bg-[#333] text-white hover:bg-[#444]"
                     : "bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm"
                   : theme === "dark"
-                  ? "text-gray-300 hover:bg-[#252525]"
-                  : "text-[#545454] hover:bg-[#F0EDE8]"
-              }`}
-              title="Toggle Temporary Chat"
-            >
-              <Ghost className="w-5 h-5" />
-            </button>
-          </div>
-          {isHistoryLoading && messages.length === 0 && urlChatId && urlChatId !== "temp-chat" ? (
+                    ? "text-gray-300 hover:bg-[#252525]"
+                    : "text-[#545454] hover:bg-[#F0EDE8]"
+                  }`}
+                title="Toggle Temporary Chat"
+              >
+                <Ghost className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+          {/* Only show skeleton if explicitly loading OR if we have a real chat ID but local messages haven't synchronized with messagesData yet */}
+          {(isHistoryLoading || isMessagesLoading || (activeChatId && activeChatId !== "temp-chat" && messages.length === 0 && messagesData?.messages && messagesData.messages.length > 0)) && activeChatId && activeChatId !== "temp-chat" ? (
             <div className="flex flex-col gap-10 px-4 md:px-0 max-w-4xl mx-auto w-full pt-10">
               {/* User Bubble Skeleton (Right aligned) */}
               <div className="flex justify-end transition-all duration-700 opacity-60">
@@ -1672,7 +1704,7 @@ function AiChatCore() {
               </div>
             </div>
           ) : messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-60 w-full mb-12 sm:mb-12 pb-6">
               {isImporting ? (
                 <div className="flex flex-col items-center animate-pulse">
                   <div className={`w-16 h-16 mb-4 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-[#2A2A2A]" : "bg-[#F0EDE8]"}`}>
@@ -1874,7 +1906,7 @@ function AiChatCore() {
                               : theme === "dark"
                                 ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
                                 : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
-                              } ${msg.image ? "mt-1 mr-0.5 z-20" : ""}`}
+                              } ${msg.image ? "mt-1 mr-0.5" : ""}`}
                           >
                             {msg.role === "model" ? (
                               <>
@@ -2070,7 +2102,7 @@ function AiChatCore() {
             ))
           )}
 
-          <div ref={messagesEndRef} className="h-1 md:h-2" />
+          <div ref={messagesEndRef} className="h-10 md:h-12" />
         </div>
 
         {/* Input Dock */}
@@ -2104,8 +2136,8 @@ function AiChatCore() {
                   }
                 }}
                 className={`w-8 h-8 rounded-full shadow-md border flex items-center justify-center transition-all duration-300 transform scale-100 hover:scale-110 active:scale-95 pointer-events-auto backdrop-blur-sm
-                  ${theme === "dark" 
-                    ? "bg-[#252525]/70 border-[#3A3A3A] text-gray-500 hover:text-gray-300" 
+                  ${theme === "dark"
+                    ? "bg-[#252525]/70 border-[#3A3A3A] text-gray-500 hover:text-gray-300"
                     : "bg-white/70 border-[#E8E5E0] text-gray-400 hover:text-gray-600"}
                 `}
                 title="Scroll to bottom"
@@ -2142,7 +2174,7 @@ function AiChatCore() {
 
             {/* Main Pill Wrapper */}
             <div
-              className={`flex-1 relative rounded-[28px] flex flex-col p-1.5 border transition-all duration-300 ease-in-out ${theme === "dark"
+              className={`flex-1 relative rounded-[28px] flex flex-col p-1 border transition-all duration-300 ease-in-out ${theme === "dark"
                 ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40"
                 : "bg-white border-[#E5E5E5] focus-within:border-[#252525]/20"
                 }`}
@@ -2174,7 +2206,7 @@ function AiChatCore() {
                       } hover:scale-110`}
                     title="Attach image"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -2187,14 +2219,17 @@ function AiChatCore() {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       if (!isLoading) {
-                        e.currentTarget.blur();
+                        // Laptop-only: don't blur on enter
+                        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                          e.currentTarget.blur();
+                        }
                         handleSend();
                       }
                     }
                   }}
                   placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Azviq AI anything..."))}
                   disabled={isQuotaReached && !isLoading}
-                  className={`flex-1 max-h-48 min-h-[44px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-3 text-[15px] outline-none custom-scrollbar leading-tight font-medium ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-2 text-[15px] outline-none custom-scrollbar leading-tight font-medium ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
                 />
 
@@ -2211,7 +2246,7 @@ function AiChatCore() {
                           : "text-gray-500 hover:bg-[#F0EDE8] hover:text-[#252525]"
                         } hover:scale-110`}
                     >
-                      <Mic className="w-[18px] h-[18px]" />
+                      <Mic className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -2228,7 +2263,7 @@ function AiChatCore() {
                       className={`flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-90 ${theme === "dark" ? "bg-[#3A3A3A] text-white hover:bg-[#545454]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
                       title="Stop generating"
                     >
-                      <Square className="w-3.5 h-3.5 fill-current" />
+                      <Square className="w-3 h-3 fill-current" />
                     </button>
                   ) : (
                     <button
@@ -2249,14 +2284,14 @@ function AiChatCore() {
                         : "bg-[#252525] text-white hover:bg-[#444]"
                         }`}
                     >
-                      <Send className="w-4 h-4" />
+                      <Send className="w-[14px] h-[14px]" />
                     </button>
                   )}
                 </div>
               </div>
             </div>
           </div>
-          <p className="text-center text-xs opacity-50 mt-1.5 hidden md:block">
+          <p className="text-center text-[11px] opacity-40 mt-1.5 hidden md:block select-none">
             Azviq AI can make mistakes. Consider verifying critical
             information.
           </p>

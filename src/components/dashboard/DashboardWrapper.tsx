@@ -16,13 +16,14 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import TrashModal from "@/components/layout/TrashModal";
 import ProfileModal from "@/components/layout/ProfileModal";
 import PricingModal from "../PricingModal";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useState } from "react";
 
 export default function DashboardWrapper({ session }: { session: Session }) {
   const { user, isLoading } = useUser();
   const { open, toggle } = useSidebar();
   const [isTrashOpen, setIsTrashOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { openProfile } = useProfile();
   const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   if (isLoading) return null;
@@ -52,7 +53,7 @@ export default function DashboardWrapper({ session }: { session: Session }) {
             open={open}
             onMenuClick={toggle}
             onTrashClick={() => setIsTrashOpen(true)}
-            onProfileClick={() => setIsProfileOpen(true)}
+            onProfileClick={openProfile}
             onUpgradeClick={() => setIsPricingOpen(true)}
           />
         </div>
@@ -98,9 +99,8 @@ export default function DashboardWrapper({ session }: { session: Session }) {
         </div>
       </div>
 
-      {/* Global Modals for Dashboard Context */}
+      {/* Global Modals for Dashboard Context (Now managed globally by AppShell) */}
       <TrashModal isOpen={isTrashOpen} onClose={() => setIsTrashOpen(false)} />
-      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <PricingModal open={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
     </div>
   );

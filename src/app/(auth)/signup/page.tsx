@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import PasswordInput from "@/components/PasswordInput";
 import { Mail, UserPlus, Check, X, Bot } from "lucide-react";
 import Link from "next/link";
 import { signIn as nextAuthSignIn } from "next-auth/react";
+import OtpInput from "@/components/auth/OtpInput";
 
 export default function Signup() {
   const router = useRouter();
@@ -14,9 +15,21 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState<'form' | 'verify'>('form');
+  const [otpCode, setOtpCode] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [countdown, setCountdown] = useState(60);
   const [isVerifying, setIsVerifying] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (step === 'verify' && countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [step, countdown]);
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
@@ -55,23 +68,74 @@ export default function Signup() {
       });
 
       const data = await res.json();
-      if (data.success) {
-        // Automatically save userId to localStorage for onboarding fallback
-        localStorage.setItem('userId', data.data.user.id);
-        
-        // Auto-login after successful signup
-        await nextAuthSignIn("credentials", {
-          email,
-          password,
-          callbackUrl: "/onboarding",
-          redirect: true
-        });
+      if (data.success && data.data.step === 'verify') {
+        setStep('verify');
+        setCountdown(60);
       } else {
         alert(data.error?.message || "Signup failed");
-        setIsVerifying(false);
       }
     } catch (err) {
       alert("Something went wrong");
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
+  async function handleVerify(code: string) {
+    setIsVerifying(true);
+    setVerifyError("");
+
+    try {
+      const res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code, type: "SIGNUP" }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setVerifyError(data.error || "Verification failed");
+        setOtpCode(""); // reset input so user can try again
+        return;
+      }
+
+      setSuccessMessage("Account verified!");
+      
+      // Auto-login after successful verification
+      await nextAuthSignIn("credentials", {
+        email,
+        password,
+        callbackUrl: "/onboarding",
+        redirect: true
+      });
+    } catch (err) {
+      setVerifyError("Something went wrong");
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
+  async function handleResendCode() {
+    if (countdown > 0) return;
+    setIsVerifying(true);
+    
+    try {
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, type: "SIGNUP" }),
+      });
+      
+      if (res.ok) {
+        setCountdown(60);
+      } else {
+        const data = await res.json();
+        setVerifyError(data.error || "Failed to resend code");
+      }
+    } catch (err) {
+      setVerifyError("Something went wrong");
+    } finally {
       setIsVerifying(false);
     }
   }
@@ -92,25 +156,50 @@ export default function Signup() {
             className={`w-16 h-16 rounded-xl object-contain mb-2 ${theme === 'dark' ? 'invert' : ''}`} 
           />
           <h1 className={`text-3xl font-bold mb-0.5 tracking-tighter font-[var(--font-lexend)] ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`}>
-            {successMessage ? "Check Inbox" : "Join Azviq"}
+            {successMessage ? "Welcome!" : step === 'verify' ? "Check Email" : "Join Azviq"}
           </h1>
-          <p className={`text-[11px] text-center opacity-70 ${theme === 'dark' ? 'text-white' : 'text-[#545454]'}`}>
-            {successMessage || "Enter details to create account"}
+          <p className={`text-[11px] text-center opacity-70 px-2 ${theme === 'dark' ? 'text-white' : 'text-[#545454]'}`}>
+            {successMessage 
+              ? "Taking you to your dashboard..." 
+              : step === 'verify' 
+                ? `We sent a 6-digit code to ${email}`
+                : "Enter details to create account"}
           </p>
         </div>
 
         {successMessage ? (
-          <div className="flex flex-col items-center py-2">
+          <div className="flex flex-col items-center py-6">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${theme === 'dark' ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-600'}`}>
               <Check className="w-6 h-6" />
             </div>
-            <p className="text-xs text-center mb-6 px-4 opacity-80">{successMessage}</p>
-            <Link 
-              href="/login"
-              className={`w-full py-2.5 rounded-xl font-bold text-center text-xs transition-all ${theme === 'dark' ? 'bg-[#444] text-white hover:bg-[#555]' : 'bg-[#DDD] text-[#252525] hover:bg-[#CCC]'}`}
+            <div className="w-6 h-6 border-2 border-green-500/20 border-t-green-500 rounded-full animate-spin mt-2" />
+          </div>
+        ) : step === 'verify' ? (
+          <div className="flex flex-col gap-4 py-2">
+            <OtpInput 
+              length={6} 
+              onComplete={handleVerify} 
+              error={!!verifyError} 
+              disabled={isVerifying}
+            />
+            {verifyError && <p className="text-red-500 text-[10px] text-center font-bold">{verifyError}</p>}
+            
+            <button
+              onClick={handleResendCode}
+              disabled={countdown > 0 || isVerifying}
+              className="text-[10px] mt-4 uppercase font-bold tracking-widest text-center opacity-50 hover:opacity-100 disabled:hover:opacity-50 transition-opacity"
             >
-              Back to Login
-            </Link>
+              {countdown > 0 ? `Resend code in ${countdown}s` : "Resend Code"}
+            </button>
+            <button
+              onClick={() => {
+                setStep('form');
+                setVerifyError("");
+              }}
+              className="text-[10px] underline uppercase font-bold tracking-widest text-center opacity-50 hover:opacity-100 transition-opacity"
+            >
+              Change Email
+            </button>
           </div>
         ) : (
           <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }}>

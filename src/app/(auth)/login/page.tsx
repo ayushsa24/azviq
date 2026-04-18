@@ -53,7 +53,12 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        alert("Invalid email or password");
+        if (result.error === "AccountNotVerified") {
+          setEmailError("Account not verified");
+          alert("Your email is not verified. Please sign up again with the same email to receive a new verification code.");
+        } else {
+          alert("Invalid email or password");
+        }
         setLoading(false);
         return;
       }
@@ -131,7 +136,12 @@ function LoginForm() {
           </div>
 
           <div className="mb-4">
-            <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Password</label>
+            <div className="flex justify-between items-end mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider opacity-60">Password</label>
+              <Link href="/forgot-password" className="text-[10px] font-bold underline opacity-40 hover:opacity-100 transition-opacity">
+                Forgot password?
+              </Link>
+            </div>
             <PasswordInput
               placeholder="••••••••"
               value={password}

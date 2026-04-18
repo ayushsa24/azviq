@@ -10,6 +10,7 @@ import BottomNav from "./BottomNav";
 import NotificationPanel from "./NotificationPanel";
 import SettingsModal from "./SettingsModal";
 import { useSettings } from "@/contexts/SettingsContext";
+import { ProfileProvider, useProfile } from "@/contexts/ProfileContext";
 import TrashModal from "./TrashModal";
 import ProfileModal from "./ProfileModal";
 import PricingModal from "../PricingModal";
@@ -42,7 +43,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const isDashboard = pathname === "/dashboard";
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { isProfileOpen, openProfile, closeProfile } = useProfile();
   const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   useEffect(() => {
@@ -119,10 +120,20 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       
       // Navigate to the 'from' page and tell it to reopen settings
       router.replace(`${fromParam}${fromParam.includes('?') ? '&' : '?'}restore_settings=${tab}`);
+    } else if (isInitialLoad && (pathname.startsWith("/settings") || pathname.startsWith("/profile")) && !isProfileOpen && !isOpen) {
+      setIsInitialLoad(false);
+      const target = fromParam || "/dashboard";
+      if (pathname.startsWith("/settings")) {
+        const segments = pathname.split("/").filter(Boolean);
+        const tab = segments[1] || "general";
+        router.replace(`${target}${target.includes('?') ? '&' : '?'}restore_settings=${tab}`);
+      } else {
+        router.replace(`${target}${target.includes('?') ? '&' : '?'}restore_profile=true`);
+      }
     } else if (isInitialLoad) {
       setIsInitialLoad(false);
     }
-  }, [pathname, fromParam, router, isOpen, isInitialLoad]);
+  }, [pathname, fromParam, router, isOpen, isProfileOpen, isInitialLoad]);
 
   // Handle Restoration on the target page
   useEffect(() => {
@@ -131,7 +142,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       // Trigger the modal via context
       openSettings(restoreTab);
     }
-  }, [searchParams, openSettings]);
+
+    if (searchParams.get("restore_profile") === "true") {
+      openProfile();
+    }
+  }, [searchParams, openSettings, openProfile]);
   const checkIsFullPage = (path: string, params: URLSearchParams | null) => {
     const isPdf = path.includes("/library/pdf/");
     const isNote = path.includes("/library/note/");
@@ -196,7 +211,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <TrashModal isOpen={isTrashOpen} onClose={() => setIsTrashOpen(false)} />
 
       {/* Global Profile Popup */}
-      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <ProfileModal open={isProfileOpen} onClose={closeProfile} />
 
       {/* Global Pricing Popup */}
       <PricingModal open={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
@@ -228,9 +243,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <Suspense fallback={null}>
-        <AppShellInner>{children}</AppShellInner>
-      </Suspense>
+      <ProfileProvider>
+        <Suspense fallback={null}>
+          <AppShellInner>{children}</AppShellInner>
+        </Suspense>
+      </ProfileProvider>
     </SidebarProvider>
   );
 }
