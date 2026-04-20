@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Upload, Plus, LayoutGrid, List, ArrowLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 import { NoteItem, NoteCard } from "@/components/notes/NoteCard";
 import { UploadNoteModal } from "@/components/notes/UploadNoteModal";
@@ -32,9 +33,9 @@ export default function NotesPage() {
   );
 
   const tabCls = (active: boolean) =>
-    `px-1 py-2.5 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${active
-      ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
-      : "border-transparent text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
+    `relative px-1 py-2.5 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors outline-none ${active
+      ? "text-[#252525] dark:text-white"
+      : "text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
     }`;
 
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
@@ -366,7 +367,7 @@ export default function NotesPage() {
           </button>
         )}
         <div>
-          <h1 className="text-[23px] sm:text-2xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
+          <h1 className="text-[1.4375rem] sm:text-2xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
             {activeWorkspace ? activeWorkspace.name : "My Library"}
           </h1>
           <p className="text-xs text-[#7D7D7D] mt-0.5">
@@ -379,7 +380,7 @@ export default function NotesPage() {
 
       <div className="flex flex-row justify-between items-center gap-3 mb-3 w-full px-4 sm:px-6">
         <div className="relative flex-1 sm:w-80 sm:flex-none">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D] w-4 h-4" />
           <input
             type="text"
             placeholder={
@@ -407,7 +408,7 @@ export default function NotesPage() {
               onClick={() => setIsWorkspaceModalOpen(true)}
               className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
             >
-              <Plus size={18} />
+              <Plus className="w-[1.125rem] h-[1.125rem]" />
               <span className="sm:hidden">Create</span>
               <span className="hidden sm:inline">Create Workspace</span>
             </button>
@@ -418,7 +419,7 @@ export default function NotesPage() {
                   onClick={() => setIsUploadModalOpen(true)}
                   className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
-                  <Upload size={18} />
+                  <Upload className="w-[1.125rem] h-[1.125rem]" />
                   <span className="sm:hidden">Upload</span>
                   <span className="hidden sm:inline">Upload File</span>
                 </button>
@@ -429,7 +430,7 @@ export default function NotesPage() {
                   onClick={handleCreateNativeNote}
                   className="flex items-center justify-center gap-2 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#1A1A1A] dark:hover:bg-[#F0F0F0] hover:scale-105 active:scale-95 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all shadow-sm"
                 >
-                  <Plus size={18} />
+                  <Plus className="w-[1.125rem] h-[1.125rem]" />
                   <span className="sm:hidden">Create</span>
                   <span className="hidden sm:inline">Create Note</span>
                 </button>
@@ -446,26 +447,54 @@ export default function NotesPage() {
                 onClick={() => setActiveTab("workspaces")}
                 className={tabCls(activeTab === "workspaces")}
               >
-                Workspaces
+                <span className="relative z-10">Workspaces</span>
+                {activeTab === "workspaces" && (
+                  <motion.div
+                    layoutId="libraryTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
               </button>
             )}
             <button
               onClick={() => setActiveTab("notes")}
               className={tabCls(activeTab === "notes")}
             >
-              Notes
+              <span className="relative z-10">Notes</span>
+              {activeTab === "notes" && (
+                <motion.div
+                  layoutId="libraryTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
             </button>
             <button
               onClick={() => setActiveTab("pdfs")}
               className={tabCls(activeTab === "pdfs")}
             >
-              PDFs
+              <span className="relative z-10">PDFs</span>
+              {activeTab === "pdfs" && (
+                <motion.div
+                  layoutId="libraryTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
             </button>
             <button
               onClick={() => setActiveTab("favourites")}
               className={tabCls(activeTab === "favourites")}
             >
-              Favourites
+              <span className="relative z-10">Favourites</span>
+              {activeTab === "favourites" && (
+                <motion.div
+                  layoutId="libraryTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
             </button>
         </div>
 
@@ -478,7 +507,7 @@ export default function NotesPage() {
               }`}
             title="Grid View"
           >
-            <LayoutGrid size={18} />
+            <LayoutGrid className="w-[1.125rem] h-[1.125rem]" />
           </button>
           <button
             onClick={() => setViewMode("list")}
@@ -488,112 +517,166 @@ export default function NotesPage() {
               }`}
             title="List View"
           >
-            <List size={18} />
+            <List className="w-[1.125rem] h-[1.125rem]" />
           </button>
         </div>
       </div>
 
       {/* SCROLLABLE CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-y-auto min-h-0 px-4 sm:px-6 mt-2 scrollbar-hide">
-        {isLoading ? (
-          <div className={
-            viewMode === "grid"
-              ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 pt-1 animate-pulse"
-              : "grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1 animate-pulse"
-          }>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className={`rounded-2xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#545454]/20 p-4 sm:p-5 flex flex-col justify-between ${viewMode === 'list' ? 'h-24 flex-row items-center' : 'h-40 sm:h-[180px]'}`}>
-                {viewMode === 'grid' ? (
-                  <>
-                    <div className="flex items-center justify-between pointer-events-none">
-                      <div className="w-8 h-8 rounded-full bg-[#F0EDE8] dark:bg-white/10"></div>
-                      <div className="w-4 h-4 rounded bg-[#F0EDE8] dark:bg-white/10"></div>
-                    </div>
-                    <div className="space-y-2 pointer-events-none">
-                      <div className="h-5 bg-[#F0EDE8] dark:bg-white/10 rounded w-3/4"></div>
-                      <div className="h-3 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/2"></div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-4 w-full cursor-default select-none pointer-events-none">
-                      <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-white/10 shrink-0"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/3"></div>
-                        <div className="h-3 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/4"></div>
+        <AnimatePresence mode="wait">
+          {isLoading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 pt-1 animate-pulse"
+                  : "grid grid-cols-1 lg:grid-cols-3 gap-4 pt-1 animate-pulse"
+              }
+            >
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className={`rounded-2xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#545454]/20 p-4 sm:p-5 flex flex-col justify-between ${viewMode === 'list' ? 'h-24 flex-row items-center' : 'h-40 sm:h-[11.25rem]'}`}>
+                  {viewMode === 'grid' ? (
+                    <>
+                      <div className="flex items-center justify-between pointer-events-none">
+                        <div className="w-8 h-8 rounded-full bg-[#F0EDE8] dark:bg-white/10"></div>
+                        <div className="w-4 h-4 rounded bg-[#F0EDE8] dark:bg-white/10"></div>
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : activeTab === "workspaces" && !activeWorkspace ? (
-          <div className={
-            viewMode === "grid"
-              ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
-              : "grid grid-cols-1 lg:grid-cols-2 gap-4"
-          }>
-            {filteredWorkspaces.length > 0 ? filteredWorkspaces.map((ws) => (
-              <WorkspaceCard
-                key={ws.id}
-                workspace={ws}
-                onClick={handleOpenWorkspace}
-                viewMode={viewMode}
-                onRename={handleRenameWorkspaceClick}
-                onDelete={handleDeleteWorkspaceClick}
-                onTogglePin={handleTogglePinWorkspace}
-              />
-            )) : (
-              <div className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}>
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
-                  <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
+                      <div className="space-y-2 pointer-events-none">
+                        <div className="h-5 bg-[#F0EDE8] dark:bg-white/10 rounded w-3/4"></div>
+                        <div className="h-3 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/2"></div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-4 w-full cursor-default select-none pointer-events-none">
+                        <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-white/10 shrink-0"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/3"></div>
+                          <div className="h-3 bg-[#F0EDE8] dark:bg-white/10 rounded w-1/4"></div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
-                <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
-                  {searchQuery
-                    ? "Try adjusting your search query."
-                    : "Create your first workspace to get started."}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className={
-            viewMode === "grid"
-              ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
-              : "grid grid-cols-1 lg:grid-cols-2 gap-4"
-          }>
-            {filteredNotes.length > 0 ? filteredNotes.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                onClick={handleOpenNote}
-                viewMode={viewMode}
-                onRename={handleRenameClick}
-                onMove={handleMoveClick}
-                onDelete={handleDeleteClick}
-                onToggleFavourite={handleToggleFavourite}
-                onTogglePin={handleTogglePin}
-                isPinnedOverride={activeTab === "favourites" ? !!note.is_pinned_in_favourites : !!note.is_pinned}
-              />
-            )) : (
-              <div className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}>
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
-                  <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
-                </div>
-                <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
-                <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
-                  {searchQuery
-                    ? "Try adjusting your search query."
-                    : activeWorkspace
-                      ? "Upload a file or create a note in this workspace."
-                      : "Upload a file or create a note to get started."}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key={activeTab + (activeWorkspace?.id || "")}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="flex-1 flex flex-col"
+            >
+              {activeTab === "workspaces" && !activeWorkspace ? (
+                <motion.div 
+                  layout
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
+                      : "grid grid-cols-1 lg:grid-cols-3 gap-4"
+                  }
+                >
+                  <AnimatePresence mode="popLayout">
+                    {filteredWorkspaces.length > 0 ? filteredWorkspaces.map((ws) => (
+                      <motion.div
+                        key={ws.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                      >
+                        <WorkspaceCard
+                          workspace={ws}
+                          onClick={handleOpenWorkspace}
+                          viewMode={viewMode}
+                          onRename={handleRenameWorkspaceClick}
+                          onDelete={handleDeleteWorkspaceClick}
+                          onTogglePin={handleTogglePinWorkspace}
+                        />
+                      </motion.div>
+                    )) : (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}
+                      >
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
+                          <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
+                        <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
+                          {searchQuery
+                            ? "Try adjusting your search query."
+                            : "Create your first workspace to get started."}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  layout
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
+                      : "grid grid-cols-1 lg:grid-cols-3 gap-4"
+                  }
+                >
+                  <AnimatePresence mode="popLayout">
+                    {filteredNotes.length > 0 ? filteredNotes.map((note) => (
+                      <motion.div
+                        key={note.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                      >
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onClick={handleOpenNote}
+                          viewMode={viewMode}
+                          onRename={handleRenameClick}
+                          onMove={handleMoveClick}
+                          onDelete={handleDeleteClick}
+                          onToggleFavourite={handleToggleFavourite}
+                          onTogglePin={handleTogglePin}
+                          isPinnedOverride={activeTab === "favourites" ? !!note.is_pinned_in_favourites : !!note.is_pinned}
+                        />
+                      </motion.div>
+                    )) : (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}
+                      >
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
+                          <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
+                        <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
+                          {searchQuery
+                            ? "Try adjusting your search query."
+                            : activeWorkspace
+                              ? "Upload a file or create a note in this workspace."
+                              : "Upload a file or create a note to get started."}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <UploadNoteModal

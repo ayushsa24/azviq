@@ -57,19 +57,29 @@ export async function POST(req: Request) {
       return apiError("Forbidden", 403, "FORBIDDEN");
     }
 
-    // 3b. Fetch AI preferences — gracefully defaults if columns don't exist yet
+    // 3b. Fetch AI preferences and chat info
     let userAiModel: string = FREE_MODEL;
     let userResponseStyle = "balanced";
+    let currentChatTitle = "";
     try {
-      const { data: prefs } = await supabase
+      const { data: userData } = await supabase
         .from("users")
         .select("ai_model, response_style")
         .eq("id", dbUser.id)
         .single();
-      if (prefs?.ai_model) userAiModel = prefs.ai_model;
-      if (prefs?.response_style) userResponseStyle = prefs.response_style;
+      if (userData?.ai_model) userAiModel = userData.ai_model;
+      if (userData?.response_style) userResponseStyle = userData.response_style;
+
+      if (chatId !== "temp-chat") {
+        const { data: chatData } = await supabase
+          .from("chats")
+          .select("title")
+          .eq("id", chatId)
+          .single();
+        currentChatTitle = chatData?.title || "";
+      }
     } catch {
-      // Columns don't exist yet — use defaults
+      // Gracefully defaults if columns/chat don't exist yet
     }
 
     const userId = dbUser.id;
@@ -140,17 +150,35 @@ export async function POST(req: Request) {
 
     const aiMessages = mergedMessages;
 
-    // 8. Generate chat title (non-blocking, delayed to avoid quota racing with main stream)
+    // 8. Generate chat title (non-blocking, best-effort)
     let titlePromise: Promise<string | null> | null = null;
-    if (messages.length === 1 && chatId !== "temp-chat") {
+
+    // Check if we should (re)generate a title:
+    // - It's the first message OR
+    // - The current title is a generic placeholder like "New Chat" or "Study Support"
+    const isPlaceholderTitle = !currentChatTitle || 
+                               currentChatTitle.toLowerCase() === "new chat" || 
+                               currentChatTitle.toLowerCase() === "study support";
+                               
+    if (chatId !== "temp-chat" && (messages.length === 1 || (messages.length <= 3 && isPlaceholderTitle))) {
+      // Clean the input text for the title generator (remove JSON if any)
+      let cleanInput = latestUserMessage.content;
+      if (cleanInput.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(cleanInput);
+          cleanInput = parsed.text || parsed.content || cleanInput;
+        } catch { /* use original */ }
+      }
+
       // Delay by 3s so title generation doesn't exhaust the same quota bucket as the stream
       titlePromise = new Promise(resolve => setTimeout(resolve, 3000))
-        .then(() => generateChatTitle(latestUserMessage.content))
+        .then(() => generateChatTitle(cleanInput))
         .then(async (title) => {
-          if (title) {
+          if (title && title.toLowerCase() !== "new chat") {
             await supabase.from("chats").update({ title }).eq("id", chatId);
+            return title;
           }
-          return title ?? null;
+          return null;
         }).catch(() => null);
     }
 

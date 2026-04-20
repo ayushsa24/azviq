@@ -245,21 +245,43 @@ export async function callGeminiStream(
 
 /**
  * Generate a short, descriptive 2-4 word title for a new chat session.
- * Uses FREE_MODEL for cost efficiency. Non-blocking — returns null on failure.
+ * Optimized: Uses only the first 15 words of the input and includes a fallback model strategy
+ * to prevent 429 quota blockages from the primary Lite model.
  */
 export async function generateGeminiTitle(firstMessage: string): Promise<string | null> {
-  try {
+  const sliceText = (msg: string) => msg.split(/\s+/).slice(0, 15).join(" ");
+  const shortInput = sliceText(firstMessage);
+  
+  const generate = async (modelId: string) => {
     const genAI = getGenAI();
-    const model = genAI.getGenerativeModel({ model: FREE_MODEL });
+    const model = genAI.getGenerativeModel({ 
+      model: modelId,
+      generationConfig: { temperature: 0.5, maxOutputTokens: 20 }
+    });
 
-    const prompt = `Generate a 2-4 word title for a study chat based on this first message. Do NOT use quotes or punctuation: "${firstMessage.substring(0, 300)}"`;
-
+    const prompt = `Based on this chat snippet, generate a 2-4 word descriptive title. No quotes, no punctuation, no "Title:":\n\n"${shortInput}"`;
     const result = await model.generateContent(prompt);
-    const title = result.response.text().trim().replace(/["'.]/g, "");
+    return result.response.text().trim().replace(/["'.]/g, "");
+  };
 
-    return title.length > 60 ? title.substring(0, 57) + "..." : title || null;
-  } catch (err) {
-    console.error("[Gemini] Failed to generate title:", err);
+  try {
+    // Try primary FREE_MODEL first
+    return await generate(FREE_MODEL);
+  } catch (err: any) {
+    const isQuotaError = err?.status === 429 || err?.message?.includes("429") || err?.message?.includes("quota");
+    
+    if (isQuotaError && FREE_MODEL !== "gemini-1.5-flash-8b") {
+      console.warn(`[Gemini Title] Primary model '${FREE_MODEL}' hit quota, falling back to 1.5-flash-8b...`);
+      try {
+        // Fallback to 1.5-flash-8b (High quota: 1,500 RPD)
+        return await generate("gemini-1.5-flash-8b");
+      } catch (fallbackErr) {
+        console.error("[Gemini Title] Fallback model also failed:", fallbackErr);
+      }
+    } else {
+      console.error("[Gemini Title] Failed to generate title:", err.message);
+    }
+    
     return null;
   }
 }

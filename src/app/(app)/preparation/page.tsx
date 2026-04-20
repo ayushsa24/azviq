@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 
 import ExerciseTab from "@/components/preparation/ExerciseTab";
@@ -21,9 +22,9 @@ const TABS: { id: TabType; label: string }[] = [
 ];
 
 const tabCls = (active: boolean) =>
-    `px-1 py-2.5 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${active
-        ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
-        : "border-transparent text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
+    `relative px-1 py-2.5 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors outline-none ${active
+        ? "text-[#252525] dark:text-white"
+        : "text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
     }`;
 
 export default function PreparationPage() {
@@ -179,7 +180,14 @@ export default function PreparationPage() {
                                     onClick={() => handleTabChange(tab.id)}
                                     className={tabCls(activeTab === tab.id)}
                                 >
-                                    {tab.label}
+                                    <span className="relative z-10">{tab.label}</span>
+                                    {activeTab === tab.id && (
+                                        <motion.div
+                                            layoutId="activeTabUnderline"
+                                            className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
                                 </button>
                             ))}
                         </div>
@@ -218,30 +226,40 @@ export default function PreparationPage() {
                     ref={scrollContentRef}
                     className={`flex-1 overflow-y-auto scrollbar-hide transition-all duration-300 ${isFocusMode ? 'px-0 mt-0 h-full' : 'px-4 sm:px-6 mt-2'}`}
                 >
-                    {/* Tab content - rendered always but hidden when inactive to preserve state/prevent re-loads */}
-                    <div className={activeTab === "exercise" ? "block" : "hidden"}>
-                        <ExerciseTab
-                            search={search}
-                            onNeedGenerate={() => setIsGenerateOpen(true)}
-                            refreshKey={refreshKey}
-                            onStartExercise={handleStartExercise}
-                            viewMode={viewMode}
-                        />
-                    </div>
-                    <div className={activeTab === "revision" ? "block" : "hidden"}>
-                        <RevisionTab
-                            search={search}
-                            refreshKey={refreshKey}
-                            onOpenRevision={handleOpenRevision}
-                            viewMode={viewMode}
-                        />
-                    </div>
-                    <div className={activeTab === "personal_ai" ? "block h-full" : "hidden"}>
-                        <PersonalAITab 
-                            isFocusMode={isFocusMode}
-                            onFocusModeChange={setIsFocusMode}
-                        />
-                    </div>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="h-full"
+                        >
+                            {activeTab === "exercise" && (
+                                <ExerciseTab
+                                    search={search}
+                                    onNeedGenerate={() => setIsGenerateOpen(true)}
+                                    refreshKey={refreshKey}
+                                    onStartExercise={handleStartExercise}
+                                    viewMode={viewMode}
+                                />
+                            )}
+                            {activeTab === "revision" && (
+                                <RevisionTab
+                                    search={search}
+                                    refreshKey={refreshKey}
+                                    onOpenRevision={handleOpenRevision}
+                                    viewMode={viewMode}
+                                />
+                            )}
+                            {activeTab === "personal_ai" && (
+                                <PersonalAITab 
+                                    isFocusMode={isFocusMode}
+                                    onFocusModeChange={setIsFocusMode}
+                                />
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
             </div>
 

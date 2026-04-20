@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { FileText, AlertCircle, Minimize2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -10,6 +11,13 @@ import SessionHistorySelector from "./personal-ai/SessionHistorySelector";
 import ModeToggle, { Mode } from "./personal-ai/ModeToggle";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 import UnifiedChatPanel from "./personal-ai/UnifiedChatPanel";
+
+interface Note {
+  id: string;
+  title: string;
+  file_url?: string | null;
+  is_revoked?: boolean;
+}
 
 interface Props {
   isFocusMode?: boolean;
@@ -24,7 +32,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   const searchParams = useSearchParams();
 
   const [mode, setMode] = useState<Mode>("chat");
-  const [notes, setNotes] = useState<any[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
@@ -36,6 +44,53 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   const [isPdf, setIsPdf] = useState(false);
 
   useStudyTracker({ activityType: "personal_ai", isEnabled: true });
+
+  // Load extracted content when a note is selected
+  const handleNoteSelect = React.useCallback(async (noteId: string, preSessionId?: string | null) => {
+    setSelectedNoteId(noteId);
+    setNoteContent(null);
+    setContextError(null);
+    setIsPdf(false);
+
+    try {
+      setIsHistoryLoading(true);
+      setContextError(null);
+
+      // 1. Check for existing session first
+      let currentSessionId = preSessionId ?? null;
+      if (!currentSessionId) {
+        const sessionRes = await fetch(`/api/personal-ai/sessions?note_id=${noteId}`);
+        if (sessionRes.ok) {
+          const json = await sessionRes.json();
+          currentSessionId = json.data?.sessions?.[0]?.id || null;
+        }
+      }
+      
+      setSessionId(currentSessionId);
+      setIsHistoryLoading(false);
+
+      // 2. Fetch context (note/pdf text)
+      // If we already have a session, we load context in the background silently
+      // but we still want the UI to feel "ready"
+      if (!currentSessionId) {
+        setIsContextLoading(true);
+      }
+
+      const contextRes = await fetch(`/api/personal-ai/context?note_id=${noteId}`);
+      const contextData = await contextRes.json();
+      
+      if (!contextRes.ok) throw new Error(contextData.error || "Failed to load note context");
+      
+      setNoteContent(contextData.contentText);
+      setIsPdf(contextData.isPdf);
+
+    } catch (err: unknown) {
+      setContextError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsContextLoading(false);
+      setIsHistoryLoading(false);
+    }
+  }, []);
 
   // 1. Initial Load from URL
   useEffect(() => {
@@ -59,7 +114,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
       };
       fetchSessionInfo();
     }
-  }, []);
+  }, [searchParams, sessionId, handleNoteSelect]);
 
   // 2. Sync State to URL
   useEffect(() => {
@@ -98,52 +153,6 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     fetchNotes();
   }, []);
 
-  // Load extracted content when a note is selected
-  const handleNoteSelect = async (noteId: string, preSessionId?: string | null) => {
-    setSelectedNoteId(noteId);
-    setNoteContent(null);
-    setContextError(null);
-    setIsPdf(false);
-
-    try {
-      setIsHistoryLoading(true);
-      setContextError(null);
-
-      // 1. Check for existing session first
-      let currentSessionId = preSessionId ?? null;
-      if (!currentSessionId) {
-        const sessionRes = await fetch(`/api/personal-ai/sessions?note_id=${noteId}`);
-        if (sessionRes.ok) {
-          const json = await sessionRes.json();
-          currentSessionId = json.data?.sessions?.[0]?.id || null;
-        }
-      }
-      
-      setSessionId(currentSessionId);
-      setIsHistoryLoading(false);
-
-      // 2. Fetch context (note/pdf text)
-      // If we already have a session, we load context in the background silently
-      // but we still want the UI to feel "ready"
-      if (!currentSessionId) {
-        setIsContextLoading(true);
-      }
-
-      const contextRes = await fetch(`/api/personal-ai/context?note_id=${noteId}`);
-      const contextData = await contextRes.json();
-      
-      if (!contextRes.ok) throw new Error(contextData.error || "Failed to load note context");
-      
-      setNoteContent(contextData.contentText);
-      setIsPdf(contextData.isPdf);
-
-    } catch (err: any) {
-      setContextError(err.message);
-    } finally {
-      setIsContextLoading(false);
-      setIsHistoryLoading(false);
-    }
-  };
 
   const rawNote = notes.find((n) => n.id === selectedNoteId);
   const selectedNoteTitle = rawNote
@@ -160,12 +169,16 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   };
 
   return (
-    <div className={`flex flex-col h-full transition-all duration-300 mx-auto w-full ${isFocusMode ? 'max-w-none gap-0 px-0' : 'max-w-3xl gap-4 px-0 pb-4'}`}>
-      {/* Controls Row - Now visible in Focus Mode as well */}
-      <div className={`flex flex-row items-center gap-1 sm:gap-2.5 animate-in fade-in slide-in-from-top-2 transition-all duration-300 
+    <div className={`flex flex-col h-full transition-all duration-300 mx-auto w-full ${isFocusMode ? 'max-w-none gap-0 px-0' : 'max-w-3xl gap-4 px-3 sm:px-0 pb-4'}`}>
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className={`flex flex-row items-center gap-1 sm:gap-2.5 transition-all duration-300 
         ${isFocusMode 
-          ? `px-4 h-14 shrink-0 border-b ${isDark ? 'bg-[#1E1E1E] border-[#333]' : 'bg-[#FAFAFA] border-[#7D7D7D]/40'}` 
-          : ''}`}>
+          ? `px-3 h-14 shrink-0 border-b ${isDark ? 'bg-[#1E1E1E] border-[#333]' : 'bg-[#FAFAFA] border-[#7D7D7D]/40'}` 
+          : ''}`}
+      >
         <div className="flex items-center gap-2.5 flex-1 h-full">
           {isFocusMode && <SidebarToggleButton />}
           <SessionHistorySelector
@@ -195,7 +208,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
             </button>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Main Panel */}
       <div className={`flex flex-col flex-1 transition-all duration-500 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.02)]

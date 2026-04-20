@@ -164,7 +164,7 @@ IMPORTANT — For the "summary" field, generate a COMPACT, SCANNABLE revision sh
             .insert({
                 user_id: user.id,
                 note_id: note.id,
-                title: `Revision: ${(note.title as string).replace(/^\[\w+\]\s*/, "")}`,
+                title: note.title as string,
                 summary: parsed.summary || "",
                 keywords: parsed.keywords || [],
                 qa_pairs: parsed.qa_pairs || [],

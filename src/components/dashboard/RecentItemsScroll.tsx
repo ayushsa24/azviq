@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, File as FileIcon, Clock, BookOpen, FlaskConical, ArrowRight } from "lucide-react";
+import { FileText, File as FileIcon, Clock, BookOpen, ClipboardCheck, ArrowRight } from "lucide-react";
 import useSWR from "swr";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
@@ -20,7 +20,7 @@ type RecentItem = {
 const TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText }> = {
     note: { label: "Note", icon: FileText },
     pdf: { label: "PDF", icon: FileIcon },
-    exercise: { label: "Exercise", icon: FlaskConical },
+    exercise: { label: "Exercise", icon: ClipboardCheck },
     revision: { label: "Revision", icon: BookOpen },
 };
 

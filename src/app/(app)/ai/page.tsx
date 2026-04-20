@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useState, useEffect, useLayoutEffect, useRef, Suspense } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import ReactMarkdown from "react-markdown";
@@ -88,6 +88,7 @@ type ChatSession = {
 function AiChatCore() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   // Works for both /ai/[id] and /ai/archive/[id] — both have params.id
   const urlChatId = params?.id as string | undefined;
   // Initialize directly from URL so first render has the right chat
@@ -98,6 +99,15 @@ function AiChatCore() {
   useStudyTracker({ activityType: 'ai_teacher', isEnabled: true });
 
   const [activeChatId, setActiveChatId] = useState<string | null>(urlChatId || null);
+
+  // Sync activeChatId with URL params when they change
+  useEffect(() => {
+    if (isInternalNavRef.current) {
+      isInternalNavRef.current = false;
+      return;
+    }
+    setActiveChatId(urlChatId || null);
+  }, [urlChatId]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -238,6 +248,7 @@ function AiChatCore() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isMobileApp, setIsMobileApp] = useState(false);
   const currentChatIdRef = useRef<string | null>(activeChatId);
+  const isInternalNavRef = useRef(false);
   const [editImage, setEditImage] = useState<string | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -246,7 +257,7 @@ function AiChatCore() {
   useEffect(() => {
     // CRITICAL: If we are currently sending or streaming, do NOT let SWR overwrite local state.
     // This prevents the flickering and message disappearance during initial generation.
-    if (isSendingRef.current || isLoading) return;
+    if (isSendingRef.current || isLoading || isActuallySending) return;
 
     if (activeChatId && messagesData?.messages) {
       const processedMessages = messagesData.messages.map((msg: Message) => {
@@ -276,10 +287,10 @@ function AiChatCore() {
       });
       setMessages(processedMessages);
     } else if (!activeChatId || activeChatId === "temp-chat") {
-      // Don't clear messages if it's a new/temp chat (messages managed locally there)
-      if (!activeChatId) setMessages([]);
+      // Don't clear messages if it's a new/temp chat OR if a redirect is pending
+      if (!activeChatId && !pendingQueryRef.current) setMessages([]);
     }
-  }, [activeChatId, messagesData, isLoading]); // Added isLoading to dependency for better sync after completion
+  }, [activeChatId, messagesData, isLoading, isActuallySending]);
 
 
 
@@ -439,70 +450,73 @@ function AiChatCore() {
     }
   }, [activeChatId, sessions]);
 
-  const pendingQueryRef = useRef<string | null>(null);
-
+  const pendingQueryRef = useRef<string | null>(null);  // 1. Capture query immediately on mount or search params change
   useEffect(() => {
-    if (!historyLoaded) return;
-    const query = new URLSearchParams(window.location.search).get("q");
+    const query = searchParams.get("q");
     if (query) {
       pendingQueryRef.current = query;
+      // Atomic reset for query handling - avoid router.push if we're already handling it
+      if (activeChatId || messages.length > 0) {
+        setActiveChatId(null);
+        setMessages([]);
+        setInput("");
+        setSelectedImage(null);
+      }
     }
-    const hasImport = !!localStorage.getItem("import_shared_chat");
-    if (!activeChatId && !hasImport) {
-      startNewChat();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historyLoaded]);
+  }, [searchParams]);
 
-  // Handle pending query once activeChatId is available
+  // 2. Process the pending query once we're in a clean state
   useEffect(() => {
-    if (!activeChatId || !pendingQueryRef.current || isLoading) return;
-    if (isSendingRef.current) return;
+    if (!pendingQueryRef.current || isSendingRef.current) return;
+
+    // Wait until we are definitely in a "New Chat" state (activeChatId null, no messages)
+    if (activeChatId !== null || messages.length > 0) return;
 
     const query = pendingQueryRef.current;
     pendingQueryRef.current = null; // Clear so it doesn't fire again
 
-    // If the current chat already has messages, create a fresh one
-    if (messages.length > 0) {
-      startNewChat();
-      pendingQueryRef.current = query; // Re-set so it fires after new chat is created
-      return;
-    }
-
     setInput(query);
-    setTimeout(() => {
+    // Use a small delay to ensure React has flushed the "New Chat" state reset
+    const timer = setTimeout(() => {
       handleSend(query);
-      router.replace("/ai", { scroll: false });
-    }, 100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 50);
+    return () => clearTimeout(timer);
   }, [activeChatId, messages.length]);
+
+  // 3. Ensure history loads and we have a clean state for the new chat
+  useEffect(() => {
+    if (!historyLoaded) return;
+    
+    // Auto-create new chat if no ID is present and no query is pending
+    const hasImport = !!localStorage.getItem("import_shared_chat");
+    if (!activeChatId && !hasImport && !pendingQueryRef.current) {
+      startNewChat();
+    }
+  }, [historyLoaded, activeChatId]);
 
   const prevChatIdRef = useRef(activeChatId);
 
   // Scroll to bottom whenever messages change or chat is switched
-  useEffect(() => {
+  // Using useLayoutEffect to perform instant jumps BEFORE the browser paints the new messages
+  useLayoutEffect(() => {
     if (!chatContainerRef.current) return;
 
     const isSwitchingChat = prevChatIdRef.current !== activeChatId;
+
     if (isSwitchingChat) {
       prevChatIdRef.current = activeChatId;
       setAtBottom(true);
-      chatContainerRef.current.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: "auto" });
+      // Instant jump on switch
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       return;
     }
 
-    if (atBottom) {
-      // Use requestAnimationFrame for the smoothest possible 'pin' during streaming
-      const scroll = () => {
-        if (chatContainerRef.current && atBottom) {
-          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-      };
-
-      const frame = requestAnimationFrame(scroll);
-      return () => cancelAnimationFrame(frame);
+    if (atBottom || isActuallySending) {
+      // During active generation or if we were already at the bottom, follow the text
+      // We do this instantly in useLayoutEffect to prevent any 'jumpy' frames
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages, activeChatId, atBottom]);
+  }, [messages, activeChatId, atBottom, isActuallySending, isLoading]);
 
 
   const startNewChat = () => {
@@ -536,6 +550,7 @@ function AiChatCore() {
 
     // 2. Switch the active chat
     if (chatId !== activeChatId) {
+      isInternalNavRef.current = true;
       setActiveChatId(chatId);
       setMessages([]); // Clear current messages while new ones load
     }
@@ -677,6 +692,7 @@ function AiChatCore() {
             { revalidate: false }
           );
 
+          isInternalNavRef.current = true;
           setActiveChatId(chatIdOfRequest);
           window.history.replaceState(null, '', `/ai/${chatIdOfRequest}`);
 
@@ -833,6 +849,25 @@ function AiChatCore() {
         const others = currentData.chats.filter((s: ChatSession) => s.id !== chatIdOfRequest);
         return { ...currentData, chats: [updated, ...others] };
       }, false);
+
+      // --- NEW: Update messages cache with final content ---
+      if (chatIdOfRequest && !chatIdOfRequest.startsWith('temp-') && chatIdOfRequest !== 'temp-chat') {
+        mutateMessages((current: any) => {
+          if (!current || !current.messages) return current;
+          const updatedMsgs = [...current.messages];
+          if (updatedMsgs.length > 0) {
+            // Find the last message and replace it if it was a thinking msg
+            const lastIdx = updatedMsgs.length - 1;
+            updatedMsgs[lastIdx] = { 
+              ...updatedMsgs[lastIdx], 
+              content: aiResponseText, 
+              isThinking: false,
+              role: "model"
+            };
+          }
+          return { ...current, messages: updatedMsgs };
+        }, { revalidate: false });
+      }
     } catch (error: any) {
       if (error.name === "AbortError") {
         console.log("User aborted the generation");
@@ -927,6 +962,15 @@ function AiChatCore() {
       setIsLoading(false);
       setIsActuallySending(false);
       isSendingRef.current = false;
+      
+      // Crucial: Final revalidation to ensure database state is synced with local optimistic state
+      // We pass through the current messages one more time to avoid a flicker while the revalidation is in-flight
+      if (chatIdOfRequest && !chatIdOfRequest.startsWith('temp-') && chatIdOfRequest !== 'temp-chat') {
+        mutateMessages();
+      } else {
+        mutateMessages();
+      }
+      
       if (chatIdOfRequest) {
         setGeneratingChatIds((prev) => {
           const next = new Set(prev);
@@ -1628,49 +1672,47 @@ function AiChatCore() {
           }}
           className={`absolute inset-0 scrollbar-hide md:scrollbar-default space-y-4 md:space-y-6 md:p-6 ${messages.length === 0
             ? "overflow-hidden"
-            : "overflow-y-auto overflow-x-hidden pb-[140px] md:pb-[160px]"
+            : "overflow-y-auto overflow-x-hidden pb-[60px] md:pb-[70px]"
             }`}
         >
-          {/* Mobile Header Toggle - Only show if messages or loading */}
-          {(messages.length > 0 || isHistoryLoading || isMessagesLoading) && (
-            <div
-              className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b mb-2 transition-colors duration-300 ease-in-out ${theme === "dark"
-                ? "bg-[#1A1A1A] border-[#2E2E2E]"
-                : "bg-[#F5F3EF] border-[#7D7D7D]/40"
-                }`}
-            >
-              <div className="flex items-center">
-                <button
-                  onClick={() => setIsSidebarOpen(true)}
-                  className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
-                <span className="font-semibold text-sm truncate max-w-[150px]">
-                  {activeChatId === "temp-chat"
-                    ? "Temporary Chat"
-                    : sessions.find((s) => s.id === activeChatId)?.title ||
-                    "Chat History"}
-                </span>
-              </div>
+          {/* Mobile Header Toggle - Always show so users can access the menu */}
+          <div
+            className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b mb-2 transition-colors duration-300 ease-in-out ${theme === "dark"
+              ? "bg-[#1A1A1A] border-[#2E2E2E]"
+              : "bg-[#F5F3EF] border-[#7D7D7D]/40"
+              }`}
+          >
+            <div className="flex items-center">
               <button
-                onClick={toggleTemporaryChat}
-                className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
-                  ? theme === "dark"
-                    ? "bg-[#333] text-white hover:bg-[#444]"
-                    : "bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm"
-                  : theme === "dark"
-                    ? "text-gray-300 hover:bg-[#252525]"
-                    : "text-[#545454] hover:bg-[#F0EDE8]"
-                  }`}
-                title="Toggle Temporary Chat"
+                onClick={() => setIsSidebarOpen(true)}
+                className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
               >
-                <Ghost className="w-5 h-5" />
+                <Menu className="w-5 h-5" />
               </button>
+              <span className="font-semibold text-sm truncate max-w-[150px]">
+                {activeChatId === "temp-chat"
+                  ? "Temporary Chat"
+                  : sessions.find((s) => s.id === activeChatId)?.title ||
+                  "Chat History"}
+              </span>
             </div>
-          )}
-          {/* Only show skeleton if explicitly loading OR if we have a real chat ID but local messages haven't synchronized with messagesData yet */}
-          {(isHistoryLoading || isMessagesLoading || (activeChatId && activeChatId !== "temp-chat" && messages.length === 0 && messagesData?.messages && messagesData.messages.length > 0)) && activeChatId && activeChatId !== "temp-chat" ? (
+            <button
+              onClick={toggleTemporaryChat}
+              className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
+                ? theme === "dark"
+                  ? "bg-[#333] text-white hover:bg-[#444]"
+                  : "bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm"
+                : theme === "dark"
+                  ? "text-gray-300 hover:bg-[#252525]"
+                  : "text-[#545454] hover:bg-[#F0EDE8]"
+                }`}
+              title="Toggle Temporary Chat"
+            >
+              <Ghost className="w-5 h-5" />
+            </button>
+          </div>
+          {/* Only show skeleton if explicitly loading OR if we have a real chat ID but local messages haven't synchronized yet */}
+          {(isHistoryLoading || isMessagesLoading || !messagesData) && messages.length === 0 && activeChatId && activeChatId !== "temp-chat" ? (
             <div className="flex flex-col gap-10 px-4 md:px-0 max-w-4xl mx-auto w-full pt-10">
               {/* User Bubble Skeleton (Right aligned) */}
               <div className="flex justify-end transition-all duration-700 opacity-60">
@@ -1753,7 +1795,7 @@ function AiChatCore() {
                 }}
               >
                 {/* Avatar Model */}
-                {msg.role === "model" && (
+                {(msg.role === "model" || msg.role === "assistant") && (
                   <div
                     className={`hidden md:flex w-8 h-8 mt-2 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#252525]" : "bg-[#252525]"}`}
                   >
@@ -1899,13 +1941,14 @@ function AiChatCore() {
                         {/* 2. Text Content Bubble (Small Gap) */}
                         {(msg.content || msg.isThinking) && !msg.content?.trim().startsWith('{') && (
                           <div
-                            className={`px-4 py-2 text-[14px] md:text-[15px] shadow-sm min-w-0 break-words ${msg.role === "user"
+                            style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
+                            className={`px-4 py-2.5 text-[14px] md:text-[15px] shadow-sm min-w-0 leading-relaxed ${msg.role === "user"
                               ? theme === "dark"
-                                ? "bg-[#545454] text-white rounded-2xl rounded-tr-none min-w-[50px] text-right"
-                                : "bg-[#F0EDE8] text-gray-900 rounded-2xl rounded-tr-none min-w-[50px] text-right"
+                                ? "bg-[#545454] text-white rounded-[22px] rounded-tr-[4px] min-w-[50px] text-left"
+                                : "bg-[#F0EDE8] text-gray-900 rounded-[22px] rounded-tr-[4px] min-w-[50px] text-left"
                               : theme === "dark"
-                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
-                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-2xl rounded-tl-none ai-response-content px-4 py-3"
+                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-3"
+                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-3"
                               } ${msg.image ? "mt-1 mr-0.5" : ""}`}
                           >
                             {msg.role === "model" ? (
@@ -2004,7 +2047,7 @@ function AiChatCore() {
                   {/* Action Buttons Beneath Bubble */}
                   {editingMessageIdx !== idx && !isLoading && (
                     <div
-                      className={`transition-opacity flex items-center gap-1.5 mt-1 ${msg.role === "user" ? "justify-end pr-2" : "justify-start pl-2"} opacity-100 md:opacity-0 md:group-hover:opacity-100`}
+                      className={`transition-opacity flex items-center gap-1.5 mt-1 ${msg.role === "user" ? "justify-end pr-2 opacity-100 md:opacity-0 md:group-hover:opacity-100" : "justify-start pl-2 opacity-100"}`}
                     >
                       {/* Copy Button */}
                       <button
@@ -2106,25 +2149,27 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-2 md:pb-3 pt-0 mt-0 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-0 md:pb-0 text-left transition-all duration-300 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
           {apiError && (
-            <div className={`max-w-3xl md:max-w-4xl mx-auto mb-3 p-3 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
-              <div className="flex items-center gap-2 text-sm">
-                <Bot className="w-4 h-4 shrink-0" />
-                <span>{apiError}</span>
+            <div className="max-w-4xl mx-auto px-3 md:px-4 md:pl-16 mb-2">
+              <div className={`w-full p-2.5 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
+                <div className="flex items-center gap-2 text-sm">
+                  <Bot className="w-4 h-4 shrink-0" />
+                  <span>{apiError}</span>
+                </div>
+                <button
+                  onClick={() => setApiError(null)}
+                  className="p-1 hover:bg-black/5 rounded-full transition-colors"
+                  title="Dismiss error"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                onClick={() => setApiError(null)}
-                className="p-1 hover:bg-black/5 rounded-full transition-colors"
-                title="Dismiss error"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
           )}
           {/* 🚀 FIXED SCROLL-DOWN BUTTON - Stationary & Dull */}
           {showScrollDown && (
-            <div className="fixed bottom-[112px] left-1/2 -translate-x-1/2 z-[100] md:absolute md:bottom-full md:left-0 md:right-0 md:translate-x-0 md:flex md:justify-center md:pb-8 pointer-events-none">
+            <div className="fixed bottom-[145px] left-1/2 -translate-x-1/2 z-[100] md:absolute md:bottom-full md:left-0 md:right-0 md:translate-x-0 md:flex md:justify-center md:pb-8 pointer-events-none">
               <button
                 onPointerDown={(e) => {
                   e.preventDefault();
@@ -2146,7 +2191,7 @@ function AiChatCore() {
               </button>
             </div>
           )}
-          <div className="max-w-4xl mx-auto flex items-end w-full px-1 md:px-4 md:pl-16">
+          <div className="max-w-4xl mx-auto flex items-end w-full px-3 md:px-4 md:pl-16">
             {/* Hidden File Input */}
             <input
               type="file"
@@ -2200,7 +2245,7 @@ function AiChatCore() {
                 <div className="relative flex items-center justify-center shrink-0">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${theme === "dark"
+                    className={`flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 ${theme === "dark"
                       ? "text-gray-400 hover:bg-[#333] hover:text-white"
                       : "text-gray-500 hover:bg-[#F0EDE8] hover:text-[#252525]"
                       } hover:scale-110`}
@@ -2229,7 +2274,8 @@ function AiChatCore() {
                   }}
                   placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Azviq AI anything..."))}
                   disabled={isQuotaReached && !isLoading}
-                  className={`flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-2 text-[15px] outline-none custom-scrollbar leading-tight font-medium ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
+                  className={`flex-1 max-h-48 min-h-[30px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-[3px] text-[15px] outline-none custom-scrollbar leading-relaxed font-medium whitespace-pre-wrap ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
                 />
 
@@ -2239,7 +2285,7 @@ function AiChatCore() {
                     <button
                       onClick={toggleDictation}
                       title="Dictate"
-                      className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${isDictating
+                      className={`flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 ${isDictating
                         ? "bg-red-500 text-white animate-pulse"
                         : theme === "dark"
                           ? "text-gray-400 hover:bg-[#333] hover:text-white"
@@ -2260,7 +2306,7 @@ function AiChatCore() {
                           isSendingRef.current = false;
                         }
                       }}
-                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-90 ${theme === "dark" ? "bg-[#3A3A3A] text-white hover:bg-[#545454]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
+                      className={`flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-full transition-all active:scale-90 ${theme === "dark" ? "bg-[#3A3A3A] text-white hover:bg-[#545454]" : "bg-[#F0EDE8] text-gray-700 hover:bg-[#D1D1D1]"}`}
                       title="Stop generating"
                     >
                       <Square className="w-3 h-3 fill-current" />
@@ -2270,21 +2316,18 @@ function AiChatCore() {
                       onPointerDown={(e) => {
                         // Fix for mobile: send message immediately without waiting for keyboard blur
                         if (!isLoading && (input.trim() || selectedImage)) {
-                          e.preventDefault(); // Stop the focus shift that closes keyboard
+                          e.preventDefault();
                           handleSend();
                         }
                       }}
-                      onClick={(e) => {
-                        // Desktop fallback or mouse clicks
-                        if (window.innerWidth >= 768) handleSend();
-                      }}
-                      disabled={isLoading || (!input.trim() && !selectedImage)}
-                      className={`flex items-center justify-center w-10 h-10 rounded-full transition-all disabled:opacity-30 disabled:scale-100 active:scale-90 ${theme === "dark"
-                        ? "bg-white text-[#252525] hover:bg-gray-200"
-                        : "bg-[#252525] text-white hover:bg-[#444]"
+                      className={`flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-95 ${input.trim() || selectedImage
+                        ? "bg-[#252525] text-white hover:bg-[#545454] dark:bg-white dark:text-black dark:hover:bg-[#BABABA]"
+                        : theme === "dark" ? "bg-[#333] text-gray-500 cursor-not-allowed" : "bg-[#F5F3EF] text-gray-400 cursor-not-allowed"
                         }`}
+                      disabled={!input.trim() && !selectedImage}
+                      title="Send message"
                     >
-                      <Send className="w-[14px] h-[14px]" />
+                      <Send className="w-4 h-4" />
                     </button>
                   )}
                 </div>

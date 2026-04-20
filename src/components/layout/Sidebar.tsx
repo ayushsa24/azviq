@@ -11,7 +11,7 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, FlaskConical, BookOpen, Bell, HelpCircle, Trash2, Crown
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, ClipboardCheck, BookOpen, Bell, HelpCircle, Trash2, Crown
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
@@ -36,7 +36,7 @@ type RecentItem = {
 const TYPE_CONFIG: Record<string, { icon: any }> = {
   note: { icon: FileText },
   pdf: { icon: FileIcon },
-  exercise: { icon: FlaskConical },
+  exercise: { icon: ClipboardCheck },
   revision: { icon: BookOpen },
 };
 
@@ -217,7 +217,11 @@ export default function Sidebar({
                     >
                       <ItemIcon className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`} />
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <span className="truncate">{item.title.replace(/^\[\w+\]\s*/, "")}</span>
+                        <span className="truncate">
+                          {item.item_type === "exercise" && "Exercise: "}
+                          {item.item_type === "revision" && "Revision: "}
+                          {item.title.replace(/^\[\w+\]\s*/, "")}
+                        </span>
                         {(() => {
                           const iconMatch = item.title.match(/^\[(\w+)\]/);
                           if (iconMatch && ICON_MAP[iconMatch[1]]) {

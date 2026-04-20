@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";

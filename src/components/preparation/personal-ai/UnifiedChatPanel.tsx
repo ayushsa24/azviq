@@ -725,7 +725,7 @@ export default function UnifiedChatPanel({
                   )}
 
                   {/* Bubble */}
-                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed transition-all duration-200
+                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed transition-all duration-200 max-w-full overflow-hidden
                     ${msg.role === "user"
                       ? isDark
                         ? "bg-white text-[#252525] rounded-tr-sm"
@@ -746,21 +746,20 @@ export default function UnifiedChatPanel({
                         remarkPlugins={[remarkGfm]}
                         components={{
                           table: ({ ...props }) => (
-                            <div className="overflow-x-auto my-3 scrollbar-hide">
-                              <table className={`min-w-full border-collapse border text-left text-xs
-                                ${isDark ? "border-[#545454]" : "border-[#7D7D7D]/30"}`} {...props} />
+                            <div className="block w-full max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454] custom-scrollbar">
+                              <table className="w-full text-sm text-left border-collapse min-w-max" {...props} />
                             </div>
                           ),
                           thead: ({ ...props }) => (
-                            <thead className={isDark ? "bg-[#333]" : "bg-[#252525]/5"} {...props} />
+                            <thead className={isDark ? "bg-[#545454]" : "bg-[#F0EDE8]"} {...props} />
                           ),
                           th: ({ ...props }) => (
-                            <th className={`px-3 py-2 border font-bold
-                              ${isDark ? "border-[#545454]" : "border-[#7D7D7D]/30"}`} {...props} />
+                            <th className={`px-3 py-2 font-bold border-b whitespace-nowrap
+                              ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
                           ),
                           td: ({ ...props }) => (
-                            <td className={`px-3 py-2 border
-                              ${isDark ? "border-[#545454]" : "border-[#7D7D7D]/30"}`} {...props} />
+                            <td className={`px-3 py-2 border-b whitespace-nowrap
+                              ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
                           ),
                           ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-1 my-2" {...props} />,
                           ol: ({ ...props }) => <ol className="list-decimal ml-4 space-y-1 my-2" {...props} />,
@@ -809,7 +808,7 @@ export default function UnifiedChatPanel({
             : "bg-gradient-to-t from-white via-white/95 to-transparent"
         }`} />
         
-        <div className={`${isFocusMode ? "max-w-4xl md:pl-16" : "max-w-2xl"} mx-auto w-full relative z-10 px-1 md:px-4 pb-2 pt-0`}>
+        <div className={`${isFocusMode ? "max-w-4xl md:pl-16" : "max-w-2xl"} mx-auto w-full relative z-10 px-3 md:px-4 pb-2 pt-0`}>
           
           {/* Integrated Technical Error Banner */}
           {technicalError && (
@@ -902,7 +901,7 @@ export default function UnifiedChatPanel({
                     placeholder="Ask anything"
                     rows={1}
                     disabled={isLoading || isStarting}
-                    className="flex-1 bg-transparent px-3 py-2 outline-none resize-none max-h-48 text-[15px] min-h-[40px] leading-tight
+                    className="flex-1 bg-transparent px-3 py-[9px] outline-none resize-none max-h-48 text-[15px] min-h-[40px] leading-tight
                       text-[#252525] dark:text-white placeholder-[#9E9E9E] disabled:opacity-50 transition-all font-medium"
                   />
                   

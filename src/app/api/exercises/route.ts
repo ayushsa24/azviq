@@ -169,7 +169,7 @@ Each object MUST have this exact structure:
             .insert({
                 user_id: user.id,
                 note_id: note.id,
-                title: `Exercise: ${(note.title as string).replace(/^\[\w+\]\s*/, "")}`,
+                title: note.title as string,
                 difficulty: "Medium",
                 status: "Not Started",
                 score: null,
