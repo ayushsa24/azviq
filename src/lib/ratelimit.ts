@@ -54,45 +54,28 @@ export interface RateLimitResult {
 /**
  * Get the current date string in IST (Asia/Kolkata) timezone.
  * Format: YYYY-MM-DD
+ * Implementation: Adds 5.5 hours to UTC time to find the IST day.
  */
 function getISTDateKey(): string {
-  try {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    return formatter.format(now);
-  } catch (e) {
-    return new Date().toISOString().split("T")[0];
-  }
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  return istDate.toISOString().split("T")[0];
 }
 
 /**
  * Calculate the absolute Unix timestamp (ms) for the next 12:00 AM IST.
  */
 function getNextISTMidnight(): number {
-  try {
-    const now = new Date();
-    // Get current time in IST string
-    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-    const istNow = new Date(istString);
-    
-    // Create "Tomorrow 00:00:00" in IST context
-    const tomorrowIST = new Date(istNow);
-    tomorrowIST.setDate(tomorrowIST.getDate() + 1);
-    tomorrowIST.setHours(0, 0, 0, 0);
-    
-    // Calculate the difference between the local-context date and the real 'now'
-    // to get the absolute UTC timestamp for that IST moment.
-    const diffToMidnight = tomorrowIST.getTime() - istNow.getTime();
-    return now.getTime() + diffToMidnight;
-  } catch (e) {
-    // Fallback: 24h from now
-    return Date.now() + (24 * 60 * 60 * 1000);
-  }
+  const now = new Date();
+  const istNow = new Date(now.getTime() + (5.5 * 3600000));
+  
+  const tomorrowIST = new Date(istNow);
+  tomorrowIST.setUTCDate(tomorrowIST.getUTCDate() + 1);
+  tomorrowIST.setUTCHours(0, 0, 0, 0);
+  
+  const diff = tomorrowIST.getTime() - istNow.getTime();
+  return now.getTime() + diff;
 }
 
 // ---------------------------------------------------------------------------
@@ -120,9 +103,7 @@ export async function checkRateLimit(
 
   const istDate = getISTDateKey();
   
-  // Each day gets a unique key, effectively resetting at 12 AM IST.
-  // We use a 24h window for internal Upstash counting, but the key rotation 
-  // is what provides the hard reset at midnight.
+  // Each day gets a unique key prefix, effectively resetting at 12 AM IST.
   const ratelimiter = new Ratelimit({
     redis: client,
     limiter: Ratelimit.fixedWindow(limit, "24 h"),
@@ -132,12 +113,14 @@ export async function checkRateLimit(
   const { success, remaining } = await ratelimiter.limit(userId);
   const reset = getNextISTMidnight();
 
+  console.log(`[RateLimit] Checking ${type} for user ${userId.substring(0, 8)}... Date: ${istDate} | Remaining: ${remaining} | Allowed: ${success}`);
+
   if (!success) {
     return {
       allowed: false,
       remaining: 0,
       reset,
-      error: `Daily limit reached for ${type}. This quota resets at 12 AM IST. Please wait until tomorrow or upgrade your plan.`,
+      error: "Daily AI quota reached. Please upgrade or try again tomorrow.",
     };
   }
 

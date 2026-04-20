@@ -101,14 +101,26 @@ export function getModelForTier(userSavedModel: string | null | undefined, tier:
  * Get AI config from request headers.
  * Only used by routes that need header-based overrides (chat route).
  */
-export function getAIConfig(req: Request, systemPrompt?: string): AIRequestConfig {
-  const model = (req.headers.get("X-AI-Model") as AIModel) || DEFAULT_MODEL;
-  const style = (req.headers.get("X-Response-Style") as ResponseStyle) || "balanced";
+export function getAIConfig(
+  req: Request,
+  systemPrompt?: string,
+  featureName?: string
+): AIRequestConfig {
+  const url = new URL(req.url);
+  const model = 
+    (req.headers.get("X-AI-Model") as AIModel) || 
+    (url.searchParams.get("model") as AIModel) || 
+    DEFAULT_MODEL;
+    
+  const style = 
+    (req.headers.get("X-AI-Style") as ResponseStyle) || 
+    (url.searchParams.get("style") as ResponseStyle) || 
+    "balanced";
 
   // Validate model — silently default to FREE_MODEL if unknown
   const validModel = MODEL_PROVIDER_MAP[model] ? model : DEFAULT_MODEL;
 
-  return { model: validModel, style, systemPrompt, stream: true };
+  return { model: validModel, style, systemPrompt, stream: true, featureName };
 }
 
 // ---------------------------------------------------------------------------
@@ -125,23 +137,29 @@ export async function getStreamingChatResponse(
   config: AIRequestConfig
 ): Promise<ReadableStream<Uint8Array>> {
   const provider = MODEL_PROVIDER_MAP[config.model] || "gemini";
-  console.log(`\n[AI Manager] 🚀 STARTING STREAMING REQUEST`);
+  const feature = config.featureName || "AI Chat";
+  console.log(`\n[AI Manager] 🚀 STARTING [${feature}]`);
   console.log(`[AI Manager] 🤖 Model: ${config.model} | Provider: ${provider}`);
 
   try {
     switch (provider) {
       case "gemini":
-        // For Gemini, if user requested the robust Flash model, we try Lite first to save quota.
-        if (config.model === "gemini-2.5-flash") {
+        // Try Lite first even if a Premium model was requested (cost optimization)
+        const isPremiumGemini = PREMIUM_MODELS.includes(config.model);
+        if (isPremiumGemini) {
           try {
-            console.log(`[AI Manager] Trying Lite model first (gemini-2.5-flash-lite) for cost efficiency.`);
-            return await callGeminiStream(messages, { ...config, model: FREE_MODEL });
-          } catch (liteErr) {
-            console.warn(`[AI Manager] Lite failed, falling back to original Flash model.`, (liteErr as Error).message);
-            return await callGeminiStream(messages, config);
+            console.log(`[AI Manager] 🤖 Attempting [Lite Primary]: ${FREE_MODEL}`);
+            const res = await callGeminiStream(messages, { ...config, model: FREE_MODEL });
+            console.log(`[AI Manager] ✅ [${feature}] Success! (via Lite Primary)`);
+            return res;
+          } catch (liteError) {
+            console.warn(`[AI Manager] ⚠️ [${feature}] Lite primary attempt failed, trying ${config.model}...`);
           }
         }
-        return await callGeminiStream(messages, config);
+        
+        const res = await callGeminiStream(messages, config);
+        console.log(`[AI Manager] ✅ [${feature}] Success!`);
+        return res;
       case "openai":
         return await callOpenAIStream(messages, config);
       case "anthropic":
@@ -150,32 +168,35 @@ export async function getStreamingChatResponse(
         return await callGeminiStream(messages, { ...config, model: FREE_MODEL });
     }
   } catch (primaryError) {
-    console.error(`[AI Manager] Streaming failed search for fallback logic:`, primaryError);
+    const feature = config.featureName || "AI Chat";
+    console.error(`[AI Manager] PRIMARY model failed for [${feature}]:`, primaryError);
 
-    // Dynamic Fallback Chain:
-    // 1. If original wasn't Lite, try Lite (gemini-2.5-flash-lite)
-    // 2. If Lite fails (or was the original), try Flash (gemini-2.5-flash)
+    // If we've already exhausted Gemini Lite in the switch block, don't try it again here
+    const isGeminiCase = (MODEL_PROVIDER_MAP[config.model] || "gemini") === "gemini";
     
-    if (config.model !== "gemini-2.5-flash-lite") {
-      console.log(`[AI Manager] Falling back to gemini-2.5-flash-lite...`);
+    // Dynamic Fallback Chain:
+    if (!isGeminiCase && config.model !== FREE_MODEL) {
+      console.warn(`[AI Manager] ⚠️ [${feature}] Primary model (${config.model}) failed. Retrying with ${FREE_MODEL}...`);
       try {
-        return await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash-lite" });
+        const res = await callGeminiStream(messages, { ...config, model: FREE_MODEL });
+        console.log(`[AI Manager] ✅ [${feature}] Success! (via Lite Fallback)`);
+        return res;
       } catch (liteError) {
-        console.warn(`[AI Manager] Lite also failed, trying gemini-2.5-flash...`);
+        console.warn(`[AI Manager] ⚠️ [${feature}] Lite also failed. Falling back to robust gemini-2.5-flash...`);
         try {
-          return await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash" as AIModel });
+          const res = await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash" as AIModel });
+          console.log(`[AI Manager] ✅ [${feature}] Success! (via Flash Fallback)`);
+          return res;
         } catch {
-          throw new Error("AI service is temporarily unavailable. Please try again later.");
+          console.error(`[AI Manager] ❌ [${feature}] ALL MODELS FAILED.`);
+          throw new Error(sanitizeAIError(primaryError));
         }
       }
     } else {
-      // Original was Lite, try Flash directly
-      console.log(`[AI Manager] Lite failed, trying gemini-2.5-flash...`);
-      try {
-        return await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash" as AIModel });
-      } catch {
-        throw primaryError;
-      }
+      // If we are here, it means Lite already failed (either as primary or in the nested try-catch above)
+      // Throw a clean, user-friendly error
+      console.error(`[AI Manager] ❌ [${feature}] FATAL: Primary models exhausted.`);
+      throw new Error(sanitizeAIError(primaryError));
     }
   }
 }
@@ -197,17 +218,29 @@ export async function getTextResponse(
   console.log(`\n[AI Manager] 🚀 STARTING TEXT REQUEST`);
   console.log(`[AI Manager] 🤖 Model: ${config.model} | Provider: ${provider}`);
 
+  const feature = config.featureName || "AI Feature";
   try {
+    console.log(`\n[AI Manager] 🚀 STARTING [${feature}]`);
+    console.log(`[AI Manager] 🤖 Model: ${config.model} | Provider: ${provider}`);
+
     switch (provider) {
       case "gemini":
-        if (config.model === "gemini-2.5-flash") {
+        // Try Lite first even if a Premium model was requested (cost optimization)
+        const isPremiumGemini = PREMIUM_MODELS.includes(config.model);
+        if (isPremiumGemini) {
           try {
-            return await callGeminiText(prompt, { ...config, model: FREE_MODEL });
-          } catch {
-            return await callGeminiText(prompt, config);
+            console.log(`[AI Manager] 🤖 Attempting [Lite Primary]: ${FREE_MODEL}`);
+            const res = await callGeminiText(prompt, { ...config, model: FREE_MODEL });
+            console.log(`[AI Manager] ✅ [${feature}] Success! (via Lite Primary)`);
+            return res;
+          } catch (liteError) {
+            console.warn(`[AI Manager] ⚠️ [${feature}] Lite primary attempt failed, trying ${config.model}...`);
           }
         }
-        return await callGeminiText(prompt, config);
+        
+        const res = await callGeminiText(prompt, config);
+        console.log(`[AI Manager] ✅ [${feature}] Success!`);
+        return res;
       case "openai":
         return await callOpenAIText(prompt, config);
       case "anthropic":
@@ -215,26 +248,33 @@ export async function getTextResponse(
       default:
         return await callGeminiText(prompt, { ...config, model: FREE_MODEL });
     }
-  } catch (primaryError) {
-    console.error(`[AI Manager] Text failed. Searching for fallback...`, primaryError);
+  } catch (primaryError: any) {
+    const feature = config.featureName || "AI Feature";
+    console.error(`[AI Manager] PRIMARY model failed for [${feature}]:`, primaryError);
 
-    // Fallback Chain: Lite -> Flash
-    if (config.model !== "gemini-2.5-flash-lite") {
+    // If we've already exhausted Gemini Lite in the switch block, don't try it again here
+    const isGeminiCase = (MODEL_PROVIDER_MAP[config.model] || "gemini") === "gemini";
+
+    if (!isGeminiCase && config.model !== FREE_MODEL) {
+      console.warn(`[AI Manager] ⚠️ [${feature}] Primary model (${config.model}) failed. Retrying with ${FREE_MODEL}...`);
       try {
-        return await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash-lite" });
-      } catch {
+        const res = await callGeminiText(prompt, { ...config, model: FREE_MODEL });
+        console.log(`[AI Manager] ✅ [${feature}] Success! (via Lite Fallback)`);
+        return res;
+      } catch (liteError) {
+        console.warn(`[AI Manager] ⚠️ [${feature}] Lite also failed. Falling back to robust gemini-2.5-flash...`);
         try {
-          return await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash" as AIModel });
+          const res = await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash" as AIModel });
+          console.log(`[AI Manager] ✅ [${feature}] Success! (via Flash Fallback)`);
+          return res;
         } catch {
-          throw new Error("AI generation failed. Please try again.");
+          console.error(`[AI Manager] ❌ [${feature}] ALL MODELS FAILED.`);
+          throw new Error(sanitizeAIError(primaryError));
         }
       }
     } else {
-      try {
-        return await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash" as AIModel });
-      } catch {
-        throw primaryError;
-      }
+      console.error(`[AI Manager] ❌ [${feature}] FATAL: Primary models exhausted.`);
+      throw new Error(sanitizeAIError(primaryError));
     }
   }
 }
@@ -253,18 +293,23 @@ export async function getVisionStreamResponse(
 ): Promise<ReadableStream<Uint8Array>> {
   // Vision is always FREE_MODEL — it's the most reliable Gemini multimodal endpoint
   const visionConfig = { ...config, model: FREE_MODEL };
-  console.log(`\n[AI Manager] 🚀 STARTING VISION REQUEST`);
-  console.log(`[AI Manager] 🤖 Model: ${visionConfig.model} | Provider: gemini`);
-
+  const feature = config.featureName || "Vision & Images";
   try {
-    return await callGeminiMultipart(parts, visionConfig);
-  } catch (err: any) {
-    console.error("[AI Manager] Vision stream error:", err);
-    // Try gemini-2.5-flash as one-time vision fallback
+    console.log(`\n[AI Manager] 🚀 STARTING [${feature}]`);
+    console.log(`[AI Manager] 🤖 Model: ${visionConfig.model} | Provider: gemini`);
+
+    const res = await callGeminiMultipart(parts, visionConfig);
+    console.log(`[AI Manager] ✅ [${feature}] Success!`);
+    return res;
+  } catch (error: any) {
+    console.warn(`[AI Manager] ⚠️ [${feature}] failed. Retrying with robust gemini-2.5-flash...`);
     try {
-      return await callGeminiMultipart(parts, { ...visionConfig, model: "gemini-2.5-flash" as AIModel });
+      const res = await callGeminiMultipart(parts, { ...visionConfig, model: "gemini-2.5-flash" as AIModel });
+      console.log(`[AI Manager] ✅ [${feature}] Success! (via Fallback)`);
+      return res;
     } catch {
-      throw new Error("Vision processing failed. Please try again.");
+      console.error(`[AI Manager] ❌ [${feature}] ALL MODELS FAILED.`);
+      throw error;
     }
   }
 }
@@ -278,3 +323,13 @@ export async function getVisionStreamResponse(
  * This is non-blocking — if it fails, the chat still works fine.
  */
 export { generateGeminiTitle as generateChatTitle };
+
+/**
+ * Standardizes AI errors for secure, user-friendly UI display.
+ * Prevents technical blobs (API keys, 429 detail, etc.) from leaking.
+ */
+export function sanitizeAIError(error: unknown): string {
+  // Any error reaching here is considered a technical problem 
+  // because the user's personal quota is checked separately BEFORE the AI call.
+  return "An AI technical problem occurred. Please try again later.";
+}

@@ -63,6 +63,7 @@ export async function POST(req: Request) {
         style: "balanced",
         systemPrompt: "Summarize the following study notes into clear, concise bullet points. Use Markdown formatting.",
         stream: false,
+        featureName: "Note Editor AI"
       });
     } catch (err: unknown) {
       console.error("Summarize AI Error:", err);

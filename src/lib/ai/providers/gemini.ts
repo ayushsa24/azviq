@@ -265,18 +265,22 @@ export async function generateGeminiTitle(firstMessage: string): Promise<string 
   };
 
   try {
-    // Try primary FREE_MODEL first
-    return await generate(FREE_MODEL);
+    // Try primary FREE_MODEL first (gemini-2.5-flash-lite)
+    const title = await generate(FREE_MODEL);
+    console.log(`[Gemini Title] Generated successfully with ${FREE_MODEL}: "${title}"`);
+    return title;
   } catch (err: any) {
     const isQuotaError = err?.status === 429 || err?.message?.includes("429") || err?.message?.includes("quota");
     
-    if (isQuotaError && FREE_MODEL !== "gemini-1.5-flash-8b") {
-      console.warn(`[Gemini Title] Primary model '${FREE_MODEL}' hit quota, falling back to 1.5-flash-8b...`);
+    // Fallback to gemini-2.5-flash if Lite hits quota
+    if (isQuotaError && FREE_MODEL !== "gemini-2.5-flash") {
+      console.warn(`[Gemini Title] Primary model '${FREE_MODEL}' hit quota, falling back to 2.5-flash...`);
       try {
-        // Fallback to 1.5-flash-8b (High quota: 1,500 RPD)
-        return await generate("gemini-1.5-flash-8b");
-      } catch (fallbackErr) {
-        console.error("[Gemini Title] Fallback model also failed:", fallbackErr);
+        const fallbackTitle = await generate("gemini-2.5-flash");
+        console.log(`[Gemini Title] Generated successfully with fallback (2.5-flash): "${fallbackTitle}"`);
+        return fallbackTitle;
+      } catch (fallbackErr: any) {
+        console.error("[Gemini Title] Fallback model also failed:", fallbackErr.message);
       }
     } else {
       console.error("[Gemini Title] Failed to generate title:", err.message);

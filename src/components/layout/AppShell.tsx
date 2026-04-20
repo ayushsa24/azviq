@@ -67,6 +67,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Global trigger for Pricing Modal
+  useEffect(() => {
+    const handleOpenPricing = () => setIsPricingOpen(true);
+    window.addEventListener("open-pricing", handleOpenPricing);
+    return () => window.removeEventListener("open-pricing", handleOpenPricing);
+  }, []);
+
   useEffect(() => {
     const tickTimer = () => {
       if (document.hidden) return; // Automatic pause when moving out

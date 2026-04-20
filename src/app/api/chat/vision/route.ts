@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiError } from "@/lib/api";
-import { getVisionStreamResponse, runSubscriptionGuard, generateChatTitle } from "@/lib/ai/manager";
+import { getVisionStreamResponse, runSubscriptionGuard, generateChatTitle, sanitizeAIError } from "@/lib/ai/manager";
 import { FREE_MODEL } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
@@ -76,13 +76,14 @@ export async function POST(req: Request) {
         model: FREE_MODEL,
         style: "balanced",
         stream: true,
+        featureName: "Vision & Images"
       });
     } catch (err: any) {
       console.error("Vision generation error:", err);
       if (err.status === 429 || err.message?.includes("429")) {
-        return apiError("Free Tier limit reached. Please wait and try again.", 429, "RATE_LIMIT_EXCEEDED");
+        return apiError("An AI technical problem occurred. Please try again later.", 429, "RATE_LIMIT_EXCEEDED");
       }
-      return apiError("Vision model unavailable. Please try again.", 503, "MODEL_NOT_FOUND");
+      return apiError(sanitizeAIError(err), 503, "MODEL_NOT_FOUND");
     }
 
     // 6. Generate title (non-blocking)
@@ -148,6 +149,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Vision API Error:", error);
-    return apiError("Vision processing failed.", 500, "INTERNAL_SERVER_ERROR");
+    return apiError(sanitizeAIError(error), 500, "INTERNAL_SERVER_ERROR");
   }
 }

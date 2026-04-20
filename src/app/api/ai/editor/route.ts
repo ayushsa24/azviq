@@ -99,6 +99,7 @@ export async function POST(req: Request) {
       style: ((user.response_style as ResponseStyle) || "balanced"),
       systemPrompt: systemInstruction,
       stream: true,
+      featureName: "AI Editor Tools"
     };
 
     // Get streaming response from AI Manager

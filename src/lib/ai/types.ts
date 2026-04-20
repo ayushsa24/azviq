@@ -54,7 +54,7 @@ export const MODEL_LABELS: Record<AIModel, string> = {
 export const LITE_MODELS: AIModel[] = ["gpt-4o-mini"];
 
 /** Models that require Premium subscription (tier >= 2) */
-export const PREMIUM_MODELS: AIModel[] = ["gpt-4o", "claude-3-5-sonnet-20241022"];
+export const PREMIUM_MODELS: AIModel[] = ["gemini-2.5-flash", "gpt-4o", "claude-3-5-sonnet-20241022"];
 
 /** Temperature settings for each response style */
 export const STYLE_TEMPERATURE: Record<ResponseStyle, number> = {
@@ -73,4 +73,5 @@ export interface AIRequestConfig {
   style: ResponseStyle;
   systemPrompt?: string;
   stream?: boolean;
+  featureName?: string;
 }

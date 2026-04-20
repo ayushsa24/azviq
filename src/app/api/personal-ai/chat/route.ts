@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
-import { getStreamingChatResponse, getAIConfig, runSubscriptionGuard } from "@/lib/ai/manager";
+import { getStreamingChatResponse, getAIConfig, runSubscriptionGuard, sanitizeAIError } from "@/lib/ai/manager";
 import { apiError } from "@/lib/api";
 import { AIMessage, FREE_MODEL } from "@/lib/ai/types";
 
@@ -22,7 +22,9 @@ ${noteContent}
 
 YOUR STRICT TEACHING RULES:
 1. **Stay on topic**: Only discuss content found in the document above. If asked about something unrelated, gently redirect.
-2. **Use Markdown**: Use Markdown for all formatting. Bold important terms, use bullet points for lists, and **ALWAYS use a Markdown Table** when comparing two or more concepts or presenting structured data.
+2. **Use Markdown**: Use Markdown for all formatting. Bold important terms, use bullet points for lists, and **ALWAYS use a proper Markdown Table** when comparing two or more concepts or presenting structured data. 
+   - CRITICAL: Every table MUST include a header row and a separator row (e.g., \`| Feature | ML | DL |\` followed by \`|---|---|---|\`). 
+   - Ensure there are no double pipes \`||\` and each row is on a new line.
 3. **Correct mistakes clearly**: If the student states something that contradicts the document, begin your reply with the token "[CORRECTION]" on its own line, then explain the correct information kindly but firmly.
 4. **Confirm correct answers**: If the student is correct, start with "[CORRECT]" and encourage them to go deeper.
 5. **Ask follow-up questions**: After every explanation, ask ONE short follow-up question to test understanding. Keep it focused.
@@ -115,7 +117,7 @@ export async function POST(req: Request) {
     }
 
     // --- AI config: always force FREE_MODEL for high-quota Personal AI sessions ---
-    const config = getAIConfig(req, systemPrompt);
+    const config = getAIConfig(req, systemPrompt, "Personal AI Teacher");
     config.model = FREE_MODEL;
 
     // --- Stream the response ---
@@ -131,7 +133,7 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     console.error("[PersonalAI Chat] Error:", error);
     return apiError(
-      error instanceof Error ? error.message : "Personal AI chat failed",
+      sanitizeAIError(error),
       500,
       "CHAT_ERROR"
     );

@@ -64,13 +64,12 @@ async function* streamReader(body: ReadableStream<Uint8Array>) {
     const lines = buffer.split("\n");
     buffer = lines.pop() || "";
     for (const line of lines) {
-      const t = line.trim();
-      if (!t) continue;
+      if (!line) continue;
       try {
-        const p = JSON.parse(t);
+        const p = JSON.parse(line);
         if (p?.message?.content) yield p.message.content as string;
       } catch {
-        yield t;
+        yield line;
       }
     }
   }
@@ -754,11 +753,11 @@ export default function UnifiedChatPanel({
                             <thead className={isDark ? "bg-[#545454]" : "bg-[#F0EDE8]"} {...props} />
                           ),
                           th: ({ ...props }) => (
-                            <th className={`px-3 py-2 font-bold border-b whitespace-nowrap
+                            <th className={`px-3 py-2 font-bold border-b
                               ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
                           ),
                           td: ({ ...props }) => (
-                            <td className={`px-3 py-2 border-b whitespace-nowrap
+                            <td className={`px-3 py-2 border-b
                               ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
                           ),
                           ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-1 my-2" {...props} />,
@@ -814,7 +813,8 @@ export default function UnifiedChatPanel({
           {technicalError && (
             <div className="mb-2">
               {(() => {
-                const isQuotaError = String(technicalError).includes("Daily limit reached") || String(technicalError).includes("quota") || String(technicalError).includes("exceeded");
+                // Only show the Daily Limit banner if the message explicitly says "Daily AI quota reached"
+                const isQuotaError = String(technicalError).toLowerCase().includes("daily ai quota reached");
                 
                 if (isQuotaError) {
                   return (

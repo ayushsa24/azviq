@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiError } from "@/lib/api";
 import { z } from "zod";
-import { getAIConfig, getStreamingChatResponse, runSubscriptionGuard, getModelForTier, generateChatTitle } from "@/lib/ai/manager";
+import { getAIConfig, getStreamingChatResponse, runSubscriptionGuard, getModelForTier, generateChatTitle, sanitizeAIError } from "@/lib/ai/manager";
 import { FREE_MODEL } from "@/lib/ai/types";
 import type { AIMessage } from "@/lib/ai/types";
 
@@ -102,7 +102,8 @@ export async function POST(req: Request) {
 
     // 5. Resolve model based on subscription tier (tier-safe, silent downgrade)
     const aiConfig = getAIConfig(req,
-      "You are Azviq AI, an intelligent and helpful study companion. Keep answers clear, beautifully formatted, and concise. CRITICAL RULE: DO NOT output massive amounts of code or excessive code blocks. Keep code examples brief and relevant. Limit yourself to at most 1-2 small code blocks unless the user explicitly asks for extensive code."
+      "You are Azviq AI, an intelligent and helpful study companion. Keep answers clear, beautifully formatted, and concise. CRITICAL RULE: DO NOT output massive amounts of code or excessive code blocks. Keep code examples brief and relevant. Limit yourself to at most 1-2 small code blocks unless the user explicitly asks for extensive code.",
+      "AI Chats"
     );
 
     // Determine subscription tier first for model resolution
@@ -170,16 +171,20 @@ export async function POST(req: Request) {
         } catch { /* use original */ }
       }
 
-      // Delay by 3s so title generation doesn't exhaust the same quota bucket as the stream
-      titlePromise = new Promise(resolve => setTimeout(resolve, 3000))
+      // Delay by 1s so title generation doesn't exhaust the same quota bucket as the stream
+      titlePromise = new Promise(resolve => setTimeout(resolve, 1000))
         .then(() => generateChatTitle(cleanInput))
         .then(async (title) => {
           if (title && title.toLowerCase() !== "new chat") {
+            console.log(`[Chat API] Saving generated title: "${title}" for chat ${chatId}`);
             await supabase.from("chats").update({ title }).eq("id", chatId);
             return title;
           }
           return null;
-        }).catch(() => null);
+        }).catch((err) => {
+          console.error("[Chat API] Title generation background task failed:", err.message);
+          return null;
+        });
     }
 
     // 9. Get streaming response from AI Manager
@@ -241,6 +246,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Chat API Error:", error);
-    return apiError("Something went wrong. Please try again later.", 500, "INTERNAL_SERVER_ERROR");
+    return apiError(sanitizeAIError(error), 500, "INTERNAL_SERVER_ERROR");
   }
 }

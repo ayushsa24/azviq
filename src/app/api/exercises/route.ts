@@ -130,6 +130,7 @@ Each object MUST have this exact structure:
                 style: "precise",
                 systemPrompt,
                 stream: false,
+                featureName: "Exercise Generation"
             });
             questionsText = questionsText.trim()
                 .replace(/^```json\s*/m, "").replace(/^```\s*/m, "").replace(/```\s*$/m, "").trim();

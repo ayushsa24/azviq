@@ -95,7 +95,7 @@ export async function POST(req: Request) {
             return apiError("Note has no content to generate a revision from.", 400, "EMPTY_NOTE");
 
         // 5. Quota check (always uses FREE_MODEL for revision)
-        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "note_ai", user.id);
+        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "exercise", user.id);
         if (!guard.allowed) {
             return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
         }
@@ -141,6 +141,7 @@ IMPORTANT — For the "summary" field, generate a COMPACT, SCANNABLE revision sh
                     style: "precise",
                     systemPrompt: systemInstruction,
                     stream: false,
+                    featureName: "Revision Generation"
                 });
             }
             revisionText = revisionText.trim()

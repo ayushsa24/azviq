@@ -578,6 +578,10 @@ function AiChatCore() {
     setTimeout(() => setCopiedCodeBlock(null), 2000);
   };
 
+  const openPricing = () => {
+    window.dispatchEvent(new CustomEvent("open-pricing"));
+  };
+
   const handleSend = async (
     overrideText?: string,
     cutHistoryAtIndex?: number,
@@ -922,11 +926,18 @@ function AiChatCore() {
         }
       } else {
         const currentErrorCount = messages.filter(m => m.isError).length + 1;
+        let errorMsg = error.message;
 
-        let errorMsg = "Oops! Something went wrong while generating the response. Please check your connection or try again shortly.";
+        // --- NEW: Distinguish Quota vs Technical ---
+        if (errorMsg === "Daily AI quota reached. Please upgrade or try again tomorrow.") {
+           // Keep the message as is
+        } else {
+           // Replace technical/unknown errors with the standardized "Try again later" message
+           errorMsg = "An AI technical problem occurred. Please try again later.";
+        }
 
-        // If this is the 3rd+ error, give more specific advice
-        if (currentErrorCount >= 3) {
+        // If this is the 3rd+ technical error, give help advice
+        if (currentErrorCount >= 3 && !errorMsg.includes("quota")) {
           errorMsg = "This chat is having repeated connection issues. If retrying doesn't work, we recommend starting a fresh chat to clear any broken history.";
         }
 
@@ -1670,9 +1681,9 @@ function AiChatCore() {
               setShowScrollDown(!isNearBottom);
             }
           }}
-          className={`absolute inset-0 scrollbar-hide md:scrollbar-default space-y-4 md:space-y-6 md:p-6 ${messages.length === 0
+          className={`absolute inset-0 scrollbar-hide md:scrollbar-default space-y-3 md:space-y-4 md:p-6 ${messages.length === 0
             ? "overflow-hidden"
-            : "overflow-y-auto overflow-x-hidden pb-[60px] md:pb-[70px]"
+            : "overflow-y-auto overflow-x-hidden pb-[50px] md:pb-[60px]"
             }`}
         >
           {/* Mobile Header Toggle - Always show so users can access the menu */}
@@ -1827,7 +1838,7 @@ function AiChatCore() {
                   >
                     {editingMessageIdx === idx ? (
                       <div
-                        className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${theme === "dark"
+                        className={`relative px-4 py-2.5 text-[14px] md:text-[15px] rounded-2xl ${theme === "dark"
                           ? "bg-[#545454] text-white rounded-br-none"
                           : "bg-[#F0EDE8] text-gray-900 rounded-br-none"
                           }`}
@@ -1942,14 +1953,14 @@ function AiChatCore() {
                         {(msg.content || msg.isThinking) && !msg.content?.trim().startsWith('{') && (
                           <div
                             style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
-                            className={`px-4 py-2.5 text-[14px] md:text-[15px] shadow-sm min-w-0 leading-relaxed ${msg.role === "user"
+                            className={msg.role === "user"
                               ? theme === "dark"
-                                ? "bg-[#545454] text-white rounded-[22px] rounded-tr-[4px] min-w-[50px] text-left"
-                                : "bg-[#F0EDE8] text-gray-900 rounded-[22px] rounded-tr-[4px] min-w-[50px] text-left"
+                                ? "w-fit max-w-full overflow-hidden bg-[#545454] text-white rounded-[22px] rounded-tr-[4px] ai-response-content px-4 py-2.5"
+                                : "w-fit max-w-full overflow-hidden bg-[#F0EDE8] text-gray-900 rounded-[22px] rounded-tr-[4px] ai-response-content px-4 py-2.5"
                               : theme === "dark"
-                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-3"
-                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-3"
-                              } ${msg.image ? "mt-1 mr-0.5" : ""}`}
+                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-2.5"
+                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-2.5"
+                            }
                           >
                             {msg.role === "model" ? (
                               <>
@@ -1964,18 +1975,31 @@ function AiChatCore() {
                                 ) : msg.isError ? (
                                   <div className="flex flex-col gap-2 py-1.5 transition-all duration-300">
                                     <span className="text-[13px] font-medium text-red-500 dark:text-red-400 max-w-[280px]">
-                                      {msg.content}
-                                    </span>
-                                    {/* Show "Start a fresh chat" button if we have multiple errors */}
-                                    {messages.filter(m => m.isError).length >= 3 && (
+                                    {msg.content}
+                                  </span>
+                                  <div className="flex flex-wrap gap-2 mt-1">
+                                    {/* Show Upgrade Button if it's a quota error */}
+                                    {msg.content.includes("quota") && (
+                                      <button
+                                        onClick={() => openPricing()}
+                                        className="px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 text-[11px] font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Upgrade Plan
+                                      </button>
+                                    )}
+
+                                    {/* Show "Start a fresh chat" button if we have multiple errors AND it's not a quota error */}
+                                    {messages.filter(m => m.isError).length >= 3 && !msg.content.includes("quota") && (
                                       <button
                                         onClick={() => startNewChat()}
-                                        className="mt-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[11px] font-semibold w-fit border border-red-500/20 transition-all active:scale-95"
+                                        className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[11px] font-semibold w-fit border border-red-500/20 transition-all active:scale-95"
                                       >
                                         Start a fresh chat
                                       </button>
                                     )}
                                   </div>
+                                </div>
                                 ) : (
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
@@ -2156,6 +2180,14 @@ function AiChatCore() {
                 <div className="flex items-center gap-2 text-sm">
                   <Bot className="w-4 h-4 shrink-0" />
                   <span>{apiError}</span>
+                  {apiError.includes("quota") && (
+                    <button
+                      onClick={() => openPricing()}
+                      className={`ml-3 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${theme === "dark" ? "bg-white text-black hover:bg-gray-200" : "bg-[#252525] text-white hover:bg-[#545454]"}`}
+                    >
+                      Upgrade Plan
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={() => setApiError(null)}
