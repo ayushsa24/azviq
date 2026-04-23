@@ -6,12 +6,16 @@ import React, {
 import {
   Send, Sparkles, User, AlertCircle, CheckCircle2,
   Loader2, Mic, Volume2, StopCircle, MicOff,
-  Maximize2, Minimize2, Trash2, VolumeX, Plus, X, Crown, ArrowRight, Square
+  Maximize2, Minimize2, Trash2, VolumeX, Plus, X, Crown, ArrowRight, Square,
+  Copy, Check, ChevronDown
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,9 +132,11 @@ export default function UnifiedChatPanel({
   const [transcript, setTranscript] = useState("");
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [audioLevel, setAudioLevel]  = useState(0); // 0–1 for orb glow visualization
+  const [copiedCodeBlock, setCopiedCodeBlock] = useState<string | null>(null);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const messagesEndRef   = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const abortRef         = useRef<AbortController | null>(null);
   const synthRef         = useRef<SpeechSynthesis | null>(null);
@@ -138,6 +144,9 @@ export default function UnifiedChatPanel({
   const modeRef          = useRef<Mode>(mode);
   const justCreatedRef   = useRef(false);
   const messagesRef      = useRef<Message[]>([]); // always-fresh snapshot (avoids stale closures)
+  const isSwitchingFocus = useRef(false);
+  const savedScrollPos   = useRef(0);
+  const [showScrollDown, setShowScrollDown] = useState(false);
   // MediaRecorder-based voice recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioStreamRef   = useRef<MediaStream | null>(null);
@@ -164,6 +173,43 @@ export default function UnifiedChatPanel({
     }
   }, []);
 
+  // ── Auto-scroll ────────────────────────────────────────────────────────
+  useEffect(() => {
+    // Don't auto-scroll if we are currently switching focus modes to avoid fighting the scroll preservation
+    if (isSwitchingFocus.current) return;
+
+    if (messagesEndRef.current && chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+      
+      if (isLoading || isNearBottom) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [messages, isLoading]);
+
+  // ── Preserve scroll on Focus Mode toggle ────────────────────────────────
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      // Store distance from bottom
+      savedScrollPos.current = container.scrollHeight - container.scrollTop;
+      isSwitchingFocus.current = true;
+
+      // Restore position after the layout transition starts to settle
+      // We use a few frames to ensure the new width is calculated
+      const restore = () => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - savedScrollPos.current;
+          isSwitchingFocus.current = false;
+        }
+      };
+
+      const timer = setTimeout(restore, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isFocusMode]);
+
   // ── Cleanup on unmount ───────────────────────────────────────────────────
   useEffect(() => {
     return () => {
@@ -179,7 +225,24 @@ export default function UnifiedChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
+  // ── Scroll Listener for 'Scroll to Bottom' button ──────────────────────
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Show button if we are more than 300px away from bottom
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 300;
+      setShowScrollDown(!isNearBottom);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    // Initial check
+    handleScroll();
+
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [messages]); // Re-check when messages change
 
   // ─── Fetch Session ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -584,6 +647,12 @@ export default function UnifiedChatPanel({
     e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
   };
 
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCodeBlock(code);
+    setTimeout(() => setCopiedCodeBlock(null), 2000);
+  };
+
   // ─── Voice state config ───────────────────────────────────────────────────
 
   const voiceCfg: Record<VoiceState, {
@@ -651,7 +720,10 @@ export default function UnifiedChatPanel({
       )}
 
       {/* ── Message Bubbles ───────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-1 sm:px-4 pb-32 scroll-smooth">
+      <div 
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto px-1 sm:px-4 pb-32"
+      >
         <div className="flex flex-col pt-4 space-y-3 sm:space-y-6">
 
         {/* Case A: New Session Initialization (Show Reading Status) */}
@@ -762,11 +834,41 @@ export default function UnifiedChatPanel({
                           ),
                           ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-1 my-2" {...props} />,
                           ol: ({ ...props }) => <ol className="list-decimal ml-4 space-y-1 my-2" {...props} />,
-                          p: ({ ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                          code: ({ ...props }) => (
-                            <code className={`px-1 py-0.5 rounded font-mono text-[11px]
-                              ${isDark ? "bg-white/10" : "bg-black/5"}`} {...props} />
-                          ),
+                          p: ({ ...props }) => <div className="mb-2 last:mb-0" {...props} />,
+                          pre: ({ children }) => <div className="not-prose">{children}</div>,
+                          code({ inline, className, children, ...props }: any) {
+                            const match = /language-(\w+)/.exec(className || "");
+                            const codeString = String(children).replace(/\n$/, "");
+                            if (inline) {
+                              return (
+                                <code className={`px-1 py-0.5 rounded font-mono text-[11px] ${isDark ? "bg-white/10 text-[#C2A27A]" : "bg-black/5 text-[#A2825A]"}`} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
+                            return (
+                              <div className="relative group/code mb-4 mt-3 block w-full max-w-full">
+                                <div className={`flex items-center justify-between px-4 py-2 text-[10px] font-sans rounded-t-xl ${isDark ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
+                                  <span className="uppercase font-bold tracking-widest">{match?.[1] || "code"}</span>
+                                  <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                                    {copiedCodeBlock === codeString ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                    <span className="font-bold">{copiedCodeBlock === codeString ? "Copied" : "Copy"}</span>
+                                  </button>
+                                </div>
+                                <div className={`block w-full overflow-x-auto text-[13px] rounded-b-xl custom-scrollbar ${isDark ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800 shadow-lg"}`}>
+                                  <SyntaxHighlighter 
+                                    style={vscDarkPlus} 
+                                    language={match?.[1] || "text"} 
+                                    PreTag="div" 
+                                    customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", fontSize: "13px", lineHeight: "1.6" }} 
+                                    {...props}
+                                  >
+                                    {codeString}
+                                  </SyntaxHighlighter>
+                                </div>
+                              </div>
+                            );
+                          },
                         }}
                       >
                         {display}
@@ -796,7 +898,27 @@ export default function UnifiedChatPanel({
         </div>
       </div>
 
-
+      {/* ── Scroll to Bottom Button ────────────────────────────────── */}
+      <AnimatePresence>
+        {showScrollDown && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.8 }}
+            className={`absolute bottom-[88px] left-1/2 -translate-x-1/2 z-30`}
+          >
+            <button
+              onClick={scrollToBottom}
+              className={`flex items-center justify-center w-8 h-8 rounded-full shadow-lg border transition-all active:scale-90
+                ${isDark 
+                  ? "bg-[#252525] border-[#545454] text-white hover:bg-[#333]" 
+                  : "bg-white border-[#E8E5E0] text-[#252525] hover:bg-[#F9F8F6]"}`}
+            >
+              <ChevronDown size={18} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Input Area ────────────────────────────────────────────── */}
       <div className="absolute bottom-0 left-0 right-0 z-20">
@@ -818,27 +940,27 @@ export default function UnifiedChatPanel({
                 
                 if (isQuotaError) {
                   return (
-                    <div className={`p-3 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 shadow-sm
-                      ${isDark ? "bg-[#C2A27A]/10 border border-[#C2A27A]/30" : "bg-[#F9F8F6] border border-[#C2A27A]/20"}`}>
-                      <div className="w-8 h-8 rounded-full bg-[#C2A27A]/20 flex items-center justify-center shrink-0">
-                        <Crown size={18} className="text-[#C2A27A]" />
+                    <div className={`p-3 rounded-2xl flex items-start gap-4 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 shadow-sm
+                      ${isDark ? "bg-red-500/10 border border-red-500/30 text-red-200" : "bg-red-50/80 border border-red-200 text-red-700"}`}>
+                      <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                        <Crown size={18} className="text-red-500" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <p className={`text-[11px] font-black uppercase tracking-widest ${isDark ? "text-[#C2A27A]" : "text-[#8B6F4E]"}`}>
-                            Daily Limit Reached
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-red-500">
+                            Limit Reached
                           </p>
-                          <button onClick={() => setTechnicalError(null)} className="text-[#7D7D7D] hover:text-[#C2A27A] transition-colors">
+                          <button onClick={() => setTechnicalError(null)} className="text-[#7D7D7D] hover:text-red-500 transition-colors">
                             <X size={14} />
                           </button>
                         </div>
-                        <p className={`text-[13px] leading-relaxed mb-3 ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
+                        <p className="text-xs leading-relaxed mb-3">
                           {technicalError}
                         </p>
                         <div className="flex items-center gap-3">
                           <button 
-                            onClick={() => openSettings("subscription")}
-                            className="flex items-center gap-2 px-4 py-1.5 bg-[#C2A27A] hover:bg-[#B19169] text-white text-[10px] font-black uppercase tracking-widest rounded-full transition-all shadow-sm"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
+                            className="px-3.5 py-1.5 rounded-lg bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
                           >
                             Upgrade Plan
                             <ArrowRight size={12} />
@@ -850,8 +972,8 @@ export default function UnifiedChatPanel({
                 }
 
                 return (
-                  <div className={`p-2.5 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 shadow-sm
-                    ${isDark ? "bg-red-900/40 border border-red-500/30" : "bg-red-50 border border-red-200"}`}>
+                  <div className={`p-2.5 rounded-xl flex items-start gap-3 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 shadow-sm
+                    ${isDark ? "bg-red-500/10 border border-red-500/30 text-red-200" : "bg-red-50/80 border border-red-200 text-red-700 font-medium"}`}>
                     <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">

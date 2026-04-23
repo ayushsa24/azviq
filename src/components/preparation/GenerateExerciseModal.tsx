@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Modal from "@/components/ui/Modal";
-import { FileText, SearchCode, Sparkles, CheckCircle2, Search, Check, ChevronDown, File as FileIcon } from "lucide-react";
+import { FileText, SearchCode, Sparkles, CheckCircle2, Search, Check, ChevronDown, File as FileIcon, AlertCircle, Plus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
@@ -23,6 +23,7 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
     const [searchQuery, setSearchQuery] = useState("");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [workspaces, setWorkspaces] = useState<any[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const isDark = theme === 'dark';
 
@@ -65,14 +66,17 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                 body: JSON.stringify({ noteId: selectedFile, count: questionCount }),
                 signal: controller.signal
             });
-            if (!res.ok) throw new Error("Failed to generate exercise");
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error?.message || "Failed to generate exercise");
+            }
             const data = await res.json();
             setCreatedExercise(data.exercise);
             setStep("result");
         } catch (error: any) {
             if (error.name === "AbortError") return;
             console.error(error);
-            alert("An error occurred while generating the exercise.");
+            setError(error.message || "An error occurred while generating the exercise.");
             setStep("select");
         } finally {
             abortControllerRef.current = null;
@@ -238,8 +242,33 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                             </div>
                         </div>
 
+                        {/* Error Banner */}
+                        {error && (
+                            <div className={`p-3 rounded-2xl flex items-start gap-3 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 ${isDark ? "bg-red-500/10 border border-red-500/30 text-red-200" : "bg-red-50/80 border border-red-200 text-red-700"}`}>
+                                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1">Attention</p>
+                                    <p className="text-xs leading-relaxed mb-3">
+                                        {error}
+                                    </p>
+                                    {error.toLowerCase().includes("quota") && (
+                                        <button
+                                            onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
+                                            className="px-3 py-1.5 rounded-lg bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Upgrade Plan
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <button
-                            onClick={handleGenerate}
+                            onClick={() => {
+                                setError(null);
+                                handleGenerate();
+                            }}
                             disabled={!selectedFile || isFetchingNotes}
                             className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${selectedFile && !isFetchingNotes
                                 ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'

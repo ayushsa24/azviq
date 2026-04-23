@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check, Crown } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check, Crown, AlertCircle } from "lucide-react";
 import { Editor } from "@tiptap/react";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -14,6 +14,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const isDark = document.documentElement.classList.contains('dark'); // Quick theme check
     const [hasStartedWriting, setHasStartedWriting] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const fullResponseRef = useRef<string>("");
@@ -252,26 +253,48 @@ const handleUpgrade = () => {
 };
 
 if (error) {
+    const isQuota = error.toLowerCase().includes("limit") || error.toLowerCase().includes("quota");
     return (
         <div
-            className="flex flex-col w-full md:w-[240px] bg-white dark:bg-[#252525] border border-[#C2A27A]/30 shadow-2xl rounded-xl overflow-hidden pointer-events-auto transition-all animate-in fade-in zoom-in duration-200"
+            className={`flex flex-col w-full md:w-[240px] backdrop-blur-md border shadow-2xl rounded-xl overflow-hidden pointer-events-auto transition-all animate-in fade-in zoom-in duration-200 ${
+                isQuota 
+                    ? (isDark ? "bg-red-500/10 border-red-500/30" : "bg-red-50/90 border-red-200")
+                    : (isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E8E5E0]")
+            }`}
             onMouseDown={(e) => e.stopPropagation()}
         >
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#C2A27A]/10 border-b border-[#C2A27A]/20">
-                <Crown size={14} className="text-[#C2A27A]" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B6F4E] dark:text-[#C2A27A]">Action Required</span>
+            <div className={`flex items-center gap-2 px-3 py-2 border-b ${
+                isQuota 
+                    ? "bg-red-500/10 border-red-500/20" 
+                    : "bg-[#F9F8F6] dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#3A3A3A]"
+            }`}>
+                {isQuota ? <Crown size={14} className="text-red-500" /> : <AlertCircle size={14} className="text-red-500" />}
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${isQuota ? "text-red-500" : "text-[#7D7D7D] dark:text-[#BABABA]"}`}>
+                    {isQuota ? "Limit Reached" : "System Error"}
+                </span>
             </div>
             <div className="p-3 flex flex-col gap-2">
-                <p className="text-[11px] leading-relaxed text-[#252525] dark:text-[#BABABA]">
+                <p className={`text-[11px] leading-relaxed ${isDark ? "text-red-100/90" : "text-red-700 font-medium"}`}>
                     {error}
                 </p>
-                <button
-                    onClick={handleUpgrade}
-                    className="flex items-center justify-center gap-2 w-full py-1.5 bg-[#C2A27A] hover:bg-[#B19169] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-sm"
-                >
-                    Upgrade Plan
-                    <ArrowRight size={12} />
-                </button>
+                {isQuota ? (
+                    <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
+                        className="flex items-center justify-center gap-2 w-full py-1.5 bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-sm"
+                    >
+                        Upgrade Plan
+                        <ArrowRight size={12} />
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => setError(null)}
+                        className={`w-full py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${
+                            isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
+                        }`}
+                    >
+                        Try Again
+                    </button>
+                )}
             </div>
         </div>
     );

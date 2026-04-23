@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Sparkles, ArrowRight, Loader2, Target, CalendarDays, BrainCircuit, Clock, CheckCircle2, Circle, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import useSWR, { mutate } from "swr";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface AiSuggestion {
     id: string;
@@ -164,6 +165,7 @@ export default function AiSuggestions() {
                                                     item={act}
                                                     isDark={isDark}
                                                     updateStatus={updateItemStatus}
+                                                    suggestionType={suggestion.suggestion_type}
                                                 />
                                             ))
                                         ) : (
@@ -177,6 +179,7 @@ export default function AiSuggestions() {
                                                         isDark={isDark}
                                                         updateStatus={updateItemStatus}
                                                         isCompleted={true}
+                                                        suggestionType={suggestion.suggestion_type}
                                                     />
                                                 ))}
                                             </>
@@ -226,9 +229,10 @@ interface SuggestionItemProps {
     isDark: boolean;
     updateStatus: (sId: string, itemId: string, status: string) => void;
     isCompleted?: boolean;
+    suggestionType?: string;
 }
 
-function SuggestionItem({ suggestionId, item, isDark, updateStatus, isCompleted = false }: SuggestionItemProps) {
+function SuggestionItem({ suggestionId, item, isDark, updateStatus, isCompleted = false, suggestionType }: SuggestionItemProps) {
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
     const [swipeOffset, setSwipeOffset] = useState(0);
 
@@ -297,8 +301,19 @@ function SuggestionItem({ suggestionId, item, isDark, updateStatus, isCompleted 
                         href={item.action_type || "/"}
                         className={`flex-1 min-w-0 inline-flex items-center justify-between py-0.5 text-sm font-medium ${isCompleted ? "line-through text-[#7D7D7D] dark:text-[#BABABA]/80 opacity-60" : ""}`}
                     >
-                        <span className={`truncate pr-2 font-medium ${isDark ? "text-white" : "text-[#252525]"}`}>
-                            {item.action_label}
+                        <span className={`truncate pr-2 font-medium flex items-center gap-1.5 ${isDark ? "text-white" : "text-[#252525]"}`}>
+                            <span>
+                                {suggestionType === 'weak_topic' && "Exercise: "}
+                                {item.action_label.replace(/^\[\w+\]\s*/, "")}
+                            </span>
+                            {(() => {
+                                const iconMatch = item.action_label.match(/^\[(\w+)\]/);
+                                if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                    const IconComp = ICON_MAP[iconMatch[1]];
+                                    return <IconComp className="w-3.5 h-3.5 opacity-40 shrink-0" strokeWidth={1.5} />;
+                                }
+                                return null;
+                            })()}
                         </span>
                         <ArrowRight className="w-3.5 h-3.5 shrink-0 opacity-40 group-hover/item-container:opacity-100" />
                     </Link>

@@ -159,6 +159,24 @@ export default function NoteEditorPage() {
                 nested: true,
             }),
             CodeBlockLowlight.extend({
+                addAttributes() {
+                    return {
+                        ...this.parent?.(),
+                        language: {
+                            default: null,
+                            parseHTML: element => {
+                                const code = element.querySelector('code')
+                                return code?.className.match(/language-(\S+)/)?.[1] || null
+                            },
+                            renderHTML: attributes => {
+                                if (!attributes.language) return {}
+                                return {
+                                    class: `language-${attributes.language}`,
+                                }
+                            },
+                        },
+                    }
+                },
                 addNodeView() {
                     return ReactNodeViewRenderer(CodeBlockComponent)
                 }

@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Loader2 } from "lucide-react";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 
-// Set the worker for pdfjs-dist (using our local public copy is much faster)
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+// Set the worker for pdfjs-dist to match the exact API version
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export interface PageDim {
   width: number;

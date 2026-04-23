@@ -93,8 +93,8 @@ export default function PreparationPage() {
     const isRevisionTab = activeTab === "revision";
 
     return (
-        <div className="flex h-full flex-col bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] overflow-hidden relative">
-            <div className={`flex h-full flex-col transition-all duration-300 ${isFocusMode ? 'pt-0' : ''}`}>
+        <div className="flex h-screen flex-col bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] overflow-hidden relative">
+            <div className={`flex h-full flex-col overflow-hidden transition-all duration-300 ${isFocusMode ? 'pt-0' : ''}`}>
                 {/* Fixed Header Section (Title + Search + Tabs) */}
                 {!isFocusMode && (
                     <div className="sticky top-0 z-20 px-4 sm:px-6 bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-b border-transparent">
@@ -221,10 +221,9 @@ export default function PreparationPage() {
                     </div>
                 )}
 
-                {/* Scrollable Content Area */}
                 <div
                     ref={scrollContentRef}
-                    className={`flex-1 overflow-y-auto scrollbar-hide transition-all duration-300 ${isFocusMode ? 'px-0 mt-0 h-full' : 'px-4 sm:px-6 mt-2'}`}
+                    className={`flex-1 flex flex-col ${activeTab === 'personal_ai' ? 'overflow-hidden' : 'overflow-y-auto'} scrollbar-hide min-h-0 transition-all duration-300 ${isFocusMode ? 'px-0 mt-0' : 'px-4 sm:px-6 mt-2'}`}
                 >
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -233,7 +232,7 @@ export default function PreparationPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className="h-full"
+                            className={`flex-1 flex flex-col ${activeTab === 'personal_ai' ? 'overflow-hidden' : ''}`}
                         >
                             {activeTab === "exercise" && (
                                 <ExerciseTab

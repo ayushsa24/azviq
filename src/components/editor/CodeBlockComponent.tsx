@@ -34,6 +34,25 @@ export function CodeBlockComponent({ node, updateAttributes, extension }: any) {
         }
     }, [isSelectorOpen])
 
+    // Auto-detect language if it's 'text' or not set
+    useEffect(() => {
+        if ((!attrs.language || attrs.language === 'text') && node.textContent.trim()) {
+            const lowlight = extension.options.lowlight;
+            if (lowlight) {
+                try {
+                    // Try to detect the language
+                    const result = lowlight.highlightAuto(node.textContent);
+                    if (result.data.language && LANGUAGES.includes(result.data.language)) {
+                        // Only update if we are sure it's a known language
+                        updateAttributes({ language: result.data.language });
+                    }
+                } catch (e) {
+                    // Ignore detection errors
+                }
+            }
+        }
+    }, [attrs.language, node.textContent, extension.options.lowlight, updateAttributes]);
+
     const copyToClipboard = () => {
         const text = node.textContent || ""
         navigator.clipboard.writeText(text)
@@ -103,7 +122,7 @@ export function CodeBlockComponent({ node, updateAttributes, extension }: any) {
                             className="absolute top-full -left-2 mt-1 w-36 max-h-56 overflow-y-auto bg-[#252525] border border-white/10 rounded-lg shadow-2xl z-[100] p-1 grid grid-cols-1 custom-scrollbar animate-in fade-in slide-in-from-top-1 duration-200"
                             style={{ WebkitOverflowScrolling: 'touch' }}
                         >
-                            {['text', ...RUNNABLE_LANGUAGES].map(lang => (
+                            {['text', ...RUNNABLE_LANGUAGES, 'markdown'].map(lang => (
                                 <button
                                     key={lang}
                                     type="button"

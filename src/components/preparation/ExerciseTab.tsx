@@ -85,7 +85,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     );
 
     return (
-        <div className="flex flex-col h-full w-full bg-transparent">
+        <div className="flex-1 flex flex-col w-full min-h-0 bg-transparent">
             {isLoading ? (
                 <div className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-3" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"}>
                     {Array.from({ length: 8 }).map((_, i) => (
@@ -119,7 +119,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                     ))}
                 </div>
             ) : filtered.length === 0 ? (
-                <div className={`flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] ${isDark ? 'border-[#333]' : 'border-[#DEDBD6]'}`}>
+                <div className={`w-full flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] ${isDark ? 'border-[#333]' : 'border-[#DEDBD6]'}`}>
                     <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm ${isDark ? 'bg-[#252525]' : 'bg-white'}`}>
                         <Search className={`w-6 h-6 ${isDark ? 'text-[#BABABA]' : 'text-[#252525]'}`} />
                     </div>
@@ -193,7 +193,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                     <>
                                         {/* Top Badge Overlay */}
                                         <div className="absolute top-3 right-3 z-10 transition-all">
-                                            <div className="rounded shadow-sm bg-[#252525] dark:bg-white text-white dark:text-[#252525] text-[0.625rem] px-1.5 py-0.5 font-bold uppercase transform-gpu">
+                                            <div className="rounded shadow-sm bg-[#252525] dark:bg-white text-white dark:text-[#252525] text-[0.5rem] sm:text-[0.625rem] px-1 py-0 sm:px-1.5 sm:py-0.5 font-bold uppercase transform-gpu">
                                                 EXERCISE
                                             </div>
                                         </div>

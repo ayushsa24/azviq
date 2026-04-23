@@ -169,7 +169,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   };
 
   return (
-    <div className={`flex flex-col h-full transition-all duration-300 mx-auto w-full ${isFocusMode ? 'max-w-none gap-0 px-0' : 'max-w-3xl gap-4 px-3 sm:px-0 pb-4'}`}>
+    <div className={`flex flex-col h-full overflow-hidden transition-all duration-300 mx-auto w-full ${isFocusMode ? 'max-w-none gap-0 px-0' : 'max-w-3xl gap-4 px-3 sm:px-0 pb-4'}`}>
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}

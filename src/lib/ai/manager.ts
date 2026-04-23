@@ -171,33 +171,35 @@ export async function getStreamingChatResponse(
     const feature = config.featureName || "AI Chat";
     console.error(`[AI Manager] PRIMARY model failed for [${feature}]:`, primaryError);
 
-    // If we've already exhausted Gemini Lite in the switch block, don't try it again here
-    const isGeminiCase = (MODEL_PROVIDER_MAP[config.model] || "gemini") === "gemini";
-    
-    // Dynamic Fallback Chain:
-    if (!isGeminiCase && config.model !== FREE_MODEL) {
-      console.warn(`[AI Manager] ⚠️ [${feature}] Primary model (${config.model}) failed. Retrying with ${FREE_MODEL}...`);
+    const isLite = config.model === FREE_MODEL;
+    const isFlash = config.model === "gemini-2.5-flash";
+
+    // 1. If Primary (Non-Lite) fails -> Try Lite
+    if (!isLite && !isFlash) {
+      console.warn(`[AI Manager] ⚠️ [${feature}] Primary model (${config.model}) failed. Falling back to ${FREE_MODEL}...`);
       try {
-        const res = await callGeminiStream(messages, { ...config, model: FREE_MODEL });
-        console.log(`[AI Manager] ✅ [${feature}] Success! (via Lite Fallback)`);
-        return res;
+        return await callGeminiStream(messages, { ...config, model: FREE_MODEL });
       } catch (liteError) {
-        console.warn(`[AI Manager] ⚠️ [${feature}] Lite also failed. Falling back to robust gemini-2.5-flash...`);
-        try {
-          const res = await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash" as AIModel });
-          console.log(`[AI Manager] ✅ [${feature}] Success! (via Flash Fallback)`);
-          return res;
-        } catch {
-          console.error(`[AI Manager] ❌ [${feature}] ALL MODELS FAILED.`);
-          throw new Error(sanitizeAIError(primaryError));
-        }
+        console.error(`[AI Manager] ⚠️ [${feature}] Lite fallback also failed.`);
+        // Fall through to special Flash attempt
       }
-    } else {
-      // If we are here, it means Lite already failed (either as primary or in the nested try-catch above)
-      // Throw a clean, user-friendly error
-      console.error(`[AI Manager] ❌ [${feature}] FATAL: Primary models exhausted.`);
-      throw new Error(sanitizeAIError(primaryError));
     }
+
+    // 2. If it was Lite OR if Lite fallback failed -> Try robust Flash
+    if (!isFlash) {
+      console.warn(`[AI Manager] ⚠️ [${feature}] Attempting final robust fallback to gemini-2.5-flash...`);
+      try {
+        const res = await callGeminiStream(messages, { ...config, model: "gemini-2.5-flash" as AIModel });
+        console.log(`[AI Manager] ✅ [${feature}] Success! (via Flash Robust Fallback)`);
+        return res;
+      } catch (finalError) {
+        console.error(`[AI Manager] ❌ [${feature}] ALL MODELS FAILED.`);
+        throw new Error(sanitizeAIError(primaryError));
+      }
+    }
+
+    // 3. If even Flash failed as primary, give up
+    throw new Error(sanitizeAIError(primaryError));
   }
 }
 
@@ -252,30 +254,34 @@ export async function getTextResponse(
     const feature = config.featureName || "AI Feature";
     console.error(`[AI Manager] PRIMARY model failed for [${feature}]:`, primaryError);
 
-    // If we've already exhausted Gemini Lite in the switch block, don't try it again here
-    const isGeminiCase = (MODEL_PROVIDER_MAP[config.model] || "gemini") === "gemini";
+    const isLite = config.model === FREE_MODEL;
+    const isFlash = config.model === "gemini-2.5-flash";
 
-    if (!isGeminiCase && config.model !== FREE_MODEL) {
-      console.warn(`[AI Manager] ⚠️ [${feature}] Primary model (${config.model}) failed. Retrying with ${FREE_MODEL}...`);
+    // 1. If Primary (Non-Lite) fails -> Try Lite
+    if (!isLite && !isFlash) {
+      console.warn(`[AI Manager] ⚠️ [${feature}] Primary model (${config.model}) failed. Falling back to ${FREE_MODEL}...`);
       try {
-        const res = await callGeminiText(prompt, { ...config, model: FREE_MODEL });
-        console.log(`[AI Manager] ✅ [${feature}] Success! (via Lite Fallback)`);
-        return res;
+        return await callGeminiText(prompt, { ...config, model: FREE_MODEL });
       } catch (liteError) {
-        console.warn(`[AI Manager] ⚠️ [${feature}] Lite also failed. Falling back to robust gemini-2.5-flash...`);
-        try {
-          const res = await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash" as AIModel });
-          console.log(`[AI Manager] ✅ [${feature}] Success! (via Flash Fallback)`);
-          return res;
-        } catch {
-          console.error(`[AI Manager] ❌ [${feature}] ALL MODELS FAILED.`);
-          throw new Error(sanitizeAIError(primaryError));
-        }
+        console.error(`[AI Manager] ⚠️ [${feature}] Lite fallback also failed.`);
       }
-    } else {
-      console.error(`[AI Manager] ❌ [${feature}] FATAL: Primary models exhausted.`);
-      throw new Error(sanitizeAIError(primaryError));
     }
+
+    // 2. If it was Lite OR if Lite fallback failed -> Try robust Flash
+    if (!isFlash) {
+      console.warn(`[AI Manager] ⚠️ [${feature}] Attempting final robust fallback to gemini-2.5-flash...`);
+      try {
+        const res = await callGeminiText(prompt, { ...config, model: "gemini-2.5-flash" as AIModel });
+        console.log(`[AI Manager] ✅ [${feature}] Success! (via Flash Robust Fallback)`);
+        return res;
+      } catch (finalError) {
+        console.error(`[AI Manager] ❌ [${feature}] ALL MODELS FAILED.`);
+        throw new Error(sanitizeAIError(primaryError));
+      }
+    }
+
+    // 3. If even Flash failed as primary, give up
+    throw new Error(sanitizeAIError(primaryError));
   }
 }
 

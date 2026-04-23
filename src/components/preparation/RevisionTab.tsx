@@ -61,58 +61,8 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
         !search || r.title?.toLowerCase().includes(search.toLowerCase())
     );
 
-    if (isLoading) {
-        return (
-            <div className={isList ? "flex flex-col gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-5 gap-3'}`}>
-                        {isList ? (
-                            <>
-                                <div className={`w-8 h-8 rounded-lg shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                                <div className="flex-1">
-                                    <div className={`h-4 w-3/4 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                                    <div className={`h-3 w-1/4 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="flex items-start gap-3">
-                                    <div className={`w-9 h-9 rounded-xl shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`}></div>
-                                    <div className="flex-1">
-                                        <div className={`h-5 w-3/4 rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                                        <div className={`h-3 w-1/2 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                                    </div>
-                                </div>
-                                <div className="mt-2 flex gap-4">
-                                    <div className={`h-4 w-12 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                                    <div className={`h-4 w-16 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ))}
-            </div>
-        );
-    }
-
-    if (filtered.length === 0) {
-        return (
-            <div className="flex flex-col flex-1 h-full">
-                <div className={`flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] ${isDark ? "border-[#333]" : "border-[#DEDBD6]"}`}>
-                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm ${isDark ? "bg-[#252525]" : "bg-white"}`}>
-                        <Search className={`w-6 h-6 ${isDark ? "text-[#BABABA]" : "text-[#252525]"}`} />
-                    </div>
-                    <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
-                    <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
-                        Create your first revision to get started.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex flex-col h-full w-full bg-transparent">
+        <div className="flex-1 flex flex-col w-full min-h-0 bg-transparent">
             {isLoading ? (
                 <div className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-3" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"}>
                     {Array.from({ length: 6 }).map((_, i) => (
@@ -144,7 +94,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                     ))}
                 </div>
             ) : filtered.length === 0 ? (
-                <div className={`flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] ${isDark ? "border-[#333]" : "border-[#DEDBD6]"}`}>
+                <div className={`w-full flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] ${isDark ? "border-[#333]" : "border-[#DEDBD6]"}`}>
                     <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm ${isDark ? "bg-[#252525]" : "bg-white"}`}>
                         <Search className={`w-6 h-6 ${isDark ? "text-[#BABABA]" : "text-[#252525]"}`} />
                     </div>
@@ -215,7 +165,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                     <>
                                         {/* Top Badge Overlay */}
                                         <div className="absolute top-3 right-3 z-10 transition-all">
-                                            <div className="rounded shadow-sm bg-[#252525] dark:bg-white text-white dark:text-[#252525] text-[0.625rem] px-1.5 py-0.5 font-bold uppercase transform-gpu">
+                                            <div className="rounded shadow-sm bg-[#252525] dark:bg-white text-white dark:text-[#252525] text-[0.5rem] sm:text-[0.625rem] px-1 py-0 sm:px-1.5 sm:py-0.5 font-bold uppercase transform-gpu">
                                                 REVISION
                                             </div>
                                         </div>

@@ -52,6 +52,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/utils/image";
+import { motion, AnimatePresence } from "framer-motion";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -198,8 +199,8 @@ function AiChatCore() {
   const [chatDrafts, setChatDrafts] = useState<Record<string, { text: string; image: string | null }>>({});
   const [importerModalData, setImporterModalData] = useState<{ id: string } | null>(null);
 
-  const isChatExhausted = usage?.chat?.limit !== Infinity && (usage?.chat?.remaining || 0) <= 0;
-  const isVisionExhausted = usage?.vision?.limit !== Infinity && (usage?.vision?.remaining || 0) <= 0;
+  const isChatExhausted = !!usage && usage.chat?.limit !== Infinity && (usage.chat?.remaining || 0) <= 0;
+  const isVisionExhausted = !!usage && usage.vision?.limit !== Infinity && (usage.vision?.remaining || 0) <= 0;
   const isQuotaReached = !!(isChatExhausted || (selectedImage && isVisionExhausted));
 
   // Dynamic Thinking Messages
@@ -465,9 +466,9 @@ function AiChatCore() {
     }
   }, [searchParams]);
 
-  // 2. Process the pending query once we're in a clean state
+  // 2. Process the pending query once we're in a clean state AND usage data is loaded
   useEffect(() => {
-    if (!pendingQueryRef.current || isSendingRef.current) return;
+    if (!pendingQueryRef.current || isSendingRef.current || !subscription) return;
 
     // Wait until we are definitely in a "New Chat" state (activeChatId null, no messages)
     if (activeChatId !== null || messages.length > 0) return;
@@ -481,7 +482,7 @@ function AiChatCore() {
       handleSend(query);
     }, 50);
     return () => clearTimeout(timer);
-  }, [activeChatId, messages.length]);
+  }, [activeChatId, messages.length, subscription]);
 
   // 3. Ensure history loads and we have a clean state for the new chat
   useEffect(() => {
@@ -598,12 +599,6 @@ function AiChatCore() {
 
     if (status !== "authenticated") return;
 
-    // Quota double check
-    if (isQuotaReached) {
-      setApiError("Daily AI quota reached. Please upgrade or try again tomorrow.");
-      return;
-    }
-
     isSendingRef.current = true;
     const newMsg: Message = {
       id: cutHistoryAtIndex !== undefined ? messages[cutHistoryAtIndex].id : undefined,
@@ -617,6 +612,19 @@ function AiChatCore() {
       cutHistoryAtIndex !== undefined
         ? messages.slice(0, cutHistoryAtIndex)
         : messages;
+
+    // --- Resilient Quota Guard ---
+    if (isQuotaReached) {
+      const errorMsg = "Daily AI quota reached. Please upgrade or try again tomorrow.";
+      setApiError(errorMsg);
+      setMessages([...previousMessages, newMsg, { role: "model", content: errorMsg, isError: true }]);
+      setInput("");
+      setSelectedImage(null);
+      setEditImage(null);
+      setEditingMessageIdx(null);
+      isSendingRef.current = false;
+      return;
+    }
 
     // Optimistic UI Update for internal messages
     const thinkingMsg: Message = { role: "model", content: "", isThinking: true, type: currentImage ? "vision" : "text" };
@@ -1982,7 +1990,7 @@ function AiChatCore() {
                                     {msg.content.includes("quota") && (
                                       <button
                                         onClick={() => openPricing()}
-                                        className="px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 text-[11px] font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                                        className="px-3 py-1.5 rounded-lg bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[11px] font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
                                       >
                                         <Plus className="w-3.5 h-3.5" />
                                         Upgrade Plan
@@ -2176,14 +2184,14 @@ function AiChatCore() {
         <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-0 md:pb-0 text-left transition-all duration-300 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
           {apiError && (
             <div className="max-w-4xl mx-auto px-3 md:px-4 md:pl-16 mb-2">
-              <div className={`w-full p-2.5 rounded-xl flex items-center justify-between border animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
+              <div className={`w-full p-2.5 rounded-xl flex items-center justify-between border backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-red-50/80 border-red-200 text-red-600"}`}>
                 <div className="flex items-center gap-2 text-sm">
                   <Bot className="w-4 h-4 shrink-0" />
                   <span>{apiError}</span>
                   {apiError.includes("quota") && (
                     <button
                       onClick={() => openPricing()}
-                      className={`ml-3 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${theme === "dark" ? "bg-white text-black hover:bg-gray-200" : "bg-[#252525] text-white hover:bg-[#545454]"}`}
+                      className={`ml-3 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 border ${theme === "dark" ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20" : "bg-amber-500/10 border-amber-500/20 text-amber-700 hover:bg-amber-500/20"}`}
                     >
                       Upgrade Plan
                     </button>
@@ -2199,31 +2207,37 @@ function AiChatCore() {
               </div>
             </div>
           )}
-          {/* 🚀 FIXED SCROLL-DOWN BUTTON - Stationary & Dull */}
-          {showScrollDown && (
-            <div className="fixed bottom-[145px] left-1/2 -translate-x-1/2 z-[100] md:absolute md:bottom-full md:left-0 md:right-0 md:translate-x-0 md:flex md:justify-center md:pb-8 pointer-events-none">
-              <button
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  if (chatContainerRef.current) {
-                    chatContainerRef.current.scrollTo({
-                      top: chatContainerRef.current.scrollHeight,
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-                className={`w-8 h-8 rounded-full shadow-md border flex items-center justify-center transition-all duration-300 transform scale-100 hover:scale-110 active:scale-95 pointer-events-auto backdrop-blur-sm
-                  ${theme === "dark"
-                    ? "bg-[#252525]/70 border-[#3A3A3A] text-gray-500 hover:text-gray-300"
-                    : "bg-white/70 border-[#E8E5E0] text-gray-400 hover:text-gray-600"}
-                `}
-                title="Scroll to bottom"
-              >
-                <ArrowDown className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-          <div className="max-w-4xl mx-auto flex items-end w-full px-3 md:px-4 md:pl-16">
+          <div className="max-w-4xl mx-auto relative px-3 md:px-4 md:pl-16">
+            <AnimatePresence>
+              {showScrollDown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 md:mb-6 z-50 md:pl-16"
+                >
+                  <button
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      if (chatContainerRef.current) {
+                        chatContainerRef.current.scrollTo({
+                          top: chatContainerRef.current.scrollHeight,
+                          behavior: "smooth",
+                        });
+                      }
+                    }}
+                    className={`flex items-center justify-center w-9 h-9 rounded-full shadow-lg border transition-all active:scale-90
+                      ${theme === "dark" 
+                        ? "bg-[#252525] border-[#545454] text-white hover:bg-[#333]" 
+                        : "bg-white border-[#E8E5E0] text-[#252525] hover:bg-[#F9F8F6]"}`}
+                    title="Scroll to bottom"
+                  >
+                    <ChevronDown size={20} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Hidden File Input */}
             <input
               type="file"
