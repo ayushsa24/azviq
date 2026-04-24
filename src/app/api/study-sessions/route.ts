@@ -13,9 +13,7 @@ export async function POST(req: Request) {
         if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const supabase = getSupabase();
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const { activity_type, subject, topic, duration_minutes, start_time, end_time } = await req.json();
 
@@ -26,7 +24,7 @@ export async function POST(req: Request) {
         const { data: session_record, error } = await supabase
             .from("study_sessions")
             .insert({
-                user_id: user.id,
+                user_id: userId,
                 activity_type,
                 subject: subject || null,
                 topic: topic || null,
@@ -44,12 +42,12 @@ export async function POST(req: Request) {
         const { data: stats } = await supabase
             .from("user_stats")
             .select("*")
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .single();
 
         if (!stats) {
             await supabase.from("user_stats").insert({
-                user_id: user.id,
+                user_id: userId,
                 current_streak: 1,
                 longest_streak: 1,
                 last_active_date: todayStr,
@@ -69,14 +67,14 @@ export async function POST(req: Request) {
                     longest_streak: Math.max(newStreak, stats.longest_streak),
                     last_active_date: todayStr,
                     updated_at: new Date().toISOString(),
-                }).eq("user_id", user.id);
+                }).eq("user_id", userId);
             } else {
                 // Streak broken — reset
                 await supabase.from("user_stats").update({
                     current_streak: 1,
                     last_active_date: todayStr,
                     updated_at: new Date().toISOString(),
-                }).eq("user_id", user.id);
+                }).eq("user_id", userId);
             }
         }
 
@@ -93,9 +91,7 @@ export async function GET(req: Request) {
         if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const supabase = getSupabase();
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const url = new URL(req.url);
         const limit = parseInt(url.searchParams.get("limit") ?? "20");
@@ -103,7 +99,7 @@ export async function GET(req: Request) {
         const { data: sessions, error } = await supabase
             .from("study_sessions")
             .select("*")
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .order("created_at", { ascending: false })
             .limit(limit);
 

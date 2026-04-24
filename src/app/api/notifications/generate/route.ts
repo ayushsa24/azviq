@@ -63,11 +63,7 @@ export async function POST() {
         if (!session?.user?.email) return apiError("Unauthorized", 401, "UNAUTHORIZED");
 
         const supabase = getSupabase();
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
-
-        const userId = user.id;
+        const userId = (session.user as { id: string }).id;
         const todayStr = today();
         const generated: string[] = [];
 

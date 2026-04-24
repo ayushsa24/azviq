@@ -4,11 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { scheduleTodoNotification } from "@/lib/scheduler";
 
-async function getUser(email: string) {
-    const { data } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
-    return data;
-}
-
 // GET — fetch all todos for the user
 export async function GET() {
     try {
@@ -16,13 +11,12 @@ export async function GET() {
         if (!session?.user?.email)
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const user = await getUser(session.user.email);
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const { data: todos, error } = await supabase
             .from("todos")
             .select("*")
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .order("created_at", { ascending: false });
 
         if (error) throw error;
@@ -40,8 +34,7 @@ export async function POST(req: Request) {
         if (!session?.user?.email)
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const user = await getUser(session.user.email);
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const body = await req.json();
         const { title, note, time, repeat, custom_days, linked_document_id, linked_document_type } = body;
@@ -52,7 +45,7 @@ export async function POST(req: Request) {
         const { data: todo, error } = await supabase
             .from("todos")
             .insert({
-                user_id: user.id,
+                user_id: userId,
                 title: title.trim(),
                 note: note || null,
                 time: time || null,
@@ -75,7 +68,7 @@ export async function POST(req: Request) {
             if (d.getTime() > Date.now()) {
                 const runId = await scheduleTodoNotification({
                     todoId: todo.id,
-                    userId: user.id,
+                    userId,
                     title: title.trim(),
                     note: note || undefined,
                     reminderTime: d.toISOString(),

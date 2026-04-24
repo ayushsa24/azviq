@@ -31,20 +31,12 @@ export async function GET() {
             return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
-        const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (userError || !user) {
-            return apiError("User not found", 404, "USER_NOT_FOUND");
-        }
+        const userId = (session.user as { id: string }).id;
 
         const { data: exercises, error: exercisesError } = await supabase
             .from("exercises")
             .select(`id, title, difficulty, status, score, time_taken, created_at, note_id, notes ( title, file_url )`)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .order("created_at", { ascending: false });
 
         if (exercisesError) throw exercisesError;
@@ -82,19 +74,14 @@ export async function POST(req: Request) {
         const questionCount = count;
 
         // 3. Get authenticated user
-        const { data: user, error: userError } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-
-        if (userError || !user) {
-            return apiError("User not found", 404, "USER_NOT_FOUND");
-        }
+        const userId = (session.user as { id: string }).id;
 
         // 4. Fetch note (ownership-verified)
         const { data: note, error: noteError } = await supabase
             .from("notes")
             .select("id, title, content, file_url, original_note_id, original_note:original_note_id (share_mode)")
             .eq("id", noteId)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .single();
 
         if (noteError || !note) {
@@ -107,7 +94,7 @@ export async function POST(req: Request) {
         }
 
         // 5. Quota check (always uses FREE_MODEL for exercises)
-        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "exercise", user.id);
+        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "exercise", userId);
         if (!guard.allowed) {
             return apiError(guard.error || "Subscription limit reached", guard.status || 403, "QUOTA_EXCEEDED");
         }
@@ -168,7 +155,7 @@ Each object MUST have this exact structure:
         const { data: exercise, error: insertError } = await supabase
             .from("exercises")
             .insert({
-                user_id: user.id,
+                user_id: userId,
                 note_id: note.id,
                 title: note.title as string,
                 difficulty: "Medium",

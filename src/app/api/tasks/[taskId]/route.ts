@@ -14,15 +14,7 @@ export async function PUT(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { data: user } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
+        const userId = (session.user as { id: string }).id;
 
         const body = await req.json();
         const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -51,7 +43,7 @@ export async function PUT(
             .from("tasks")
             .update(updateData)
             .eq("id", params.taskId)
-            .eq("user_id", user.id) // Ensure the user owns this task
+            .eq("user_id", userId) // Ensure the user owns this task
             .select()
             .single();
 
@@ -74,21 +66,13 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { data: user } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
+        const userId = (session.user as { id: string }).id;
 
         const { error } = await supabase
             .from("tasks")
             .delete()
             .eq("id", params.taskId)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
 
         if (error) throw error;
         return NextResponse.json({ success: true });

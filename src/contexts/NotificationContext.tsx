@@ -47,6 +47,8 @@ const PREFS_STORAGE_KEY = "notification_preferences";
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const { data, mutate, isLoading } = useSWR("/api/notifications", {
         refreshInterval: 300000, // 5 minutes
+        revalidateOnFocus: false,
+        dedupingInterval: 60000,
     });
     const notifications: Notification[] = data?.notifications ?? [];
     const [panelOpen, setPanelOpen] = useState(false);
@@ -256,13 +258,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         triggerGenerate();
     }, [triggerGenerate]);
 
-    // Poll every 5 minutes for notifications and daily generation
-    useEffect(() => {
-        const interval = setInterval(() => {
-            triggerGenerate();
-        }, 5 * 60 * 1000);
-        return () => clearInterval(interval);
-    }, [triggerGenerate]);
 
     const markAsRead = useCallback(async (id: string) => {
         // Optimistic update
@@ -497,10 +492,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
     }, [fetchNotifications, taskDueReminders, doNotDisturb]);
 
+    // Task deadlines are checked on manual trigger (checkReminders) only.
+    // Server-side Upstash Workflow handles automated task deadline push notifications.
     useEffect(() => {
-        const interval = setInterval(() => checkTaskDeadlines(), 300000); // Check every 5 mins
         checkTaskDeadlines();
-        return () => clearInterval(interval);
     }, [checkTaskDeadlines]);
 
     const checkReminders = useCallback(async () => {

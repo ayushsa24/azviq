@@ -33,9 +33,8 @@ export async function GET() {
 
     const status = await getSubscriptionStatus(session.user.email);
     
-    // Get user ID
-    const { data: userData } = await supabase.from("users").select("id").eq("email", session.user.email).single();
-    const userId = userData?.id;
+    // Get user ID from session (set by auth.ts jwt callback — no DB round-trip needed)
+    const userId = (session.user as { id: string }).id;
 
     let usage = null;
     if (userId) {

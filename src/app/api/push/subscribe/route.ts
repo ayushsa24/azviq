@@ -3,11 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
-async function getUser(email: string) {
-  const { data } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
-  return data;
-}
-
 // POST — Save a push subscription for the current user/browser
 export async function POST(req: NextRequest) {
   try {
@@ -15,8 +10,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.email)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = await getUser(session.user.email);
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const userId = (session.user as { id: string }).id;
 
     const body = await req.json();
     const { endpoint, keys } = body;
@@ -29,7 +23,7 @@ export async function POST(req: NextRequest) {
       .from("push_subscriptions")
       .upsert(
         {
-          user_id: user.id,
+          user_id: userId,
           endpoint,
           p256dh: keys.p256dh,
           auth: keys.auth,
@@ -52,15 +46,14 @@ export async function DELETE(req: NextRequest) {
     if (!session?.user?.email)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = await getUser(session.user.email);
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const userId = (session.user as { id: string }).id;
 
     const { endpoint } = await req.json();
 
     const { error } = await supabase
       .from("push_subscriptions")
       .delete()
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("endpoint", endpoint);
 
     if (error) throw error;

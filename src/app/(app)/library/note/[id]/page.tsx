@@ -78,6 +78,9 @@ export default function NoteEditorPage() {
     const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const abortControllerRef = React.useRef<AbortController | null>(null);
     const aiStreamEndPosRef = React.useRef<number | null>(null);
+    // Tracks the last content successfully synced to the original note in a collab session.
+    // Guards the second PATCH so it only fires when content has actually changed.
+    const lastSyncedOriginalContent = React.useRef<string | null>(null);
 
     useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
 
@@ -327,6 +330,12 @@ export default function NoteEditorPage() {
                 const pShareMode = data.parentShareMode;
                 setParentShareMode(pShareMode);
 
+                // Seed the collab sync ref so the first save doesn't fire a redundant PATCH
+                // if the content hasn't changed since load.
+                if (noteData.content) {
+                    lastSyncedOriginalContent.current = noteData.content;
+                }
+
                 // If owner explicitly set original to view-only, lock the copies
                 if (pShareMode === 'view') {
                     setIsLocked(true);
@@ -369,25 +378,20 @@ export default function NoteEditorPage() {
         const channel = supabaseClient
             .channel(`sync-note-${syncId}`)
             .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'notes',
-                    filter: `id=eq.${syncId}`
-                },
+                'broadcast',
+                { event: 'note-update' },
                 (payload) => {
-                    const updatedData = payload.new as any;
-                    
+                    const updatedData = payload.payload as any;
+
                     // Mark this as an external update to avoid re-saving
                     isOriginalUpdateRef.current = true;
-                    
+
                     // 1. Sync Title
                     if (updatedData.title && updatedData.title !== titleRef.current) {
                         setTitle(updatedData.title);
                         titleRef.current = updatedData.title;
                     }
-                    
+
                     // 2. Sync Permissions & Security
                     if (note?.original_note_id && updatedData.share_mode !== undefined) {
                         setParentShareMode(updatedData.share_mode);
@@ -481,14 +485,41 @@ export default function NoteEditorPage() {
 
             // 2. Collaborative Sync: If this is an import, also update the original source
             // so the owner and other importers can see my changes in real-time.
-            if (isClone && note.original_note_id && parentShareMode === 'edit') {
-                await fetch(`/api/notes/${note.original_note_id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        content: contentToSave !== undefined ? contentToSave : editor.getHTML(),
-                    }),
-                });
+            // Guard: only send if content has actually changed since the last successful sync.
+            const currentContent = contentToSave !== undefined ? contentToSave : editor.getHTML();
+            
+            if (currentContent !== lastSyncedOriginalContent.current) {
+                if (isClone && note.original_note_id && parentShareMode === 'edit') {
+                    const syncId = note.original_note_id;
+                    const syncRes = await fetch(`/api/notes/${syncId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ content: currentContent }),
+                    });
+                    if (syncRes.ok) {
+                        lastSyncedOriginalContent.current = currentContent;
+                        // Broadcast the update to all collaborators watching the same note.
+                        // Broadcast is client-to-client — zero WAL / DB overhead.
+                        await supabaseClient
+                            .channel(`sync-note-${syncId}`)
+                            .send({
+                                type: 'broadcast',
+                                event: 'note-update',
+                                payload: { content: currentContent, updated_at: new Date().toISOString() },
+                            });
+                    }
+                } else if (!isClone) {
+                    // I am the owner. The initial PATCH above already saved to my DB record.
+                    // Now just broadcast to any collaborators listening to my note ID.
+                    lastSyncedOriginalContent.current = currentContent;
+                    await supabaseClient
+                        .channel(`sync-note-${id}`)
+                        .send({
+                            type: 'broadcast',
+                            event: 'note-update',
+                            payload: { content: currentContent, updated_at: new Date().toISOString() },
+                        });
+                }
             }
         } catch (err: any) {
             if (err.name === 'AbortError') return; // Expected cancellation

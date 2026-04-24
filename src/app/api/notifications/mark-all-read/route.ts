@@ -12,15 +12,13 @@ export async function POST() {
         const session = await getServerSession(authOptions);
         if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const supabase = getSupabase();
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
+        const supabase = getSupabase();
         const { error } = await supabase
             .from("notifications")
             .update({ is_read: true })
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .eq("is_read", false);
 
         if (error) throw error;

@@ -440,15 +440,22 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-2 justify-between items-end px-4 sm:px-6">
-        <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
-            {!activeWorkspace && (
+      <div className="px-4 sm:px-6">
+        <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-2 justify-between items-end">
+          <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
+            {[
+              ...(!activeWorkspace ? [{ id: "workspaces", label: "Workspaces" }] : []),
+              { id: "notes", label: "Notes" },
+              { id: "pdfs", label: "PDFs" },
+              { id: "favourites", label: "Favourites" }
+            ].map((tab) => (
               <button
-                onClick={() => setActiveTab("workspaces")}
-                className={tabCls(activeTab === "workspaces")}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={tabCls(activeTab === tab.id)}
               >
-                <span className="relative z-10">Workspaces</span>
-                {activeTab === "workspaces" && (
+                <span className="relative z-10">{tab.label}</span>
+                {activeTab === tab.id && (
                   <motion.div
                     layoutId="libraryTabUnderline"
                     className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
@@ -456,69 +463,31 @@ export default function NotesPage() {
                   />
                 )}
               </button>
-            )}
-            <button
-              onClick={() => setActiveTab("notes")}
-              className={tabCls(activeTab === "notes")}
-            >
-              <span className="relative z-10">Notes</span>
-              {activeTab === "notes" && (
-                <motion.div
-                  layoutId="libraryTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("pdfs")}
-              className={tabCls(activeTab === "pdfs")}
-            >
-              <span className="relative z-10">PDFs</span>
-              {activeTab === "pdfs" && (
-                <motion.div
-                  layoutId="libraryTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("favourites")}
-              className={tabCls(activeTab === "favourites")}
-            >
-              <span className="relative z-10">Favourites</span>
-              {activeTab === "favourites" && (
-                <motion.div
-                  layoutId="libraryTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-            </button>
-        </div>
+            ))}
+          </div>
 
-        <div className="flex gap-2 pb-2 shrink-0">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 ${viewMode === "grid"
-              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white shadow-sm"
-              : "text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
-              }`}
-            title="Grid View"
-          >
-            <LayoutGrid className="w-[1.125rem] h-[1.125rem]" />
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 ${viewMode === "list"
-              ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white shadow-sm"
-              : "text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
-              }`}
-            title="List View"
-          >
-            <List className="w-[1.125rem] h-[1.125rem]" />
-          </button>
+          <div className="flex gap-2 pb-2 shrink-0">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 ${viewMode === "grid"
+                ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white shadow-sm"
+                : "text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
+                }`}
+              title="Grid View"
+            >
+              <LayoutGrid className="w-[1.125rem] h-[1.125rem]" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 ${viewMode === "list"
+                ? "bg-[#F0EDE8] dark:bg-[#545454] text-[#252525] dark:text-white shadow-sm"
+                : "text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
+                }`}
+              title="List View"
+            >
+              <List className="w-[1.125rem] h-[1.125rem]" />
+            </button>
+          </div>
         </div>
       </div>
 

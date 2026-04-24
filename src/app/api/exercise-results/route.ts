@@ -22,9 +22,7 @@ export async function POST(req: Request) {
         if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const supabase = getSupabase();
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const { exercise_id, subject, topic, total_questions, correct_answers } = await req.json();
 
@@ -37,7 +35,7 @@ export async function POST(req: Request) {
         const { data: result, error } = await supabase
             .from("exercise_results")
             .insert({
-                user_id: user.id,
+                user_id: userId,
                 exercise_id: exercise_id || null,
                 subject: subject || null,
                 topic: topic || null,
@@ -57,7 +55,7 @@ export async function POST(req: Request) {
             const { data: existing } = await supabase
                 .from("revision_schedule")
                 .select("*")
-                .eq("user_id", user.id)
+                .eq("user_id", userId)
                 .eq("subject", subject)
                 .eq("topic", topic)
                 .single();
@@ -65,7 +63,7 @@ export async function POST(req: Request) {
             if (!existing) {
                 // First time — create stage 1 revision
                 await supabase.from("revision_schedule").insert({
-                    user_id: user.id,
+                    user_id: userId,
                     subject,
                     topic,
                     last_studied_date: todayStr,

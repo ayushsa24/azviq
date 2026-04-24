@@ -275,12 +275,12 @@ export default function UnifiedChatPanel({
     fetchSession();
   }, [sessionId]);
 
-  // Laptop-only: Always keep input active
+  // Laptop-only: Always keep input active when not loading
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+    if (!isLoading && !isStarting && typeof window !== 'undefined' && window.innerWidth >= 1024) {
       textareaRef.current?.focus();
     }
-  }, []);
+  }, [isLoading, isStarting]);
 
   // ─── Stream AI Response ───────────────────────────────────────────────────
 

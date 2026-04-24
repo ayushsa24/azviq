@@ -37,17 +37,7 @@ export async function GET() {
             return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
-        const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (userError || !user) {
-            return apiError("User not found", 404, "USER_NOT_FOUND");
-        }
-
-        const userId = user.id as string;
+        const userId = (session.user as { id: string }).id;
         const suggestions: Suggestion[] = [];
         const todayString = new Date().toISOString().split("T")[0];
 
@@ -217,20 +207,14 @@ export async function PATCH(req: Request) {
             return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
-        const { data: user } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
+        const userId = (session.user as { id: string }).id;
 
         const { itemId, status } = await req.json();
 
         const { error } = await supabase
             .from("ai_suggestion_items")
             .update({ status })
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .eq("item_id", itemId);
 
         if (error) throw error;

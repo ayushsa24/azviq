@@ -13,15 +13,13 @@ export async function GET(
         if (!session || !session.user?.email)
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const { data: revision, error } = await supabase
             .from("revisions")
             .select("*, notes(title)")
             .eq("id", id)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .single();
 
         if (error || !revision)
@@ -44,15 +42,13 @@ export async function DELETE(
         if (!session || !session.user?.email)
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const { error } = await supabase
             .from("revisions")
             .delete()
             .eq("id", id)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
 
         if (error) throw error;
 
@@ -61,7 +57,7 @@ export async function DELETE(
             .from("recent_activity")
             .delete()
             .eq("item_id", id)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
 
         return NextResponse.json({ success: true });
     } catch (error) {

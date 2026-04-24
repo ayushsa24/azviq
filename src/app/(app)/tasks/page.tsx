@@ -28,7 +28,7 @@ import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
 import { AITaskModal } from "@/components/tasks/AITaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function TasksPage() {
   const { data: tasksData, mutate: mutateTasks, isLoading: isTasksLoading } = useSWR("/api/tasks", fetcher);
@@ -417,9 +417,9 @@ export default function TasksPage() {
 
   // Tab style helper (matches library page)
   const tabCls = (active: boolean) =>
-    `px-1 py-2.5 border-b-2 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${active
-      ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
-      : "border-transparent text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
+    `relative px-1 py-2.5 font-medium text-sm mr-6 whitespace-nowrap snap-start transition-colors ${active
+      ? "text-[#252525] dark:text-white"
+      : "text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
     }`;
 
   const viewBtnCls = (active: boolean) =>
@@ -502,6 +502,13 @@ export default function TasksPage() {
                 {(["all", "in_progress", "done", "archived", "not_started"] as const).map((f) => (
                   <button key={f} onClick={() => setProjectFilter(f)} className={tabCls(projectFilter === f)}>
                     {f === "all" ? "All Projects" : f === "in_progress" ? "In Progress" : f === "done" ? "Done" : f === "archived" ? "Archive" : "Not Started"}
+                    {projectFilter === f && (
+                      <motion.div
+                        layoutId="activeProjectTab"
+                        className="absolute bottom-0 left-0 right-0 h-px bg-[#252525] dark:bg-white"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
@@ -620,16 +627,37 @@ export default function TasksPage() {
               </div>
 
               {/* Row 2: View Toggle Tabs — clean, no extra buttons */}
-              <div className="flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4 md:dark:bg-[#1F1F1F] md:px-3 md:rounded-t-xl transition-colors">
+              <div className="flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4 transition-colors">
                 <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
                   <button onClick={() => setTaskView("kanban")} className={tabCls(taskView === "kanban")}>
                     <LayoutGrid size={14} className="inline mr-1.5" />Kanban
+                    {taskView === "kanban" && (
+                      <motion.div
+                        layoutId="activeTaskViewTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#252525] dark:bg-white"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
                   </button>
                   <button onClick={() => setTaskView("by_date")} className={tabCls(taskView === "by_date")}>
                     <CalendarDays size={14} className="inline mr-1.5" />By Date
+                    {taskView === "by_date" && (
+                      <motion.div
+                        layoutId="activeTaskViewTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#252525] dark:bg-white"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
                   </button>
                   <button onClick={() => setTaskView("by_projects")} className={tabCls(taskView === "by_projects")}>
                     <Layers size={14} className="inline mr-1.5" />By Projects
+                    {taskView === "by_projects" && (
+                      <motion.div
+                        layoutId="activeTaskViewTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#252525] dark:bg-white"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
                   </button>
                 </div>
               </div>

@@ -3,16 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-async function getUserId(email: string) {
-    const { data } = await supabase.from("users").select("id").eq("email", email).single();
-    return data?.id ?? null;
-}
-
 export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = await getUserId(session.user.email);
-    if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const userId = (session.user as { id: string }).id;
 
     const { data, error } = await supabase
         .from("parent_control")
@@ -27,8 +21,7 @@ export async function GET() {
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = await getUserId(session.user.email);
-    if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const userId = (session.user as { id: string }).id;
 
     const body = await req.json();
     const { family_email, daily_target_hours, restricted_mode, control_enabled, report_time } = body;
@@ -92,8 +85,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = await getUserId(session.user.email);
-    if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const userId = (session.user as { id: string }).id;
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
@@ -111,8 +103,7 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = await getUserId(session.user.email);
-    if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const userId = (session.user as { id: string }).id;
 
     const { daily_target_hours, restricted_mode, control_enabled, report_time } = await req.json();
 

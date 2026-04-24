@@ -142,8 +142,8 @@ function AiChatCore() {
     status === "authenticated" ? "/api/user/subscription" : null,
     fetcher,
     {
-      revalidateOnFocus: true, // Refresh more often when chatting
-      dedupingInterval: 5000,
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
     }
   );
 
@@ -248,6 +248,13 @@ function AiChatCore() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isMobileApp, setIsMobileApp] = useState(false);
+
+  // Laptop-only: Always keep input active when not loading
+  useEffect(() => {
+    if (!isLoading && typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading]);
   const currentChatIdRef = useRef<string | null>(activeChatId);
   const isInternalNavRef = useRef(false);
   const [editImage, setEditImage] = useState<string | null>(null);
@@ -1963,11 +1970,11 @@ function AiChatCore() {
                             style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
                             className={msg.role === "user"
                               ? theme === "dark"
-                                ? "w-fit max-w-full overflow-hidden bg-[#545454] text-white rounded-[22px] rounded-tr-[4px] ai-response-content px-4 py-2.5"
-                                : "w-fit max-w-full overflow-hidden bg-[#F0EDE8] text-gray-900 rounded-[22px] rounded-tr-[4px] ai-response-content px-4 py-2.5"
+                                ? "w-fit max-w-full overflow-hidden bg-[#545454] text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed"
+                                : "w-fit max-w-full overflow-hidden bg-[#F0EDE8] text-gray-900 rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed"
                               : theme === "dark"
-                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-2.5"
-                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-[22px] rounded-tl-[4px] ai-response-content px-4 py-2.5"
+                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed"
+                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed"
                             }
                           >
                             {msg.role === "model" ? (
@@ -2015,46 +2022,56 @@ function AiChatCore() {
                                       h1: ({ ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
                                       h2: ({ ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
                                       h3: ({ ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
-                                      p: ({ ...props }) => <div className="mb-2 leading-relaxed" {...props} />,
-                                      ul: ({ ...props }) => <ul className="list-disc pl-5 mb-2 space-y-0.5" {...props} />,
-                                      ol: ({ ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5" {...props} />,
+                                      p: ({ ...props }) => <div className="mb-2 last:mb-0" {...props} />,
+                                      ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-1 my-2" {...props} />,
+                                      ol: ({ ...props }) => <ol className="list-decimal ml-4 space-y-1 my-2" {...props} />,
                                       li: ({ ...props }) => <li className="pl-1" {...props} />,
                                       a: ({ ...props }) => <a className="text-indigo-400 hover:underline font-semibold" {...props} />,
                                       strong: ({ ...props }) => <strong className="font-bold text-inherit" {...props} />,
                                       table: ({ ...props }) => (
-                                        <div className="block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454]">
-                                          <table className="w-full text-sm text-left border-collapse" {...props} />
+                                        <div className="block w-full max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454] custom-scrollbar">
+                                          <table className="w-full text-sm text-left border-collapse min-w-max" {...props} />
                                         </div>
                                       ),
                                       thead: ({ ...props }) => (
-                                        <thead className={`text-xs uppercase font-medium ${theme === "dark" ? "bg-[#2A2A2A] text-gray-300 border-b border-[#545454]" : "bg-[#F5F3EF] text-gray-700 border-b border-[#E8E5E0]"}`} {...props} />
+                                        <thead className={theme === "dark" ? "bg-[#545454]" : "bg-[#F0EDE8]"} {...props} />
                                       ),
                                       tbody: ({ ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-[#545454]" {...props} />,
                                       tr: ({ ...props }) => <tr className={`transition-colors shadow-sm ${theme === "dark" ? "hover:bg-[#252525]/50" : "hover:bg-gray-50"}`} {...props} />,
-                                      th: ({ ...props }) => <th className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
-                                      td: ({ ...props }) => <td className="px-4 py-3 border-r last:border-r-0 border-gray-200 dark:border-[#545454]" {...props} />,
+                                      th: ({ ...props }) => (
+                                        <th className={`px-3 py-2 font-bold border-b ${theme === "dark" ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
+                                      ),
+                                      td: ({ ...props }) => (
+                                        <td className={`px-3 py-2 border-b ${theme === "dark" ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
+                                      ),
                                       pre: ({ children }) => <div className="not-prose">{children}</div>,
                                       code({ inline, className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || "");
                                         const codeString = String(children).replace(/\n$/, "");
                                         if (inline) {
                                           return (
-                                            <code className={`px-1 py-0.5 rounded text-xs ${theme === "dark" ? "bg-[#1e1e1e] text-pink-400" : "bg-[#F5F3EF] text-pink-600"}`} {...props}>
+                                            <code className={`px-1 py-0.5 rounded font-mono text-[11px] ${theme === "dark" ? "bg-white/10 text-[#C2A27A]" : "bg-black/5 text-[#A2825A]"}`} {...props}>
                                               {children}
                                             </code>
                                           );
                                         }
                                         return (
-                                          <div className="relative group/code mb-4 mt-3 block w-full max-w-[calc(100vw-3.5rem)] md:max-w-full">
-                                            <div className={`flex items-center justify-between px-4 py-2 text-xs font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
-                                              <span>{match?.[1] || "code"}</span>
+                                          <div className="relative group/code mb-4 mt-3 block w-full max-w-full">
+                                            <div className={`flex items-center justify-between px-4 py-2 text-[10px] font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
+                                              <span className="uppercase font-bold tracking-widest">{match?.[1] || "code"}</span>
                                               <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
-                                                {copiedCodeBlock === codeString ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                                                <span>{copiedCodeBlock === codeString ? "Copied" : "Copy code"}</span>
+                                                {copiedCodeBlock === codeString ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                                <span className="font-bold">{copiedCodeBlock === codeString ? "Copied" : "Copy"}</span>
                                               </button>
                                             </div>
-                                            <div className={`block w-full overflow-x-auto text-sm rounded-b-xl ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800"}`}>
-                                              <SyntaxHighlighter style={vscDarkPlus} language={match?.[1] || "text"} PreTag="div" customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: "0.875rem" }} {...props}>
+                                            <div className={`block w-full overflow-x-auto text-[13px] rounded-b-xl custom-scrollbar ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800 shadow-lg"}`}>
+                                              <SyntaxHighlighter 
+                                                style={vscDarkPlus} 
+                                                language={match?.[1] || "text"} 
+                                                PreTag="div" 
+                                                customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", fontSize: "13px", lineHeight: "1.6" }} 
+                                                {...props}
+                                              >
                                                 {codeString}
                                               </SyntaxHighlighter>
                                             </div>
@@ -2321,7 +2338,7 @@ function AiChatCore() {
                   placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Azviq AI anything..."))}
                   disabled={isQuotaReached && !isLoading}
                   style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
-                  className={`flex-1 max-h-48 min-h-[30px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-[3px] text-[15px] outline-none custom-scrollbar leading-relaxed font-medium whitespace-pre-wrap ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-[9px] text-[15px] outline-none custom-scrollbar leading-tight font-medium whitespace-pre-wrap ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
                 />
 
@@ -2380,7 +2397,7 @@ function AiChatCore() {
               </div>
             </div>
           </div>
-          <p className="text-center text-[11px] opacity-40 mt-1.5 hidden md:block select-none">
+          <p className="text-center text-[11px] opacity-40 mt-1 pb-3 hidden md:block select-none">
             Azviq AI can make mistakes. Consider verifying critical
             information.
           </p>

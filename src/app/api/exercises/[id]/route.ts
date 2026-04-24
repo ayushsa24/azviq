@@ -13,15 +13,13 @@ export async function GET(
         if (!session || !session.user?.email)
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const { data: exercise, error } = await supabase
             .from("exercises")
             .select("*")
             .eq("id", id)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .single();
 
         if (error || !exercise)
@@ -47,15 +45,7 @@ export async function PATCH(
 
         const { status, score, time_taken, questions } = await req.json();
 
-        const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (userError || !user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
+        const userId = (session.user as { id: string }).id;
 
         // Only update allowed fields
         const updates: Record<string, unknown> = {};
@@ -69,7 +59,7 @@ export async function PATCH(
             .from("exercises")
             .update(updates)
             .eq("id", resolvedParams.id)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
 
         // If time_taken column doesn't exist yet, retry without it (column still needs migration)
         if (updateError && (updateError as { code?: string }).code === "PGRST204" && updates.time_taken !== undefined) {
@@ -80,7 +70,7 @@ export async function PATCH(
                 .from("exercises")
                 .update(updatesWithout)
                 .eq("id", resolvedParams.id)
-                .eq("user_id", user.id);
+                .eq("user_id", userId);
             updateError = retryError;
         }
 
@@ -108,21 +98,13 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (userError || !user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
+        const userId = (session.user as { id: string }).id;
 
         const { error: deleteError } = await supabase
             .from("exercises")
             .delete()
             .eq("id", resolvedParams.id)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
 
         if (deleteError) {
             throw deleteError;
@@ -133,7 +115,7 @@ export async function DELETE(
             .from("recent_activity")
             .delete()
             .eq("item_id", resolvedParams.id)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
 
         return NextResponse.json({ success: true });
     } catch (error) {

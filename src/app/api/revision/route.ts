@@ -27,14 +27,12 @@ export async function GET() {
         if (!session || !session.user?.email)
             return apiError("Unauthorized", 401, "UNAUTHORIZED");
 
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
+        const userId = (session.user as { id: string }).id;
 
         const { data: revisions, error } = await supabase
             .from("revisions")
             .select("id, title, created_at, note_id, notes(title)")
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .order("created_at", { ascending: false });
 
         if (error) throw error;
@@ -69,16 +67,14 @@ export async function POST(req: Request) {
         const { noteId } = validation.data;
 
         // 3. Get authenticated user
-        const { data: user } = await supabase
-            .from("users").select("id").eq("email", session.user.email).single();
-        if (!user) return apiError("User not found", 404, "USER_NOT_FOUND");
+        const userId = (session.user as { id: string }).id;
 
         // 4. Fetch the note (ownership-verified)
         const { data: note, error: noteError } = await supabase
             .from("notes")
             .select("id, title, content, file_url, original_note_id, original_note:original_note_id (share_mode)")
             .eq("id", noteId)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .single();
 
         if (noteError || !note)
@@ -95,7 +91,7 @@ export async function POST(req: Request) {
             return apiError("Note has no content to generate a revision from.", 400, "EMPTY_NOTE");
 
         // 5. Quota check (always uses FREE_MODEL for revision)
-        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "exercise", user.id);
+        const guard = await runSubscriptionGuard(session.user.email, FREE_MODEL, "exercise", userId);
         if (!guard.allowed) {
             return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
         }
@@ -163,7 +159,7 @@ IMPORTANT — For the "summary" field, generate a COMPACT, SCANNABLE revision sh
         const { data: revision, error: insertError } = await supabase
             .from("revisions")
             .insert({
-                user_id: user.id,
+                user_id: userId,
                 note_id: note.id,
                 title: note.title as string,
                 summary: parsed.summary || "",

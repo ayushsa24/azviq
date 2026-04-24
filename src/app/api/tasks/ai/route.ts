@@ -33,18 +33,10 @@ export async function POST(req: Request) {
             return apiError("Unauthorized", 401, "UNAUTHORIZED");
         }
 
-        const { data: dbUser } = await supabase
-            .from("users")
-            .select("id")
-            .eq("email", session.user.email)
-            .single();
-
-        if (!dbUser) {
-            return apiError("User not found", 404, "USER_NOT_FOUND");
-        }
+        const userId = (session.user as { id: string }).id;
 
         // --- AI Daily Quota Check ---
-        const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "chat", dbUser.id);
+        const guard = await runSubscriptionGuard(session.user.email, "gemini-2.5-flash", "chat", userId);
         if (!guard.allowed) {
             return apiError(guard.error || "Subscription limit reached", guard.status || 429, "QUOTA_EXCEEDED");
         }

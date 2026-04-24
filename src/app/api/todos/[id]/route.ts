@@ -4,11 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { scheduleTodoNotification, cancelTodoNotification } from "@/lib/scheduler";
 
-async function getUser(email: string) {
-    const { data } = await supabase.from("users").select("id").eq("email", email).single();
-    return data;
-}
-
 /**
  * Converts a "HH:MM" time string (user's local time for today) into
  * a full ISO UTC string for scheduling.
@@ -35,8 +30,7 @@ export async function PATCH(
         if (!session?.user?.email)
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const user = await getUser(session.user.email);
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         const body = await req.json();
         const updates: Record<string, unknown> = {};
@@ -70,7 +64,7 @@ export async function PATCH(
                     const todoTitle = body.title || "Your Todo";
                     const runId = await scheduleTodoNotification({
                         todoId: id,
-                        userId: user.id,
+                        userId,
                         title: todoTitle,
                         note: body.note,
                         reminderTime: reminderISO,
@@ -84,7 +78,7 @@ export async function PATCH(
             .from("todos")
             .update(updates)
             .eq("id", id)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .select()
             .single();
 
@@ -107,8 +101,7 @@ export async function DELETE(
         if (!session?.user?.email)
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const user = await getUser(session.user.email);
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userId = (session.user as { id: string }).id;
 
         // Cancel scheduled notification before deleting
         const { data: todo } = await supabase
@@ -125,7 +118,7 @@ export async function DELETE(
             .from("todos")
             .delete()
             .eq("id", id)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
 
         if (error) throw error;
         return NextResponse.json({ success: true });

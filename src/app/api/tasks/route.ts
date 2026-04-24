@@ -10,15 +10,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: user } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", session.user.email)
-      .single();
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const userId = (session.user as { id: string }).id;
 
     const url = new URL(req.url);
     const projectId = url.searchParams.get("project_id");
@@ -26,7 +18,7 @@ export async function GET(req: Request) {
     let query = supabase
       .from("tasks")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (projectId) {
@@ -51,15 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: user } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", session.user.email)
-      .single();
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const userId = (session.user as { id: string }).id;
 
     const {
       title,
@@ -77,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     const insertData: Record<string, unknown> = {
-      user_id: user.id,
+      user_id: userId,
       title,
       status: status || "not_started",
     };
