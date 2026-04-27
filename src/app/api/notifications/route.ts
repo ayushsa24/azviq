@@ -28,6 +28,14 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const unreadOnly = url.searchParams.get("unread_only") === "true";
 
+        // Secretly clean up notifications older than 14 days
+        const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+        await supabase
+            .from("notifications")
+            .delete()
+            .eq("user_id", userId)
+            .lt("created_at", fourteenDaysAgo);
+
         let query = supabase
             .from("notifications")
             .select("*")

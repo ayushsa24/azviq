@@ -46,6 +46,22 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
         return () => { delete (window as any).__refetchExercises; };
     }, [mutate]);
 
+    // Auto-open exact search matches (for notification deep linking)
+    useEffect(() => {
+        if (search && exercises.length > 0 && onStartExercise) {
+            const exactMatch = exercises.find((ex: any) => ex.title?.toLowerCase() === search.toLowerCase());
+            if (exactMatch) {
+                // Clean up URL to prevent loop
+                const url = new URL(window.location.href);
+                url.searchParams.delete("search");
+                window.history.replaceState({}, "", url.toString());
+                
+                // Open it
+                onStartExercise(exactMatch);
+            }
+        }
+    }, [search, exercises, onStartExercise]);
+
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this exercise?")) return;
         

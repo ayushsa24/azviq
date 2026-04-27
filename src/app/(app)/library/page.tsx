@@ -202,7 +202,27 @@ export default function NotesPage() {
       newParams.delete("action");
       router.replace(`/library?${newParams.toString()}`, { scroll: false });
     }
-  }, [searchParams, workspaces]);
+
+    // Handle Search Param (deep linking from old notifications)
+    const searchParam = searchParams.get("search");
+    if (searchParam) {
+      setSearchQuery(searchParam);
+      
+      // If notes are loaded, try to find an exact match to auto-open
+      if (notes && notes.length > 0) {
+        const exactMatch = notes.find(n => n.title.toLowerCase() === searchParam.toLowerCase());
+        if (exactMatch) {
+          // Clean up URL
+          const newParams = new URLSearchParams(searchParams.toString());
+          newParams.delete("search");
+          window.history.replaceState({}, "", `/library?${newParams.toString()}`);
+          
+          // Open it
+          handleOpenNote(exactMatch);
+        }
+      }
+    }
+  }, [searchParams, workspaces, notes]);
 
   const handleRenameClick = (note: NoteItem) => {
     setSelectedNote(note);

@@ -121,7 +121,7 @@ export async function POST() {
         const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
         const { data: recentLowScores } = await supabase
             .from("exercise_results")
-            .select("id, subject, topic, created_at, total_questions, correct_answers")
+            .select("id, exercise_id, subject, topic, created_at, total_questions, correct_answers")
             .eq("user_id", userId)
             .gte("created_at", fiveDaysAgo);
 
@@ -130,8 +130,8 @@ export async function POST() {
         for (const res of (recentLowScores ?? [])) {
             const accuracy = ((res.correct_answers || 0) / (res.total_questions || 1)) * 100;
             if (accuracy < 60) {
-                // Use search prefix to handle dynamic topics seamlessly
-                const identifier = `search:${res.topic}`;
+                // Prefer direct exercise ID for deep linking; fall back to search
+                const identifier = res.exercise_id ? `exercise:${res.exercise_id}` : `search:${res.topic}`;
 
                 // Track oldest low score within the window to guarantee trigger on day 3
                 if (!weakTopics.has(identifier) || new Date(res.created_at as string) < new Date((weakTopics.get(identifier) as WeakTopicStat).created_at)) {

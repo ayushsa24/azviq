@@ -251,7 +251,7 @@ function NotificationItem({
 
     // Clean up title (remove emojis and [Icon] pattern) for display
     const displayTitle = n.title
-        .replace(/^\[\w+\]\s*/, "") // Remove [Icon] prefix
+        .replace(/\[\w+\]\s*/g, "") // Remove [Icon] anywhere in title
         .replace(/[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Remove actual emojis
         .trim();
 
@@ -302,8 +302,15 @@ function NotificationItem({
                         router.push(`/library/note/${payload.split(":")[1]}`);
                     } else if (payload.startsWith("pdf:")) {
                         router.push(`/library/pdf/${payload.split(":")[1]}`);
+                    } else if (payload.startsWith("exercise:")) {
+                        router.push(`/preparation/exercise/${payload.split(":")[1]}`);
                     } else if (payload.startsWith("search:")) {
-                        router.push(`/library?search=${encodeURIComponent(payload.split(":")[1])}`);
+                        const searchTerm = encodeURIComponent(payload.split(":")[1]);
+                        if (n.type === "weak_subject") {
+                            router.push(`/preparation?tab=exercise&search=${searchTerm}`);
+                        } else {
+                            router.push(`/library?search=${searchTerm}`);
+                        }
                     } else {
                         // Fallback for old notifications without prefixes
                         if (n.type === "weak_subject") {
@@ -318,6 +325,8 @@ function NotificationItem({
                 }
                 break;
             case "study_reminder":
+                router.push("/library");
+                break;
             case "streak_protection":
             case "weekly_summary":
             case "todo_reminder":
@@ -393,7 +402,7 @@ function NotificationItem({
                             <div className="flex-1 min-w-0 pr-6">
                                 <p className={`text-[13px] font-bold leading-snug flex items-center gap-1.5 ${isDark ? "text-white" : "text-[#252525]"}`}>
                                     {(() => {
-                                        const iconMatch = n.title.match(/^\[(\w+)\]/);
+                                        const iconMatch = n.title.match(/\[(\w+)\]/);
                                         if (iconMatch && ICON_MAP[iconMatch[1]]) {
                                             const IconComp = ICON_MAP[iconMatch[1]];
                                             return <IconComp size={14} className="opacity-60 shrink-0" strokeWidth={2} />;

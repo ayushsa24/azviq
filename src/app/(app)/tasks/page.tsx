@@ -98,10 +98,23 @@ export default function TasksPage() {
   const [showProjectFavorites, setShowProjectFavorites] = useState(false);
   const searchParams = useSearchParams();
 
+  // Open task from URL if provided (e.g. from notifications)
+  useEffect(() => {
+    const taskId = searchParams.get("id");
+    if (taskId && tasks.length > 0 && !selectedTask) {
+      const task = tasks.find((t: any) => t.id === taskId);
+      if (task) {
+        setSelectedTask(task);
+        
+        // Remove the ID from the URL so it doesn't reopen on refresh
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("id");
+        window.history.replaceState({}, "", newUrl.toString());
+      }
+    }
+  }, [searchParams, tasks, selectedTask]);
+
   // Remove the old manual fetchData effect
-  // useEffect(() => {
-  //   fetchData();
-  // }, []);
 
   // Removed manual fetchData function as SWR handles it automatically.
   // Replaced manual calls to fetchData() with SWR mutate calls.

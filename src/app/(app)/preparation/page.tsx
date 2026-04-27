@@ -34,7 +34,7 @@ export default function PreparationPage() {
     // Sync active tab with URL query parameter (?tab=)
     const activeTab = (searchParams.get("tab") as TabType) || "exercise";
 
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(searchParams.get("search") || "");
     const [isFocusMode, setIsFocusMode] = useState(() => searchParams.get("fullscreen") === "true");
     const [isGenerateOpen, setIsGenerateOpen] = useState(false);
     const [isCreateRevisionOpen, setIsCreateRevisionOpen] = useState(false);
@@ -54,9 +54,14 @@ export default function PreparationPage() {
         localStorage.setItem("preparationViewMode", viewMode);
     }, [viewMode]);
 
-    // Clear search and scroll to top when tab changes
+    // Update search if URL changes directly
     useEffect(() => {
-        setSearch("");
+        const querySearch = searchParams.get("search");
+        if (querySearch) setSearch(querySearch);
+    }, [searchParams]);
+
+    // Handle tab changes (scroll to top)
+    useEffect(() => {
         if (scrollContentRef.current) {
             scrollContentRef.current.scrollTo({ top: 0, behavior: "auto" });
         }
