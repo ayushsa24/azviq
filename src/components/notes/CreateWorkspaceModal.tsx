@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { X, Loader2, FolderPlus } from "lucide-react";
+import { Loader2, FolderPlus } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import Modal from "@/components/ui/Modal";
 
 interface CreateWorkspaceModalProps {
     isOpen: boolean;
@@ -12,8 +14,8 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
     const [description, setDescription] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-
-    if (!isOpen) return null;
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,21 +54,8 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#7D7D7D] w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
-                <button
-                    onClick={onClose}
-                    className="absolute right-4 top-4 p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
-                    title="Close"
-                >
-                    <X size={20} />
-                </button>
-
-                <h2 className="text-xl font-bold text-[#252525] dark:text-white mb-6 flex items-center gap-2 transition-colors">
-                    <FolderPlus size={24} className="text-[#545454] dark:text-[#545454]" />
-                    Create Workspace
-                </h2>
-
+        <Modal open={isOpen} onClose={onClose} title="New Workspace">
+            <div className={`py-2 ${isDark ? 'text-[#CFCFCF]' : 'text-[#252525]'}`}>
                 {error && (
                     <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-200 text-sm rounded-lg transition-colors">
                         {error}
@@ -75,20 +64,24 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
 
                 <form onSubmit={handleCreate} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-1">
-                            Name
+                        <label className={`block text-xs font-semibold uppercase tracking-widest mb-2 ${isDark ? 'text-[#7D7D7D]' : 'text-[#545454]'}`}>
+                            Workspace Name
                         </label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Biology 101"
-                            className="w-full bg-[#F5F3EF] dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#545454] rounded-lg px-4 py-3 text-[#252525] dark:text-white placeholder-[#545454] dark:placeholder-[#7D7D7D] focus:outline-none focus:border-[#7D7D7D] transition-colors"
+                            className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all ${
+                                isDark 
+                                ? 'bg-[#1A1A1A] border-[#333] text-white focus:border-[#545454]' 
+                                : 'bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] focus:border-[#7D7D7D]'
+                            }`}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-1">
+                        <label className={`block text-xs font-semibold uppercase tracking-widest mb-2 ${isDark ? 'text-[#7D7D7D]' : 'text-[#545454]'}`}>
                             Description (Optional)
                         </label>
                         <textarea
@@ -96,36 +89,42 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSuccess }: CreateWorks
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="What goes in this workspace?"
                             rows={3}
-                            className="w-full bg-[#F5F3EF] dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#545454] rounded-lg px-4 py-3 text-[#252525] dark:text-white placeholder-[#545454] dark:placeholder-[#7D7D7D] focus:outline-none focus:border-[#7D7D7D] transition-colors resize-none"
+                            className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all resize-none ${
+                                isDark 
+                                ? 'bg-[#1A1A1A] border-[#333] text-white focus:border-[#545454]' 
+                                : 'bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] focus:border-[#7D7D7D]'
+                            }`}
                         />
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-2">
+                    <div className="flex gap-3 pt-2">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isLoading}
-                            className="px-6 py-2.5 rounded-lg font-medium text-[#545454] dark:text-white bg-transparent border border-[#E8E5E0] dark:border-[#545454] hover:bg-[#F5F3EF] dark:hover:bg-[#545454]/30 transition-colors disabled:opacity-50"
+                            className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${
+                                isDark 
+                                ? 'bg-[#252525] text-gray-300 hover:bg-[#333]' 
+                                : 'bg-[#E8E5E0] text-gray-700 hover:bg-[#E8E5E1]'
+                            }`}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="px-6 py-2.5 rounded-lg font-medium text-white dark:text-[#252525] bg-[#252525] dark:bg-white hover:bg-[#1A1A1A] dark:hover:bg-white/90 transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
+                            className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                                !isLoading
+                                ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                                : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
+                            }`}
                         >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="animate-spin mr-2" size={18} />
-                                    Creating...
-                                </>
-                            ) : (
-                                "Create"
-                            )}
+                            {isLoading && <Loader2 className="animate-spin" size={16} />}
+                            {isLoading ? "Creating..." : "Create Workspace"}
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
+        </Modal>
     );
 }

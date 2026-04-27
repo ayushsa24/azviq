@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { FileText, AlertCircle, Minimize2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -171,9 +171,9 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   return (
     <div className={`flex flex-col h-full overflow-hidden transition-all duration-300 mx-auto w-full ${isFocusMode ? 'max-w-none gap-0 px-0' : 'max-w-3xl gap-4 px-3 sm:px-0 pb-4'}`}>
       <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
         className={`flex flex-row items-center gap-1 sm:gap-2.5 transition-all duration-300 
         ${isFocusMode 
           ? `px-3 h-14 shrink-0 border-b ${isDark ? 'bg-[#1E1E1E] border-[#333]' : 'bg-[#FAFAFA] border-[#7D7D7D]/40'}` 
@@ -215,48 +215,76 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
         ${isFocusMode ? "rounded-none" : "rounded-xl border"}
         ${isDark ? "bg-[#1E1E1E] border-[#333]" : "bg-white border-[#E8E5E0]"}`}>
 
-        {!selectedNoteId ? (
-          /* State 1: No note selected */
-          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4
-              ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`}>
-              <FileText size={26} className={isDark ? "text-[#545454]" : "text-[#BABABA]"} />
-            </div>
-            <h3 className="text-base font-semibold mb-1">Select a Note or PDF</h3>
-            <p className={`text-sm max-w-xs leading-relaxed ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
-              Choose a Note or PDF above. Your AI Teacher will read it and be ready to discuss it with you — in Text or Voice mode.
-            </p>
-          </div>
-        ) : (isContextLoading && !sessionId) ? (
-          /* State 2: Loading context (only for new sessions) */
-          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
-            <div className="w-10 h-10 border-4 border-[#C2A27A] border-t-transparent rounded-full animate-spin mb-4" />
-            <h3 className="text-sm font-semibold">Extracting Material</h3>
-            <p className={`text-xs mt-1 ${isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"}`}>
-              Reading and preparing your document for the AI Teacher…
-            </p>
-          </div>
-        ) : contextError ? (
-          /* State 3: Error */
-          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center gap-2">
-            <AlertCircle size={32} className="text-red-400 mb-2" />
-            <h3 className="text-sm font-semibold text-red-500">Failed to load content</h3>
-            <p className="text-sm text-red-400/80 max-w-xs">{contextError}</p>
-          </div>
-        ) : (sessionId || (noteContent && !isHistoryLoading)) ? (
-          /* State 4: Ready — show panel if we have a session OR if context is ready */
-          <UnifiedChatPanel
-            mode={mode}
-            noteTitle={selectedNoteTitle}
-            noteId={selectedNoteId}
-            noteContent={noteContent || ""}
-            isPdf={isPdf}
-            isFocusMode={isFocusMode}
-            onFocusModeChange={onFocusModeChange}
-            sessionId={sessionId}
-            onSessionCreated={(id) => setSessionId(id)}
-          />
-        ) : null}
+        <AnimatePresence mode="wait">
+          {!selectedNoteId ? (
+            <motion.div 
+              key="empty"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              className="flex-1 flex flex-col items-center justify-center p-10 text-center"
+            >
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4
+                ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`}>
+                <FileText size={26} className={isDark ? "text-[#545454]" : "text-[#BABABA]"} />
+              </div>
+              <h3 className="text-base font-semibold mb-1">Select a Note or PDF</h3>
+              <p className={`text-sm max-w-xs leading-relaxed ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
+                Choose a Note or PDF above. Your AI Teacher will read it and be ready to discuss it with you — in Text or Voice mode.
+              </p>
+            </motion.div>
+          ) : (isContextLoading && !sessionId) ? (
+            <motion.div 
+              key="loading"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              className="flex-1 flex flex-col items-center justify-center p-10 text-center"
+            >
+              <div className="w-10 h-10 border-4 border-[#C2A27A] border-t-transparent rounded-full animate-spin mb-4" />
+              <h3 className="text-sm font-semibold">Extracting Material</h3>
+              <p className={`text-xs mt-1 ${isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"}`}>
+                Reading and preparing your document for the AI Teacher…
+              </p>
+            </motion.div>
+          ) : contextError ? (
+            <motion.div 
+              key="error"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              className="flex-1 flex flex-col items-center justify-center p-10 text-center gap-2"
+            >
+              <AlertCircle size={32} className="text-red-400 mb-2" />
+              <h3 className="text-sm font-semibold text-red-500">Failed to load content</h3>
+              <p className="text-sm text-red-400/80 max-w-xs">{contextError}</p>
+            </motion.div>
+          ) : (sessionId || (noteContent && !isHistoryLoading)) ? (
+            <motion.div 
+              key="chat"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              className="flex-1 flex flex-col overflow-hidden"
+            >
+              <UnifiedChatPanel
+                mode={mode}
+                noteTitle={selectedNoteTitle}
+                noteId={selectedNoteId}
+                noteContent={noteContent || ""}
+                isPdf={isPdf}
+                isFocusMode={isFocusMode}
+                onFocusModeChange={onFocusModeChange}
+                sessionId={sessionId}
+                onSessionCreated={(id) => setSessionId(id)}
+              />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   );

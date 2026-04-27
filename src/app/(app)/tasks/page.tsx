@@ -17,6 +17,7 @@ import {
   Layers,
   LayoutGrid,
   ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -58,6 +59,7 @@ export default function TasksPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const tasksSectionRef = useRef<HTMLDivElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Reset scroll to top when page mounts
   useEffect(() => {
@@ -447,9 +449,9 @@ export default function TasksPage() {
             </div>
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#252525] text-[#545454] dark:text-[#EDEAE6] border border-[#DEDBD6] dark:border-[#545454] rounded-xl text-sm font-semibold hover:bg-white dark:hover:bg-[#333333] hover:border-[#252525] dark:hover:border-[#7D7D7D] active:scale-[0.98] hover:scale-105 transition-all shadow-sm"
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#F0EDE8] dark:bg-[#252525] text-[#545454] dark:text-[#BABABA] border border-[#DEDBD6] dark:border-[#545454] rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-110 hover:bg-white dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white hover:border-[#7D7D7D]/40 dark:hover:border-[#545454] shadow-sm group"
             >
-              <Sparkles className="w-4 h-4 text-[#252525] dark:text-white" />
+              <Sparkles className="w-4 h-4 text-[#C2A27A] group-hover:animate-pulse" />
               <span className="sm:hidden text-xs">Generate</span>
               <span className="hidden sm:inline text-sm">Generate with AI</span>
             </button>
@@ -757,36 +759,49 @@ export default function TasksPage() {
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-[#545454] dark:text-[#7D7D7D] uppercase tracking-widest">Filter by date</span>
                   <div className="flex items-center gap-2">
-                    {/* 
-                        Transparent-overlay pattern: visually show our styled button, 
-                        but the transparent native <input type="date"> sits on top and
-                        receives all touch/click events directly — the only reliable 
-                        method for mobile browsers (iOS/Android block programmatic open).
-                      */}
-                    <div className="relative group/date">
+                    <div 
+                      className="relative group/date h-9 cursor-pointer"
+                      onClick={() => {
+                        try {
+                          if (dateInputRef.current) {
+                            if ('showPicker' in HTMLInputElement.prototype) {
+                              dateInputRef.current.showPicker();
+                            } else {
+                              dateInputRef.current.click();
+                            }
+                          }
+                        } catch (e) {
+                          dateInputRef.current?.click();
+                        }
+                      }}
+                    >
                       {/* Visual styled button (behind) */}
-                      <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0EDE8] dark:bg-white/10 border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/30 text-xs font-medium text-[#545454] dark:text-white pointer-events-none select-none transition-all duration-300 group-hover/date:bg-[#F0EDE8] dark:group-hover/date:bg-[#545454] group-hover/date:text-[#252525] dark:group-hover/date:text-white group-hover/date:scale-105">
-                        <CalendarDays size={13} />
-                        <span>{dateFilter ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All dates"}</span>
-                        <ChevronDown size={12} />
+                      <div className="flex items-center gap-2 px-4 py-2 h-full rounded-xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)] text-xs font-semibold text-[#545454] dark:text-[#BABABA] transition-all duration-300 group-hover/date:border-[#D1D1D1] dark:group-hover/date:border-[#444] group-hover/date:bg-[#F9F8F6] dark:group-hover/date:bg-white/10 group-hover/date:text-[#252525] dark:group-hover/date:text-white group-hover/date:scale-[1.02] active:scale-[0.98]">
+                        <CalendarDays size={14} className={dateFilter ? "text-[#C2A27A]" : ""} />
+                        <span>{dateFilter ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All Dates"}</span>
+                        <ChevronDown size={14} className="opacity-40" />
                       </div>
-                      {/* Transparent native input (on top) — user touches this directly */}
+                      
+                      {/* Hidden native input */}
                       <input
+                        ref={dateInputRef}
                         type="date"
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        style={{ colorScheme: 'normal' }}
+                        className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
+                        style={{ colorScheme: 'dark' }}
                       />
                     </div>
-                    {/* Clear button — 36px min for mobile tap */}
+
                     {dateFilter && (
                       <button
                         type="button"
-                        onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setDateFilter(""); }}
-                        className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-[#E8E5E0] dark:bg-[#444] text-[#545454] dark:text-white hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 active:scale-95 transition-all font-bold text-sm"
-                        aria-label="Clear date filter"
-                      >✕</button>
+                        onClick={() => setDateFilter("")}
+                        className="h-9 w-9 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 text-[#545454] dark:text-[#BABABA] hover:bg-[#F0EDE8] dark:hover:bg-white/10 hover:text-[#252525] dark:hover:text-white transition-all duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.04)] active:scale-90"
+                        title="Reset Date"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
                     )}
                   </div>
                 </div>

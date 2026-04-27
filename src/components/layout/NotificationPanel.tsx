@@ -7,6 +7,7 @@ import { useNotifications, Notification } from "@/contexts/NotificationContext";
 import { Bell, X, AlertTriangle, Trash2, Clock, TrendingUp, Calendar, BarChart2, Flame, ListTodo, Zap, CalendarClock, BookOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 const TYPE_CONFIG: Record<string, { icon: any }> = {
     study_reminder:    { icon: Clock },
@@ -248,8 +249,11 @@ function NotificationItem({
     const cfg = TYPE_CONFIG[n.type] ?? TYPE_CONFIG.study_reminder;
     const Icon = cfg.icon;
 
-    // Clean up title (remove emojis) for backwards compatibility
-    const cleanTitle = n.title.replace(/[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+    // Clean up title (remove emojis and [Icon] pattern) for display
+    const displayTitle = n.title
+        .replace(/^\[\w+\]\s*/, "") // Remove [Icon] prefix
+        .replace(/[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Remove actual emojis
+        .trim();
 
     const x = useMotionValue(0);
     const background = useTransform(
@@ -387,8 +391,16 @@ function NotificationItem({
                             </div>
 
                             <div className="flex-1 min-w-0 pr-6">
-                                <p className={`text-[13px] font-bold leading-snug ${isDark ? "text-white" : "text-[#252525]"}`}>
-                                    {cleanTitle}
+                                <p className={`text-[13px] font-bold leading-snug flex items-center gap-1.5 ${isDark ? "text-white" : "text-[#252525]"}`}>
+                                    {(() => {
+                                        const iconMatch = n.title.match(/^\[(\w+)\]/);
+                                        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                            const IconComp = ICON_MAP[iconMatch[1]];
+                                            return <IconComp size={14} className="opacity-60 shrink-0" strokeWidth={2} />;
+                                        }
+                                        return null;
+                                    })()}
+                                    <span>{displayTitle}</span>
                                 </p>
                                 <p className={`text-[12px] mt-0.5 leading-snug line-clamp-1 ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
                                     {n.message}

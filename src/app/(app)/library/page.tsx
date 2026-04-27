@@ -186,6 +186,22 @@ export default function NotesPage() {
       // Only default to workspaces if no tab param is present in URL
       if (!tabParam) setActiveTabState("workspaces");
     }
+
+    // Handle Action Param
+    const actionParam = searchParams.get("action");
+    if (actionParam === "upload-pdf") {
+      setIsUploadModalOpen(true);
+      // clean up URL
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("action");
+      router.replace(`/library?${newParams.toString()}`, { scroll: false });
+    } else if (actionParam === "new-note") {
+      handleCreateNativeNote();
+      // clean up URL
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("action");
+      router.replace(`/library?${newParams.toString()}`, { scroll: false });
+    }
   }, [searchParams, workspaces]);
 
   const handleRenameClick = (note: NoteItem) => {

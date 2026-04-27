@@ -9,7 +9,7 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
     ? new Redis({
         url: process.env.UPSTASH_REDIS_REST_URL,
         token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
+    })
     : null;
 
 // Tier 1: AI & Expensive (Increased for better user flow)
@@ -64,11 +64,11 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
             if (limitResult && !limitResult.success) {
                 // Return a clean JSON 429 response
                 return NextResponse.json(
-                    { 
-                        success: false, 
-                        error: { 
-                            message: "Too many requests. Please try again later.", 
-                            code: "RATE_LIMIT_EXCEEDED" 
+                    {
+                        success: false,
+                        error: {
+                            message: "Too many requests. Please try again later.",
+                            code: "RATE_LIMIT_EXCEEDED"
                         }
                     },
                     { status: 429 }

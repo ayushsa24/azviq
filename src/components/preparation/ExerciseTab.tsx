@@ -92,28 +92,28 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                         <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-3.5 gap-3 h-44'}`}>
                             {isList ? (
                                 <>
-                                    <div className={`w-8 h-8 rounded-lg shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#E8E5E0]'}`} />
-                                    <div className="flex-1">
-                                        <div className={`h-4 w-3/4 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
-                                        <div className={`h-3 w-1/4 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    <div className={`w-10 h-10 rounded-full shrink-0 ${isDark ? 'bg-white/10' : 'bg-[#F0EDE8]'}`} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className={`h-4 w-1/2 rounded ${isDark ? 'bg-white/10' : 'bg-[#F0EDE8]'}`} />
+                                        <div className={`h-3 w-1/4 rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-[#F0EDE8]'}`} />
                                     </div>
                                 </>
                             ) : (
-                                <>
-                                    <div className="flex justify-between">
-                                        <div className={`h-4 w-12 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
-                                        <div className={`h-6 w-6 rounded-lg ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                <div className="flex flex-col h-full w-full">
+                                    <div className="flex justify-end">
+                                        <div className={`h-5 w-14 rounded ${isDark ? 'bg-white/10' : 'bg-[#252525]/10'}`} />
                                     </div>
-                                    <div className="flex-1">
-                                        <div className={`h-4 w-full rounded mt-2 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
-                                        <div className={`h-4 w-2/3 rounded mt-1.5 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
-                                        <div className={`h-3 w-1/2 rounded mt-3 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    <div className="flex-1 flex items-center justify-center">
+                                        <div className={`w-12 h-12 rounded-full ${isDark ? 'bg-white/10' : 'bg-[#F0EDE8]'}`} />
                                     </div>
-                                    <div className="pt-2.5 border-t border-gray-100 dark:border-[#545454]/30 flex justify-between">
-                                        <div className={`h-3 w-16 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
-                                        <div className={`h-5 w-10 rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                    <div className={`mt-3 pt-3 border-t ${isDark ? 'border-[#545454]/30' : 'border-[#E8E5E0]'} space-y-2`}>
+                                        <div className={`h-4 w-full rounded ${isDark ? 'bg-white/10' : 'bg-[#F0EDE8]'}`} />
+                                        <div className="flex justify-between items-center">
+                                            <div className={`h-3 w-1/3 rounded ${isDark ? 'bg-white/10' : 'bg-[#F0EDE8]'}`} />
+                                            <div className={`h-3 w-1/4 rounded ${isDark ? 'bg-white/10' : 'bg-[#F0EDE8]'}`} />
+                                        </div>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
                     ))}
@@ -138,15 +138,12 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                 <motion.div
                                 key={ex.id}
                                 layout
-                                initial={{ opacity: 0, y: 15, scale: 0.98 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ 
-                                    duration: 0.25, 
-                                    ease: [0.23, 1, 0.32, 1]
-                                }}
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                                 onClick={() => onStartExercise?.(ex)}
-                                className={`group relative transition-all duration-200 cursor-pointer bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
+                                className={`group relative cursor-pointer bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow duration-200
                                     ${isList 
                                         ? "flex flex-row items-center gap-4 py-3 px-4 rounded-xl h-auto" 
                                         : "flex flex-col justify-between p-3 rounded-xl h-44"
@@ -201,7 +198,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                         {/* Center Icon */}
                                         <div className="flex-1 flex items-center justify-center py-1 overflow-hidden">
                                             <div className="relative">
-                                                <ClipboardCheck className="w-10 h-10 text-[#545454] dark:text-[#7D7D7D] group-hover:text-black dark:group-hover:text-white transition-colors duration-300" strokeWidth={1.5} />
+                                                <ClipboardCheck className="w-10 h-10 text-[#545454] dark:text-[#7D7D7D] group-hover:text-black dark:group-hover:text-white transition-all duration-300 transform group-hover:scale-110" strokeWidth={1.5} />
                                             </div>
                                         </div>
 
@@ -247,7 +244,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                             </motion.div>
                         ))}
                     </AnimatePresence>
-                </motion.div>
+                    </motion.div>
             )}
             </div>
     );

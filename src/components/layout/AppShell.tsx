@@ -34,7 +34,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     if (status === "authenticated" && session?.user) {
       // @ts-ignore
       if (session.user.is_onboarded === false) {
-        router.push("/onboarding");
+        router.push("/signup?onboarding=true");
       }
     }
   }, [status, session, router]);
@@ -185,7 +185,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div 
       suppressHydrationWarning
-      className={`h-[100dvh] overflow-hidden flex flex-col transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'} ${mounted && theme === 'dark' ? 'bg-[#1E1E1E] text-white' : 'bg-[#F5F3EF] text-[#252525]'}`}
+      className="h-[100dvh] overflow-hidden flex flex-col bg-background text-foreground"
     >
 
       {mounted && (!isFullPageLayer ? (
@@ -237,7 +237,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       <main 
         suppressHydrationWarning
-        className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out flex-1 min-h-0 ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0'} ${mounted && open ? 'md:pl-56' : 'md:pl-0'} ${mounted && (isKeyboardOpen || isFullPageLayer) ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} ${mounted && theme === 'dark' ? 'bg-[#1E1E1E]' : 'bg-[#F5F3EF]'}`}
+        className={`flex flex-col overflow-hidden flex-1 min-h-0 ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0'} ${mounted && open ? 'md:pl-56' : 'md:pl-0'} ${mounted && (isKeyboardOpen || isFullPageLayer) ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} bg-background`}
       >
         {mounted && children}
       </main>

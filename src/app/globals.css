@@ -39,14 +39,6 @@
 }
 
 /* Base styles */
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 250ms;
-}
-
 html {
   font-size: 14px;
   /* Scales down all rem-based Tailwind sizes (padding, text, etc.) to make the entire UI more compact */
@@ -56,6 +48,13 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Specific transitions for interactive elements only */
+button, a, input, select, textarea {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
 
 button {

@@ -27,7 +27,14 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 2. Delete the user from the public.users table
+    // 2. Delete the user's trash items first
+    // This ensures no orphaned data remains and avoids trigger conflicts
+    await supabase
+      .from("trash")
+      .delete()
+      .eq("user_id", dbUser.id);
+
+    // 3. Delete the user from the public.users table
     // Note: If you have foreign keys with ON DELETE CASCADE, this will delete related data.
     const { error: deleteError } = await supabase
       .from("users")

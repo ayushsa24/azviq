@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { X, UploadCloud, Loader2 } from "lucide-react";
+import { UploadCloud, Loader2 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import Modal from "@/components/ui/Modal";
 
 interface UploadNoteModalProps {
     isOpen: boolean;
@@ -13,8 +15,8 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
     const [title, setTitle] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-
-    if (!isOpen) return null;
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,17 +60,8 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#7D7D7D] w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
-                <button
-                    onClick={onClose}
-                    className="absolute right-4 top-4 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-colors"
-                >
-                    <X size={20} />
-                </button>
-
-                <h2 className="text-xl font-bold text-[#252525] dark:text-white mb-6 transition-colors">Upload Note</h2>
-
+        <Modal open={isOpen} onClose={onClose} title="Upload pdf">
+            <div className={`py-2 ${isDark ? 'text-[#CFCFCF]' : 'text-[#252525]'}`}>
                 {error && (
                     <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-200 text-sm rounded-lg transition-colors">
                         {error}
@@ -77,7 +70,7 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
 
                 <form onSubmit={handleUpload} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-1 transition-colors">
+                        <label className={`block text-xs font-semibold uppercase tracking-widest mb-2 ${isDark ? 'text-[#7D7D7D]' : 'text-[#545454]'}`}>
                             Note Title
                         </label>
                         <input
@@ -85,23 +78,29 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="e.g. Biology Lecture 1"
-                            className="w-full bg-[#F5F3EF] dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#545454] rounded-lg px-4 py-2 text-[#252525] dark:text-white focus:outline-none focus:border-[#7D7D7D] dark:focus:border-[#7D7D7D] transition-colors"
+                            className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all ${isDark
+                                    ? 'bg-[#1A1A1A] border-[#333] text-white focus:border-[#545454]'
+                                    : 'bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] focus:border-[#7D7D7D]'
+                                }`}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-[#545454] dark:text-[#7D7D7D] mb-1 transition-colors">
+                        <label className={`block text-xs font-semibold uppercase tracking-widest mb-2 ${isDark ? 'text-[#7D7D7D]' : 'text-[#545454]'}`}>
                             File (PDF)
                         </label>
                         <div className="flex items-center justify-center w-full">
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-[#F5F3EF] dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#545454] hover:bg-white dark:hover:bg-[#252525] hover:border-[#7D7D7D] transition-all">
+                            <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${isDark
+                                    ? 'bg-[#1A1A1A] border-[#333] hover:bg-[#252525] hover:border-[#545454]'
+                                    : 'bg-[#F0EDE8] border-[#E8E5E0] hover:bg-[#E8E5E1] hover:border-[#7D7D7D]'
+                                }`}>
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <UploadCloud className="w-8 h-8 text-[#545454] dark:text-[#7D7D7D] mb-2 transition-colors" />
-                                    <p className="mb-1 text-sm text-[#252525] dark:text-white transition-colors">
-                                        {file ? file.name : <span className="font-semibold">Click to upload</span>}
+                                    <UploadCloud className={`w-8 h-8 mb-2 ${isDark ? 'text-[#7D7D7D]' : 'text-[#545454]'}`} />
+                                    <p className="mb-1 text-sm font-medium">
+                                        {file ? file.name : "Choose a PDF Note"}
                                     </p>
-                                    <p className="text-xs text-[#545454] dark:text-[#7D7D7D] transition-colors">
-                                        {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "PDF up to 10MB"}
+                                    <p className={`text-xs ${isDark ? 'text-[#7D7D7D]' : 'text-[#9E9E9E]'}`}>
+                                        {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "Up to 10MB"}
                                     </p>
                                 </div>
                                 <input
@@ -123,19 +122,16 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-2.5 rounded-lg font-medium text-white dark:text-[#252525] bg-[#252525] dark:bg-white hover:bg-[#1A1A1A] dark:hover:bg-white/90 transition-colors flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
+                        className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!isLoading
+                                ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                                : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
+                            }`}
                     >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="animate-spin mr-2" size={18} />
-                                Uploading...
-                            </>
-                        ) : (
-                            "Upload File"
-                        )}
+                        {isLoading ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}
+                        {isLoading ? "Uploading..." : "Upload Note"}
                     </button>
                 </form>
             </div>
-        </div>
+        </Modal>
     );
 }

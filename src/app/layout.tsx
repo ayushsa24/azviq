@@ -57,19 +57,28 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              try {
-                var theme = localStorage.getItem('theme');
-                var supportDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                var isDark = theme === 'dark' || (!theme && supportDark);
-                
-                if (isDark) {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.style.backgroundColor = '#161514';
-                } else {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.style.backgroundColor = '#F5F3EF';
-                }
-              } catch (_) {}
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  var supportDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var isDark = theme === 'dark' || (!theme && supportDark);
+                  var color = isDark ? '#161514' : '#F5F3EF';
+                  
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                  
+                  document.documentElement.style.backgroundColor = color;
+                  
+                  // Also set theme-color meta tag
+                  var meta = document.createElement('meta');
+                  meta.name = 'theme-color';
+                  meta.content = color;
+                  document.getElementsByTagName('head')[0].appendChild(meta);
+                } catch (_) {}
+              })();
             `,
           }}
         />

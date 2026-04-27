@@ -12,7 +12,7 @@ export default async function Home() {
 
   // @ts-ignore
   if (!session.user?.is_onboarded) {
-    redirect("/onboarding");
+    redirect("/signup?onboarding=true");
   }
 
   return <DashboardWrapper session={session} />;

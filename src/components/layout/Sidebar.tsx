@@ -11,7 +11,7 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, ClipboardCheck, BookOpen, Bell, HelpCircle, Trash2, Crown
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, ClipboardCheck, BookOpen, Bell, HelpCircle, Trash2, Crown, Inbox
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
@@ -65,7 +65,7 @@ export default function Sidebar({
   const { user: profile } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const { isProfileOpen, openProfile, closeProfile } = useProfile();
-  const { data: recentData, mutate: mutateRecent } = useSWR("/api/recent-activity", fetcher, {
+  const { data: recentData, mutate: mutateRecent, isLoading: isRecentLoading } = useSWR("/api/recent-activity", fetcher, {
     revalidateOnFocus: true,
   });
   const recentItems: RecentItem[] = (recentData?.items || []).slice(0, 8);
@@ -186,12 +186,18 @@ export default function Sidebar({
             );
           })}
 
-          {recentItems.length > 0 && (
-            <div className="mt-4 mb-2">
-              <div className={`px-4 mb-2 text-xs font-semibold flex items-center gap-1.5 opacity-60 ${isDark ? "text-white" : "text-[#252525]"}`}>
-                <Clock className="w-3.5 h-3.5" />
-                <span>Recent</span>
+          <div className="mt-4 mb-2">
+            <div className={`px-4 mb-2 text-xs font-semibold flex items-center gap-1.5 opacity-60 ${isDark ? "text-white" : "text-[#252525]"}`}>
+              <Clock className="w-3.5 h-3.5" />
+              <span>Recent</span>
+            </div>
+            {isRecentLoading ? (
+              <div className="space-y-2 px-3 mt-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className={`h-8 w-full rounded-xl animate-pulse ${isDark ? 'bg-white/5' : 'bg-black/5'}`} />
+                ))}
               </div>
+            ) : recentItems.length > 0 ? (
               <div className="space-y-0.5">
                 {recentItems.map((item) => {
                   const ItemIcon = TYPE_CONFIG[item.item_type]?.icon || FileText;
@@ -235,8 +241,21 @@ export default function Sidebar({
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className={`px-4 py-3 mx-2 rounded-xl border border-dashed flex flex-col items-center text-center gap-2 opacity-60 animate-in fade-in duration-500 ${isDark ? 'border-[#3A3A3A]' : 'border-[#D1D1D1]'}`}>
+                <Inbox className="w-5 h-5 text-[#7D7D7D] mb-0.5" />
+                <span className="text-[11px] leading-tight">Currently do not have any recent activity</span>
+                <div className="flex flex-col gap-2 mt-1 w-full">
+                  <button onClick={() => router.push('/library?action=new-note')} className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-colors ${isDark ? 'bg-[#3A3A3A] hover:bg-[#4A4A4A] text-white' : 'bg-[#E8E5E0] hover:bg-[#D1D1D1] text-[#252525]'}`}>
+                    <FileText className="w-3.5 h-3.5" /> New Note
+                  </button>
+                  <button onClick={() => router.push('/library?action=upload-pdf')} className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-colors ${isDark ? 'bg-[#3A3A3A] hover:bg-[#4A4A4A] text-white' : 'bg-[#E8E5E0] hover:bg-[#D1D1D1] text-[#252525]'}`}>
+                    <FileIcon className="w-3.5 h-3.5" /> Upload PDF
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* ── BOTTOM PROFILE + POPUP ── */}
