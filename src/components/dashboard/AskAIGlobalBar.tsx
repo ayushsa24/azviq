@@ -14,7 +14,11 @@ export default function AskAIGlobalBar() {
         e.preventDefault();
         if (!query.trim()) return;
 
-        // Redirect to the /ai page, parsing the query string correctly
+        // Store in sessionStorage so the AI page can read it synchronously
+        // on first render, before any effects fire — eliminating the empty page flash.
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('ai_dashboard_query', query.trim());
+        }
         router.push(`/ai?q=${encodeURIComponent(query)}`);
     };
 

@@ -109,8 +109,31 @@ function AiChatCore() {
     }
     setActiveChatId(urlChatId || null);
   }, [urlChatId]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+
+  // Read the dashboard query SYNCHRONOUSLY on first render so we can
+  // pre-populate the UI without waiting for effects — no flicker.
+  const getInitialDashboardQuery = () => {
+    if (typeof window === 'undefined') return null;
+    const q = sessionStorage.getItem('ai_dashboard_query');
+    if (!q) return null;
+    // Only consume it if we are on the /ai route (no existing chat ID)
+    if (!urlChatId) return q;
+    return null;
+  };
+  const initialDashboardQuery = getInitialDashboardQuery();
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    // If a dashboard query exists, immediately show the user bubble + thinking
+    // indicator so the screen is never empty on first paint.
+    if (initialDashboardQuery) {
+      return [
+        { role: 'user', content: initialDashboardQuery },
+        { role: 'model', content: '', isThinking: true },
+      ];
+    }
+    return [];
+  });
+  const [input, setInput] = useState(() => initialDashboardQuery ? '' : '');
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
@@ -458,38 +481,69 @@ function AiChatCore() {
     }
   }, [activeChatId, sessions]);
 
-  const pendingQueryRef = useRef<string | null>(null);  // 1. Capture query immediately on mount or search params change
+  // 1. Track the pending query. On mount, consume from sessionStorage first
+  //    (placed before the ?q= URL param so it's already cleared by effect time).
+  const pendingQueryRef = useRef<string | null>(
+    // Consume the sessionStorage query synchronously on the very first JS execution
+    // so that the URL-based effects below don't double-fire.
+    (() => {
+      if (typeof window === 'undefined') return null;
+      const q = sessionStorage.getItem('ai_dashboard_query');
+      if (q && !urlChatId) {
+        sessionStorage.removeItem('ai_dashboard_query');
+        return q;
+      }
+      return null;
+    })()
+  );
+
+  // 2. Also capture ?q= from URL params (fallback for SSR / direct link)
   useEffect(() => {
     const query = searchParams.get("q");
-    if (query) {
+    if (query && !pendingQueryRef.current) {
       pendingQueryRef.current = query;
-      // Atomic reset for query handling - avoid router.push if we're already handling it
-      if (activeChatId || messages.length > 0) {
+      // Clear any existing state only if we're not already handling the query
+      if (activeChatId) {
         setActiveChatId(null);
-        setMessages([]);
         setInput("");
         setSelectedImage(null);
       }
     }
   }, [searchParams]);
 
-  // 2. Process the pending query once we're in a clean state AND usage data is loaded
+  // 3. Fire the send as soon as possible — do NOT wait for subscription to be
+  //    defined. Quota is checked inside handleSend itself (isQuotaReached guard).
+  //    We only need isSendingRef to be false to avoid duplicate sends.
   useEffect(() => {
-    if (!pendingQueryRef.current || isSendingRef.current || !subscription) return;
-
-    // Wait until we are definitely in a "New Chat" state (activeChatId null, no messages)
-    if (activeChatId !== null || messages.length > 0) return;
+    if (!pendingQueryRef.current || isSendingRef.current) return;
+    // If we pre-populated messages on first render, we're ready immediately.
+    // Otherwise wait until we're in a clean new-chat state.
+    const hasOptimisticMessages =
+      messages.length === 2 &&
+      messages[0]?.role === 'user' &&
+      messages[1]?.isThinking === true;
+    const isCleanState = activeChatId === null;
+    if (!isCleanState && !hasOptimisticMessages) return;
 
     const query = pendingQueryRef.current;
-    pendingQueryRef.current = null; // Clear so it doesn't fire again
+    pendingQueryRef.current = null;
 
-    setInput(query);
-    // Use a small delay to ensure React has flushed the "New Chat" state reset
-    const timer = setTimeout(() => {
+    // Clear the ?q= from the URL so reloads don't re-fire
+    if (typeof window !== 'undefined' && window.location.search.includes('q=')) {
+      window.history.replaceState(null, '', '/ai');
+    }
+
+    // If we already pre-populated with optimistic messages, send immediately.
+    // Otherwise set input and send after a micro-delay.
+    if (hasOptimisticMessages) {
       handleSend(query);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [activeChatId, messages.length, subscription]);
+    } else {
+      setInput(query);
+      const timer = setTimeout(() => handleSend(query), 50);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChatId, messages.length]);
 
   // 3. Ensure history loads and we have a clean state for the new chat
   useEffect(() => {
@@ -615,10 +669,21 @@ function AiChatCore() {
     };
 
     // If an edit occurred, slice the history up to the edited message
-    const previousMessages =
+    let previousMessages =
       cutHistoryAtIndex !== undefined
         ? messages.slice(0, cutHistoryAtIndex)
         : messages;
+
+    const hasOptimisticPrepopulation =
+      previousMessages.length === 2 &&
+      previousMessages[0].role === "user" &&
+      previousMessages[0].content === textToSend &&
+      previousMessages[1].isThinking === true &&
+      !activeChatId;
+
+    if (hasOptimisticPrepopulation) {
+      previousMessages = [];
+    }
 
     // --- Resilient Quota Guard ---
     if (isQuotaReached) {
@@ -635,7 +700,9 @@ function AiChatCore() {
 
     // Optimistic UI Update for internal messages
     const thinkingMsg: Message = { role: "model", content: "", isThinking: true, type: currentImage ? "vision" : "text" };
-    setMessages([...previousMessages, newMsg, thinkingMsg]);
+    if (!hasOptimisticPrepopulation) {
+      setMessages([...previousMessages, newMsg, thinkingMsg]);
+    }
     setInput("");
     setSelectedImage(null); // Clear image after sending
     setEditImage(null); // Clear edit image
@@ -988,13 +1055,13 @@ function AiChatCore() {
       setIsLoading(false);
       setIsActuallySending(false);
       isSendingRef.current = false;
-      
-      // Crucial: Final revalidation to ensure database state is synced with local optimistic state
-      // We pass through the current messages one more time to avoid a flicker while the revalidation is in-flight
+
+      // Background revalidation: update SWR cache but DON'T let it overwrite
+      // local state mid-render. We capture the current messages snapshot here
+      // so SWR hydrates with it until the DB response arrives, preventing flash.
       if (chatIdOfRequest && !chatIdOfRequest.startsWith('temp-') && chatIdOfRequest !== 'temp-chat') {
-        mutateMessages();
-      } else {
-        mutateMessages();
+        // Pass optimistic data so SWR never briefly shows an empty/stale state
+        mutateMessages(undefined, { revalidate: true, optimisticData: (current: any) => current });
       }
       
       if (chatIdOfRequest) {
@@ -1738,7 +1805,7 @@ function AiChatCore() {
             </button>
           </div>
           {/* Only show skeleton if explicitly loading OR if we have a real chat ID but local messages haven't synchronized yet */}
-          {(isHistoryLoading || isMessagesLoading || !messagesData) && messages.length === 0 && activeChatId && activeChatId !== "temp-chat" ? (
+          {messages.length === 0 && activeChatId && activeChatId !== "temp-chat" && !isImporting ? (
             <div className="flex flex-col gap-10 px-4 md:px-0 max-w-4xl mx-auto w-full pt-10">
               {/* User Bubble Skeleton (Right aligned) */}
               <div className="flex justify-end transition-all duration-700 opacity-60">
@@ -1771,7 +1838,7 @@ function AiChatCore() {
                 </div>
               </div>
             </div>
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && (!activeChatId || activeChatId === "temp-chat" || isImporting) ? (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-60 w-full mb-12 sm:mb-12 pb-6">
               {isImporting ? (
                 <div className="flex flex-col items-center animate-pulse">
