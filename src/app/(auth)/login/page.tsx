@@ -334,7 +334,11 @@ function LoginForm() {
                       ? 'bg-transparent border-[#333] text-white hover:bg-white/5'
                       : 'bg-white border-gray-200 text-[#1a1a1a] hover:bg-gray-50 shadow-sm'}`}
                 >
-                  <Bot className="w-4 h-4" />
+                  <img 
+                    src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
+                    alt="AI" 
+                    className="w-4 h-4 object-contain" 
+                  />
                   Sign in with Google
                 </button>
               </form>

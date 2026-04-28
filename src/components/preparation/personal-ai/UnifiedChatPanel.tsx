@@ -26,6 +26,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   inputType?: "text" | "voice"; // subtle mic icon for voice inputs
+  isThinking?: boolean;
 }
 
 interface Props {
@@ -133,6 +134,29 @@ export default function UnifiedChatPanel({
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [audioLevel, setAudioLevel]  = useState(0); // 0–1 for orb glow visualization
   const [copiedCodeBlock, setCopiedCodeBlock] = useState<string | null>(null);
+  const [thinkingIdx, setThinkingIdx] = useState(0);
+
+  const thinkingMessages = [
+    "Thinking...",
+    "Analyzing your context...",
+    "Extracting key information...",
+    "Synthesizing an answer...",
+    "Applying advanced reasoning...",
+    "Reviewing relevant topics...",
+    "Generating a detailed response...",
+    "Formulating helpful points..."
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading || isStarting) {
+      setThinkingIdx(0);
+      interval = setInterval(() => {
+        setThinkingIdx((prev) => (prev + 1) % thinkingMessages.length);
+      }, 3500);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading, isStarting]);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const messagesEndRef   = useRef<HTMLDivElement>(null);
@@ -253,11 +277,14 @@ export default function UnifiedChatPanel({
       return;
     }
 
+    const controller = new AbortController();
     const fetchSession = async () => {
       try {
-        setMessages([]); // Clear previous session messages immediately for instant feedback
+        setMessages([]); // Clear previous session messages immediately
         setIsLoading(true);
-        const res = await fetch(`/api/personal-ai/sessions/${sessionId}`);
+        const res = await fetch(`/api/personal-ai/sessions/${sessionId}`, {
+          signal: controller.signal
+        });
         if (res.ok) {
           const json = await res.json();
           const sessData = json.data;
@@ -266,13 +293,16 @@ export default function UnifiedChatPanel({
             setIsStarting(false);
           }
         }
-      } catch (e) {
-        console.error("Failed to fetch session", e);
+      } catch (e: any) {
+        if (e.name !== "AbortError") {
+          console.error("Failed to fetch session", e);
+        }
       } finally {
         setIsLoading(false);
       }
     };
     fetchSession();
+    return () => controller.abort();
   }, [sessionId]);
 
   // Laptop-only: Always keep input active when not loading
@@ -291,6 +321,13 @@ export default function UnifiedChatPanel({
     const { isInit = false, speakOnDone = false, detectedLang = "en" } = opts;
     setIsLoading(true);
     abortRef.current = new AbortController();
+
+    // Optimistically add thinking bubble
+    if (isInit) {
+      setMessages([{ role: "assistant", content: "", isThinking: true }]);
+    } else {
+      setMessages(prev => [...prev, { role: "assistant", content: "", isThinking: true }]);
+    }
 
     try {
       const res = await fetch("/api/personal-ai/chat", {
@@ -311,12 +348,14 @@ export default function UnifiedChatPanel({
       }
       if (!res.body) throw new Error("No response body");
 
-      // Add empty AI bubble
-      if (isInit) {
-        setMessages([...conversationMessages, { role: "assistant", content: "" }]);
-      } else {
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-      }
+      // Clear thinking state as we start streaming
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated.length > 0) {
+          updated[updated.length - 1] = { ...updated[updated.length - 1], isThinking: false };
+        }
+        return updated;
+      });
 
       let fullText = "";
       setVoiceState(speakOnDone ? "thinking" : "idle");
@@ -729,14 +768,27 @@ export default function UnifiedChatPanel({
         {/* Case A: New Session Initialization (Show Reading Status) */}
         {isStarting && messages.length === 0 && (
           <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 animate-in fade-in duration-300">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
-              ${isDark ? "bg-[#252525] border border-[#545454]" : "bg-[#F0EDE8] border border-[#7D7D7D]/30"}`}>
-              <Sparkles className="w-5 h-5 text-[#C2A27A]" />
+            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <motion.img 
+                src={isDark ? "/icon-dark.png" : "/icon-light.png"} 
+                alt="AI" 
+                className="w-8 h-8 object-contain" 
+                animate={{
+                  scale: [1, 1.1, 1],
+                  opacity: [1, 0.7, 1],
+                  filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"]
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
             </div>
             <div className={`px-4 py-3 rounded-2xl rounded-tl-sm text-sm flex items-center gap-2
               ${isDark ? "bg-[#252525] text-white border border-[#545454]" : "bg-[#F0EDE8] text-[#252525]"}`}>
               <Loader2 className="w-4 h-4 animate-spin text-[#C2A27A]" />
-              <span className="text-[#7D7D7D]">Reading your {isPdf ? "PDF" : "note"}…</span>
+              <span className="text-[#7D7D7D]">{isStarting ? (isPdf ? "Reading your PDF..." : "Reading your note...") : thinkingMessages[thinkingIdx % thinkingMessages.length]}</span>
             </div>
           </div>
         )}
@@ -763,11 +815,12 @@ export default function UnifiedChatPanel({
         )}
 
         {/* Message list */}
-        {messages
-          .filter((m) => !(m.role === "user" && m.content === "SESSION_START"))
-          .map((msg, idx) => {
+        {(() => {
+          const filteredMessages = messages.filter((m) => !(m.role === "user" && m.content === "SESSION_START"));
+          return filteredMessages.map((msg, idx) => {
             const msgType = msg.role === "assistant" ? parseMessageType(msg.content) : "normal";
             const display = msg.role === "assistant" ? cleanContent(msg.content) : msg.content;
+            const isLast = idx === filteredMessages.length - 1;
 
             return (
               <div
@@ -776,9 +829,22 @@ export default function UnifiedChatPanel({
               >
                 {/* AI Avatar */}
                 {msg.role === "assistant" && (
-                  <div className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center shrink-0 mt-1
-                    ${isDark ? "bg-[#252525] border border-[#545454]" : "bg-[#F0EDE8] border border-[#7D7D7D]/30"}`}>
-                    <Sparkles className="w-5 h-5 text-[#C2A27A]" />
+                  <div className="hidden sm:flex w-10 h-10 items-center justify-center shrink-0 mt-0.5">
+                    <motion.img 
+                      src={isDark ? "/icon-dark.png" : "/icon-light.png"} 
+                      alt="AI" 
+                      className="w-9 h-9 object-contain" 
+                      animate={isLoading && isLast ? {
+                        scale: [1, 1.1, 1],
+                        opacity: [1, 0.6, 1],
+                        filter: ["brightness(1)", "brightness(1.4)", "brightness(1)"]
+                      } : {}}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    />
                   </div>
                 )}
 
@@ -812,7 +878,13 @@ export default function UnifiedChatPanel({
                       </span>
                     )}
 
-                    {display ? (
+                    {msg.role === "assistant" && msg.isThinking ? (
+                      <div className="flex items-center py-1 px-0.5 min-w-[140px] animate-pulse">
+                        <span className="text-[13px] font-medium opacity-80">
+                          {thinkingMessages[thinkingIdx % thinkingMessages.length]}
+                        </span>
+                      </div>
+                    ) : display ? (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -892,9 +964,10 @@ export default function UnifiedChatPanel({
                 )}
               </div>
             );
-          })}
+          });
+        })()}
 
-          <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} />
         </div>
       </div>
 

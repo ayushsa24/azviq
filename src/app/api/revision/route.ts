@@ -115,18 +115,25 @@ IMPORTANT — For the "summary" field, generate a COMPACT, SCANNABLE revision sh
             if (isPdf) {
                 // PDF path: must use SDK directly (binary multipart inline data)
                 if (!genAI) return apiError("AI service is not configured.", 503, "AI_NOT_CONFIGURED");
-                const model = genAI.getGenerativeModel({ model: FREE_MODEL, systemInstruction });
+                
+                // Fallback strategy for PDF: Try FREE_MODEL, if it fails or isn't recognized, try gemini-1.5-flash
+                const modelId = FREE_MODEL.includes("lite") ? "gemini-1.5-flash" : FREE_MODEL;
+                const model = genAI.getGenerativeModel({ model: modelId, systemInstruction });
 
+                console.log(`[Revision] Fetching PDF: ${note.file_url}`);
                 const pdfRes = await fetch(note.file_url as string);
-                if (!pdfRes.ok)
-                    return apiError("Failed to fetch PDF file for processing.", 502, "PDF_FETCH_ERROR");
+                if (!pdfRes.ok) {
+                    console.error(`[Revision] PDF Fetch Failed: ${pdfRes.status} ${pdfRes.statusText}`);
+                    return apiError(`Failed to fetch PDF file (${pdfRes.status}). Please try again.`, 502, "PDF_FETCH_ERROR");
+                }
 
                 const pdfBuffer = await pdfRes.arrayBuffer();
                 const pdfBase64 = Buffer.from(pdfBuffer).toString("base64");
 
+                console.log(`[Revision] Sending PDF to AI [${modelId}]...`);
                 const response = await model.generateContent([
                     { inlineData: { mimeType: "application/pdf", data: pdfBase64 } },
-                    `Note Title: ${note.title as string}\n\nThis is a PDF document. Generate the revision object covering all topics in the PDF.`,
+                    `Note Title: ${note.title as string}\n\nThis is a PDF document. Extract all key concepts and generate a structured revision sheet in JSON format.`,
                 ]);
                 revisionText = response.response.text();
             } else {
@@ -142,8 +149,12 @@ IMPORTANT — For the "summary" field, generate a COMPACT, SCANNABLE revision sh
             }
             revisionText = revisionText.trim()
                 .replace(/^```json\s*/m, "").replace(/^```\s*/m, "").replace(/```\s*$/m, "").trim();
-        } catch {
-            return apiError("AI revision generation failed. Please try again.", 502, "AI_SERVICE_ERROR");
+        } catch (aiErr: any) {
+            console.error("[Revision] AI Generation Error:", aiErr);
+            const errorMsg = aiErr.message?.includes("not found") || aiErr.message?.includes("invalid") 
+                ? "The AI model is currently unavailable for PDF processing. Please try a text note instead."
+                : "AI revision generation failed. This PDF might be too large or complex.";
+            return apiError(errorMsg, 502, "AI_SERVICE_ERROR");
         }
 
         // 7. Safely parse AI response

@@ -128,7 +128,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
         <React.Fragment key="shared-links-list-group">
           <motion.div
             key="shared-links-backdrop"
-            className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[300] bg-transparent"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -444,7 +444,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
           exit={{ opacity: 0 }}
         >
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-transparent"
             onClick={() => setDeleteConfirmTarget(null)}
           />
           <motion.div

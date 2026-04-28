@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import { FileText, Sparkles, Loader2, Search, Check, ChevronDown, File as FileIcon, AlertCircle, Plus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
+import { motion } from "framer-motion";
 
 interface CreateRevisionModalProps {
     isOpen: boolean;
@@ -114,7 +115,7 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                         {/* Info card */}
                         <div className={`flex items-center gap-3 p-4 rounded-xl border ${isDark ? "bg-[#252525] border-[#545454]" : "bg-[#F0EDE8] border-[#DEDBD6]"}`}>
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDark ? "bg-[#333] border border-[#545454]" : "bg-white border border-[#DEDBD6]"}`}>
-                                <Sparkles className="w-5 h-5 text-[#252525] dark:text-white" />
+                                <img src={isDark ? "/icon-dark.png" : "/icon-light.png"} alt="AI" className="w-7 h-7 object-contain" />
                             </div>
                             <div>
                                 <h3 className="font-semibold text-sm text-[#252525] dark:text-white">AI-Powered Revision</h3>
@@ -249,10 +250,23 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                         </button>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <div className="flex flex-col items-center justify-center py-12 space-y-6">
                         <div className="relative">
-                            <div className={`w-12 h-12 rounded-full border-2 border-t-transparent animate-spin ${isDark ? 'border-white/20 border-t-white' : 'border-[#252525]/10 border-t-[#252525]'}`} />
-                            <Sparkles className={`w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${isDark ? 'text-white' : 'text-[#252525]'}`} />
+                            <motion.img 
+                                src={isDark ? "/icon-dark.png" : "/icon-light.png"} 
+                                alt="AI" 
+                                className="w-16 h-16 object-contain"
+                                animate={{
+                                    scale: [1, 1.1, 1],
+                                    opacity: [1, 0.7, 1],
+                                    filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"]
+                                }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                }}
+                            />
                         </div>
                         <p className="text-xs font-bold uppercase tracking-widest text-[#BABABA] animate-pulse">AI is crafting your revision...</p>
                     </div>

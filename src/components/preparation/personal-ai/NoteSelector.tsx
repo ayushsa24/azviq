@@ -45,7 +45,9 @@ export default function NoteSelector({
   }, []);
 
   const filteredNotes = notes.filter((n) =>
-    !n.is_revoked && n.title.toLowerCase().includes(searchQuery.toLowerCase())
+    !n.is_revoked && 
+    n.id !== selectedNoteId &&
+    n.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderIcon = (title: string, fileUrl?: string | null) => {

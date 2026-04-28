@@ -35,6 +35,10 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const [notesWithSessions, setNotesWithSessions] = useState<Set<string>>(new Set());
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [isSessionsLoading, setIsSessionsLoading] = useState(false);
 
   const [isNotesLoading, setIsNotesLoading] = useState(false);
   const [isContextLoading, setIsContextLoading] = useState(false);
@@ -52,19 +56,23 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     setContextError(null);
     setIsPdf(false);
 
+    // If it's a fresh selection (no preSessionId), increment resetKey to force remount
+    if (!preSessionId) {
+      setResetKey(prev => prev + 1);
+      // Clear URL params immediately to prevent race conditions during load
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("session_id")) {
+        params.delete("session_id");
+        router.push(`/preparation?${params.toString()}`, { scroll: false });
+      }
+    }
+
     try {
       setIsHistoryLoading(true);
       setContextError(null);
 
       // 1. Check for existing session first
       let currentSessionId = preSessionId ?? null;
-      if (!currentSessionId) {
-        const sessionRes = await fetch(`/api/personal-ai/sessions?note_id=${noteId}`);
-        if (sessionRes.ok) {
-          const json = await sessionRes.json();
-          currentSessionId = json.data?.sessions?.[0]?.id || null;
-        }
-      }
       
       setSessionId(currentSessionId);
       setIsHistoryLoading(false);
@@ -92,12 +100,10 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     }
   }, []);
 
-  // 1. Initial Load from URL
+  // 1. Initial Load from URL (Run only once on mount)
   useEffect(() => {
     const urlSessionId = searchParams.get("session_id");
-    if (urlSessionId && !sessionId) {
-      // We have a session in URL but not in state. 
-      // We need to find which note it belongs to first to load correctly.
+    if (urlSessionId) {
       const fetchSessionInfo = async () => {
         try {
           const res = await fetch(`/api/personal-ai/sessions/${urlSessionId}`);
@@ -114,7 +120,8 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
       };
       fetchSessionInfo();
     }
-  }, [searchParams, sessionId, handleNoteSelect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
   // 2. Sync State to URL
   useEffect(() => {
@@ -151,8 +158,69 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
       }
     };
     fetchNotes();
+
+    // Fetch all sessions
+    const fetchAllSessions = async () => {
+      try {
+        setIsSessionsLoading(true);
+        const res = await fetch("/api/personal-ai/sessions");
+        if (res.ok) {
+          const json = await res.json();
+          const sessList = json.data?.sessions || [];
+          setSessions(sessList);
+          const sessionNotes = new Set<string>(
+            sessList.map((s: any) => s.note_id).filter(Boolean)
+          );
+          setNotesWithSessions(sessionNotes);
+        }
+      } catch (e) {
+        console.error("Failed to fetch all sessions", e);
+      } finally {
+        setIsSessionsLoading(false);
+      }
+    };
+    fetchAllSessions();
   }, []);
 
+  const fetchAllSessions = async () => {
+    try {
+      const res = await fetch("/api/personal-ai/sessions");
+      if (res.ok) {
+        const json = await res.json();
+        const sessList = json.data?.sessions || [];
+        setSessions(sessList);
+        const sessionNotes = new Set<string>(
+          sessList.map((s: any) => s.note_id).filter(Boolean)
+        );
+        setNotesWithSessions(sessionNotes);
+      }
+    } catch (e) {
+      console.error("Failed to fetch all sessions", e);
+    }
+  };
+
+  const handleSessionCreated = (id: string, noteId?: string | null) => {
+    setSessionId(id);
+    if (noteId) {
+      setNotesWithSessions(prev => new Set([...prev, noteId]));
+    }
+    // Refresh the sessions list immediately
+    fetchAllSessions();
+  };
+
+  const handleSessionDelete = async (id: string) => {
+    if (!confirm("Delete this session history?")) return;
+    try {
+      const res = await fetch(`/api/personal-ai/sessions/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setSessions(prev => prev.filter(s => s.id !== id));
+        // Recalculate notes with sessions after delete
+        setTimeout(fetchAllSessions, 100);
+      }
+    } catch (e) {
+      console.error("Delete failed", e);
+    }
+  };
 
   const rawNote = notes.find((n) => n.id === selectedNoteId);
   const selectedNoteTitle = rawNote
@@ -184,9 +252,12 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
           <SessionHistorySelector
             onSelect={handleSessionSelect}
             selectedSessionId={sessionId}
+            sessions={sessions}
+            isLoading={isSessionsLoading}
+            onDelete={handleSessionDelete}
           />
           <NoteSelector
-            notes={notes}
+            notes={notes.filter(n => !notesWithSessions.has(n.id) || n.id === selectedNoteId)}
             isLoading={isNotesLoading}
             selectedNoteId={selectedNoteId}
             onSelect={(noteId) => handleNoteSelect(noteId, null)}
@@ -272,6 +343,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
               className="flex-1 flex flex-col overflow-hidden"
             >
               <UnifiedChatPanel
+                key={`${selectedNoteId}-${resetKey}`}
                 mode={mode}
                 noteTitle={selectedNoteTitle}
                 noteId={selectedNoteId}
@@ -280,7 +352,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
                 isFocusMode={isFocusMode}
                 onFocusModeChange={onFocusModeChange}
                 sessionId={sessionId}
-                onSessionCreated={(id) => setSessionId(id)}
+                onSessionCreated={(id) => handleSessionCreated(id, selectedNoteId)}
               />
             </motion.div>
           ) : null}

@@ -79,8 +79,8 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="e.g. Biology Lecture 1"
                             className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all ${isDark
-                                    ? 'bg-[#1A1A1A] border-[#333] text-white focus:border-[#545454]'
-                                    : 'bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] focus:border-[#7D7D7D]'
+                                ? 'bg-[#1A1A1A] border-[#333] text-white focus:border-[#545454]'
+                                : 'bg-[#F0EDE8] border-[#E8E5E0] text-[#252525] focus:border-[#7D7D7D]'
                                 }`}
                         />
                     </div>
@@ -91,8 +91,8 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
                         </label>
                         <div className="flex items-center justify-center w-full">
                             <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${isDark
-                                    ? 'bg-[#1A1A1A] border-[#333] hover:bg-[#252525] hover:border-[#545454]'
-                                    : 'bg-[#F0EDE8] border-[#E8E5E0] hover:bg-[#E8E5E1] hover:border-[#7D7D7D]'
+                                ? 'bg-[#1A1A1A] border-[#333] hover:bg-[#252525] hover:border-[#545454]'
+                                : 'bg-[#F0EDE8] border-[#E8E5E0] hover:bg-[#E8E5E1] hover:border-[#7D7D7D]'
                                 }`}>
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                     <UploadCloud className={`w-8 h-8 mb-2 ${isDark ? 'text-[#7D7D7D]' : 'text-[#545454]'}`} />
@@ -100,7 +100,7 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
                                         {file ? file.name : "Choose a PDF Note"}
                                     </p>
                                     <p className={`text-xs ${isDark ? 'text-[#7D7D7D]' : 'text-[#9E9E9E]'}`}>
-                                        {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "Up to 10MB"}
+                                        {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "Up to 8MB"}
                                     </p>
                                 </div>
                                 <input
@@ -123,8 +123,8 @@ export function UploadNoteModal({ isOpen, onClose, onSuccess, workspaceId }: Upl
                         type="submit"
                         disabled={isLoading}
                         className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!isLoading
-                                ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
-                                : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
+                            ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
+                            : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
                             }`}
                     >
                         {isLoading ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}

@@ -12,50 +12,27 @@ interface Session {
 interface Props {
   onSelect: (sessionId: string, noteId: string | null) => void;
   selectedSessionId: string | null;
+  sessions: Session[];
+  isLoading: boolean;
+  onDelete: (id: string) => void;
 }
 
-export default function SessionHistorySelector({ onSelect, selectedSessionId }: Props) {
+export default function SessionHistorySelector({ 
+  onSelect, 
+  selectedSessionId,
+  sessions,
+  isLoading,
+  onDelete
+}: Props) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [isOpen, setIsOpen] = useState(false);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const fetchSessions = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/personal-ai/sessions");
-      if (res.ok) {
-        const json = await res.json();
-        setSessions(json.data?.sessions || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("Delete this session history?")) return;
-
-    try {
-      const res = await fetch(`/api/personal-ai/sessions/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setSessions(prev => prev.filter(s => s.id !== id));
-      }
-    } catch (e) {
-      console.error("Delete failed", e);
-    }
+    onDelete(id);
   };
-
-  useEffect(() => {
-    if (isOpen && sessions.length === 0) {
-      fetchSessions();
-    }
-  }, [isOpen, sessions.length]);
 
   const filteredSessions = sessions.filter((s) =>
     s.title.toLowerCase().includes(searchTerm.toLowerCase())

@@ -188,8 +188,12 @@ export default function SharedChatPage() {
             <div className={`sticky top-0 z-10 flex items-center gap-3 px-4 sm:px-8 py-3 border-b backdrop-blur-md ${
                 isDark ? "bg-[#1A1A1A]/80 border-[#545454]" : "bg-[#F5F3EF]/80 border-[#E8E5E0]"
             }`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isDark ? "bg-[#252525]" : "bg-[#252525]"}`}>
-                    <Bot size={16} className="text-white" />
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                    <img 
+                        src={isDark ? "/icon-dark.png" : "/icon-light.png"} 
+                        alt="AI" 
+                        className="w-6 h-6 object-contain" 
+                    />
                 </div>
 
                 <span className={`font-semibold truncate flex-1 text-sm ${isDark ? "text-white" : "text-[#252525]"}`}>
@@ -226,8 +230,12 @@ export default function SharedChatPage() {
                     >
                         {/* Avatar — model only */}
                         {msg.role === "model" && (
-                            <div className={`hidden md:flex w-8 h-8 mt-2 rounded-full shrink-0 items-center justify-center bg-[#252525]`}>
-                                <Bot className="w-5 h-5 text-white" />
+                            <div className="hidden md:flex w-8 h-8 mt-2 shrink-0 items-center justify-center">
+                                <img 
+                                    src={isDark ? "/icon-dark.png" : "/icon-light.png"} 
+                                    alt="AI" 
+                                    className="w-7 h-7 object-contain" 
+                                />
                             </div>
                         )}
 

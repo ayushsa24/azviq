@@ -207,6 +207,11 @@ function AiChatCore() {
     number | null
   >(null);
   const [ratings, setRatings] = useState<Record<number, "good" | "bad">>({});
+
+  // Reset ratings when switching chats to prevent state leakage between sessions
+  useEffect(() => {
+    setRatings({});
+  }, [activeChatId]);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [isActuallySending, setIsActuallySending] = useState(false);
@@ -542,13 +547,13 @@ function AiChatCore() {
       const timer = setTimeout(() => handleSend(query), 50);
       return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId, messages.length]);
 
   // 3. Ensure history loads and we have a clean state for the new chat
   useEffect(() => {
     if (!historyLoaded) return;
-    
+
     // Auto-create new chat if no ID is present and no query is pending
     const hasImport = !!localStorage.getItem("import_shared_chat");
     if (!activeChatId && !hasImport && !pendingQueryRef.current) {
@@ -791,7 +796,7 @@ function AiChatCore() {
               chats: [data.chat, ...existingChats]
             };
           }, { revalidate: false });
-          
+
           // Add to generating set with the new ID
           setGeneratingChatIds(prev => {
             const next = new Set(prev);
@@ -944,9 +949,9 @@ function AiChatCore() {
           if (updatedMsgs.length > 0) {
             // Find the last message and replace it if it was a thinking msg
             const lastIdx = updatedMsgs.length - 1;
-            updatedMsgs[lastIdx] = { 
-              ...updatedMsgs[lastIdx], 
-              content: aiResponseText, 
+            updatedMsgs[lastIdx] = {
+              ...updatedMsgs[lastIdx],
+              content: aiResponseText,
               isThinking: false,
               role: "model"
             };
@@ -1012,10 +1017,10 @@ function AiChatCore() {
 
         // --- NEW: Distinguish Quota vs Technical ---
         if (errorMsg === "Daily AI quota reached. Please upgrade or try again tomorrow.") {
-           // Keep the message as is
+          // Keep the message as is
         } else {
-           // Replace technical/unknown errors with the standardized "Try again later" message
-           errorMsg = "An AI technical problem occurred. Please try again later.";
+          // Replace technical/unknown errors with the standardized "Try again later" message
+          errorMsg = "An AI technical problem occurred. Please try again later.";
         }
 
         // If this is the 3rd+ technical error, give help advice
@@ -1063,7 +1068,7 @@ function AiChatCore() {
         // Pass optimistic data so SWR never briefly shows an empty/stale state
         mutateMessages(undefined, { revalidate: true, optimisticData: (current: any) => current });
       }
-      
+
       if (chatIdOfRequest) {
         setGeneratingChatIds((prev) => {
           const next = new Set(prev);
@@ -1865,7 +1870,11 @@ function AiChatCore() {
                 </>
               ) : (
                 <>
-                  <Bot className="w-16 h-16 mb-4" />
+                  <img 
+                    src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
+                    alt="AI Logo" 
+                    className="w-16 h-16 mb-4 object-contain" 
+                  />
                   <h2 className="text-2xl font-bold mb-2">
                     How can I help you study?
                   </h2>
@@ -1890,9 +1899,23 @@ function AiChatCore() {
                 {/* Avatar Model */}
                 {(msg.role === "model" || msg.role === "assistant") && (
                   <div
-                    className={`hidden md:flex w-8 h-8 mt-2 rounded-full shrink-0 items-center justify-center ${theme === "dark" ? "bg-[#252525]" : "bg-[#252525]"}`}
+                    className="hidden md:flex w-10 h-10 mt-1 shrink-0 items-center justify-center"
                   >
-                    <Bot className="w-5 h-5 text-white" />
+                    <motion.img 
+                      src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
+                      alt="AI" 
+                      className="w-9 h-9 object-contain" 
+                      animate={isLoading && idx === messages.length - 1 ? {
+                        scale: [1, 1.1, 1],
+                        opacity: [1, 0.6, 1],
+                        filter: ["brightness(1)", "brightness(1.4)", "brightness(1)"]
+                      } : {}}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    />
                   </div>
                 )}
 
@@ -2057,31 +2080,31 @@ function AiChatCore() {
                                 ) : msg.isError ? (
                                   <div className="flex flex-col gap-2 py-1.5 transition-all duration-300">
                                     <span className="text-[13px] font-medium text-red-500 dark:text-red-400 max-w-[280px]">
-                                    {msg.content}
-                                  </span>
-                                  <div className="flex flex-wrap gap-2 mt-1">
-                                    {/* Show Upgrade Button if it's a quota error */}
-                                    {msg.content.includes("quota") && (
-                                      <button
-                                        onClick={() => openPricing()}
-                                        className="px-3 py-1.5 rounded-lg bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[11px] font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
-                                      >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Upgrade Plan
-                                      </button>
-                                    )}
+                                      {msg.content}
+                                    </span>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                      {/* Show Upgrade Button if it's a quota error */}
+                                      {msg.content.includes("quota") && (
+                                        <button
+                                          onClick={() => openPricing()}
+                                          className="px-3 py-1.5 rounded-lg bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[11px] font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                                        >
+                                          <Plus className="w-3.5 h-3.5" />
+                                          Upgrade Plan
+                                        </button>
+                                      )}
 
-                                    {/* Show "Start a fresh chat" button if we have multiple errors AND it's not a quota error */}
-                                    {messages.filter(m => m.isError).length >= 3 && !msg.content.includes("quota") && (
-                                      <button
-                                        onClick={() => startNewChat()}
-                                        className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[11px] font-semibold w-fit border border-red-500/20 transition-all active:scale-95"
-                                      >
-                                        Start a fresh chat
-                                      </button>
-                                    )}
+                                      {/* Show "Start a fresh chat" button if we have multiple errors AND it's not a quota error */}
+                                      {messages.filter(m => m.isError).length >= 3 && !msg.content.includes("quota") && (
+                                        <button
+                                          onClick={() => startNewChat()}
+                                          className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[11px] font-semibold w-fit border border-red-500/20 transition-all active:scale-95"
+                                        >
+                                          Start a fresh chat
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
                                 ) : (
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
@@ -2132,11 +2155,11 @@ function AiChatCore() {
                                               </button>
                                             </div>
                                             <div className={`block w-full overflow-x-auto text-[13px] rounded-b-xl custom-scrollbar ${theme === "dark" ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800 shadow-lg"}`}>
-                                              <SyntaxHighlighter 
-                                                style={vscDarkPlus} 
-                                                language={match?.[1] || "text"} 
-                                                PreTag="div" 
-                                                customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", fontSize: "13px", lineHeight: "1.6" }} 
+                                              <SyntaxHighlighter
+                                                style={vscDarkPlus}
+                                                language={match?.[1] || "text"}
+                                                PreTag="div"
+                                                customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", fontSize: "13px", lineHeight: "1.6" }}
                                                 {...props}
                                               >
                                                 {codeString}
@@ -2192,7 +2215,15 @@ function AiChatCore() {
                           ></div>
                           <button
                             onClick={() =>
-                              setRatings((prev) => ({ ...prev, [idx]: "good" }))
+                              setRatings((prev) => {
+                                const next = { ...prev };
+                                if (next[idx] === "good") {
+                                  delete next[idx];
+                                } else {
+                                  next[idx] = "good";
+                                }
+                                return next;
+                              })
                             }
                             className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "good" ? "text-green-500 bg-green-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                             title="Good response"
@@ -2204,7 +2235,15 @@ function AiChatCore() {
                           </button>
                           <button
                             onClick={() =>
-                              setRatings((prev) => ({ ...prev, [idx]: "bad" }))
+                              setRatings((prev) => {
+                                const next = { ...prev };
+                                if (next[idx] === "bad") {
+                                  delete next[idx];
+                                } else {
+                                  next[idx] = "bad";
+                                }
+                                return next;
+                              })
                             }
                             className={`flex items-center gap-1 text-[11px] px-1 py-0.5 rounded-md transition-colors ${ratings[idx] === "bad" ? "text-red-500 bg-red-500/10" : theme === "dark" ? "text-gray-400 hover:text-white hover:bg-[#545454]" : "text-gray-500 hover:text-gray-900 hover:bg-[#F0EDE8]"}`}
                             title="Bad response"
@@ -2265,12 +2304,16 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-0 md:pb-0 text-left transition-all duration-300 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-0.5 md:pb-0 text-left transition-all duration-300 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
           {apiError && (
             <div className="max-w-4xl mx-auto px-3 md:px-4 md:pl-16 mb-2">
               <div className={`w-full p-2.5 rounded-xl flex items-center justify-between border backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-red-50/80 border-red-200 text-red-600"}`}>
                 <div className="flex items-center gap-2 text-sm">
-                  <Bot className="w-4 h-4 shrink-0" />
+                  <img 
+                    src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
+                    alt="AI" 
+                    className="w-4 h-4 shrink-0 object-contain" 
+                  />
                   <span>{apiError}</span>
                   {apiError.includes("quota") && (
                     <button
@@ -2311,8 +2354,8 @@ function AiChatCore() {
                       }
                     }}
                     className={`flex items-center justify-center w-9 h-9 rounded-full shadow-lg border transition-all active:scale-90
-                      ${theme === "dark" 
-                        ? "bg-[#252525] border-[#545454] text-white hover:bg-[#333]" 
+                      ${theme === "dark"
+                        ? "bg-[#252525] border-[#545454] text-white hover:bg-[#333]"
                         : "bg-white border-[#E8E5E0] text-[#252525] hover:bg-[#F9F8F6]"}`}
                     title="Scroll to bottom"
                   >
@@ -2343,6 +2386,10 @@ function AiChatCore() {
                     };
                     reader.readAsDataURL(file);
                   }
+                  // Auto-focus the input after image selection (especially for laptop)
+                  setTimeout(() => {
+                    inputRef.current?.focus();
+                  }, 100);
                 }
               }}
             />
