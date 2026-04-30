@@ -39,6 +39,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   const [notesWithSessions, setNotesWithSessions] = useState<Set<string>>(new Set());
   const [sessions, setSessions] = useState<any[]>([]);
   const [isSessionsLoading, setIsSessionsLoading] = useState(false);
+  const lastCreatedSessionId = React.useRef<string | null>(null);
 
   const [isNotesLoading, setIsNotesLoading] = useState(false);
   const [isContextLoading, setIsContextLoading] = useState(false);
@@ -51,10 +52,17 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
 
   // Load extracted content when a note is selected
   const handleNoteSelect = React.useCallback(async (noteId: string, preSessionId?: string | null) => {
+    const isNewNote = noteId !== selectedNoteId;
+    
     setSelectedNoteId(noteId);
-    setNoteContent(null);
+    
+    // Only clear content if the note actually changed
+    if (isNewNote) {
+      setNoteContent(null);
+      setIsPdf(false);
+    }
+    
     setContextError(null);
-    setIsPdf(false);
 
     // If it's a fresh selection (no preSessionId), increment resetKey to force remount
     if (!preSessionId) {
@@ -200,6 +208,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   };
 
   const handleSessionCreated = (id: string, noteId?: string | null) => {
+    lastCreatedSessionId.current = id; // Track this to prevent key-driven remount
     setSessionId(id);
     if (noteId) {
       setNotesWithSessions(prev => new Set([...prev, noteId]));
@@ -286,7 +295,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
         ${isFocusMode ? "rounded-none" : "rounded-xl border"}
         ${isDark ? "bg-[#1E1E1E] border-[#333]" : "bg-white border-[#E8E5E0]"}`}>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {!selectedNoteId ? (
             <motion.div 
               key="empty"
@@ -343,7 +352,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
               className="flex-1 flex flex-col overflow-hidden"
             >
               <UnifiedChatPanel
-                key={`${selectedNoteId}-${resetKey}`}
+                key={sessionId && sessionId !== lastCreatedSessionId.current ? sessionId : `${selectedNoteId}-${resetKey}`}
                 mode={mode}
                 noteTitle={selectedNoteTitle}
                 noteId={selectedNoteId}

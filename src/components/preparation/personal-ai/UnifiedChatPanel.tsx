@@ -124,8 +124,9 @@ export default function UnifiedChatPanel({
   // ── Core state ───────────────────────────────────────────────────────────
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!sessionId);
   const [isStarting, setIsStarting] = useState(!sessionId); // Only starting if no session exists yet
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false); // Used for smooth transitions
   const [technicalError, setTechnicalError] = useState<string | null>(null);
 
   // ── Voice state ──────────────────────────────────────────────────────────
@@ -135,6 +136,7 @@ export default function UnifiedChatPanel({
   const [audioLevel, setAudioLevel]  = useState(0); // 0–1 for orb glow visualization
   const [copiedCodeBlock, setCopiedCodeBlock] = useState<string | null>(null);
   const [thinkingIdx, setThinkingIdx] = useState(0);
+  const justCreatedRef = useRef(false);
 
   const thinkingMessages = [
     "Thinking...",
@@ -149,14 +151,14 @@ export default function UnifiedChatPanel({
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isLoading || isStarting) {
+    if (isLoading || isStarting || isHistoryLoading) {
       setThinkingIdx(0);
       interval = setInterval(() => {
         setThinkingIdx((prev) => (prev + 1) % thinkingMessages.length);
       }, 3500);
     }
     return () => clearInterval(interval);
-  }, [isLoading, isStarting]);
+  }, [isLoading, isStarting, isHistoryLoading]);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const messagesEndRef   = useRef<HTMLDivElement>(null);
@@ -166,7 +168,6 @@ export default function UnifiedChatPanel({
   const synthRef         = useRef<SpeechSynthesis | null>(null);
   const transcriptRef    = useRef("");
   const modeRef          = useRef<Mode>(mode);
-  const justCreatedRef   = useRef(false);
   const messagesRef      = useRef<Message[]>([]); // always-fresh snapshot (avoids stale closures)
   const isSwitchingFocus = useRef(false);
   const savedScrollPos   = useRef(0);
@@ -281,6 +282,8 @@ export default function UnifiedChatPanel({
     const fetchSession = async () => {
       try {
         setMessages([]); // Clear previous session messages immediately
+        setIsHistoryLoading(true);
+        setIsStarting(false); // We are no longer starting a new session
         setIsLoading(true);
         const res = await fetch(`/api/personal-ai/sessions/${sessionId}`, {
           signal: controller.signal
@@ -299,6 +302,7 @@ export default function UnifiedChatPanel({
         }
       } finally {
         setIsLoading(false);
+        setIsHistoryLoading(false);
       }
     };
     fetchSession();
@@ -794,23 +798,29 @@ export default function UnifiedChatPanel({
         )}
 
         {/* Case B: Resuming Existing Session (Show Skeleton Loader) */}
-        {!isStarting && isLoading && messages.length === 0 && (
-          <div className="space-y-4 animate-in fade-in duration-500">
-            {/* AI Skeleton 1 */}
-            <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 items-start">
-              <div className={`w-8 h-8 rounded-full shrink-0 animate-pulse ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
-              <div className="flex flex-col gap-2 w-full md:w-[calc(100%-48px)] max-w-full">
-                <div className={`h-4 rounded-lg animate-pulse w-3/4 ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
-                <div className={`h-4 rounded-lg animate-pulse w-1/2 ${isDark ? "bg-[#252525]" : "bg-[#F0EDE8]"}`} />
+        {((!isStarting && isLoading && messages.length === 0) || isHistoryLoading) && (
+          <div className="flex-1 flex flex-col space-y-6 py-6 opacity-100">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className={`flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 ${i % 2 === 0 ? "justify-end" : "justify-start"}`}>
+                
+                {/* AI Avatar Skeleton */}
+                {i % 2 !== 0 && (
+                  <div className={`hidden sm:flex w-10 h-10 rounded-full shrink-0 animate-pulse mt-0.5 ${isDark ? "bg-[#333]" : "bg-[#E8E5E0]"}`} />
+                )}
+
+                {/* Bubble Skeleton */}
+                <div className={`flex flex-col gap-2 w-full animate-pulse px-4 py-4 ${i % 2 === 0 ? "max-w-md rounded-2xl rounded-tr-sm items-end " + (isDark ? "bg-[#333]" : "bg-[#E8E5E0]") : "md:w-[calc(100%-48px)] rounded-2xl rounded-tl-sm items-start " + (isDark ? "bg-[#252525] border border-[#333]" : "bg-[#F0EDE8]")}`}>
+                  <div className={`h-3 rounded-full w-full ${isDark ? "bg-white/10" : "bg-black/10"}`} />
+                  <div className={`h-3 rounded-full w-5/6 ${isDark ? "bg-white/10" : "bg-black/10"}`} />
+                  {i % 2 !== 0 && <div className={`h-3 rounded-full w-4/6 ${isDark ? "bg-white/10" : "bg-black/10"}`} />}
+                </div>
+
+                {/* User Avatar Skeleton */}
+                {i % 2 === 0 && (
+                  <div className={`hidden sm:flex w-8 h-8 rounded-full shrink-0 animate-pulse mt-1 ${isDark ? "bg-[#333]" : "bg-[#E8E5E0]"}`} />
+                )}
               </div>
-            </div>
-            {/* User Skeleton */}
-            <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 justify-end items-start">
-              <div className="flex flex-col gap-2 items-end max-w-md">
-                <div className={`h-4 rounded-lg animate-pulse w-3/4 ${isDark ? "bg-white/10" : "bg-[#252525]/10"}`} />
-              </div>
-              <div className={`w-8 h-8 rounded-full shrink-0 animate-pulse ${isDark ? "bg-white/10" : "bg-[#252525]/10"}`} />
-            </div>
+            ))}
           </div>
         )}
 

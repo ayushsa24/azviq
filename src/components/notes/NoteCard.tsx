@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2, Clock, EyeOff } from "lucide-react";
+import { FileText, File, MoreVertical, Star, Pin, Edit2, MoveRight, Trash2, Clock, EyeOff, ChevronLeft, Folder, Loader2 } from "lucide-react";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
+import { Workspace } from "@/types";
 
 export interface NoteItem {
     id: string;
@@ -23,11 +24,12 @@ interface NoteCardProps {
     onClick: (note: NoteItem) => void;
     viewMode?: "grid" | "list";
     onRename?: (note: NoteItem) => void;
-    onMove?: (note: NoteItem) => void;
+    onMove?: (note: NoteItem, workspaceId: string | null) => void;
     onDelete?: (note: NoteItem) => void;
     onToggleFavourite?: (note: NoteItem) => void;
     onTogglePin?: (note: NoteItem) => void;
     isPinnedOverride?: boolean;
+    workspaces?: Workspace[];
 }
 
 export function NoteCard({
@@ -39,12 +41,15 @@ export function NoteCard({
     onDelete,
     onToggleFavourite,
     onTogglePin,
-    isPinnedOverride
+    isPinnedOverride,
+    workspaces = []
 }: NoteCardProps) {
     const isPdf = note.file_url?.toLowerCase().endsWith(".pdf");
     const isList = viewMode === "list";
     const isPinned = isPinnedOverride !== undefined ? isPinnedOverride : !!note.is_pinned;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMoving, setIsMoving] = useState(false);
+    const [isMovingNote, setIsMovingNote] = useState(false);
     const [isMobileApp, setIsMobileApp] = useState(false);
     const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -67,6 +72,7 @@ export function NoteCard({
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setIsMenuOpen(false);
+                setIsMoving(false);
             }
         };
 
@@ -79,13 +85,28 @@ export function NoteCard({
             if (menuRef.current) {
                 const rect = menuRef.current.getBoundingClientRect();
                 const menuHeight = 220; 
+                const menuWidth = 208; // w-52 is 208px
                 const spaceBelow = window.innerHeight - rect.bottom;
                 const spaceAbove = rect.top;
                 
+                // Horizontal positioning: check if we would overflow the left edge
+                const wouldOverflowLeft = rect.right < menuWidth;
+                
+                let verticalTop = rect.bottom + 4;
                 if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
-                    setMenuPosition({ top: rect.top - menuHeight - 4, right: window.innerWidth - rect.right });
+                    verticalTop = rect.top - menuHeight - 4;
+                }
+
+                if (wouldOverflowLeft) {
+                    setMenuPosition({ 
+                        top: verticalTop, 
+                        left: Math.max(8, rect.left) // At least 8px from left edge
+                    } as any);
                 } else {
-                    setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                    setMenuPosition({ 
+                        top: verticalTop, 
+                        right: window.innerWidth - rect.right 
+                    } as any);
                 }
             }
         }
@@ -100,7 +121,7 @@ export function NoteCard({
         e.preventDefault();
         e.stopPropagation();
         if (action) action();
-        setIsMenuOpen(false);
+        if (!isMoving) setIsMenuOpen(false);
     };
 
     const handleTouchStart = () => {
@@ -230,48 +251,120 @@ export function NoteCard({
                         {/* Menu Dropdown - Fixed to screen for 100% visibility */}
                         {isMenuOpen && menuPosition && (
                             <div
-                                className="fixed z-[9999] w-48 bg-white/95 backdrop-blur-xl dark:bg-[#1C1C1C]/95 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4)] border border-[#E8E5E0] dark:border-[#333333] py-1.5 transition-all animate-in fade-in zoom-in-95 duration-100"
-                                style={{ top: menuPosition.top, right: menuPosition.right }}
+                                className="fixed z-[9999] w-52 bg-white/95 backdrop-blur-xl dark:bg-[#1C1C1C]/95 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4)] border border-[#E8E5E0] dark:border-[#333333] py-1.5 transition-all animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+                                style={{ 
+                                    top: menuPosition.top, 
+                                    ...(menuPosition as any).right !== undefined ? { right: (menuPosition as any).right } : { left: (menuPosition as any).left }
+                                }}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                 }}
                             >
-                                <button
-                                    onClick={(e) => handleMenuAction(e, () => onTogglePin?.(note))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
-                                >
-                                    <Pin className={`w-3.5 h-3.5 ${isPinned ? "fill-current" : ""}`} />
-                                    {isPinned ? "Unpin" : "Pin to Top"}
-                                </button>
-                                <button
-                                    onClick={(e) => handleMenuAction(e, () => onToggleFavourite?.(note))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
-                                >
-                                    <Star className={`w-3.5 h-3.5 ${note.is_favourite ? "fill-current" : ""}`} />
-                                    {note.is_favourite ? "Remove Favourite" : "Add to Favourites"}
-                                </button>
-                                <button
-                                    onClick={(e) => handleMenuAction(e, () => onRename?.(note))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
-                                >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                    Rename
-                                </button>
-                                <button
-                                    onClick={(e) => handleMenuAction(e, () => onMove?.(note))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"
-                                >
-                                    <MoveRight className="w-3.5 h-3.5" />
-                                    Move to Workspace
-                                </button>
-                                <button
-                                    onClick={(e) => handleMenuAction(e, () => onDelete?.(note))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    Delete
-                                </button>
+                                {!isMoving ? (
+                                    <>
+                                        <button
+                                            onClick={(e) => handleMenuAction(e, () => onTogglePin?.(note))}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
+                                        >
+                                            <Pin className={`w-3.5 h-3.5 ${isPinned ? "fill-current" : ""}`} />
+                                            {isPinned ? "Unpin" : "Pin to Top"}
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleMenuAction(e, () => onToggleFavourite?.(note))}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
+                                        >
+                                            <Star className={`w-3.5 h-3.5 ${note.is_favourite ? "fill-current" : ""}`} />
+                                            {note.is_favourite ? "Remove Favourite" : "Add to Favourites"}
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleMenuAction(e, () => onRename?.(note))}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
+                                        >
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                            Rename
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsMoving(true);
+                                            }}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"
+                                        >
+                                            <MoveRight className="w-3.5 h-3.5" />
+                                            Move to Workspace
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleMenuAction(e, () => onDelete?.(note))}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            Delete
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="animate-in slide-in-from-right-4 duration-200">
+                                        <div className="pl-2 pr-4 py-2 flex items-center gap-2 border-b border-[#F0F0F0] dark:border-[#333333] mb-1">
+                                            <button 
+                                                onClick={() => setIsMoving(false)}
+                                                className="p-1 rounded-full hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] transition-colors"
+                                            >
+                                                <ChevronLeft size={14} />
+                                            </button>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D]">Select Workspace</span>
+                                        </div>
+                                        <div className="max-h-60 overflow-y-auto scrollbar-hide">
+                                            {/* Root Option */}
+                                            <button
+                                                disabled={isMovingNote || !note.workspace_id}
+                                                onClick={async (e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setIsMovingNote(true);
+                                                    await onMove?.(note, null);
+                                                    setIsMovingNote(false);
+                                                    setIsMenuOpen(false);
+                                                    setIsMoving(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                                                    !note.workspace_id 
+                                                    ? "text-[#BABABA] dark:text-[#545454] cursor-default" 
+                                                    : "text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A]"
+                                                }`}
+                                            >
+                                                <Folder className="w-3.5 h-3.5" />
+                                                <span className="truncate flex-1">Main Library</span>
+                                                {isMovingNote && <Loader2 size={12} className="animate-spin" />}
+                                            </button>
+                                            
+                                            {workspaces.map((ws) => (
+                                                <button
+                                                    key={ws.id}
+                                                    disabled={isMovingNote || note.workspace_id === ws.id}
+                                                    onClick={async (e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setIsMovingNote(true);
+                                                        await onMove?.(note, ws.id);
+                                                        setIsMovingNote(false);
+                                                        setIsMenuOpen(false);
+                                                        setIsMoving(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                                                        note.workspace_id === ws.id 
+                                                        ? "text-[#BABABA] dark:text-[#545454] cursor-default" 
+                                                        : "text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A]"
+                                                    }`}
+                                                >
+                                                    <Folder className="w-3.5 h-3.5" fill="currentColor" fillOpacity={0.1} />
+                                                    <span className="truncate flex-1">{ws.name}</span>
+                                                    {isMovingNote && <Loader2 size={12} className="animate-spin" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

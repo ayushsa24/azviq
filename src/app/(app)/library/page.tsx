@@ -72,7 +72,6 @@ export default function NotesPage() {
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [isRenameWorkspaceModalOpen, setIsRenameWorkspaceModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
-  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
   const [selectedWorkspaceForRename, setSelectedWorkspaceForRename] = useState<Workspace | null>(null);
 
@@ -229,9 +228,20 @@ export default function NotesPage() {
     setIsRenameModalOpen(true);
   };
 
-  const handleMoveClick = (note: NoteItem) => {
-    setSelectedNote(note);
-    setIsMoveModalOpen(true);
+  const handleMoveClick = async (note: NoteItem, workspaceId: string | null) => {
+    try {
+      const res = await fetch(`/api/notes/${note.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspace_id: workspaceId }),
+      });
+
+      if (!res.ok) throw new Error("Failed to move note");
+      refetchData();
+    } catch (err) {
+      console.error(err);
+      alert("Could not move the note.");
+    }
   };
 
   const handleDeleteClick = async (note: NoteItem) => {
@@ -655,6 +665,7 @@ export default function NotesPage() {
                           onToggleFavourite={handleToggleFavourite}
                           onTogglePin={handleTogglePin}
                           isPinnedOverride={activeTab === "favourites" ? !!note.is_pinned_in_favourites : !!note.is_pinned}
+                          workspaces={workspaces}
                         />
                       </motion.div>
                     )) : (
@@ -706,13 +717,6 @@ export default function NotesPage() {
         onClose={() => setIsRenameModalOpen(false)}
         onSuccess={refetchData}
         note={selectedNote}
-      />
-      <MoveNoteModal
-        isOpen={isMoveModalOpen}
-        onClose={() => setIsMoveModalOpen(false)}
-        onSuccess={refetchData}
-        note={selectedNote}
-        workspaces={workspaces}
       />
     </div >
   );
