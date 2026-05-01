@@ -44,3 +44,11 @@ next-env.d.ts
 .gsd-core/
 out.json
 README.md
+
+# Agent and Planning directories
+.planning
+.gsd
+.agent
+
+# Environment
+,env.local

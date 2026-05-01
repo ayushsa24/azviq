@@ -1,0 +1,1 @@
+.gsd-core/PROJECT_RULES.md
