@@ -6,16 +6,21 @@ import { usePathname } from "next/navigation";
 interface SidebarContextType {
     open: boolean;
     toggle: () => void;
+    isHovered: boolean;
+    setIsHovered: (h: boolean) => void;
 }
 
 const SidebarContext = createContext<SidebarContextType>({
     open: true,
     toggle: () => { },
+    isHovered: false,
+    setIsHovered: () => { },
 });
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [open, setOpen] = useState(true);
+    const [isHovered, setIsHovered] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
 
     // Initial load
@@ -37,7 +42,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const toggle = () => setOpen(o => !o);
 
     return (
-        <SidebarContext.Provider value={{ open, toggle }}>
+        <SidebarContext.Provider value={{ open, toggle, isHovered, setIsHovered }}>
             {children}
         </SidebarContext.Provider>
     );

@@ -1547,7 +1547,7 @@ function AiChatCore() {
 
   return (
     <div
-      className="flex h-full overflow-hidden transition-colors duration-300 ease-in-out bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white"
+      className="flex h-full overflow-hidden transition-colors duration-300 ease-in-out bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-[#252525] dark:text-white"
     >
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -1559,7 +1559,7 @@ function AiChatCore() {
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[250px] md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-64 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
+        className={`fixed inset-y-0 left-0 z-[100] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[250px] md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-64 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
           ? "bg-[#1A1A1A] border-[#2E2E2E]"
           : "bg-[#F5F3EF] border-[#7D7D7D]/40"
           } shadow-sm transition-colors`}
@@ -1571,7 +1571,7 @@ function AiChatCore() {
               <button
                 onClick={toggleMainSidebar}
                 className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${theme === "dark"
-                  ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
+                  ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]"
                   : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
                   }`}
                 title="Toggle main menu"
@@ -1584,7 +1584,7 @@ function AiChatCore() {
           <button
             onClick={() => setIsHistoryOpen(false)}
             className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${theme === "dark"
-              ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
+              ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]"
               : "bg-white border-[#E8E5E0] text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
               }`}
             title="Close chat history"
@@ -1754,7 +1754,7 @@ function AiChatCore() {
               <button
                 onClick={toggleMainSidebar}
                 className={`hidden md:flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${theme === "dark"
-                  ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-white hover:text-[#252525] hover:border-white"
+                  ? "bg-[#252525] border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]"
                   : "bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"
                   }`}
                 title="Open main menu"
@@ -1764,7 +1764,7 @@ function AiChatCore() {
             )}
             <button
               onClick={() => setIsHistoryOpen(true)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border duration-200 font-medium text-sm ${theme === "dark" ? "border-transparent text-gray-300 hover:text-white hover:bg-[#252525]" : "bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"}`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors border duration-200 font-medium text-sm ${theme === "dark" ? "border-[#545454] text-gray-300 hover:text-white hover:bg-[#545454] bg-[#252525]" : "bg-white border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#D1D1D1]"}`}
               title="Open history"
             >
               <HistoryIcon className="w-4 h-4" />

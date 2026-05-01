@@ -37,7 +37,7 @@ export default function NotesPage() {
       : "text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
     }`;
 
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+
 
   useEffect(() => {
     // Clear the search query whenever this component mounts
@@ -50,10 +50,7 @@ export default function NotesPage() {
     }
   }, []);
 
-  // Clear search whenever the user switches tabs or changes the active workspace
-  useEffect(() => {
-    setSearchQuery("");
-  }, [activeTab, activeWorkspace]);
+
 
   const setActiveTab = (tab: "workspaces" | "notes" | "pdfs" | "all" | "favourites") => {
     setActiveTabState(tab);
@@ -76,6 +73,17 @@ export default function NotesPage() {
 
   const { data: wsData, isLoading: wsLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
   const workspaces: Workspace[] = wsData?.workspaces || [];
+  
+  const workspaceIdFromUrl = searchParams.get("workspace");
+  const activeWorkspace = useMemo(() => {
+    if (!workspaceIdFromUrl || !workspaces.length) return null;
+    return workspaces.find((w: Workspace) => w.id === workspaceIdFromUrl) || null;
+  }, [workspaceIdFromUrl, workspaces]);
+
+  // Clear search whenever the user switches tabs or changes the active workspace
+  useEffect(() => {
+    setSearchQuery("");
+  }, [activeTab, activeWorkspace]);
 
   const notesUrl = activeWorkspace ? `/api/notes?workspace_id=${activeWorkspace.id}` : "/api/notes";
   const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR(notesUrl, fetcher);
@@ -144,11 +152,10 @@ export default function NotesPage() {
   };
 
   const handleOpenWorkspace = (workspace: Workspace) => {
-    setActiveWorkspace(workspace);
-    if (activeTab === "workspaces" || activeTab === "all") {
-      setActiveTab("notes");
-    }
-    router.push(`/library?workspace=${workspace.id}`, { scroll: false });
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("workspace", workspace.id);
+    params.set("tab", "notes"); // Default to notes view when opening workspace
+    router.push(`/library?${params.toString()}`, { scroll: false });
   };
 
   const handleBackToWorkspaces = () => {
@@ -171,18 +178,8 @@ export default function NotesPage() {
     }
 
     // Handle Workspace Param
-    if (wsId && workspaces.length > 0) {
-      const found = workspaces.find((w) => w.id === wsId);
-      if (found && activeWorkspace?.id !== found.id) {
-        setActiveWorkspace(found);
-        // If a tab wasn't explicitly provided, default to notes for workspace view
-        if (!tabParam) setActiveTabState("notes");
-      }
-    } else if (!wsId && activeWorkspace) {
-      // URL has no workspace param but we have an active one — user pressed back
-      setActiveWorkspace(null);
-      // Only default to workspaces if no tab param is present in URL
-      if (!tabParam) setActiveTabState("workspaces");
+    if (wsId && !tabParam && activeTab === "workspaces") {
+      setActiveTabState("notes");
     }
 
     // Handle Action Param
@@ -360,7 +357,6 @@ export default function NotesPage() {
 
         // If we just deleted the workspace we were currently viewing, go back to root
         if (activeWorkspace?.id === workspace.id) {
-          setActiveWorkspace(null);
           router.push("/library", { scroll: false });
         }
 
@@ -404,17 +400,18 @@ export default function NotesPage() {
         {activeWorkspace && (
           <button
             onClick={handleBackToWorkspaces}
-            className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
+            className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
             title="Back to Workspaces"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </button>
         )}
+
         <div>
-          <h1 className="text-[1.4375rem] sm:text-2xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#252525] dark:text-white tracking-tight transition-colors">
             {activeWorkspace ? activeWorkspace.name : "My Library"}
           </h1>
-          <p className="text-xs text-[#7D7D7D] mt-0.5">
+          <p className="text-[11px] text-[#7D7D7D] mt-0">
             {activeWorkspace
               ? activeWorkspace.description || "Manage notes in this workspace"
               : "Manage and organize your data"}

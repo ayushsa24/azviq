@@ -22,8 +22,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { open, toggle } = useSidebar();
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const { open, toggle, isHovered, setIsHovered } = useSidebar();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -198,14 +197,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div 
       suppressHydrationWarning
-      className="h-[100dvh] overflow-hidden flex flex-col bg-background text-foreground"
+      className="h-[100dvh] overflow-hidden flex flex-col bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-foreground"
     >
 
       {mounted && (!isFullPageLayer ? (
         <Sidebar
           open={open}
-          isHovered={isSidebarHovered}
-          onMouseLeave={() => setIsSidebarHovered(false)}
+          isHovered={isHovered}
+          onMouseLeave={() => setIsHovered(false)}
           onTrashClick={() => setIsTrashOpen(true)}
           onUpgradeClick={() => setIsPricingOpen(true)}
         />
@@ -213,8 +212,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <div className="hidden md:contents">
           <Sidebar
             open={open}
-            isHovered={isSidebarHovered}
-            onMouseLeave={() => setIsSidebarHovered(false)}
+            isHovered={isHovered}
+            onMouseLeave={() => setIsHovered(false)}
             onTrashClick={() => setIsTrashOpen(true)}
             onUpgradeClick={() => setIsPricingOpen(true)}
           />
@@ -239,7 +238,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       {mounted && !open && (
         <div
           className="fixed left-0 top-0 w-3 h-full z-[55] flex md:flex items-center group"
-          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseEnter={() => setIsHovered(true)}
         >
           {/* Thin visual indicator — slides right on hover */}
           <div className={`w-0.5 h-16 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 ml-0.5
@@ -252,10 +251,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         suppressHydrationWarning
         className={`flex flex-col overflow-hidden flex-1 min-h-0 
           ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0'} 
-          ${mounted && open ? 'md:pl-56 px-0' : 'md:pl-0 px-0'} 
+          ${mounted && open ? 'md:pl-52 px-0' : 'md:pl-0 px-0'} 
           ${mounted && !open && !isFullPageLayer ? 'md:px-[0.5%] lg:px-[1%] xl:px-[1.5%]' : ''}
           ${mounted && (isKeyboardOpen || (isFullPageLayer && !isAiPage) || (isAiPage && !isBottomNavVisible)) ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} 
-          transition-all duration-300 bg-background`}
+          transition-all duration-300 bg-transparent`}
       >
         {mounted && children}
       </main>

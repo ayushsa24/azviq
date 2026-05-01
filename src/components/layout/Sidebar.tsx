@@ -107,7 +107,7 @@ export default function Sidebar({
     <>
       <aside
         onMouseLeave={onMouseLeave}
-        className={`fixed flex flex-col z-[60] transition-all duration-300 ease-in-out hidden md:flex
+        className={`fixed flex flex-col z-[100] transition-all duration-300 ease-in-out hidden md:flex
           ${isDark ? "bg-[#1A1A1A]" : "bg-white"}
           ${open
             /* Pinned open: flush full height, no radius */

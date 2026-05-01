@@ -120,7 +120,7 @@ export default function AiSuggestions() {
                                 md:h-[365px] 
                                 ${isDark
                                 ? "bg-[#252525] border-[#545454] hover:bg-white/5 hover:border-[#444]"
-                                : "bg-white border-[#CFCFCF] hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+                                : "bg-white/80 backdrop-blur-md border-[#CFCFCF] hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
                                 } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}
                         >
                             {/* History Toggle */}
