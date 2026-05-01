@@ -190,7 +190,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col lg:flex-row bg-background text-foreground">
+    <div className="min-h-[100dvh] flex flex-col lg:flex-row bg-[#F5F3EF] dark:bg-[#1A1A1A] text-foreground">
       
       {/* Left Side - Laptop ONLY (Greeting / Graphic) */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden bg-[#f7f3e9] dark:bg-[#161412]">
@@ -251,7 +251,7 @@ function LoginForm() {
           <span className="font-bold text-xl tracking-tight font-[var(--font-lexend)]">Azviq</span>
         </div>
 
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[25rem]">
           {view === "LOGIN" ? (
             <>
               <div className="mb-8 mt-12 lg:mt-0">

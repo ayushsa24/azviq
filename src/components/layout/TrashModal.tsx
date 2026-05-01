@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { X, Trash2, AlertCircle, FileText, CheckSquare, RotateCcw, Box, BookOpen, FlaskConical, Loader2, RefreshCcw, Check, Trash } from "lucide-react";
@@ -131,6 +131,8 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
     onClose();
   };
 
+
+
   // Reset to "all" category whenever the modal is opened
   React.useEffect(() => {
     if (isOpen) {
@@ -223,7 +225,7 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in" onClick={handleClose} />
       
       <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl shadow-2xl overflow-hidden transition-colors border-0 animate-in zoom-in-95 duration-200 ${
         isDark ? "bg-[#1A1A1A] md:bg-[#1F1F1F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
@@ -232,7 +234,7 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
         <div className={`shrink-0 flex-none border-b sm:border-b-0 sm:border-r transition-colors flex flex-col ${
           isDark ? "bg-[#1A1A1A] md:bg-[#1F1F1F] border-[#2E2E2E]" : "bg-[#F0EDE8] border-[#E8E5E0]"
         } w-full sm:w-72`}>
-          <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
+          <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF]/90 dark:bg-[#1A1A1A]/90 md:dark:bg-[#1F1F1F]/90 backdrop-blur-[2px] h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
             <h2 className="text-lg font-bold sm:text-2xl">{translations[language].trash || 'Trash'}</h2>
             <button onClick={handleClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"><X size={20} /></button>
           </div>

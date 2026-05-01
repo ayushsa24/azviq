@@ -582,7 +582,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
+        className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in"
         onClick={handleClose}
       />
 
@@ -595,7 +595,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
           } ${"w-full sm:w-72"}`}>
 
           {/* Header Area */}
-          <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF] dark:bg-transparent h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
+          <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF]/90 dark:bg-[#1A1A1A]/90 md:dark:bg-[#1F1F1F]/90 backdrop-blur-[2px] h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
             <h2 className="text-lg font-bold sm:text-2xl">{translations[language].settings}</h2>
             <button onClick={handleClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
               <X size={20} />
@@ -704,9 +704,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
                       <input
                         type="range"
-                        min="12"
-                        max="24"
-                        step="1.6"
+                        min="50"
+                        max="150"
+                        step="10"
                         value={zoomLevel}
                         onChange={(e) => setZoom(parseFloat(e.target.value))}
                         className={`w-full appearance-none bg-transparent cursor-pointer relative z-10 outline-none
@@ -736,7 +736,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
                   <div className="flex justify-between px-10 text-[10px] font-medium opacity-30 mt-[-10px]">
                     <span>Small</span>
-                    <span className="ml-1">Default ({Math.round((zoomLevel / 16) * 100)}%)</span>
+                    <span className="ml-1">Scale: {Math.round(zoomLevel)}%</span>
                     <span>Large</span>
                   </div>
                 </div>

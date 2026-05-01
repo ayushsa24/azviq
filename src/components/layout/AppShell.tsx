@@ -14,7 +14,8 @@ import { ProfileProvider, useProfile } from "@/contexts/ProfileContext";
 import TrashModal from "./TrashModal";
 import ProfileModal from "./ProfileModal";
 import PricingModal from "../PricingModal";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -45,6 +46,17 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const { isProfileOpen, openProfile, closeProfile } = useProfile();
   const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const [isBottomNavVisible, setIsBottomNavVisible] = useState(true);
+  const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
+  const isAiPage = pathname.startsWith("/ai");
+
+  useEffect(() => {
+    const handleSidebarState = (e: any) => {
+      setIsAiSidebarOpen(e.detail.isOpen);
+    };
+    window.addEventListener('ai-sidebar-state', handleSidebarState);
+    return () => window.removeEventListener('ai-sidebar-state', handleSidebarState);
+  }, []);
 
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
@@ -157,13 +169,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const checkIsFullPage = (path: string, params: URLSearchParams | null) => {
     const isPdf = path.includes("/library/pdf/");
     const isNote = path.includes("/library/note/");
+    const isAi = path === "/ai" || path.startsWith("/ai/");
     const isPrep = path.includes("/preparation") && (
       (!!params?.get("id") && (params?.get("tab") === "exercise" || params?.get("tab") === "revision")) ||
       path.includes("/preparation/exercise/") ||
       path.includes("/preparation/revision/") ||
       params?.get("fullscreen") === "true"
     );
-    return isPdf || isNote || isPrep;
+    return isPdf || isNote || isPrep || isAi;
   };
 
   const isSettingsOrTrash = pathname === "/settings" || 
@@ -237,12 +250,46 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       <main 
         suppressHydrationWarning
-        className={`flex flex-col overflow-hidden flex-1 min-h-0 ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0'} ${mounted && open ? 'md:pl-56' : 'md:pl-0'} ${mounted && (isKeyboardOpen || isFullPageLayer) ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} bg-background`}
+        className={`flex flex-col overflow-hidden flex-1 min-h-0 
+          ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0'} 
+          ${mounted && open ? 'md:pl-56 px-0' : 'md:pl-0 px-0'} 
+          ${mounted && !open && !isFullPageLayer ? 'md:px-[0.5%] lg:px-[1%] xl:px-[1.5%]' : ''}
+          ${mounted && (isKeyboardOpen || (isFullPageLayer && !isAiPage) || (isAiPage && !isBottomNavVisible)) ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} 
+          transition-all duration-300 bg-background`}
       >
         {mounted && children}
       </main>
 
-      {mounted && <BottomNav isFullPageLayer={isFullPageLayer} />}
+      {/* Swipe Handle for AI Chat BottomNav */}
+      {mounted && isAiPage && !isKeyboardOpen && !isAiSidebarOpen && (
+        <div className="fixed bottom-[calc(2.9rem+env(safe-area-inset-bottom,0px))] md:hidden left-0 right-0 z-[65] flex justify-center pointer-events-none">
+          <motion.div 
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 20) setIsBottomNavVisible(false);
+              else if (info.offset.y < -20) setIsBottomNavVisible(true);
+            }}
+            className={`w-12 h-6 flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing transition-transform ${!isBottomNavVisible ? 'translate-y-[calc(3.2rem+env(safe-area-inset-bottom,0px))]' : ''}`}
+          >
+            <div className={`w-12 h-1 rounded-full ${theme === 'dark' ? 'bg-[#545454]' : 'bg-[#E8E5E0]'} opacity-60`} />
+          </motion.div>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {mounted && !isKeyboardOpen && !(isFullPageLayer && !isAiPage) && isBottomNavVisible && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
+          >
+            <BottomNav isFullPageLayer={false} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

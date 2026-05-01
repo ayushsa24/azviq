@@ -311,7 +311,7 @@ function SignupForm() {
           <span className="font-bold text-xl tracking-tight font-[var(--font-lexend)]">Azviq</span>
         </div>
 
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[25rem]">
           {step !== 'onboarding' && (
             <div className="mb-8 mt-12 lg:mt-0">
               <h2 className="text-3xl font-bold mb-2 font-[var(--font-lexend)]">

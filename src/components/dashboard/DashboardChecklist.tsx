@@ -278,7 +278,7 @@ export default function DashboardChecklist() {
     return (
         <>
             <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 flex flex-col group/card relative
-                ${itemCount > 5 ? "min-h-[220px] max-h-[365px]" : "h-auto"}
+                ${itemCount > 5 ? "min-h-[13.75rem] max-h-[22.8125rem]" : "h-auto"}
                 ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
                 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
             `}>
@@ -347,7 +347,7 @@ export default function DashboardChecklist() {
                                 <>
                                     <div className="flex items-center gap-2 pt-2 pb-1">
                                         <div className="h-px flex-1 bg-[#E8E5E0] dark:bg-[#383838]" />
-                                        <span className="text-[10px] text-[#7D7D7D] dark:text-[#BABABA] font-bold uppercase tracking-wider">Completed {done.length}</span>
+                                        <span className="text-[0.625rem] text-[#7D7D7D] dark:text-[#BABABA] font-bold uppercase tracking-wider">Completed {done.length}</span>
                                         <div className="h-px flex-1 bg-[#E8E5E0] dark:bg-[#383838]" />
                                     </div>
                                     {done.map(item => (
@@ -390,7 +390,7 @@ export default function DashboardChecklist() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0, transition: { duration: 0.15 } }}
                             onClick={() => setShowModal(false)}
-                            className="absolute inset-0 bg-black/40 sm:backdrop-blur-sm pointer-events-none sm:pointer-events-auto"
+                            className="absolute inset-0 bg-black/60 backdrop-blur-[2px] pointer-events-none sm:pointer-events-auto"
                             style={{ WebkitTapHighlightColor: "transparent" }}
                         />
 
@@ -401,25 +401,27 @@ export default function DashboardChecklist() {
                             exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
                             transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
                             drag={isMobile ? "y" : false}
-                            dragConstraints={{ top: 0 }}
-                            dragElastic={0.2}
+                            dragConstraints={{ top: 0, bottom: 0 }}
+                            dragElastic={{ top: 0, bottom: 0.8 }}
                             onDragEnd={(_, info) => {
-                                if (info.offset.y > 100 || info.velocity.y > 500) setShowModal(false);
+                                if (isMobile && (info.offset.y > 150 || info.velocity.y > 600)) {
+                                    setShowModal(false);
+                                }
                             }}
-                            className="bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full h-[95vh] sm:h-auto sm:max-h-[85vh] sm:max-w-3xl rounded-t-[20px] sm:rounded-xl overflow-hidden flex flex-col shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10"
+                            className="bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full h-[92dvh] pt-2 sm:h-auto sm:max-h-[85vh] sm:max-w-3xl rounded-t-[20px] sm:rounded-xl overflow-hidden flex flex-col shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Mobile Drag Handle */}
                             <div className="sm:hidden w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
                                 <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700/50 rounded-full" />
                             </div>                            {/* Modal Header */}
-                            <div className="sticky top-0 z-[100] flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                            <div className="sticky top-0 z-[100] flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/90 dark:bg-[#1A1A1A]/90 md:dark:bg-[#1F1F1F]/90 backdrop-blur-[2px] border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
                                 <div className="flex items-center gap-2 min-w-0 pr-4">
                                     <span className="text-xs font-bold text-[#252525] dark:text-gray-200 truncate max-w-[200px] sm:max-w-[400px]">
                                         {form.title || (editingId ? "Edit To-Do" : "New To-Do")}
                                     </span>
                                     {hasChanged && (
-                                        <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-[10px] text-orange-600 dark:text-orange-400 font-black uppercase tracking-wider animate-pulse">
+                                        <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-[0.625rem] text-orange-600 dark:text-orange-400 font-black uppercase tracking-wider animate-pulse">
                                             Unsaved
                                         </span>
                                     )}
@@ -551,7 +553,7 @@ export default function DashboardChecklist() {
                                                                     : [...current, i];
                                                                 setForm(f => ({ ...f, custom_days: next }));
                                                             }}
-                                                            className={`w-7 h-7 rounded-full text-[9px] font-bold transition-all flex items-center justify-center
+                                                            className={`w-7 h-7 rounded-full text-[0.5625rem] font-bold transition-all flex items-center justify-center
                                                                 ${isSelected 
                                                                     ? "bg-[#252525] dark:bg-white text-white dark:text-[#252525] shadow-sm transform scale-105" 
                                                                     : "bg-black/5 dark:bg-white/5 text-[#7D7D7D] dark:text-[#545454] hover:bg-black/10 dark:hover:bg-white/10"
@@ -598,7 +600,7 @@ export default function DashboardChecklist() {
                                                                     {wsPrefix && <span className="opacity-50">{wsPrefix}</span>}
                                                                     {IconComp && <IconComp size={12} className="opacity-60 shrink-0" />}
                                                                     {cleanTitle || "Untitled"}
-                                                                    <span className="ml-1 opacity-50 text-[10px]">({n.file_url ? 'PDF' : 'Note'})</span>
+                                                                    <span className="ml-1 opacity-50 text-[0.625rem]">({n.file_url ? 'PDF' : 'Note'})</span>
                                                                 </>
                                                             );
                                                         })() : "None"}
@@ -668,7 +670,7 @@ export default function DashboardChecklist() {
                                                                                     );
                                                                                 })()}
                                                                             </span>
-                                                                            <span className="text-[10px] text-gray-500 truncate mt-0.5 flex gap-1">
+                                                                            <span className="text-[0.625rem] text-gray-500 truncate mt-0.5 flex gap-1">
                                                                                 {wsPrefix && <span className="font-medium text-gray-400">{wsPrefix}</span>}
                                                                                 <span>{note.file_url ? 'PDF' : 'Note'}</span>
                                                                             </span>
@@ -691,7 +693,7 @@ export default function DashboardChecklist() {
                                                 <Link
                                                     href={`/library/${form.linked_document_type || 'note'}/${form.linked_document_id}`}
                                                     target="_blank"
-                                                    className="px-2 py-1 text-[11px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-900/30 rounded shrink-0 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                                                    className="px-2 py-1 text-[0.6875rem] font-bold text-blue-500 bg-blue-50 dark:bg-blue-900/30 rounded shrink-0 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50"
                                                 >
                                                     Open
                                                 </Link>
@@ -831,7 +833,7 @@ function TodoRow({ item, isDark, notes, onToggle, onEdit, onDelete }: {
                             const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
                             const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (item.linked_document_type === 'note' ? FileText : FileIcon);
                             return (
-                                <div className="flex items-center gap-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase truncate max-w-[150px]">
+                                <div className="flex items-center gap-1 text-[0.625rem] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase truncate max-w-[9.375rem]">
                                     · <IconComp className="w-2.5 h-2.5 opacity-60" />
                                     <span className="truncate">{cleanTitle}</span>
                                 </div>

@@ -87,7 +87,7 @@ export default function NotificationPanel() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm"
+                            className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-[2px]"
                             onClick={handleClose}
                         />
                     )}
@@ -98,11 +98,19 @@ export default function NotificationPanel() {
                         animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
                         exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95, y: -10 }}
                         transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
+                        drag={isMobile ? "y" : false}
+                        dragConstraints={{ top: 0, bottom: 0 }}
+                        dragElastic={{ top: 0, bottom: 0.8 }}
+                        onDragEnd={(_, info) => {
+                            if (isMobile && (info.offset.y > 150 || info.velocity.y > 600)) {
+                                handleClose();
+                            }
+                        }}
                         className={`
                             fixed z-[500] flex flex-col overflow-hidden
                             ${isMobile 
-                                ? "inset-x-0 bottom-0 h-[95vh] rounded-t-[20px]" 
-                                : "top-[60px] left-56 w-[360px] max-h-[calc(100vh-120px)] rounded-xl shadow-2xl border"
+                                ? "inset-x-0 bottom-0 h-[92dvh] rounded-t-[20px] pt-2" 
+                                : "top-[3.75rem] left-56 w-[22.5rem] max-h-[calc(100vh-7.5rem)] rounded-xl shadow-2xl border"
                             }
                             ${isDark
                                 ? "bg-[#1A1A1A] md:border-[#3A3A3A] text-white"
@@ -113,7 +121,7 @@ export default function NotificationPanel() {
                     >
                         {/* Mobile Drag Handle */}
                         {isMobile && (
-                            <div className="w-full flex justify-center pt-3 pb-1 flex-shrink-0">
+                            <div className="w-full flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing">
                                 <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700/50 rounded-full" />
                             </div>
                         )}
@@ -121,24 +129,12 @@ export default function NotificationPanel() {
                         {/* Header */}
                         <div 
                             className={`flex items-center justify-between px-4 sm:px-6 pt-2 pb-2.5 md:px-5 md:pt-3 md:pb-3 border-b shrink-0 ${isDark ? "border-[#333]" : "border-[#E8E5E0]"}`}
-                            onTouchStart={(e) => {
-                                touchStartY.current = e.touches[0].clientY;
-                                touchStartX.current = e.touches[0].clientX;
-                            }}
-                            onTouchEnd={(e) => {
-                                if (!isMobile) return;
-                                const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-                                const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-                                if (deltaY > 80 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                                    handleClose();
-                                }
-                            }}
                         >
                             <div className="flex items-center gap-2">
                                 <Bell className="w-5 h-5 md:w-4 md:h-4" />
                                 <span className="font-extrabold text-xl md:font-semibold md:text-sm">Notifications</span>
                                 {unreadCount > 0 && (
-                                    <span className="bg-[#C2A27A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                <span className="bg-[#C2A27A] text-white text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full">
                                         {unreadCount}
                                     </span>
                                 )}
@@ -159,12 +155,12 @@ export default function NotificationPanel() {
                                 isDark ? "bg-[#C2A27A]/10 border-[#C2A27A]/20" : "bg-amber-50 border-amber-200"
                             }`}>
                                 <Zap className="w-4 h-4 shrink-0 text-[#C2A27A]" />
-                                <p className={`text-[11px] flex-1 leading-tight ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
+                                <p className={`text-[0.6875rem] flex-1 leading-tight ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
                                     Enable phone alerts for To-Do reminders
                                 </p>
                                 <button
                                     onClick={requestPushPermission}
-                                    className="px-3 py-1 bg-[#C2A27A] hover:bg-[#B08F67] text-white text-[11px] font-bold rounded-full shrink-0 transition-all active:scale-95"
+                                    className="px-3 py-1 bg-[#C2A27A] hover:bg-[#B08F67] text-white text-[0.6875rem] font-bold rounded-full shrink-0 transition-all active:scale-95"
                                 >
                                     Enable
                                 </button>
@@ -400,7 +396,7 @@ function NotificationItem({
                             </div>
 
                             <div className="flex-1 min-w-0 pr-6">
-                                <p className={`text-[13px] font-bold leading-snug flex items-center gap-1.5 ${isDark ? "text-white" : "text-[#252525]"}`}>
+                                <p className={`text-[0.8125rem] font-bold leading-snug flex items-center gap-1.5 ${isDark ? "text-white" : "text-[#252525]"}`}>
                                     {(() => {
                                         const iconMatch = n.title.match(/\[(\w+)\]/);
                                         if (iconMatch && ICON_MAP[iconMatch[1]]) {
@@ -411,10 +407,10 @@ function NotificationItem({
                                     })()}
                                     <span>{displayTitle}</span>
                                 </p>
-                                <p className={`text-[12px] mt-0.5 leading-snug line-clamp-1 ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
+                                <p className={`text-xs mt-0.5 leading-snug line-clamp-1 ${isDark ? "text-[#BABABA]" : "text-[#545454]"}`}>
                                     {n.message}
                                 </p>
-                                <p className={`text-[10px] mt-1.5 font-medium ${isDark ? "text-[#545454]" : "text-[#9E9E9E]"}`}>
+                                <p className={`text-[0.625rem] mt-1.5 font-medium ${isDark ? "text-[#545454]" : "text-[#9E9E9E]"}`}>
                                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                                 </p>
                             </div>

@@ -138,6 +138,11 @@ function AiChatCore() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [isHistoryInitialized, setIsHistoryInitialized] = useState(false);
+  
+  // Sync sidebar state with global AppShell to hide drag handle
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('ai-sidebar-state', { detail: { isOpen: isSidebarOpen } }));
+  }, [isSidebarOpen]);
 
   const { data: session, status } = useSession();
   const { data: sessionData, mutate: mutateSessions, error: sessionError, isLoading: isHistoryLoading } = useSWR(
@@ -435,6 +440,17 @@ function AiChatCore() {
       };
     }
   }, []);
+  
+  // Auto-resize input textarea as user types (ChatGPT style)
+  useEffect(() => {
+    if (inputRef.current) {
+      // Reset height to auto to get the correct scrollHeight
+      inputRef.current.style.height = 'auto';
+      // Set height based on scrollHeight, but cap at the max-height defined in CSS (120px)
+      const newHeight = Math.min(inputRef.current.scrollHeight, 120);
+      inputRef.current.style.height = `${newHeight}px`;
+    }
+  }, [input]);
 
   const toggleDictation = () => {
     if (!recognitionRef.current) {
@@ -1531,7 +1547,7 @@ function AiChatCore() {
 
   return (
     <div
-      className="flex h-full overflow-hidden transition-colors duration-300 ease-in-out bg-transparent dark:bg-[#1A1A1A] text-[#252525] dark:text-white"
+      className="flex h-full overflow-hidden transition-colors duration-300 ease-in-out bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white"
     >
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -1545,7 +1561,7 @@ function AiChatCore() {
       <div
         className={`fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[250px] md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-64 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
           ? "bg-[#1A1A1A] border-[#2E2E2E]"
-          : "bg-[#FAFAFA] border-[#7D7D7D]/40"
+          : "bg-[#F5F3EF] border-[#7D7D7D]/40"
           } shadow-sm transition-colors`}
       >
         {/* ── Desktop History Sidebar Header ── */}
@@ -1607,7 +1623,7 @@ function AiChatCore() {
         </div>
 
         {/* Search Bar */}
-        <div className={`p-3 pt-1.5 border-b shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
+        <div className={`p-3 pt-4 border-b shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
           <div className={`relative flex items-center w-full rounded-lg border transition-all duration-200 ${theme === "dark"
             ? "bg-[#1A1A1A] border-[#545454] focus-within:border-[#7D7D7D] focus-within:ring-1 focus-within:ring-[#7D7D7D]"
             : "bg-white border-[#E8E5E0] focus-within:border-[#7D7D7D] focus-within:ring-1 focus-within:ring-[#7D7D7D]"
@@ -1668,7 +1684,7 @@ function AiChatCore() {
         </div>
 
         {/* Archived Folder (Moved to bottom area) */}
-        <div className={`p-3 pb-16 md:pb-3 border-t shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
+        <div className={`p-3 pb-2 md:pb-3 border-t shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
           <button
             onClick={() => setIsArchivedExpanded(!isArchivedExpanded)}
             className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === "dark" ? "text-gray-300 hover:bg-[#2A2A2A]" : "text-gray-600 hover:bg-[#F0EDE8]"}`}
@@ -1685,7 +1701,7 @@ function AiChatCore() {
           </button>
 
           {isArchivedExpanded && (
-            <div className="mt-1 pl-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+            <div className="mt-1 pl-2 space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
               {archivedChats.length === 0 ? (
                 <p className={`text-xs py-2 px-3 opacity-60`}>
                   No archived chats
@@ -1774,15 +1790,10 @@ function AiChatCore() {
             }`}
         >
           {/* Mobile Header Toggle - Always show so users can access the menu */}
-          <div
-            className={`md:hidden shrink-0 sticky top-0 z-30 p-1 pt-[calc(env(safe-area-inset-top,0px)+8px)] px-3 flex items-center justify-between border-b mb-2 transition-colors duration-300 ease-in-out ${theme === "dark"
-              ? "bg-[#1A1A1A] border-[#2E2E2E]"
-              : "bg-[#F5F3EF] border-[#7D7D7D]/40"
-              }`}
-          >
+          <div className="md:hidden shrink-0 sticky top-0 z-[60] flex items-center justify-between px-4 h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-[#F5F3EF] dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors">
             <div className="flex items-center">
               <button
-                onClick={() => setIsSidebarOpen(true)}
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 className={`p-2 rounded-lg pr-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
               >
                 <Menu className="w-5 h-5" />
@@ -2451,8 +2462,8 @@ function AiChatCore() {
                   }}
                   placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Azviq AI anything..."))}
                   disabled={isQuotaReached && !isLoading}
-                  style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
-                  className={`flex-1 max-h-48 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-[9px] text-[15px] outline-none custom-scrollbar leading-tight font-medium whitespace-pre-wrap ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{ overflowWrap: 'anywhere', wordBreak: 'normal' }}
+                  className={`flex-1 max-h-[120px] min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-[9px] text-[15px] outline-none overflow-y-auto custom-scrollbar leading-tight font-medium whitespace-pre-wrap ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
                 />
 

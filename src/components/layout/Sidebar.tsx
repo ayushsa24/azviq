@@ -68,7 +68,7 @@ export default function Sidebar({
   const { data: recentData, mutate: mutateRecent, isLoading: isRecentLoading } = useSWR("/api/recent-activity", fetcher, {
     revalidateOnFocus: true,
   });
-  const recentItems: RecentItem[] = (recentData?.items || []).slice(0, 8);
+  const recentItems: RecentItem[] = (recentData?.items || []).slice(0, 20);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -112,8 +112,8 @@ export default function Sidebar({
           ${open
             /* Pinned open: flush full height, no radius */
             ? "left-0 top-0 bottom-0 w-56 border-r rounded-none shadow-none translate-x-0"
-            /* Hover peek: flush left, 15px gap top/bottom, right corners only */
-            : `left-0 top-[45px] bottom-[45px] w-56 rounded-r-2xl border border-l-0 shadow-xl
+            /* Hover peek: flush left, 20px gap top/bottom, right corners only */
+            : `left-0 top-[20px] bottom-[20px] w-56 rounded-r-2xl border border-l-0 shadow-xl
                ${isHovered ? "translate-x-0" : "-translate-x-full"}`
           }
           ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}
@@ -161,8 +161,9 @@ export default function Sidebar({
         </div>
 
         {/* ── NAV ITEMS ── */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1.5 scrollbar-hide">
-          {navItems.map((item) => {
+        <nav className="flex-1 flex flex-col overflow-hidden py-3 px-2">
+          <div className="space-y-1.5 shrink-0">
+            {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href ||
@@ -184,21 +185,22 @@ export default function Sidebar({
                 {isActive && <ChevronRight className="w-3 h-3 ml-auto opacity-40" />}
               </Link>
             );
-          })}
-
-          <div className="mt-4 mb-2">
-            <div className={`px-4 mb-2 text-xs font-semibold flex items-center gap-1.5 opacity-60 ${isDark ? "text-white" : "text-[#252525]"}`}>
+            })}
+          </div>
+          
+          <div className="mt-4 flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className={`px-4 mb-2 text-xs font-semibold flex items-center gap-1.5 opacity-60 shrink-0 ${isDark ? "text-white" : "text-[#252525]"}`}>
               <Clock className="w-3.5 h-3.5" />
               <span>Recent</span>
             </div>
             {isRecentLoading ? (
-              <div className="space-y-2 px-3 mt-2">
+              <div className="space-y-2 px-3 mt-2 shrink-0">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className={`h-8 w-full rounded-xl animate-pulse ${isDark ? 'bg-white/5' : 'bg-black/5'}`} />
                 ))}
               </div>
             ) : recentItems.length > 0 ? (
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 overflow-hidden flex-1">
                 {recentItems.map((item) => {
                   const ItemIcon = TYPE_CONFIG[item.item_type]?.icon || FileText;
                   
@@ -214,7 +216,7 @@ export default function Sidebar({
                     <Link
                       key={item.id}
                       href={item.href}
-                      className={`group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 text-[13px] font-medium
+                      className={`group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 text-[13px] font-medium shrink-0
                         ${isActive
                           ? isDark ? "bg-[#2E2E2E] text-white" : "bg-[#E8E5E0] text-[#252525]"
                           : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"
@@ -242,7 +244,7 @@ export default function Sidebar({
                 })}
               </div>
             ) : (
-              <div className={`px-4 py-3 mx-2 rounded-xl border border-dashed flex flex-col items-center text-center gap-2 opacity-60 animate-in fade-in duration-500 ${isDark ? 'border-[#3A3A3A]' : 'border-[#D1D1D1]'}`}>
+              <div className={`px-4 py-3 mx-2 rounded-xl border border-dashed flex flex-col items-center text-center gap-2 opacity-60 animate-in fade-in duration-500 shrink-0 ${isDark ? 'border-[#3A3A3A]' : 'border-[#D1D1D1]'}`}>
                 <Inbox className="w-5 h-5 text-[#7D7D7D] mb-0.5" />
                 <span className="text-[11px] leading-tight">Currently do not have any recent activity</span>
                 <div className="flex flex-col gap-2 mt-1 w-full">

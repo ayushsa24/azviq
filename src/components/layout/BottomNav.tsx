@@ -83,7 +83,7 @@ export default function BottomNav({ isFullPageLayer = false }: { isFullPageLayer
             >
               <Icon 
                 strokeWidth={isActive ? 2.5 : 2}
-                className={`w-6 h-6 transition-all duration-300 ${isActive ? "scale-110" : "group-hover:scale-110"}`} 
+                className={`w-6 h-6 -translate-y-[5px] transition-all duration-300 ${isActive ? "scale-110" : "group-hover:scale-110"}`} 
               />
               
               {/* Instagram style bottom dot indicator */}

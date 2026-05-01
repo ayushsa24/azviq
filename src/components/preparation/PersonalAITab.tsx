@@ -217,6 +217,16 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     fetchAllSessions();
   };
 
+  // Sync theme-color for mobile notch when entering/exiting fullscreen
+  useEffect(() => {
+    if (!isDark) {
+      const color = isFocusMode ? '#FFFFFF' : '#F5F3EF';
+      document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+        m.setAttribute('content', color);
+      });
+    }
+  }, [isFocusMode, isDark]);
+
   const handleSessionDelete = async (id: string) => {
     if (!confirm("Delete this session history?")) return;
     try {
@@ -253,7 +263,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
         transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
         className={`flex flex-row items-center gap-1 sm:gap-2.5 transition-all duration-300 
         ${isFocusMode 
-          ? `px-3 h-14 shrink-0 border-b ${isDark ? 'bg-[#1E1E1E] border-[#333]' : 'bg-[#FAFAFA] border-[#7D7D7D]/40'}` 
+          ? `px-4 h-14 shrink-0 border-b bg-white dark:bg-[#1A1A1A] border-[#7D7D7D]/40 dark:border-[#2E2E2E]` 
           : ''}`}
       >
         <div className="flex items-center gap-2.5 flex-1 h-full">
@@ -293,7 +303,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
       {/* Main Panel */}
       <div className={`flex flex-col flex-1 transition-all duration-500 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.02)]
         ${isFocusMode ? "rounded-none" : "rounded-xl border"}
-        ${isDark ? "bg-[#1E1E1E] border-[#333]" : "bg-white border-[#E8E5E0]"}`}>
+        ${isDark ? "bg-[#1E1E1E] border-[#333]" : "bg-[#F5F5F5] border-[#E8E5E0]"}`}>
 
         <AnimatePresence>
           {!selectedNoteId ? (

@@ -138,7 +138,7 @@ export function TaskDetailModal({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0.15 } }}
                 onClick={onClose}
-                className="absolute inset-0 bg-black/40 sm:backdrop-blur-sm pointer-events-none sm:pointer-events-auto"
+                className="absolute inset-0 bg-black/60 backdrop-blur-[2px] pointer-events-none sm:pointer-events-auto"
                 style={{ WebkitTapHighlightColor: "transparent" }}
             />
 
@@ -158,7 +158,7 @@ export function TaskDetailModal({
                         onClose();
                     }
                 }}
-                className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full ${isMobile ? 'h-[95vh]' : 'h-auto max-h-[90vh]'} sm:max-w-3xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
+                className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full ${isMobile ? 'h-[92dvh] pt-2' : 'h-auto max-h-[90vh]'} sm:max-w-3xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Mobile Drag Handle */}
@@ -167,13 +167,13 @@ export function TaskDetailModal({
                 </div>
 
                 {/* Top Control Bar */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/90 dark:bg-[#1A1A1A]/90 md:dark:bg-[#1F1F1F]/90 backdrop-blur-[2px] border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
                     <div className="flex items-center gap-2 min-w-0 pr-4">
                         <span className="text-xs font-bold text-[#252525] dark:text-gray-200 truncate max-w-[200px] sm:max-w-[400px]">
                             {localTask.title || "Untitled Task"}
                         </span>
                         {hasChanged && (
-                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider">
+                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-[0.625rem] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider">
                                 Unsaved
                             </span>
                         )}
@@ -319,7 +319,7 @@ export function TaskDetailModal({
                                                         {ws && <span className="opacity-50">[{ws.name}] </span>}
                                                         {IconComp && <IconComp size={14} className="opacity-60 inline-block shrink-0" />}
                                                         {cleanTitle}
-                                                        <span className="ml-1 opacity-50 text-[10px]">({n.file_url ? 'PDF' : 'Note'})</span>
+                                                        <span className="ml-1 opacity-50 text-[0.625rem]">({n.file_url ? 'PDF' : 'Note'})</span>
                                                     </>
                                                 );
                                             })() : "Empty"}
@@ -328,7 +328,7 @@ export function TaskDetailModal({
                                     </button>
 
                                     {isMaterialDropdownOpen && (
-                                        <div className="absolute top-11 right-0 sm:left-0 sm:right-auto w-full sm:w-[350px] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-lg shadow-xl z-50 flex flex-col max-h-[250px] overflow-hidden">
+                                        <div className="absolute top-11 right-0 sm:left-0 sm:right-auto w-full sm:w-[21.875rem] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-lg shadow-xl z-50 flex flex-col max-h-[15.625rem] overflow-hidden">
                                             <div className="p-2 border-b border-[#E8E5E0] dark:border-[#444] bg-gray-50 dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F]">
                                                 <div className="relative">
                                                     <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -387,7 +387,7 @@ export function TaskDetailModal({
                                                                         );
                                                                     })()}
                                                                 </span>
-                                                                <span className="text-[10px] text-gray-500 truncate mt-0.5 flex gap-1">
+                                                                <span className="text-[0.625rem] text-gray-500 truncate mt-0.5 flex gap-1">
                                                                     {wsPrefix && <span className="font-medium text-gray-400">{wsPrefix}</span>}
                                                                     <span>{n.file_url ? 'PDF Document' : 'Note'}</span>
                                                                 </span>

@@ -224,7 +224,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
             onClick={onClose}
           />
 
@@ -234,7 +234,15 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
             animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
             exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
             transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
-            className={`relative w-full ${isMobile ? 'h-[95vh]' : 'max-w-5xl max-h-[90vh]'} overflow-hidden rounded-t-[20px] sm:rounded-2xl border shadow-2xl flex flex-col
+            drag={isMobile ? "y" : false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.8 }}
+            onDragEnd={(_, info) => {
+              if (isMobile && (info.offset.y > 150 || info.velocity.y > 600)) {
+                onClose();
+              }
+            }}
+            className={`relative w-full ${isMobile ? 'h-[92dvh] pt-2' : 'max-w-5xl max-h-[90vh]'} overflow-hidden rounded-t-[20px] sm:rounded-2xl border shadow-2xl flex flex-col
               ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"}`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -246,8 +254,8 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
             )}
 
             {/* Header */}
-            <div className={`sticky top-0 z-10 flex items-center justify-between px-6 pt-2 sm:pt-5 pb-4 border-b flex-shrink-0
-              ${isDark ? "bg-[#1A1A1A] border-[#2E2E2E]" : "bg-white border-[#E8E5E0]"}`}
+            <div className={`sticky top-0 z-10 flex items-center justify-between px-6 pt-2 sm:pt-5 pb-4 border-b flex-shrink-0 backdrop-blur-[2px]
+              ${isDark ? "bg-[#1A1A1A]/90 border-[#2E2E2E]" : "bg-white/90 border-[#E8E5E0]"}`}
               onTouchStart={(e) => {
                 touchStartY.current = e.touches[0].clientY;
               }}
@@ -356,7 +364,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
                     >
                       {/* Badge */}
                       {plan.badge && !isCurrentPlan && (
-                        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold bg-[#C2A27A] text-white whitespace-nowrap shadow-lg">
+                        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[0.625rem] font-bold bg-[#C2A27A] text-white whitespace-nowrap shadow-lg">
                           {plan.badge}
                         </div>
                       )}
@@ -421,7 +429,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
               </div>
 
               {/* Footer */}
-              <p className={`text-center text-[10px] pb-6 px-10 ${isDark ? "text-[#555]" : "text-[#BABABA]"}`}>
+              <p className={`text-center text-[0.625rem] pb-6 px-10 ${isDark ? "text-[#555]" : "text-[#BABABA]"}`}>
                 All prices inclusive of taxes · Payments via UPI, NetBanking & Cards · Powered by Razorpay
               </p>
             </div>

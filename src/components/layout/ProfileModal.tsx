@@ -96,7 +96,7 @@ export default function ProfileModal({ open, onClose }: Props) {
             className="fixed inset-0 z-[200] flex items-center justify-center p-4"
             onClick={handleCloseModal}
         >
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
 
             {/* Modal card */}
             <div
@@ -105,7 +105,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? "border-[#2E2E2E]" : "border-[#F0EDE8]"}`}>
+                <div className={`flex items-center justify-between px-6 py-4 border-b backdrop-blur-[2px] ${isDark ? "bg-[#1A1A1A]/90 border-[#2E2E2E]" : "bg-white/90 border-[#F0EDE8]"}`}>
                     <h2 className={`text-base font-bold ${isDark ? "text-[#CFCFCF]" : "text-[#252525]"}`}>My Profile</h2>
                     <div className="flex items-center gap-2">
                         {editing ? (

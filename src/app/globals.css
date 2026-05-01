@@ -22,7 +22,7 @@
 /* DARK THEME (when .dark class exists) */
 .dark {
   color-scheme: dark;
-  --background: #161514;
+  --background: #1A1A1A;
   --foreground: #FFFFFF;
 
   --card: #24221F;

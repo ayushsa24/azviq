@@ -10,36 +10,46 @@ type ZoomContextType = {
     resetZoom: () => void;
 };
 
-// Default is 16px which corresponds to 100% zoom
-const MIN_ZOOM = 12;
-const MAX_ZOOM = 24;
-const DEFAULT_ZOOM = 16;
+// Zoom level is now a percentage (100 = 100%)
+const MIN_ZOOM = 50;
+const MAX_ZOOM = 150;
 
 const ZoomContext = createContext<ZoomContextType | undefined>(undefined);
 
 export function ZoomProvider({ children }: { children: React.ReactNode }) {
-    const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM);
+    const [zoomLevel, setZoomLevel] = useState(100);
 
     // Load saved zoom from localStorage on mount
     useEffect(() => {
-        const savedZoom = localStorage.getItem("appZoomLevel");
+        const savedZoom = localStorage.getItem("appZoomLevelPercent");
         if (savedZoom) {
-            setZoomLevel(parseInt(savedZoom, 10));
+            setZoomLevel(parseFloat(savedZoom));
         }
     }, []);
 
-    // Update HTML font-size whenever zoom changes
+    // Update HTML font-size whenever zoom changes or window resizes
     useEffect(() => {
-        document.documentElement.style.fontSize = `${zoomLevel}px`;
-        localStorage.setItem("appZoomLevel", zoomLevel.toString());
+        const updateFontSize = () => {
+            // Mobile base: 15.2px (95% of original 16px) makes it slightly more compact by default
+            // Desktop base: 14.4px
+            const baseSize = window.innerWidth >= 1024 ? 14.4 : 15.2;
+            const newFontSize = baseSize * (zoomLevel / 100);
+            document.documentElement.style.fontSize = `${newFontSize}px`;
+        };
+
+        updateFontSize();
+        localStorage.setItem("appZoomLevelPercent", zoomLevel.toString());
+
+        window.addEventListener("resize", updateFontSize);
+        return () => window.removeEventListener("resize", updateFontSize);
     }, [zoomLevel]);
 
     const zoomIn = () => {
-        setZoomLevel((prev) => Math.min(prev + 2, MAX_ZOOM));
+        setZoomLevel((prev) => Math.min(prev + 10, MAX_ZOOM));
     };
 
     const zoomOut = () => {
-        setZoomLevel((prev) => Math.max(prev - 2, MIN_ZOOM));
+        setZoomLevel((prev) => Math.max(prev - 10, MIN_ZOOM));
     };
 
     const setZoom = (value: number) => {
@@ -47,7 +57,7 @@ export function ZoomProvider({ children }: { children: React.ReactNode }) {
     };
 
     const resetZoom = () => {
-        setZoomLevel(DEFAULT_ZOOM);
+        setZoomLevel(100);
     };
 
     return (

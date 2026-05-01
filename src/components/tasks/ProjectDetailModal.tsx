@@ -220,7 +220,7 @@ export function ProjectDetailModal({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, transition: { duration: 0.15 } }}
                     onClick={onClose}
-                    className="absolute inset-0 bg-black/40 sm:backdrop-blur-sm pointer-events-none sm:pointer-events-auto"
+                    className="absolute inset-0 bg-black/60 backdrop-blur-[2px] pointer-events-none sm:pointer-events-auto"
                     style={{ WebkitTapHighlightColor: "transparent" }}
                 />
 
@@ -241,7 +241,7 @@ export function ProjectDetailModal({
                             onClose();
                         }
                     }}
-                    className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full ${isMobile ? 'h-[95vh]' : 'h-auto max-h-[85vh]'} sm:max-w-5xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
+                    className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full ${isMobile ? 'h-[92dvh] pt-2' : 'h-auto max-h-[85vh]'} sm:max-w-5xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Mobile Drag Handle */}
@@ -252,7 +252,7 @@ export function ProjectDetailModal({
                     {/* Top Control Bar */}
                     <div 
                         onPointerDown={(e) => isMobile && dragControls.start(e)}
-                        className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/95 dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 backdrop-blur-md border-b border-[#E8E5E0] dark:border-[#3A3A3A] cursor-grab active:cursor-grabbing">
+                        className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 sm:pb-4 bg-[#F5F3EF]/90 dark:bg-[#1A1A1A]/90 md:dark:bg-[#1F1F1F]/90 backdrop-blur-[2px] border-b border-[#E8E5E0] dark:border-[#3A3A3A] cursor-grab active:cursor-grabbing">
                         <div className="flex items-center gap-2 min-w-0 pr-4">
                             <div className="flex items-center gap-1 text-xs text-gray-400 font-medium ml-1 flex-shrink-0">
                                 <span onClick={onClose} className="cursor-pointer hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
@@ -264,7 +264,7 @@ export function ProjectDetailModal({
                                 {localProject.title || "Untitled Project"}
                             </span>
                             {hasChanged && (
-                                <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider">
+                                <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-[0.625rem] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider">
                                     Unsaved
                                 </span>
                             )}
@@ -438,7 +438,7 @@ export function ProjectDetailModal({
                                     {["not_started", "in_progress", "in_review", "done", "archived"].map((status) => (
                                         <div
                                             key={status}
-                                            className="flex flex-col gap-2 min-h-[120px] w-[260px] bg-[#f0ede8] dark:bg-white/5 rounded-xl p-2 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#252525]"
+                                            className="flex flex-col gap-2 min-h-[120px] w-[16.25rem] bg-[#f0ede8] dark:bg-white/5 rounded-xl p-2 border border-transparent hover:border-[#D1D1D1] dark:hover:border-[#444] transition-all hover:bg-[#E8E5E0]/50 dark:hover:bg-[#252525]"
                                             onDragOver={handleDragOver}
                                             onDrop={(e) => handleDrop(e, status)}
                                         >
@@ -469,15 +469,15 @@ export function ProjectDetailModal({
                                                         </button>
                                                     </div>
                                                     {t.due_date && <p className="text-xs text-gray-400 font-medium mt-2">Due {format(new Date(t.due_date), "MMM d")}</p>}
-                                                    {t.linked_document_id && notes.some(n => n.id === t.linked_document_id) && <span className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-gray-300 rounded-md text-[10px] font-semibold"><FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "PDF Linked" : "Note Linked"}</span>}
+                                                    {t.linked_document_id && notes.some(n => n.id === t.linked_document_id) && <span className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-gray-300 rounded-md text-[0.625rem] font-semibold"><FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "PDF Linked" : "Note Linked"}</span>}
                                                     {openMenuId === t.id && (
-                                                        <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[180px] context-menu" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[11.25rem] context-menu" onClick={(e) => e.stopPropagation()}>
                                                             <button onClick={() => handleToggleTaskPin(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><Pin className="w-4 h-4" />{t.is_pinned ? "Unpin" : "Pin"}</button>
                                                             <button onClick={() => handleToggleTaskFavorite(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><Star className="w-4 h-4" />{t.is_favorite ? "Unfavorite" : "Favorite"}</button>
                                                             <div className="relative">
                                                                 <button onClick={() => setMoveMenuId(moveMenuId === t.id ? null : t.id)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><MoveRight className="w-4 h-4" />Move to<span className="ml-auto text-gray-400">›</span></button>
                                                                 {moveMenuId === t.id && (
-                                                                    <div className="absolute left-full top-0 ml-1 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[150px]">
+                                                                    <div className="absolute left-full top-0 ml-1 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[9.375rem]">
                                                                         {["not_started", "in_progress", "in_review", "done", "archived"].filter(s => s !== status).map(s => <button key={s} onClick={() => handleMoveTaskStatus(t.id, s)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors capitalize">{s.replace("_", " ")}</button>)}
                                                                     </div>
                                                                 )}

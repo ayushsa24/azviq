@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type Theme = "light" | "dark";
 
@@ -12,7 +13,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // Instantly apply the .dark class without CSS transitions firing (prevents flash)
-function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme, pathname: string | null = null) {
   const root = document.documentElement;
 
   // Temporarily disable all transitions so the class-swap is instantaneous
@@ -21,12 +22,36 @@ function applyTheme(theme: Theme) {
   style.textContent = "*, *::before, *::after { transition: none !important; }";
   document.head.appendChild(style);
 
+  let themeMeta = document.querySelector('meta[name="theme-color"]:not([media])');
+  if (!themeMeta) {
+    // Fallback: grab the ID'd one
+    themeMeta = document.getElementById('theme-color-meta');
+  }
+  if (!themeMeta) {
+    themeMeta = document.createElement('meta');
+    themeMeta.setAttribute('name', 'theme-color');
+    document.head.appendChild(themeMeta);
+  }
+
   if (theme === "dark") {
     root.classList.add("dark");
-    root.style.backgroundColor = "#161514";
+    root.style.backgroundColor = "#1A1A1A";
+    // Update all theme-color tags (including media-query ones) for Brave
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', '#1A1A1A'));
   } else {
     root.classList.remove("dark");
     root.style.backgroundColor = "#F5F3EF";
+    const isWhiteHeader = 
+      pathname?.includes("/library/note/") || 
+      pathname?.includes("/library/pdf/") ||
+      pathname?.includes("/preparation/exercise/") ||
+      pathname?.includes("/preparation/revision/") ||
+      pathname?.includes("/preparation/personal-ai/") ||
+      pathname === "/ai" || 
+      pathname?.startsWith("/ai/");
+    const lightColor = isWhiteHeader ? "#FFFFFF" : "#F5F3EF";
+    // Update all theme-color tags for Brave + the media-query light one
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', lightColor));
   }
 
   // Re-enable transitions after one paint
@@ -42,6 +67,7 @@ function applyTheme(theme: Theme) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
+  const pathname = usePathname();
 
   // On mount: read saved preference and apply without any flash
   useEffect(() => {
@@ -55,15 +81,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     setTheme(resolved);
-    // The inline script in layout.tsx already set the class — no need to re-apply here
-    // but we sync localStorage just in case
     localStorage.setItem("theme", resolved);
   }, []);
+
+  // Update theme color meta tags when navigating between pages with different header colors
+  useEffect(() => {
+    applyTheme(theme, pathname);
+  }, [pathname, theme]);
 
   const toggleTheme = () => {
     setTheme(prev => {
       const next = prev === "dark" ? "light" : "dark";
-      applyTheme(next);
+      applyTheme(next, pathname);
       return next;
     });
   };

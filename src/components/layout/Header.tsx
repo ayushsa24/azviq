@@ -57,11 +57,11 @@ export default function Header({
 
   return (
     <header className={`h-[calc(3.25rem+env(safe-area-inset-top,0px))] md:h-16 pt-[calc(env(safe-area-inset-top,0px)+8px)] md:pt-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-in-out ${variant} z-50 ${theme === 'dark'
-      ? 'bg-[#1A1A1A] border-[#545454]'
-      : 'bg-[#F5F3EF] border-[#E8E5E0]'
+      ? 'bg-[#1A1A1A] md:border-[#545454] border-[#2E2E2E]'
+      : 'bg-[#F5F3EF] md:border-[#E8E5E0] border-[#7D7D7D]/40'
       } ${open
-        ? 'top-0 left-0 right-0 border-b shadow-sm'
-        : 'md:top-0 md:left-[8px] md:right-[8px] md:rounded-b-2xl md:shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:border md:border-t-0 top-0 left-0 right-0 border-b shadow-sm'
+        ? 'top-0 left-0 right-0 border-b shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+        : 'md:top-0 md:left-[8px] md:right-[8px] md:rounded-b-2xl md:shadow-[0_2px_15px_rgba(0,0,0,0.04)] md:border md:border-t-0 top-0 left-0 right-0 border-b shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
       }`}>
 
       {/* LEFT */}

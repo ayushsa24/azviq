@@ -10,7 +10,6 @@ import { UploadNoteModal } from "@/components/notes/UploadNoteModal";
 import { WorkspaceCard } from "@/components/notes/WorkspaceCard";
 import { CreateWorkspaceModal } from "@/components/notes/CreateWorkspaceModal";
 import { RenameWorkspaceModal } from "@/components/notes/RenameWorkspaceModal";
-import { RenameNoteModal } from "@/components/notes/RenameNoteModal";
 import { MoveNoteModal } from "@/components/notes/MoveNoteModal";
 import { Workspace } from "@/types";
 import useSWR from "swr";
@@ -223,9 +222,8 @@ export default function NotesPage() {
     }
   }, [searchParams, workspaces, notes]);
 
-  const handleRenameClick = (note: NoteItem) => {
-    setSelectedNote(note);
-    setIsRenameModalOpen(true);
+  const handleRenameClick = () => {
+    mutateNotes();
   };
 
   const handleMoveClick = async (note: NoteItem, workspaceId: string | null) => {
@@ -711,12 +709,6 @@ export default function NotesPage() {
         onClose={() => setIsRenameWorkspaceModalOpen(false)}
         onSuccess={refetchData}
         workspace={selectedWorkspaceForRename}
-      />
-      <RenameNoteModal
-        isOpen={isRenameModalOpen}
-        onClose={() => setIsRenameModalOpen(false)}
-        onSuccess={refetchData}
-        note={selectedNote}
       />
     </div >
   );

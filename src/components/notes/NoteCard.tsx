@@ -48,6 +48,8 @@ export function NoteCard({
     const isList = viewMode === "list";
     const isPinned = isPinnedOverride !== undefined ? isPinnedOverride : !!note.is_pinned;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [tempTitle, setTempTitle] = useState(note.title.replace(/^\[\w+\]\s*/, ""));
     const [isMoving, setIsMoving] = useState(false);
     const [isMovingNote, setIsMovingNote] = useState(false);
     const [isMobileApp, setIsMobileApp] = useState(false);
@@ -55,6 +57,54 @@ export function NoteCard({
     const menuRef = useRef<HTMLDivElement>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isLongPress = useRef(false);
+
+    // Sync tempTitle with note.title when it changes externally
+    useEffect(() => {
+        setTempTitle(note.title.replace(/^\[\w+\]\s*/, ""));
+    }, [note.title]);
+
+    // Auto-scroll into view on mobile when renaming starts
+    useEffect(() => {
+        if (isRenaming && typeof window !== "undefined" && window.innerWidth < 768) {
+            const el = document.getElementById(`note-card-${note.id}`);
+            if (el) {
+                // Small delay to allow keyboard to start opening
+                setTimeout(() => {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        }
+    }, [isRenaming, note.id]);
+
+    const handleRenameSubmit = async () => {
+        const cleanOldTitle = note.title.replace(/^\[\w+\]\s*/, "");
+        if (tempTitle.trim() === cleanOldTitle || !tempTitle.trim()) {
+            setIsRenaming(false);
+            setTempTitle(cleanOldTitle);
+            return;
+        }
+
+        try {
+            // Keep the emoji prefix if it exists
+            const iconMatch = note.title.match(/^\[\w+\]/);
+            const prefix = iconMatch ? iconMatch[0] + " " : "";
+            const finalTitle = prefix + tempTitle.trim();
+
+            const res = await fetch(`/api/notes/${note.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: finalTitle }),
+            });
+
+            if (res.ok) {
+                // Trigger the onRename prop if it exists, which usually refetches data in parent
+                onRename?.(note);
+            }
+        } catch (e) {
+            console.error("Failed to rename note", e);
+        }
+        setIsRenaming(false);
+    };
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -151,6 +201,7 @@ export function NoteCard({
 
     return (
         <div
+            id={`note-card-${note.id}`}
             onClick={handleCardClick}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -207,8 +258,27 @@ export function NoteCard({
                             }
                             return null;
                         })()}
-                        <span className="truncate">{note.title.replace(/^\[\w+\]\s*/, "")}</span>
-                        {note.is_revoked && (
+                        {isRenaming ? (
+                            <input
+                                type="text"
+                                value={tempTitle}
+                                autoFocus
+                                className="bg-transparent border-b border-[#7D7D7D] outline-none text-sm w-full py-0 px-0"
+                                onChange={(e) => setTempTitle(e.target.value)}
+                                onBlur={handleRenameSubmit}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleRenameSubmit();
+                                    if (e.key === "Escape") {
+                                        setTempTitle(note.title);
+                                        setIsRenaming(false);
+                                    }
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        ) : (
+                            <span className="truncate">{note.title.replace(/^\[\w+\]\s*/, "")}</span>
+                        )}
+                        {note.is_revoked && !isRenaming && (
                             <span title="Access Revoked (Private Note)" className="flex items-center">
                                 <EyeOff className="w-3.5 h-3.5 text-[#7D7D7D] shrink-0" />
                             </span>
@@ -278,7 +348,12 @@ export function NoteCard({
                                             {note.is_favourite ? "Remove Favourite" : "Add to Favourites"}
                                         </button>
                                         <button
-                                            onClick={(e) => handleMenuAction(e, () => onRename?.(note))}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsRenaming(true);
+                                                setIsMenuOpen(false);
+                                            }}
                                             className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
                                         >
                                             <Edit2 className="w-3.5 h-3.5" />
