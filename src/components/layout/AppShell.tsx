@@ -251,8 +251,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         suppressHydrationWarning
         className={`flex flex-col overflow-hidden flex-1 min-h-0 
           ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0'} 
-          ${mounted && open ? 'md:pl-52 px-0' : 'md:pl-0 px-0'} 
-          ${mounted && !open && !isFullPageLayer ? 'md:px-[0.5%] lg:px-[1%] xl:px-[1.5%]' : ''}
+          ${mounted && open 
+            ? 'md:pl-[14rem]' 
+            : mounted && !open && !isFullPageLayer 
+              ? 'md:px-[2.5%]' 
+              : 'px-0'} 
           ${mounted && (isKeyboardOpen || (isFullPageLayer && !isAiPage) || (isAiPage && !isBottomNavVisible)) ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} 
           transition-all duration-300 bg-transparent`}
       >

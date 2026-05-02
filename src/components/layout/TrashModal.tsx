@@ -227,7 +227,7 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in" onClick={handleClose} />
       
-      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-4xl flex flex-col sm:flex-row rounded-none sm:rounded-3xl shadow-2xl overflow-hidden transition-colors border-0 animate-in zoom-in-95 duration-200 ${
+      <div className={`relative w-full h-full sm:h-[580px] sm:max-w-[760px] flex flex-col sm:flex-row rounded-none sm:rounded-xl shadow-2xl overflow-hidden transition-colors border-0 animate-in zoom-in-95 duration-200 ${
         isDark ? "bg-[#1A1A1A] md:bg-[#1F1F1F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
       }`}>
         

@@ -587,7 +587,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       />
 
       {/* Modal Container */}
-      <div className={`relative w-full h-full sm:h-[620px] sm:max-w-[820px] flex flex-col sm:flex-row rounded-none sm:rounded-3xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
+      <div className={`relative w-full h-full sm:h-[580px] sm:max-w-[760px] flex flex-col sm:flex-row rounded-none sm:rounded-xl overflow-hidden shadow-2xl transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"
         }`}>
 
         {/* Sidebar (Desktop) / Top Bar (Mobile) */}

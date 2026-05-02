@@ -162,9 +162,9 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                 closeModal();
               }
             }}
-            className={`fixed z-[310] w-full bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-4xl
-              ${isMobile ? "h-[92dvh] pt-2" : "h-[38.75rem]"}
-              rounded-t-[20px] sm:rounded-3xl
+            className={`fixed z-[310] w-full bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-[760px]
+              ${isMobile ? "h-[92dvh] pt-2" : "h-[580px]"}
+              rounded-t-[20px] sm:rounded-xl
               shadow-2xl overflow-hidden flex flex-col overscroll-contain
               ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-white" : "bg-[#F5F3EF] text-[#252525]"}`}
             style={{ touchAction: isMobile ? "pan-y" : "auto" }}
@@ -450,7 +450,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 400 }}
-            className={`relative w-full max-w-[21.25rem] rounded-3xl shadow-2xl p-6 border
+            className={`relative w-full max-w-[21.25rem] rounded-xl shadow-2xl p-6 border
               ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"}`}
           >
             <div className="flex flex-col items-center text-center space-y-4">
