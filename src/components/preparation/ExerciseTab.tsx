@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -36,6 +37,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     const exercises = data?.exercises || [];
     const isDark = theme === 'dark';
     const isList = viewMode === "list";
+    const dialog = useAppDialog();
 
 
     // Expose mutate so parent can call after generate
@@ -63,7 +65,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     }, [search, exercises, onStartExercise]);
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Delete this exercise?")) return;
+        if (!await dialog.showConfirm({ title: "Move to Trash?", message: "This exercise will be moved to Trash and permanently deleted after 7 days.", confirmLabel: "Move to Trash", cancelLabel: "Cancel", type: "warning" })) return;
         
         // Optimistic update
         mutate((current: any) => ({

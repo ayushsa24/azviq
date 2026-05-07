@@ -156,7 +156,7 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
     const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
 
     const tabCls = (t: string) =>
-        `px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === t
+        `px-4 py-2.5 text-sm font-semibold border-b-[1.5px] transition-colors whitespace-nowrap ${activeTab === t
             ? "border-[#252525] dark:border-white text-[#252525] dark:text-white"
             : "border-transparent text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
         }`;

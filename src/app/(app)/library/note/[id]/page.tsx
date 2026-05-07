@@ -34,6 +34,7 @@ import { useStudyTracker } from '@/hooks/useStudyTracker';
 import { useSidebar } from "@/contexts/SidebarContext";
 import { supabase as supabaseClient } from "@/lib/supabase";
 import { ImportersModal } from "@/components/modals/ImportersModal";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 const lowlight = createLowlight(all)
 const StandardEmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -43,6 +44,7 @@ export default function NoteEditorPage() {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const router = useRouter();
     const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
+    const dialog = useAppDialog();
     const searchParams = useSearchParams();
 
     const [title, setTitle] = useState("Untitled Note");
@@ -293,7 +295,7 @@ export default function NoteEditorPage() {
         console.log("[PDF] Exporting Text length:", plainText.trim().length);
 
         if (plainText.trim().length === 0 || isRevoked) {
-            alert("Exporting is disabled for private or empty notes.");
+            dialog.showAlert("Exporting is disabled for private or empty notes.", "error");
             return;
         }
 
@@ -302,7 +304,7 @@ export default function NoteEditorPage() {
             await exportToPdf(html, title || 'Untitled Note');
         } catch (err) {
             console.error("PDF Export failed:", err);
-            alert("Failed to generate PDF. Please try again.");
+            dialog.showAlert("Failed to generate PDF. Please try again.", "error");
         } finally {
             setIsDownloadingPdf(false);
             setShowMoreMenu(false);
@@ -551,14 +553,14 @@ export default function NoteEditorPage() {
                 body: JSON.stringify({ share_mode: mode }),
             });
             if (res.status === 401) {
-                alert("Session expired. Please log out and log back in, then try again.");
+                dialog.showAlert("Session expired. Please log out and log back in, then try again.", "error");
                 return;
             }
             if (!res.ok) throw new Error("Failed to update");
             setShareMode(mode);
         } catch (err) {
             console.error("[share] Failed to set share_mode:", err);
-            alert("Failed to update sharing settings. Please try again.");
+            dialog.showAlert("Failed to update sharing settings. Please try again.", "error");
         } finally {
             setIsTogglingShare(false);
         }
@@ -573,7 +575,13 @@ export default function NoteEditorPage() {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm("Are you sure you want to delete this note?")) return;
+        if (!await dialog.showConfirm({
+            title: "Move to Trash?",
+            message: "This note will be moved to Trash and permanently deleted after 7 days.",
+            confirmLabel: "Move to Trash",
+            cancelLabel: "Cancel",
+            type: "warning"
+        })) return;
 
         try {
             const res = await fetch(`/api/notes/${id}`, {
@@ -583,7 +591,7 @@ export default function NoteEditorPage() {
             router.push("/library");
         } catch (err) {
             console.error(err);
-            alert("Failed to delete note. Please try again.");
+            dialog.showAlert("Failed to delete note. Please try again.", "error");
         }
     };
 
@@ -645,7 +653,7 @@ export default function NoteEditorPage() {
     }
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors relative">
+        <div className="flex flex-col h-full overflow-y-auto custom-scrollbar bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors relative">
 
             {/* Top Navigation Bar */}
             <div className="sticky top-0 z-[60] flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] transition-colors">
@@ -707,7 +715,7 @@ export default function NoteEditorPage() {
                             <button
                                 onClick={() => {
                                     if (parentShareMode === 'view') {
-                                        alert("This note is view-only by the original owner's request.");
+                                        dialog.showAlert("This note is view-only by the original owner's request.", "error");
                                         return;
                                     }
                                     setIsLocked(!isLocked);

@@ -102,6 +102,26 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     if (!user) return apiError("User not found", 404);
 
+    const { data: sessionData, error: fetchError } = await supabase
+      .from("personal_ai_sessions")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (fetchError || !sessionData) {
+      return apiError("Session not found", 404);
+    }
+
+    // Insert into Trash for soft-delete
+    await supabase.from("trash").insert({
+        user_id: user.id,
+        item_type: "personal_ai_session",
+        item_id: id,
+        title: sessionData.title || "Personal AI Session",
+        data: sessionData
+    });
+
     const { error } = await supabase
       .from("personal_ai_sessions")
       .delete()

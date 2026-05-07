@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { X, User, Edit3, Save, Camera, Trash2 } from "lucide-react";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 interface Props {
     open: boolean;
@@ -15,6 +16,7 @@ export default function ProfileModal({ open, onClose }: Props) {
     const searchParams = useSearchParams();
     const fromParam = searchParams.get("from") || "/dashboard";
     const isDark = theme === "dark";
+    const dialog = useAppDialog();
 
     const [editing, setEditing] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -75,7 +77,7 @@ export default function ProfileModal({ open, onClose }: Props) {
             fd.append("avatar", avatarFile);
             const up = await fetch("/api/upload-avatar", { method: "POST", headers: { "x-user-id": userId }, body: fd });
             if (up.ok) { const d = await up.json(); avatarUrl = d.url; }
-            else { alert("Failed to upload avatar"); return; }
+            else { dialog.showAlert("Failed to upload avatar", "error"); return; }
         }
         const res = await fetch("/api/profile", {
             method: "PUT",
@@ -128,7 +130,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                 </div>
 
                 {/* Body */}
-                <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto scrollbar-hide">
+                <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
 
                     {/* Avatar */}
                     <div className="flex justify-center">

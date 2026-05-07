@@ -74,13 +74,22 @@ export async function DELETE(req: Request, context: { params: Promise<{ chatId: 
 
         const { data: chatData } = await supabase
             .from("chats")
-            .select("user_id")
+            .select("*, messages(*)")
             .eq("id", chatId)
             .single();
 
         if (!chatData || !dbUser || chatData.user_id !== dbUser.id) {
             return Response.json({ error: "Forbidden" }, { status: 403 });
         }
+
+        // Insert into Trash for soft-delete (with messages embedded in data)
+        await supabase.from("trash").insert({
+            user_id: dbUser.id,
+            item_type: "chat",
+            item_id: chatId,
+            title: chatData.title || "Untitled Chat",
+            data: chatData
+        });
 
         const { error } = await supabase
             .from("chats")

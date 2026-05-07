@@ -17,6 +17,7 @@ import {
 import { format } from "date-fns";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 interface ProjectDetailModalProps {
     project: any | null;
@@ -47,6 +48,7 @@ export function ProjectDetailModal({
     const [isSaving, setIsSaving] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
+    const dialog = useAppDialog();
     const [showFavorites, setShowFavorites] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -175,7 +177,15 @@ export function ProjectDetailModal({
         e.preventDefault();
     };
 
-    const handleDeleteTask = async (taskId: string) => {
+    const handleDeleteTask = async (taskId: string, taskTitle?: string) => {
+        const confirmed = await dialog.showConfirm({
+            title: "Move to Trash?",
+            message: `"${taskTitle || 'This task'}" will be moved to Trash and permanently deleted after 7 days.`,
+            type: "warning",
+            confirmLabel: "Move to Trash",
+            cancelLabel: "Cancel"
+        });
+        if (!confirmed) return;
         setOpenMenuId(null);
         try {
             await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
@@ -213,7 +223,7 @@ export function ProjectDetailModal({
 
     return (
         <>
-            <div className="fixed inset-0 z-[60] flex flex-col sm:justify-center sm:items-center">
+            <div className="fixed inset-0 z-[300] flex flex-col sm:justify-center sm:items-center">
                 {/* Backdrop */}
                 <motion.div 
                     initial={{ opacity: 0 }}
@@ -482,7 +492,7 @@ export function ProjectDetailModal({
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            <div className="border-t border-gray-100 dark:border-[#444] my-1" /><button onClick={() => handleDeleteTask(t.id)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-4 h-4" />Delete</button>
+                                                            <div className="border-t border-gray-100 dark:border-[#444] my-1" /><button onClick={() => handleDeleteTask(t.id, t.title)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-4 h-4" />Move to Trash</button>
                                                         </div>
                                                     )}
                                                 </div>

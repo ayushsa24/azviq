@@ -8,6 +8,7 @@ import { Mail, UserPlus, Check, X, Bot, Camera, Trash2, User } from "lucide-reac
 import Link from "next/link";
 import { signIn as nextAuthSignIn } from "next-auth/react";
 import OtpInput from "@/components/auth/OtpInput";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 import { useSession } from "next-auth/react";
 
@@ -16,6 +17,7 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const { theme } = useTheme();
+  const dialog = useAppDialog();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -101,10 +103,10 @@ function SignupForm() {
         setStep('verify');
         setCountdown(60);
       } else {
-        alert(data.error?.message || "Signup failed");
+        dialog.showAlert(data.error?.message || "Signup failed", "error");
       }
     } catch (err) {
-      alert("Something went wrong");
+      dialog.showAlert("Something went wrong", "error");
     } finally {
       setIsVerifying(false);
     }
@@ -172,7 +174,7 @@ function SignupForm() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Image size should be less than 2MB");
+        dialog.showAlert("Image size should be less than 2MB", "warning");
         return;
       }
       const reader = new FileReader();
@@ -220,10 +222,10 @@ function SignupForm() {
         window.location.href = "/dashboard";
       } else {
         const data = await res.json();
-        alert(`Failed to save profile: ${data.error || 'Unknown error'}`);
+        dialog.showAlert(`Failed to save profile: ${data.error || 'Unknown error'}`, "error");
       }
     } catch (err) {
-      alert("Something went wrong while saving your profile.");
+      dialog.showAlert("Something went wrong while saving your profile.", "error");
     } finally {
       setIsSavingProfile(false);
     }

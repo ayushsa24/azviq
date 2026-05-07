@@ -50,5 +50,9 @@ README.md
 .gsd
 .agent
 
+# Local Tunnel
+bin/
+tunnel.log
+
 # Environment
-,env.local
+.env.local

@@ -435,11 +435,16 @@ pre::-webkit-scrollbar,
 /* Custom Scrollbar for Dropdowns and compact containers */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: #D1D1D1 transparent;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: #3A3A3A transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -447,12 +452,20 @@ pre::-webkit-scrollbar,
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: #D1D1D1;
   border-radius: 20px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: #BABABA;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #3A3A3A;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #4A4A4A;
 }
 
 /* Show scrollbar on hover for desktop */

@@ -13,12 +13,14 @@ import { RenameWorkspaceModal } from "@/components/notes/RenameWorkspaceModal";
 import { MoveNoteModal } from "@/components/notes/MoveNoteModal";
 import { Workspace } from "@/types";
 import useSWR from "swr";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function NotesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dialog = useAppDialog();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
   const [viewMode, setViewModeState] = useState<"grid" | "list">(
@@ -73,7 +75,7 @@ export default function NotesPage() {
 
   const { data: wsData, isLoading: wsLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
   const workspaces: Workspace[] = wsData?.workspaces || [];
-  
+
   const workspaceIdFromUrl = searchParams.get("workspace");
   const activeWorkspace = useMemo(() => {
     if (!workspaceIdFromUrl || !workspaces.length) return null;
@@ -202,7 +204,7 @@ export default function NotesPage() {
     const searchParam = searchParams.get("search");
     if (searchParam) {
       setSearchQuery(searchParam);
-      
+
       // If notes are loaded, try to find an exact match to auto-open
       if (notes && notes.length > 0) {
         const exactMatch = notes.find(n => n.title.toLowerCase() === searchParam.toLowerCase());
@@ -211,7 +213,7 @@ export default function NotesPage() {
           const newParams = new URLSearchParams(searchParams.toString());
           newParams.delete("search");
           window.history.replaceState({}, "", `/library?${newParams.toString()}`);
-          
+
           // Open it
           handleOpenNote(exactMatch);
         }
@@ -235,25 +237,31 @@ export default function NotesPage() {
       refetchData();
     } catch (err) {
       console.error(err);
-      alert("Could not move the note.");
+      dialog.showAlert("Could not move the note.", "error");
     }
   };
 
   const handleDeleteClick = async (note: NoteItem) => {
-    if (window.confirm("Are you sure you want to delete this note?")) {
+    if (await dialog.showConfirm({
+      title: "Move to Trash?",
+      message: `"${note.title || 'Untitled'}" will be moved to the Trash and permanently deleted after 7 days.`,
+      confirmLabel: "Move to Trash",
+      cancelLabel: "Cancel",
+      type: "warning"
+    })) {
       // Optimistic update
       mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
         ...currentData,
         notes: (currentData?.notes || []).filter((n: NoteItem) => n.id !== note.id)
       }) as { notes: NoteItem[] }, false);
-      
+
       try {
         const res = await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Failed to delete note");
         mutateNotes();
       } catch (err) {
         console.error(err);
-        alert("Could not delete the note.");
+        dialog.showAlert("Could not delete the note.", "error");
         mutateNotes(); // Revert on failure
       }
     }
@@ -263,11 +271,11 @@ export default function NotesPage() {
     // Optimistic update
     mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
       ...currentData,
-      notes: (currentData?.notes || []).map((n: NoteItem) => 
+      notes: (currentData?.notes || []).map((n: NoteItem) =>
         n.id === note.id ? { ...n, is_favourite: !note.is_favourite } : n
       )
     }) as { notes: NoteItem[] }, false);
-    
+
     try {
       const res = await fetch(`/api/notes/${note.id}`, {
         method: "PATCH",
@@ -278,25 +286,25 @@ export default function NotesPage() {
       mutateNotes();
     } catch (err) {
       console.error(err);
-      alert("Could not update the note.");
+      dialog.showAlert("Could not update the note.", "error");
       mutateNotes(); // Revert on failure
     }
   };
 
   const handleTogglePin = async (note: NoteItem) => {
     const isFavTab = activeTab === "favourites";
-    
+
     // Optimistic update
     mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
       ...currentData,
-      notes: (currentData?.notes || []).map((n: NoteItem) => 
-        n.id === note.id ? { 
-          ...n, 
+      notes: (currentData?.notes || []).map((n: NoteItem) =>
+        n.id === note.id ? {
+          ...n,
           ...(isFavTab ? { is_pinned_in_favourites: !note.is_pinned_in_favourites } : { is_pinned: !note.is_pinned })
         } : n
       )
     }) as { notes: NoteItem[] }, false);
-    
+
     try {
       const body = isFavTab
         ? { is_pinned_in_favourites: !note.is_pinned_in_favourites }
@@ -311,7 +319,7 @@ export default function NotesPage() {
       mutateNotes();
     } catch (err) {
       console.error(err);
-      alert("Could not update the note.");
+      dialog.showAlert("Could not update the note.", "error");
       mutateNotes(); // Revert on failure
     }
   };
@@ -334,7 +342,7 @@ export default function NotesPage() {
       router.push(`/library/note/${note.id}?new=true`);
     } catch (err) {
       console.error(err);
-      alert("Could not create the note.");
+      dialog.showAlert("Could not create the note.", "error");
     }
   };
 
@@ -344,13 +352,19 @@ export default function NotesPage() {
   };
 
   const handleDeleteWorkspaceClick = async (workspace: Workspace) => {
-    if (window.confirm(`Are you sure you want to delete the "${workspace.name}" workspace? This will ALSO DELETE ALL FILES inside it.`)) {
+    if (await dialog.showConfirm({
+      title: "Move to Trash?",
+      message: `"${workspace.name}" and all files inside will be moved to Trash and permanently deleted after 7 days.`,
+      confirmLabel: "Move to Trash",
+      cancelLabel: "Cancel",
+      type: "warning"
+    })) {
       // Optimistic update
       mutateWorkspaces((currentData: { workspaces: Workspace[] } | undefined) => ({
         ...currentData,
         workspaces: (currentData?.workspaces || []).filter((w: Workspace) => w.id !== workspace.id)
       }) as { workspaces: Workspace[] }, false);
-      
+
       try {
         const res = await fetch(`/api/workspaces/${workspace.id}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Failed to delete workspace");
@@ -363,7 +377,7 @@ export default function NotesPage() {
         refetchData();
       } catch (err) {
         console.error(err);
-        alert("Could not delete the workspace.");
+        dialog.showAlert("Could not delete the workspace.", "error");
         mutateWorkspaces(); // Revert on failure
       }
     }
@@ -373,11 +387,11 @@ export default function NotesPage() {
     // Optimistic update
     mutateWorkspaces((currentData: { workspaces: Workspace[] } | undefined) => ({
       ...currentData,
-      workspaces: (currentData?.workspaces || []).map((w: Workspace) => 
+      workspaces: (currentData?.workspaces || []).map((w: Workspace) =>
         w.id === workspace.id ? { ...w, is_pinned: !workspace.is_pinned } : w
       )
     }) as { workspaces: Workspace[] }, false);
-    
+
     try {
       const res = await fetch(`/api/workspaces/${workspace.id}`, {
         method: "PATCH",
@@ -388,7 +402,7 @@ export default function NotesPage() {
       mutateWorkspaces();
     } catch (err) {
       console.error(err);
-      alert("Could not update the workspace.");
+      dialog.showAlert("Could not update the workspace.", "error");
       mutateWorkspaces(); // Revert on failure
     }
   };
@@ -425,16 +439,16 @@ export default function NotesPage() {
           <input
             type="text"
             placeholder={
-              activeWorkspace 
-                ? `Search in ${activeWorkspace.name}...` 
-                : activeTab === "workspaces" 
-                  ? "Search workspaces..." 
-                  : activeTab === "notes" 
-                    ? "Search notes..." 
-                    : activeTab === "pdfs" 
-                      ? "Search PDFs..." 
-                      : activeTab === "favourites" 
-                        ? "Search favourites..." 
+              activeWorkspace
+                ? `Search in ${activeWorkspace.name}...`
+                : activeTab === "workspaces"
+                  ? "Search workspaces..."
+                  : activeTab === "notes"
+                    ? "Search notes..."
+                    : activeTab === "pdfs"
+                      ? "Search PDFs..."
+                      : activeTab === "favourites"
+                        ? "Search favourites..."
                         : "Search notes..."
             }
             value={searchQuery}
@@ -533,7 +547,7 @@ export default function NotesPage() {
       </div>
 
       {/* SCROLLABLE CONTENT AREA */}
-      <div className="flex-1 flex flex-col overflow-y-auto min-h-0 px-4 sm:px-6 mt-2 scrollbar-hide">
+      <div className="flex-1 flex flex-col overflow-y-auto min-h-0 px-4 sm:px-6 mt-2 custom-scrollbar">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div
@@ -584,7 +598,7 @@ export default function NotesPage() {
               className="flex-1 flex flex-col"
             >
               {activeTab === "workspaces" && !activeWorkspace ? (
-                <motion.div 
+                <motion.div
                   layout
                   className={
                     viewMode === "grid"
@@ -612,7 +626,7 @@ export default function NotesPage() {
                         />
                       </motion.div>
                     )) : (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}
@@ -631,7 +645,7 @@ export default function NotesPage() {
                   </AnimatePresence>
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   layout
                   className={
                     viewMode === "grid"
@@ -664,7 +678,7 @@ export default function NotesPage() {
                         />
                       </motion.div>
                     )) : (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}

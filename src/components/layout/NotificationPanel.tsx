@@ -110,7 +110,7 @@ export default function NotificationPanel() {
                             fixed z-[500] flex flex-col overflow-hidden
                             ${isMobile 
                                 ? "inset-x-0 bottom-0 h-[92dvh] rounded-t-[20px] pt-2" 
-                                : "top-[3.75rem] left-56 w-[22.5rem] max-h-[calc(100vh-7.5rem)] rounded-xl shadow-2xl border"
+                                : "top-[3.75rem] left-[17rem] w-[22.5rem] max-h-[calc(100vh-7.5rem)] rounded-xl shadow-2xl border"
                             }
                             ${isDark
                                 ? "bg-[#1A1A1A] md:border-[#3A3A3A] text-white"
@@ -170,7 +170,7 @@ export default function NotificationPanel() {
                         {/* List */}
                         <div 
                             ref={scrollContainerRef}
-                            className="flex-1 overflow-y-auto scrollbar-hide overscroll-contain"
+                            className="flex-1 overflow-y-auto custom-scrollbar overscroll-contain"
                             onTouchStart={(e) => {
                                 touchStartY.current = e.touches[0].clientY;
                                 touchStartX.current = e.touches[0].clientX;

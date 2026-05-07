@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, Trophy } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 interface Question {
     question: string;
@@ -35,6 +36,7 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isDark = theme === 'dark';
+    const dialog = useAppDialog();
 
     useStudyTracker({ activityType: 'exercise', isEnabled: isOpen, subject: "Exercise", topic: exercise?.title || "Practice" });
 
@@ -88,7 +90,7 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
             setCurrentIndex(0);
             onComplete();
         } catch (error) {
-            alert("Failed to submit exercise results.");
+            dialog.showAlert("Failed to submit exercise results.", "error");
         } finally {
             setIsSubmitting(false);
         }

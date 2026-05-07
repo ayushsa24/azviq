@@ -13,6 +13,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { logRecentActivity } from "@/lib/logRecentActivity";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 const CanvasSkeleton = () => (
     <div className="w-full h-full min-h-[60vh] flex flex-col items-center p-8 bg-[#F5F3EF] dark:bg-[#1E1E1E]">
@@ -102,6 +103,7 @@ export default function PdfEditorPage() {
     const { id } = useParams() as { id: string };
     const router = useRouter();
     const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
+    const dialog = useAppDialog();
 
     const [note, setNote] = useState<any>(null);
     const [numPages, setNumPages] = useState<number>(0);
@@ -322,7 +324,7 @@ export default function PdfEditorPage() {
                     href: `/library/pdf/${id}`,
                 });
             } catch {
-                alert("Could not load PDF file.");
+                dialog.showAlert("Could not load PDF file.", "error");
             } finally {
                 setIsLoading(false);
             }
@@ -592,10 +594,10 @@ export default function PdfEditorPage() {
             setAnnotsByPage({});
             setHistory([{}]);
             setHistoryIdx(0);
-            alert("PDF saved successfully!");
+            dialog.showAlert("PDF saved successfully!", "success");
         } catch (error) {
             console.error(error);
-            alert("Error saving PDF.");
+            dialog.showAlert("Error saving PDF.", "error");
         } finally {
             setIsSaving(false);
         }

@@ -765,7 +765,7 @@ export default function UnifiedChatPanel({
       {/* ── Message Bubbles ───────────────────────────────────────── */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-1 sm:px-4 pb-32"
+        className="flex-1 overflow-y-auto custom-scrollbar px-1 sm:px-4 pb-32"
       >
         <div className="flex flex-col pt-4 space-y-3 sm:space-y-6">
 

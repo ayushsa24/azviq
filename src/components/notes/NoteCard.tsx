@@ -232,7 +232,18 @@ export function NoteCard({
 
             <div className={`flex items-center shrink-0 text-[#545454] dark:text-[#BABABA] group-hover:text-black dark:group-hover:text-white transition-colors ${isList ? "w-10 h-10 items-center justify-center rounded-full bg-[#F0EDE8] dark:bg-white/10" : "flex-1 justify-center"
                 }`}>
-                {isPdf ? <File className={isList ? "w-5 h-5" : "w-10 h-10 transition-transform group-hover:scale-110 mb-1"} strokeWidth={1.5} /> : <FileText className={isList ? "w-5 h-5" : "w-10 h-10 transition-transform group-hover:scale-110 mb-1"} strokeWidth={1.5} />}
+                {(() => {
+                    const iconMatch = note.title.match(/^\[(\w+)\]/);
+                    if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                        const IconComp = ICON_MAP[iconMatch[1]];
+                        return <IconComp className={isList ? "w-5 h-5" : "w-10 h-10 transition-transform group-hover:scale-110 mb-1"} strokeWidth={1.5} />;
+                    }
+                    return isPdf ? (
+                        <File className={isList ? "w-5 h-5" : "w-10 h-10 transition-transform group-hover:scale-110 mb-1"} strokeWidth={1.5} />
+                    ) : (
+                        <FileText className={isList ? "w-5 h-5" : "w-10 h-10 transition-transform group-hover:scale-110 mb-1"} strokeWidth={1.5} />
+                    );
+                })()}
             </div>
 
             <div className={`transition-colors min-w-0 ${isList ? "flex-1 flex flex-row items-center justify-between" : "mt-3 pt-3 border-t border-[#E8E5E0] dark:border-[#7D7D7D]/20"
@@ -250,14 +261,6 @@ export function NoteCard({
                                 )}
                             </div>
                         )}
-                        {(() => {
-                            const iconMatch = note.title.match(/^\[(\w+)\]/);
-                            if (iconMatch && ICON_MAP[iconMatch[1]]) {
-                                const IconComp = ICON_MAP[iconMatch[1]];
-                                return <IconComp className={isList ? "w-4 h-4" : "w-4 h-4"} />;
-                            }
-                            return null;
-                        })()}
                         {isRenaming ? (
                             <input
                                 type="text"

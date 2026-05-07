@@ -53,8 +53,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       case "revision":
         tableName = "revisions";
         break;
+      case "chat":
+        tableName = "chats";
+        break;
+      case "personal_ai_session":
+        tableName = "personal_ai_sessions";
+        break;
       default:
         return NextResponse.json({ error: "Unknown item type" }, { status: 400 });
+    }
+
+    // Extract embedded messages if it's a chat
+    let embeddedMessages: any[] | null = null;
+    if (tableName === "chats" && dataToRestore.messages) {
+      embeddedMessages = dataToRestore.messages;
+      delete dataToRestore.messages;
     }
 
     // 2. Re-insert the data into the original table
@@ -85,6 +98,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
          if (retryError) throw retryError;
       } else {
           throw restoreError;
+      }
+    }
+
+    // Restore embedded messages if any
+    if (embeddedMessages && embeddedMessages.length > 0) {
+      const { error: msgError } = await supabase
+        .from("messages")
+        .insert(embeddedMessages);
+      
+      if (msgError) {
+        console.error(`Restore chat_messages error:`, msgError);
       }
     }
 

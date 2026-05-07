@@ -55,6 +55,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useLanguage, LanguageCode } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { translations } from "@/utils/translations";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 type Tab = "general" | "notifications" | "models" | "data" | "account" | "parent_control";
 
@@ -68,7 +69,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const fromParam = searchParams.get("from") || "/dashboard";
-  
+
   // Use prop if provided, otherwise fallback to context
   const isOpen = propIsOpen !== undefined ? propIsOpen : contextIsOpen;
   const originalClose = propOnClose || closeSettings;
@@ -104,16 +105,17 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
 
   const isDark = theme === "dark";
+  const dialog = useAppDialog();
 
   // Sync state when URL changes (Back/Forward buttons & Initial Load)
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const segments = pathname.split("/").filter(Boolean);
     if (segments[0] === "settings") {
       const tabFromPath = segments[1] as Tab;
       const validTabs: Tab[] = ["general", "notifications", "models", "data", "account", "parent_control"];
-      
+
       if (tabFromPath && validTabs.includes(tabFromPath)) {
         if (tabFromPath !== activeTab) {
           setActiveTab(tabFromPath);
@@ -133,17 +135,17 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   // Sync URL when tab changes
   useEffect(() => {
     if (!isOpen) return;
-    
+
     // Skip URL update if we are currently in a sub-modal route (they manage their own URLs)
     const subModalRoutes = ["chatsharedlink", "notesharedlink", "archivechat", "importnotes", "importchats"];
     const segments = pathname.split("/").filter(Boolean);
     const isSubModal = segments[0] === "settings" && subModalRoutes.includes(segments[1]);
-    
+
     if (isSubModal) return;
 
     const targetPath = activeTab === "general" ? "/settings" : `/settings/${activeTab}`;
     const currentUrl = new URL(window.location.href);
-    
+
     if (currentUrl.pathname !== targetPath) {
       const newUrl = `${targetPath}?from=${encodeURIComponent(fromParam)}`;
       window.history.replaceState(null, '', newUrl);
@@ -158,11 +160,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
   const [showSharedLinks, setShowSharedLinks] = useState(() => {
     if (typeof window === "undefined") return false;
-    return pathname.includes("/settings/notesharedlink") || 
-           pathname.includes("/settings/chatsharedlink") || 
-           pathname.includes("/settings/archivechat");
+    return pathname.includes("/settings/notesharedlink") ||
+      pathname.includes("/settings/chatsharedlink") ||
+      pathname.includes("/settings/archivechat");
   });
-  
+
   const [linksType, setLinksType] = useState<"chat" | "note" | "archive" | "import" | "import-chat">(() => {
     if (typeof window !== "undefined") {
       if (pathname.includes("/settings/notesharedlink")) return "note";
@@ -205,15 +207,15 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   useEffect(() => {
     const handlePopState = () => {
       const currentPath = window.location.pathname;
-      const isSubModalRoute = currentPath.includes("/settings/notesharedlink") || 
-                              currentPath.includes("/settings/chatsharedlink") || 
-                              currentPath.includes("/settings/archivechat");
+      const isSubModalRoute = currentPath.includes("/settings/notesharedlink") ||
+        currentPath.includes("/settings/chatsharedlink") ||
+        currentPath.includes("/settings/archivechat");
 
       if (!isSubModalRoute && showSharedLinks) {
         setShowSharedLinks(false);
       }
     };
-    
+
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [showSharedLinks]);
@@ -259,7 +261,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const handleUnarchive = async (id: string) => {
     try {
       setRevokingId(id);
-      const res = await fetch(`/api/chat/history/${id}`, { 
+      const res = await fetch(`/api/chat/history/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_archived: false })
@@ -322,9 +324,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [responseStyle, setResponseStyle] = useState<"balanced" | "creative" | "precise">("balanced");
   const [isSavingModel, setIsSavingModel] = useState(false);
   const [modelSaveSuccess, setModelSaveSuccess] = useState(false);
-  const [subscription, setSubscription] = useState<{ 
-    plan_tier: number; 
-    plan_name: string; 
+  const [subscription, setSubscription] = useState<{
+    plan_tier: number;
+    plan_name: string;
     usage?: {
       chat: { remaining: number; limit: number; reset: number };
       vision: { remaining: number; limit: number; reset: number };
@@ -350,17 +352,17 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         .then(([aiData, subData]) => {
           setSubscription(subData);
           const userTier = subData?.plan_tier ?? 0;
-          
+
           // Enforce default model for free tier, or load saved setting for others
           if (userTier === 0) {
             setSelectedModel("gemini-2.5-flash-lite");
           } else if (aiData.ai_model) {
             setSelectedModel(aiData.ai_model);
           }
-          
+
           if (aiData.response_style) setResponseStyle(aiData.response_style);
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => {
           setLoadingModels(false);
         });
@@ -384,9 +386,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       await fetch("/api/user/ai-settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          ai_model: newModel || selectedModel, 
-          response_style: newStyle || responseStyle 
+        body: JSON.stringify({
+          ai_model: newModel || selectedModel,
+          response_style: newStyle || responseStyle
         }),
       });
       setModelSaveSuccess(true);
@@ -450,7 +452,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       const res = await fetch("/api/parent-control", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           family_email: newFamilyEmail.trim(),
           control_enabled: localControlEnabled,
           restricted_mode: localRestrictedMode,
@@ -484,7 +486,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     timeParam?: string
   ) => {
     setSavingSettings(true);
-    
+
     let finalTarget = targetParam !== undefined ? targetParam : null;
     if (targetParam === undefined) {
       if (localTarget === "custom") {
@@ -569,7 +571,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       return;
     }
     if (doNotDisturb) {
-      alert("Do Not Disturb is currently ON. Turn it off to see the test notification pop up!");
+      dialog.showAlert("Do Not Disturb is currently ON. Turn it off to see the test notification pop up!", "info");
       return;
     }
     new Notification("Azviq", {
@@ -603,7 +605,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
           </div>
 
           {/* Navigation - Sidebar on desktop, horizontal scroll on mobile */}
-          <div className="flex sm:flex-col items-center sm:items-stretch overflow-x-auto sm:overflow-x-visible h-[3.25rem] sm:h-auto px-4 sm:px-2 sm:mt-2 pb-0 sm:pb-6 space-x-1 sm:space-x-0 sm:space-y-1 scrollbar-hide">
+          <div className="flex sm:flex-col items-center sm:items-stretch overflow-x-auto sm:overflow-x-visible h-[3.25rem] sm:h-auto px-4 sm:px-2 sm:mt-2 pb-0 sm:pb-6 space-x-1 sm:space-x-0 sm:space-y-1 custom-scrollbar">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -612,8 +614,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-3 py-1.5 sm:py-2.5 rounded-xl transition-all text-[11px] sm:text-sm font-medium whitespace-nowrap shrink-0 sm:shrink outline-none ${isActive
-                      ? isDark ? "bg-[#2E2E2E] text-white" : "bg-white text-[#252525]"
-                      : isDark ? "text-[#BABABA] hover:bg-[#1C1C1B]/50" : "text-[#7D7D7D] hover:bg-white/60"
+                    ? isDark ? "bg-[#2E2E2E] text-white" : "bg-white text-[#252525]"
+                    : isDark ? "text-[#BABABA] hover:bg-[#1C1C1B]/50" : "text-[#7D7D7D] hover:bg-white/60"
                     }`}
                 >
                   <Icon size={14} className="sm:w-[18px] sm:h-[18px]" />
@@ -625,7 +627,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 custom-scrollbar">
           <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F]" : ""}`}>
 
             {activeTab === "general" && (
@@ -761,8 +763,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       </button>
                     </div>
                   ) : (
-                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${
-                        isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                    <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={requestPushPermission}>
                       <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all" />
                     </div>
@@ -776,8 +777,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       <p className="text-xs text-[#7D7D7D]">Daily alerts to stay on track</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${studyReminders
-                        ? "bg-[#C2A27A]"
-                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      ? "bg-[#C2A27A]"
+                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => setStudyReminders(!studyReminders)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${studyReminders ? "right-1" : "left-1"
                         }`} />
@@ -790,8 +791,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       <p className="text-xs text-[#7D7D7D]">Notify when long tasks are complete</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${aiAlerts
-                        ? "bg-[#C2A27A]"
-                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      ? "bg-[#C2A27A]"
+                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => setAiAlerts(!aiAlerts)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${aiAlerts ? "right-1" : "left-1"
                         }`} />
@@ -804,8 +805,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       <p className="text-xs text-[#7D7D7D]">Alerts for scheduled to-do items</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${todoReminders
-                        ? "bg-[#C2A27A]"
-                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      ? "bg-[#C2A27A]"
+                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => setTodoReminders(!todoReminders)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${todoReminders ? "right-1" : "left-1"
                         }`} />
@@ -818,8 +819,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       <p className="text-xs text-[#7D7D7D]">Alerts when tasks are due today</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${taskDueReminders
-                        ? "bg-[#C2A27A]"
-                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      ? "bg-[#C2A27A]"
+                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => setTaskDueReminders(!taskDueReminders)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${taskDueReminders ? "right-1" : "left-1"
                         }`} />
@@ -833,8 +834,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       <p className="text-xs text-[#7D7D7D]">Silence all alerts for better focus</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${doNotDisturb
-                        ? "bg-[#C2A27A]"
-                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      ? "bg-[#C2A27A]"
+                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => setDoNotDisturb(!doNotDisturb)}>
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${doNotDisturb ? "right-1" : "left-1"
                         }`} />
@@ -882,7 +883,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                 </div>
               </div>
             )}
-            
+
             {activeTab === "models" && (
               <div className="space-y-0 animate-in slide-in-from-right-4 duration-300 -mt-2">
                 <div className="pb-4 border-b border-[#E8E5E0] dark:border-[#3A3A3A] flex justify-between items-end">
@@ -943,7 +944,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                               const userTier = subscription?.plan_tier ?? 0;
                               const isLocked = m.minTier > userTier;
                               const isSelected = selectedModel === m.value;
-                              
+
                               return (
                                 <button
                                   key={m.value}
@@ -955,8 +956,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                                     }
                                   }}
                                   className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors
-                                    ${isSelected 
-                                      ? isDark ? "bg-white/5" : "bg-black/5" 
+                                    ${isSelected
+                                      ? isDark ? "bg-white/5" : "bg-black/5"
                                       : isLocked ? "opacity-40 cursor-not-allowed" : isDark ? "hover:bg-white/5" : "hover:bg-black/5"}`}
                                 >
                                   <div className="flex flex-col gap-0.5">
@@ -1008,11 +1009,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                                 setResponseStyle(style);
                                 handleSaveModelSettings(selectedModel, style);
                               }}
-                              className={`flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all active:scale-95 gap-1 ${
-                                isActive
+                              className={`flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all active:scale-95 gap-1 ${isActive
                                   ? isDark ? "bg-[#C2A27A] text-white border-[#C2A27A]" : "bg-[#252525] text-white border-[#252525]"
                                   : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"
-                              }`}
+                                }`}
                             >
                               <span>{labels[style]}</span>
                               <span className="text-[9px] font-normal opacity-60">{descs[style]}</span>
@@ -1064,8 +1064,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                             </div>
                             {subscription.usage.chat.limit !== Infinity && (
                               <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                                <div 
-                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                <div
+                                  className="h-full bg-[#C2A27A] transition-all duration-500"
                                   style={{ width: `${(subscription.usage.chat.remaining / subscription.usage.chat.limit) * 100}%` }}
                                 />
                               </div>
@@ -1077,13 +1077,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                             <div className="flex justify-between text-[11px] font-medium">
                               <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Vision & Images</span>
                               <span className="font-bold">
-                                  {subscription.usage.vision.limit === Infinity ? "Unlimited" : `${subscription.usage.vision.remaining} / ${subscription.usage.vision.limit}`}
+                                {subscription.usage.vision.limit === Infinity ? "Unlimited" : `${subscription.usage.vision.remaining} / ${subscription.usage.vision.limit}`}
                               </span>
                             </div>
                             {subscription.usage.vision.limit !== Infinity && (
                               <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                                <div 
-                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                <div
+                                  className="h-full bg-[#C2A27A] transition-all duration-500"
                                   style={{ width: `${(subscription.usage.vision.remaining / subscription.usage.vision.limit) * 100}%` }}
                                 />
                               </div>
@@ -1095,13 +1095,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                             <div className="flex justify-between text-[11px] font-medium">
                               <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Exercise Generation</span>
                               <span className="font-bold">
-                                  {subscription.usage.exercise.limit === Infinity ? "Unlimited" : `${subscription.usage.exercise.remaining} / ${subscription.usage.exercise.limit}`}
+                                {subscription.usage.exercise.limit === Infinity ? "Unlimited" : `${subscription.usage.exercise.remaining} / ${subscription.usage.exercise.limit}`}
                               </span>
                             </div>
                             {subscription.usage.exercise.limit !== Infinity && (
                               <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                                <div 
-                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                <div
+                                  className="h-full bg-[#C2A27A] transition-all duration-500"
                                   style={{ width: `${(subscription.usage.exercise.remaining / subscription.usage.exercise.limit) * 100}%` }}
                                 />
                               </div>
@@ -1113,13 +1113,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                             <div className="flex justify-between text-[11px] font-medium">
                               <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Personal AI Teacher</span>
                               <span className="font-bold">
-                                  {subscription.usage.personal_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.personal_ai.remaining} / ${subscription.usage.personal_ai.limit}`}
+                                {subscription.usage.personal_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.personal_ai.remaining} / ${subscription.usage.personal_ai.limit}`}
                               </span>
                             </div>
                             {subscription.usage.personal_ai.limit !== Infinity && (
                               <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                                <div 
-                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                <div
+                                  className="h-full bg-[#C2A27A] transition-all duration-500"
                                   style={{ width: `${(subscription.usage.personal_ai.remaining / subscription.usage.personal_ai.limit) * 100}%` }}
                                 />
                               </div>
@@ -1131,13 +1131,13 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                             <div className="flex justify-between text-[11px] font-medium">
                               <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Note Editor AI</span>
                               <span className="font-bold">
-                                  {subscription.usage.note_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.note_ai.remaining} / ${subscription.usage.note_ai.limit}`}
+                                {subscription.usage.note_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.note_ai.remaining} / ${subscription.usage.note_ai.limit}`}
                               </span>
                             </div>
                             {subscription.usage.note_ai.limit !== Infinity && (
                               <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? "bg-[#333]" : "bg-[#F0F0F0]"}`}>
-                                <div 
-                                  className="h-full bg-[#C2A27A] transition-all duration-500" 
+                                <div
+                                  className="h-full bg-[#C2A27A] transition-all duration-500"
                                   style={{ width: `${(subscription.usage.note_ai.remaining / subscription.usage.note_ai.limit) * 100}%` }}
                                 />
                               </div>
@@ -1177,9 +1177,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Chat shared links</span>
                     <button
-                      onClick={() => { 
-                        setLinksType("chat"); 
-                        setShowSharedLinks(true); 
+                      onClick={() => {
+                        setLinksType("chat");
+                        setShowSharedLinks(true);
                         window.history.pushState(null, '', `/settings/chatsharedlink?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
@@ -1193,9 +1193,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Note shared links</span>
                     <button
-                      onClick={() => { 
-                        setLinksType("note"); 
-                        setShowSharedLinks(true); 
+                      onClick={() => {
+                        setLinksType("note");
+                        setShowSharedLinks(true);
                         window.history.pushState(null, '', `/settings/notesharedlink?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
@@ -1209,9 +1209,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Imported chats</span>
                     <button
-                      onClick={() => { 
-                        setLinksType("import-chat"); 
-                        setShowSharedLinks(true); 
+                      onClick={() => {
+                        setLinksType("import-chat");
+                        setShowSharedLinks(true);
                         window.history.pushState(null, '', `/settings/importchats?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
@@ -1225,9 +1225,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Imported notes</span>
                     <button
-                      onClick={() => { 
-                        setLinksType("import"); 
-                        setShowSharedLinks(true); 
+                      onClick={() => {
+                        setLinksType("import");
+                        setShowSharedLinks(true);
                         window.history.pushState(null, '', `/settings/importnotes?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
@@ -1241,9 +1241,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Archived chats</span>
                     <button
-                      onClick={() => { 
-                        setLinksType("archive"); 
-                        setShowSharedLinks(true); 
+                      onClick={() => {
+                        setLinksType("archive");
+                        setShowSharedLinks(true);
                         window.history.pushState(null, '', `/settings/archivechat?from=${encodeURIComponent(fromParam)}`);
                       }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
@@ -1256,10 +1256,19 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   {/* Archive All */}
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Archive all chats</span>
-                    <button 
-                      onClick={() => setDeleteConfirmTarget({ id: "archive-all-history", title: "all your active chats" })}
+                    <button
+                      onClick={async () => {
+                        const confirmed = await dialog.showConfirm({
+                          title: "Archive All?",
+                          message: "Are you sure you want to archive all your active chats? You can always unarchive them later.",
+                          type: "warning",
+                          confirmLabel: "Archive All",
+                          cancelLabel: "Cancel"
+                        });
+                        if (confirmed) handleArchiveAllHistory();
+                      }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-[#333] border-[#444] text-white hover:bg-[#444]" : "bg-[#F0F0F0] border-[#E0E0E0] text-[#252525] hover:bg-[#E8E8E8]"
-                      }`}>
+                        }`}>
                       Archive all
                     </button>
                   </div>
@@ -1267,10 +1276,19 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   {/* Delete All Archives */}
                   <div className="flex items-center justify-between py-4">
                     <span className="text-sm font-medium">Delete all archived chats</span>
-                    <button 
-                      onClick={() => setDeleteConfirmTarget({ id: "delete-all-archives", title: "all your archived chats permanently" })}
+                    <button
+                      onClick={async () => {
+                        const confirmed = await dialog.showConfirm({
+                          title: "Delete All Archives?",
+                          message: "Are you sure you want to delete all your archived chats permanently? This action cannot be undone.",
+                          type: "error",
+                          confirmLabel: "Delete All",
+                          cancelLabel: "Cancel"
+                        });
+                        if (confirmed) handleDeleteAllHistory();
+                      }}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${isDark ? "bg-transparent border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-transparent border-red-200 text-red-600 hover:bg-red-50"
-                      }`}>
+                        }`}>
                       Delete all
                     </button>
                   </div>
@@ -1354,8 +1372,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     <p className="text-xs text-[#7D7D7D]">Enable monitoring and safety features</p>
                   </div>
                   <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${localControlEnabled
-                      ? "bg-[#C2A27A]"
-                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                    ? "bg-[#C2A27A]"
+                    : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                     }`} onClick={() => {
                       const next = !localControlEnabled;
                       setLocalControlEnabled(next);
@@ -1440,8 +1458,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                       <p className="text-xs text-[#7D7D7D]">Filter AI responses for younger audiences</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full relative transition-all cursor-pointer ${localRestrictedMode
-                        ? "bg-[#C2A27A]"
-                        : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
+                      ? "bg-[#C2A27A]"
+                      : isDark ? "bg-[#333]" : "bg-[#E8E5E0]"
                       }`} onClick={() => {
                         const next = !localRestrictedMode;
                         setLocalRestrictedMode(next);
@@ -1640,7 +1658,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         }}
       />
 
-      <ImportersModal 
+      <ImportersModal
         isOpen={!!importerModalData}
         onClose={() => setImporterModalData(null)}
         type={importerModalData?.type || "chat"}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Sparkles, Loader2, ArrowRight, Square, X, Check, Crown } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { showAlertDialog } from "@/components/ui/AppDialog";
 
 interface AiInlineInputProps {
     initialTop: number;
@@ -158,7 +159,7 @@ export function AiInlineInput({
                     setError(error.message);
                     return;
                 }
-                alert("Sorry, I encountered an error. Please try again.");
+                showAlertDialog("Sorry, I encountered an error. Please try again.", "error");
                 onClose();
             }
         } finally {

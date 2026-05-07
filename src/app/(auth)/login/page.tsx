@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useSession, signIn as nextAuthSignIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OtpInput from "@/components/auth/OtpInput";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 type AuthView = "LOGIN" | "FORGOT_PASSWORD";
 type ForgotStep = "EMAIL" | "OTP" | "NEW_PASSWORD" | "SUCCESS";
@@ -18,6 +19,7 @@ function LoginForm() {
   const router = useRouter();
   const { theme } = useTheme();
   const searchParams = useSearchParams();
+  const dialog = useAppDialog();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [view, setView] = useState<AuthView>("LOGIN");
@@ -78,9 +80,9 @@ function LoginForm() {
       if (result?.error) {
         if (result.error === "AccountNotVerified") {
           setEmailError("Account not verified");
-          alert("Your email is not verified. Please sign up again with the same email to receive a new verification code.");
+          dialog.showAlert("Your email is not verified. Please sign up again with the same email to receive a new verification code.", "warning");
         } else {
-          alert("Invalid email or password");
+          dialog.showAlert("Invalid email or password", "error");
         }
         setLoading(false);
         return;
@@ -98,12 +100,12 @@ function LoginForm() {
           localStorage.setItem('userId', data.user.id);
           window.location.href = callbackUrl;
         } else {
-          alert("Login failed");
+          dialog.showAlert("Login failed", "error");
           setLoading(false);
         }
       }
     } catch (err) {
-      alert("Something went wrong");
+      dialog.showAlert("Something went wrong", "error");
       setLoading(false);
     }
   }

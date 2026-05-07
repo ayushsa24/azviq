@@ -28,6 +28,7 @@ import { Loader2, Lock, FileText, Pencil, Eye, Check, Sun, Moon, LogIn, Download
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 const lowlight = createLowlight(all);
 
@@ -43,6 +44,7 @@ export default function SharedNotePage() {
     const [isImporting, setIsImporting] = useState(false);
     const { data: session } = useSession();
     const router = useRouter();
+    const dialog = useAppDialog();
 
     // AI Trigger State
     const [aiInlinePos, setAiInlinePos] = useState<{ top: number; left: number; from: number } | null>(null);
@@ -218,7 +220,7 @@ export default function SharedNotePage() {
             router.push(`/library/note/${data.noteId}`);
         } catch (err) {
             console.error(err);
-            alert("Failed to import note. Please try again.");
+            dialog.showAlert("Failed to import note. Please try again.", "error");
         } finally {
             setIsImporting(false);
         }

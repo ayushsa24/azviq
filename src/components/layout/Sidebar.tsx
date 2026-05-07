@@ -68,8 +68,41 @@ export default function Sidebar({
   const { data: recentData, mutate: mutateRecent, isLoading: isRecentLoading } = useSWR("/api/recent-activity", fetcher, {
     revalidateOnFocus: true,
   });
-  const recentItems: RecentItem[] = (recentData?.items || []).slice(0, 20);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const topNavContainerRef = useRef<HTMLDivElement>(null);
+  const recentHeaderRef = useRef<HTMLDivElement>(null);
+  const [visibleRecentCount, setVisibleRecentCount] = useState<number>(5);
+
+  useEffect(() => {
+    if (!navRef.current || !topNavContainerRef.current || !recentHeaderRef.current) return;
+    
+    const calculateVisibleItems = () => {
+      if (!navRef.current || !topNavContainerRef.current || !recentHeaderRef.current) return;
+      const navHeight = navRef.current.clientHeight;
+      const topNavHeight = topNavContainerRef.current.clientHeight;
+      const recentHeaderHeight = recentHeaderRef.current.clientHeight;
+      
+      // nav has py-3 (24px), recent section has mt-4 (16px)
+      // Reduced padding deductions to be more aggressive
+      const availableSpace = navHeight - topNavHeight - recentHeaderHeight - 12;
+      
+      // Assume a smaller item height to force the count up
+      const itemHeight = 32;
+      const count = Math.max(0, Math.floor(availableSpace / itemHeight)) + 1;
+      setVisibleRecentCount(count);
+    };
+
+    const observer = new ResizeObserver(() => calculateVisibleItems());
+    observer.observe(navRef.current);
+    
+    // Initial calculation
+    calculateVisibleItems();
+    
+    return () => observer.disconnect();
+  }, []);
+
+  const recentItems: RecentItem[] = (recentData?.items || []).slice(0, visibleRecentCount);
 
   useEffect(() => {
     const handleUpdate = () => mutateRecent();
@@ -107,13 +140,13 @@ export default function Sidebar({
     <>
       <aside
         onMouseLeave={onMouseLeave}
-        className={`fixed flex flex-col z-[100] transition-all duration-300 ease-in-out hidden md:flex
+        className={`fixed flex flex-col z-[100] transition-all duration-300 ease-in-out hidden md:flex antialiased tracking-tight
           ${isDark ? "bg-[#1A1A1A]" : "bg-white"}
           ${open
             /* Pinned open: flush full height, no radius */
-            ? "left-0 top-0 bottom-0 w-56 border-r rounded-none shadow-none translate-x-0"
+            ? "left-0 top-0 bottom-0 w-64 border-r rounded-none shadow-none translate-x-0"
             /* Hover peek: flush left, 20px gap top/bottom, right corners only */
-            : `left-0 top-[20px] bottom-[20px] w-56 rounded-r-2xl border border-l-0 shadow-xl
+            : `left-0 top-[20px] bottom-[20px] w-64 rounded-r-2xl border border-l-0 shadow-xl
                ${isHovered ? "translate-x-0" : "-translate-x-full"}`
           }
           ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}
@@ -161,8 +194,8 @@ export default function Sidebar({
         </div>
 
         {/* ── NAV ITEMS ── */}
-        <nav className="flex-1 flex flex-col overflow-hidden py-3 px-2">
-          <div className="space-y-1.5 shrink-0">
+        <nav ref={navRef} className="flex-1 flex flex-col overflow-hidden py-3 px-2">
+          <div ref={topNavContainerRef} className="space-y-1.5 shrink-0">
             {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -174,7 +207,7 @@ export default function Sidebar({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium
+                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-[13.5px] font-[500]
                   ${isActive
                     ? isDark ? "bg-[#2E2E2E] text-white shadow-sm" : "bg-[#E8E5E0] text-[#252525] shadow-sm"
                     : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"
@@ -188,8 +221,8 @@ export default function Sidebar({
             })}
           </div>
           
-          <div className="mt-4 flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className={`px-4 mb-2 text-xs font-semibold flex items-center gap-1.5 opacity-60 shrink-0 ${isDark ? "text-white" : "text-[#252525]"}`}>
+          <div className="mt-4 flex flex-col shrink-0">
+            <div ref={recentHeaderRef} className={`px-4 mb-2 text-[11px] font-[600] uppercase tracking-wider flex items-center gap-1.5 opacity-50 shrink-0 ${isDark ? "text-white" : "text-[#252525]"}`}>
               <Clock className="w-3.5 h-3.5" />
               <span>Recent</span>
             </div>
@@ -200,7 +233,7 @@ export default function Sidebar({
                 ))}
               </div>
             ) : recentItems.length > 0 ? (
-              <div className="space-y-0.5 overflow-hidden flex-1">
+              <div className="space-y-0.5 shrink-0">
                 {recentItems.map((item) => {
                   const ItemIcon = TYPE_CONFIG[item.item_type]?.icon || FileText;
                   
@@ -216,7 +249,7 @@ export default function Sidebar({
                     <Link
                       key={item.id}
                       href={item.href}
-                      className={`group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 text-[13px] font-medium shrink-0
+                      className={`group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 text-[13px] font-[500] shrink-0
                         ${isActive
                           ? isDark ? "bg-[#2E2E2E] text-white" : "bg-[#E8E5E0] text-[#252525]"
                           : isDark ? "text-[#BABABA] hover:bg-[#252525] hover:text-white" : "text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"

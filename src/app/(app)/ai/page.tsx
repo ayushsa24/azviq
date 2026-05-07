@@ -44,6 +44,7 @@ import {
   Sparkles,
   AlertCircle,
 } from "lucide-react";
+import { useAppDialog } from "@/components/ui/AppDialog";
 import { ImportersModal } from "@/components/modals/ImportersModal";
 import { formatDistanceToNow } from "date-fns";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
@@ -88,6 +89,7 @@ type ChatSession = {
 
 function AiChatCore() {
   const router = useRouter();
+  const dialog = useAppDialog();
   const params = useParams();
   const searchParams = useSearchParams();
   // Works for both /ai/[id] and /ai/archive/[id] — both have params.id
@@ -138,7 +140,7 @@ function AiChatCore() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [isHistoryInitialized, setIsHistoryInitialized] = useState(false);
-  
+
   // Sync sidebar state with global AppShell to hide drag handle
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('ai-sidebar-state', { detail: { isOpen: isSidebarOpen } }));
@@ -440,7 +442,7 @@ function AiChatCore() {
       };
     }
   }, []);
-  
+
   // Auto-resize input textarea as user types (ChatGPT style)
   useEffect(() => {
     if (inputRef.current) {
@@ -454,7 +456,7 @@ function AiChatCore() {
 
   const toggleDictation = () => {
     if (!recognitionRef.current) {
-      alert("Speech recognition is not supported in this browser.");
+      dialog.showAlert("Speech recognition is not supported in this browser.", "warning");
       return;
     }
     if (isDictating) {
@@ -1202,7 +1204,16 @@ function AiChatCore() {
     }
   };
 
-  const handleDelete = async (chatId: string) => {
+  const handleDelete = async (chatId: string, chatTitle?: string) => {
+    const confirmed = await dialog.showConfirm({
+      title: "Move to Trash?",
+      message: `"${chatTitle || 'This chat'}" will be moved to Trash and permanently deleted after 7 days.`,
+      type: "warning",
+      confirmLabel: "Move to Trash",
+      cancelLabel: "Cancel"
+    });
+    if (!confirmed) return;
+
     // Optimistic Update
     mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
       if (!currentData || !currentData.chats) return currentData;
@@ -1399,7 +1410,7 @@ function AiChatCore() {
               />
             ) : (
               <div className="flex items-center gap-2 min-w-0 w-full">
-                <span className="truncate text-[13px] font-semibold text-left leading-tight">
+                <span className={`truncate text-sm font-medium text-left ${activeChatId === session.id ? "opacity-100" : "opacity-85"}`}>
                   {session.title}
                 </span>
                 {generatingChatIds.has(session.id) && (
@@ -1420,14 +1431,15 @@ function AiChatCore() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            const rect = e.currentTarget.getBoundingClientRect();
-            // Decide if we should flip the menu upward
-            const spaceNeeded = 260; // Estimated max height of menu
-            const openUp = rect.bottom + spaceNeeded > window.innerHeight;
+            const x = e.clientX;
+            const y = e.clientY;
+
+            const menuHeight = 260;
+            const openUp = y + menuHeight > window.innerHeight - 40;
 
             setMenuPosition({
-              top: openUp ? rect.top - 5 : rect.bottom + 5,
-              left: rect.left - 130,
+              top: y,
+              left: x - 10,
               openUp
             });
             setActiveMenuId(activeMenuId === session.id ? null : session.id);
@@ -1438,109 +1450,6 @@ function AiChatCore() {
           <MoreHorizontal className="w-3.5 h-3.5 opacity-70" />
         </button>
 
-        {/* DROPDOWN MENU */}
-        {activeMenuId === session.id && (
-          <div
-            ref={menuRef}
-            style={{
-              top: menuPosition?.openUp ? 'auto' : `${menuPosition?.top}px`,
-              bottom: menuPosition?.openUp ? `${window.innerHeight - (menuPosition?.top ?? 0)}px` : 'auto',
-              left: menuPosition ? `${menuPosition.left}px` : 'auto'
-            }}
-            className={`fixed w-44 rounded-xl shadow-2xl border z-[100] overflow-hidden ${theme === "dark"
-              ? "bg-[#252525] border-[#545454]"
-              : "bg-white border-[#E8E5E0] shadow-2xl"
-              } ${menuPosition?.openUp ? "origin-bottom-right" : "origin-top-right"}`}
-          >
-            <div className={`px-3 py-2 border-b flex items-center gap-2.5 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#545454]" : "border-[#E8E5E0]"}`}>
-              <Clock size={12} />
-              {formatDate(session.created_at)}
-            </div>
-            <button
-              onClick={async (e) => {
-                e.stopPropagation();
-                await handleShareChat(session);
-              }}
-              disabled={sharingChatId === session.id}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"}`}
-            >
-              {sharingChatId === session.id
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin opacity-70" />
-                : sharedLinkCopied === session.id
-                  ? <Check className="w-3.5 h-3.5 text-green-500" />
-                  : <Share className="w-3.5 h-3.5 opacity-70" />
-              }
-              {sharedLinkCopied === session.id ? "Link copied!" : "Share"}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsRenamingId(session.id);
-                setRenameTitle(session.title);
-                setActiveMenuId(null);
-                // Auto-scroll on mobile
-                if (window.innerWidth < 768) {
-                  setTimeout(() => {
-                    document.getElementById(`session-item-${session.id}`)?.scrollIntoView({
-                      behavior: 'smooth',
-                      block: 'center'
-                    });
-                  }, 100);
-                }
-              }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-                }`}
-            >
-              <Edit2 className="w-3.5 h-3.5 opacity-70" /> Rename
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTogglePin(session.id, !!session.is_pinned);
-              }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-                }`}
-            >
-              <Pin className="w-3.5 h-3.5 opacity-70" />{" "}
-              {session.is_pinned ? "Unpin chat" : "Pin chat"}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleArchive(session.id, !!session.is_archived);
-              }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-                }`}
-            >
-              <Archive className="w-3.5 h-3.5 opacity-70" /> Archive
-            </button>
-            {session.share_links && session.share_links.length > 0 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImporterModalData({ id: session.id });
-                  setActiveMenuId(null);
-                }}
-                className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
-                  }`}
-              >
-                <Users className="w-3.5 h-3.5 opacity-70" /> Chat Importers
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(session.id);
-              }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark"
-                ? "text-red-400 hover:bg-[#545454]"
-                : "text-red-600 hover:bg-[#F5F3EF]"
-                }`}
-            >
-              <Trash2 className="w-3.5 h-3.5 opacity-70" /> Delete
-            </button>
-          </div>
-        )}
       </div>
     );
   };
@@ -1559,7 +1468,7 @@ function AiChatCore() {
 
       {/* 🚀 SIDEBAR (History) */}
       <div
-        className={`fixed inset-y-0 left-0 z-[100] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-[250px] md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-64 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
+        className={`fixed inset-y-0 left-0 z-[100] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] md:p-0 md:top-0 md:bottom-auto md:relative md:z-50 w-64 md:h-full flex flex-col shrink-0 border-r shadow-xl md:shadow-none transition-all duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isHistoryOpen ? "md:w-64 md:translate-x-0 md:opacity-100" : "md:w-0 md:opacity-0 md:-translate-x-full md:border-r-0 md:overflow-hidden"} ${theme === "dark"
           ? "bg-[#1A1A1A] border-[#2E2E2E]"
           : "bg-[#F5F3EF] border-[#7D7D7D]/40"
           } shadow-sm transition-colors`}
@@ -1579,7 +1488,7 @@ function AiChatCore() {
                 <PanelLeft className="w-5 h-5" />
               </button>
             )}
-            <span className="font-semibold text-sm">Chat history</span>
+            <span className="font-medium text-sm">Chat history</span>
           </div>
           <button
             onClick={() => setIsHistoryOpen(false)}
@@ -1652,7 +1561,7 @@ function AiChatCore() {
         {/* Chat List */}
         <div
           onScroll={() => setActiveMenuId(null)}
-          className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide"
+          className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar"
         >
           {isHistoryLoading && Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex items-center gap-2.5 px-3 py-2 w-full opacity-60">
@@ -1684,7 +1593,7 @@ function AiChatCore() {
         </div>
 
         {/* Archived Folder (Moved to bottom area) */}
-        <div className={`p-3 pb-2 md:pb-3 border-t shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
+        <div className={`px-3 py-[11.7px] border-t shrink-0 ${theme === "dark" ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}>
           <button
             onClick={() => setIsArchivedExpanded(!isArchivedExpanded)}
             className={`w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors ${theme === "dark" ? "text-gray-300 hover:bg-[#2A2A2A]" : "text-gray-600 hover:bg-[#F0EDE8]"}`}
@@ -1784,7 +1693,7 @@ function AiChatCore() {
               setShowScrollDown(!isNearBottom);
             }
           }}
-          className={`absolute inset-0 scrollbar-hide md:scrollbar-default space-y-3 md:space-y-4 md:p-6 ${messages.length === 0
+          className={`absolute inset-0 custom-scrollbar space-y-3 md:space-y-4 md:p-6 ${messages.length === 0
             ? "overflow-hidden"
             : "overflow-y-auto overflow-x-hidden pb-[50px] md:pb-[60px]"
             }`}
@@ -1881,10 +1790,10 @@ function AiChatCore() {
                 </>
               ) : (
                 <>
-                  <img 
-                    src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
-                    alt="AI Logo" 
-                    className="w-16 h-16 mb-4 object-contain" 
+                  <img
+                    src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"}
+                    alt="AI Logo"
+                    className="w-16 h-16 mb-4 object-contain"
                   />
                   <h2 className="text-2xl font-bold mb-2">
                     How can I help you study?
@@ -1912,10 +1821,10 @@ function AiChatCore() {
                   <div
                     className="hidden md:flex w-10 h-10 mt-1 shrink-0 items-center justify-center"
                   >
-                    <motion.img 
-                      src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
-                      alt="AI" 
-                      className="w-9 h-9 object-contain" 
+                    <motion.img
+                      src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"}
+                      alt="AI"
+                      className="w-9 h-9 object-contain"
                       animate={isLoading && idx === messages.length - 1 ? {
                         scale: [1, 1.1, 1],
                         opacity: [1, 0.6, 1],
@@ -2320,10 +2229,10 @@ function AiChatCore() {
             <div className="max-w-4xl mx-auto px-3 md:px-4 md:pl-16 mb-2">
               <div className={`w-full p-2.5 rounded-xl flex items-center justify-between border backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-red-50/80 border-red-200 text-red-600"}`}>
                 <div className="flex items-center gap-2 text-sm">
-                  <img 
-                    src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
-                    alt="AI" 
-                    className="w-4 h-4 shrink-0 object-contain" 
+                  <img
+                    src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"}
+                    alt="AI"
+                    className="w-4 h-4 shrink-0 object-contain"
                   />
                   <span>{apiError}</span>
                   {apiError.includes("quota") && (
@@ -2609,6 +2518,120 @@ function AiChatCore() {
           </div>
         )}
       </div>
+      {/* ── Chat History Dropdown Menu (Fixed at top level to escape transforms) ── */}
+      {activeMenuId && menuPosition && (() => {
+        const session = sessions.find(s => s.id === activeMenuId);
+        if (!session) return null;
+
+        const formatDate = (iso: string) => {
+          if (!iso) return "";
+          const date = new Date(iso);
+          return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        };
+
+        return (
+          <div
+            ref={menuRef}
+            style={{
+              top: menuPosition?.openUp ? 'auto' : `${menuPosition?.top}px`,
+              bottom: menuPosition?.openUp ? `${window.innerHeight - (menuPosition?.top ?? 0)}px` : 'auto',
+              left: menuPosition ? `${menuPosition.left}px` : 'auto'
+            }}
+            className={`fixed w-44 rounded-xl shadow-2xl border z-[9999] overflow-hidden ${theme === "dark"
+              ? "bg-[#252525] border-[#545454]"
+              : "bg-white border-[#E8E5E0] shadow-2xl"
+              } ${menuPosition?.openUp ? "origin-bottom-right" : "origin-top-right"}`}
+          >
+            <div className={`px-3 py-2 border-b flex items-center gap-2.5 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#545454]" : "border-[#E8E5E0]"}`}>
+              <Clock size={12} />
+              {formatDate(session.created_at)}
+            </div>
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                await handleShareChat(session);
+              }}
+              disabled={sharingChatId === session.id}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"}`}
+            >
+              {sharingChatId === session.id
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin opacity-70" />
+                : sharedLinkCopied === session.id
+                  ? <Check className="w-3.5 h-3.5 text-green-500" />
+                  : <Share className="w-3.5 h-3.5 opacity-70" />
+              }
+              {sharedLinkCopied === session.id ? "Link copied!" : "Share"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsRenamingId(session.id);
+                setRenameTitle(session.title);
+                setActiveMenuId(null);
+                // Auto-scroll on mobile
+                if (window.innerWidth < 768) {
+                  setTimeout(() => {
+                    document.getElementById(`session-item-${session.id}`)?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'center'
+                    });
+                  }, 100);
+                }
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Edit2 className="w-3.5 h-3.5 opacity-70" /> Rename
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTogglePin(session.id, !!session.is_pinned);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Pin className="w-3.5 h-3.5 opacity-70" />{" "}
+              {session.is_pinned ? "Unpin chat" : "Pin chat"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleArchive(session.id, !!session.is_archived);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Archive className="w-3.5 h-3.5 opacity-70" /> Archive
+            </button>
+            {session.share_links && session.share_links.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImporterModalData({ id: session.id });
+                  setActiveMenuId(null);
+                }}
+                className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                  }`}
+              >
+                <Users className="w-3.5 h-3.5 opacity-70" /> Chat Importers
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(session.id, session.title);
+              }}
+              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark"
+                ? "text-red-400 hover:bg-[#545454]"
+                : "text-red-600 hover:bg-[#F5F3EF]"
+                }`}
+            >
+              <Trash2 className="w-3.5 h-3.5 opacity-70" /> Delete
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

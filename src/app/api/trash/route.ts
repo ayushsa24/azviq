@@ -70,8 +70,7 @@ export async function DELETE(req: Request) {
 
     // If a specific category type is requested, only delete those
     if (type && type !== "all") {
-       if (type === "note") query = query.in("item_type", ["note", "pdf"]);
-       else if (type === "workspace") query = query.in("item_type", ["workspace", "project"]);
+       if (type === "library") query = query.in("item_type", ["note", "pdf", "workspace", "project"]);
        else if (type === "task") query = query.in("item_type", ["task", "todo"]);
        else if (type === "revision") query = query.in("item_type", ["revision", "exercise"]);
        else query = query.eq("item_type", type);

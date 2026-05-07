@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 
 import ExerciseTab from "@/components/preparation/ExerciseTab";
@@ -176,26 +176,27 @@ export default function PreparationPage() {
                         )}
                     </div>
 
-                    {/* Tab nav */}
                     <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-2 justify-between items-end">
-                        <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
-                            {TABS.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => handleTabChange(tab.id)}
-                                    className={tabCls(activeTab === tab.id)}
-                                >
-                                    <span className="relative z-10">{tab.label}</span>
-                                    {activeTab === tab.id && (
-                                        <motion.div
-                                            layoutId="activeTabUnderline"
-                                            className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
-                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                </button>
-                            ))}
-                        </div>
+                        <LayoutGroup id="prepTabs">
+                            <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1 pr-10">
+                                {TABS.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => handleTabChange(tab.id)}
+                                        className={tabCls(activeTab === tab.id)}
+                                    >
+                                        <span className="relative z-10">{tab.label}</span>
+                                        {activeTab === tab.id && (
+                                            <motion.div
+                                                layoutId="activeTabUnderline"
+                                                className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                                                transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                                            />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </LayoutGroup>
 
                         {/* View Mode Toggle */}
                         {(activeTab === "exercise" || activeTab === "revision") && (
@@ -228,7 +229,7 @@ export default function PreparationPage() {
 
                 <div
                     ref={scrollContentRef}
-                    className={`flex-1 flex flex-col ${activeTab === 'personal_ai' ? 'overflow-hidden' : 'overflow-y-auto'} scrollbar-hide min-h-0 transition-all duration-300 ${isFocusMode ? 'px-0 mt-0' : 'px-4 sm:px-6 mt-2'}`}
+                    className={`flex-1 flex flex-col ${activeTab === 'personal_ai' ? 'overflow-hidden' : 'overflow-y-auto'} custom-scrollbar min-h-0 transition-all duration-300 ${isFocusMode ? 'px-0 mt-0' : 'px-4 sm:px-6 mt-2'}`}
                 >
                     <AnimatePresence mode="wait">
                         <motion.div

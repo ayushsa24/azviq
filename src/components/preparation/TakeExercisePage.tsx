@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, Clock, RotateCcw,
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { ICON_MAP } from "../editor/EmojiPicker";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 interface Question {
     question: string;
@@ -38,6 +39,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
+    const dialog = useAppDialog();
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -161,7 +163,7 @@ export default function TakeExercisePage({ exercise, onBack, onComplete }: TakeE
             // If laptop, we do nothing else (setIsSubmitted(true) already enables the review UI)
         } catch {
             startTimer(); // resume timer if failed
-            alert("Failed to submit exercise results.");
+            dialog.showAlert("Failed to submit exercise results.", "error");
         } finally {
             setIsSubmitting(false);
         }

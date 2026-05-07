@@ -130,7 +130,7 @@ export default function NoteSelector({
           </div>
 
           {/* List */}
-          <div className="max-h-60 overflow-y-auto py-1 scrollbar-hide">
+          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
             {filteredNotes.length > 0 ? (
               filteredNotes.map((note) => (
                 <button

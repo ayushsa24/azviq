@@ -11,6 +11,7 @@ import SessionHistorySelector from "./personal-ai/SessionHistorySelector";
 import ModeToggle, { Mode } from "./personal-ai/ModeToggle";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 import UnifiedChatPanel from "./personal-ai/UnifiedChatPanel";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 interface Note {
   id: string;
@@ -27,6 +28,7 @@ interface Props {
 export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }: Props) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const dialog = useAppDialog();
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -228,7 +230,13 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   }, [isFocusMode, isDark]);
 
   const handleSessionDelete = async (id: string) => {
-    if (!confirm("Delete this session history?")) return;
+    if (!await dialog.showConfirm({ 
+      title: "Move to Trash?", 
+      message: "This session history will be moved to Trash and permanently deleted after 7 days.", 
+      confirmLabel: "Move to Trash", 
+      cancelLabel: "Cancel", 
+      type: "warning" 
+    })) return;
     try {
       const res = await fetch(`/api/personal-ai/sessions/${id}`, { method: "DELETE" });
       if (res.ok) {

@@ -252,7 +252,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         className={`flex flex-col overflow-hidden flex-1 min-h-0 
           ${isFullPageLayer ? 'pt-[env(safe-area-inset-top,0px)]' : 'pt-0'} 
           ${mounted && open 
-            ? 'md:pl-[14rem]' 
+            ? 'md:pl-[16rem]' 
             : mounted && !open && !isFullPageLayer 
               ? 'md:px-[2.5%]' 
               : 'px-0'} 

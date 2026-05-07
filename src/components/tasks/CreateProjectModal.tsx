@@ -69,7 +69,7 @@ export function CreateProjectModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[70] flex flex-col sm:justify-center sm:items-center px-0 sm:px-4">
+        <div className="fixed inset-0 z-[300] flex flex-col sm:justify-center sm:items-center px-0 sm:px-4">
           {/* Backdrop */}
           <motion.div 
             initial={{ opacity: 0 }}

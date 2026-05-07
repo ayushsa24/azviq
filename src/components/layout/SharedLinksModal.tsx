@@ -12,8 +12,10 @@ import {
   Loader2,
   Trash2 as TrashIcon,
   Users,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle
 } from "lucide-react";
+import { useAppDialog } from "@/components/ui/AppDialog";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
@@ -74,6 +76,8 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
   const dragControls = useDragControls();
 
   // Detect mobile & mark mounted
+  const dialog = useAppDialog();
+
   useEffect(() => {
     setMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -241,9 +245,16 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                           >
                             <div className="p-2">
                               <button
-                                onClick={() => {
-                                  setDeleteConfirmTarget({ id: "all", title: linksType === "archive" ? "All Archives" : "All Shared Links" });
+                                onClick={async () => {
                                   setShowBulkMenu(false);
+                                  const confirmed = await dialog.showConfirm({
+                                    title: "Delete All?",
+                                    message: `Are you sure you want to delete ${linksType === "archive" ? "all your archived chats" : "all your shared links"} permanently? This action cannot be undone.`,
+                                    type: "error",
+                                    confirmLabel: "Delete All",
+                                    cancelLabel: "Cancel"
+                                  });
+                                  if (confirmed) handleDeleteAll();
                                 }}
                                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                               >
@@ -412,7 +423,17 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                             )}
 
                             <button
-                              onClick={() => setDeleteConfirmTarget({ id: link.id, title: link.title || `Untitled ${linksType}` })}
+                              onClick={async () => {
+                                const isArchive = linksType === "archive";
+                                const confirmed = await dialog.showConfirm({
+                                  title: isArchive ? "Delete Archive?" : "Delete Link?",
+                                  message: `Are you sure you want to delete "${link.title || 'Untitled'}"? This action cannot be undone.`,
+                                  type: "error",
+                                  confirmLabel: "Delete",
+                                  cancelLabel: "Cancel"
+                                });
+                                if (confirmed) handleRevokeLink(link.id);
+                              }}
                               disabled={revokingId === link.id}
                               className={`p-1.5 rounded-lg transition-all hover:scale-110
                                 ${isDark ? "hover:bg-red-500/10 text-red-500 hover:text-red-600" : "hover:bg-red-50 text-red-500 hover:text-red-700"}`}
@@ -432,77 +453,6 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
         </React.Fragment>
       )}
 
-      {/* ── DELETE CONFIRMATION DIALOG (Global) ── */}
-      {deleteConfirmTarget && (
-        <motion.div
-          key="shared-links-confirm"
-          className="fixed inset-0 z-[500] flex items-center justify-center p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <div
-            className="absolute inset-0 bg-transparent"
-            onClick={() => setDeleteConfirmTarget(null)}
-          />
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 400 }}
-            className={`relative w-full max-w-[21.25rem] rounded-xl shadow-2xl p-6 border
-              ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] border-[#2E2E2E] text-white" : "bg-white border-[#E8E5E0] text-[#252525]"}`}
-          >
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? "bg-[#C2A27A]/10 text-[#C2A27A]" : "bg-[#C2A27A]/10 text-[#B19169]"}`}>
-                <TrashIcon size={24} />
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-lg font-bold">Are you sure?</h4>
-                <p className="text-sm text-[#7D7D7D] leading-relaxed">
-                  Are you sure you want to{" "}
-                  {deleteConfirmTarget.id === "archive-all-history" ? "archive" : "delete"}{" "}
-                  <span className="text-[#C2A27A] font-bold">"{deleteConfirmTarget.title}"</span>?{" "}
-                  <br />
-                  {deleteConfirmTarget.id === "archive-all-history"
-                    ? "You can always unarchive them later."
-                    : "This action cannot be undone."}
-                </p>
-              </div>
-              <div className="flex flex-col w-full gap-2 pt-2">
-                <button
-                  onClick={() => {
-                    if (deleteConfirmTarget.id === "all") handleDeleteAll();
-                    else if (deleteConfirmTarget.id === "archive-all-history") handleArchiveAllHistory();
-                    else if (deleteConfirmTarget.id === "delete-all-archives") handleDeleteAllHistory();
-                    else handleRevokeLink(deleteConfirmTarget.id);
-                    setDeleteConfirmTarget(null);
-                  }}
-                  className={`w-full py-3 rounded-2xl text-white font-bold text-sm transition-all shadow-lg active:scale-95 ${deleteConfirmTarget.id === "archive-all-history"
-                    ? "bg-[#C2A27A] hover:bg-[#B19169]"
-                    : "bg-[#C2A27A] hover:bg-[#B19169]"
-                    }`}
-                >
-                  {isBulkDeleting ? (
-                    <Loader2 size={16} className="animate-spin mx-auto" />
-                  ) : deleteConfirmTarget.id === "archive-all-history" ? (
-                    "YES, ARCHIVE"
-                  ) : (
-                    "YES, DELETE"
-                  )}
-                </button>
-                <button
-                  onClick={() => setDeleteConfirmTarget(null)}
-                  className={`w-full py-3 rounded-2xl font-bold text-sm transition-all
-                    ${isDark ? "hover:bg-[#2E2E2E] text-[#BABABA]" : "hover:bg-gray-100 text-[#7D7D7D]"}`}
-                >
-                  CANCEL
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
     </AnimatePresence>
   );
 };

@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthProvider";
 import { UserProvider } from "@/contexts/UserContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import AppShell from "@/components/layout/AppShell";
+import { AppDialogProvider } from "@/components/ui/AppDialog";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -117,7 +118,9 @@ export default function RootLayout({
                 <ThemeProvider>
                   <NotificationProvider>
                     <SettingsProvider>
-                      {children}
+                        <AppDialogProvider>
+                          {children}
+                        </AppDialogProvider>
                     </SettingsProvider>
                   </NotificationProvider>
                 </ThemeProvider>

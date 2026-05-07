@@ -173,7 +173,7 @@ export async function exportToPdf(contentHtml: string, rawTitle: string) {
 
     } catch (err) {
         console.error("[PDF Export Error]", err);
-        alert("Issue creating PDF. Please try again.");
+        throw err;
     } finally {
         if (document.body.contains(container)) {
             document.body.removeChild(container);

@@ -23,13 +23,14 @@ import { format } from "date-fns";
 import Link from "next/link";
 import useSWR from "swr";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
+import { useAppDialog } from "@/components/ui/AppDialog";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
 import { AITaskModal } from "@/components/tasks/AITaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion, useDragControls, AnimatePresence, LayoutGroup } from "framer-motion";
 
 export default function TasksPage() {
   const { data: tasksData, mutate: mutateTasks, isLoading: isTasksLoading } = useSWR("/api/tasks", fetcher);
@@ -54,8 +55,9 @@ export default function TasksPage() {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [selectedProjectTask, setSelectedProjectTask] = useState<any>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const dialog = useAppDialog();
   const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const tasksSectionRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,25 @@ export default function TasksPage() {
       document.body.style.overflow = 'unset';
     };
   }, [selectedTask, selectedProject, selectedProjectTask, isProjectModalOpen, isAIModalOpen]);
+
+  // Handle click outside context menu to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId && menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        // Also check if we clicked the menu button itself to avoid double-toggle
+        const target = event.target as HTMLElement;
+        if (!target.closest('.context-menu-button')) {
+          setOpenMenuId(null);
+          setMoveMenuId(null);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openMenuId]);
   const [dateFilter, setDateFilter] = useState("");            // yyyy-mm-dd
   const [projectDropdownFilter, setProjectDropdownFilter] = useState("all"); // project id or 'all'
   const [showTaskFavorites, setShowTaskFavorites] = useState(false);
@@ -252,7 +273,15 @@ export default function TasksPage() {
     mutateProjects(); // Re-sync
   };
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = async (taskId: string, taskTitle?: string) => {
+    const confirmed = await dialog.showConfirm({
+      title: "Move to Trash?",
+      message: `"${taskTitle || 'This task'}" will be moved to Trash and permanently deleted after 7 days.`,
+      type: "warning",
+      confirmLabel: "Move to Trash",
+      cancelLabel: "Cancel"
+    });
+    if (!confirmed) return;
     mutateTasks((currentData: any) => {
       if (!currentData) return currentData;
       return {
@@ -270,7 +299,15 @@ export default function TasksPage() {
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
+  const handleDeleteProject = async (projectId: string, projectTitle?: string) => {
+    const confirmed = await dialog.showConfirm({
+      title: "Move to Trash?",
+      message: `"${projectTitle || 'This project'}" and all its tasks will be moved to Trash and permanently deleted after 7 days.`,
+      type: "warning",
+      confirmLabel: "Move to Trash",
+      cancelLabel: "Cancel"
+    });
+    if (!confirmed) return;
     mutateProjects((currentData: any) => {
       if (!currentData) return currentData;
       return {
@@ -513,20 +550,22 @@ export default function TasksPage() {
 
             {/* Row 2: Filter Tabs */}
             <div className="relative flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4">
-              <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1">
-                {(["all", "in_progress", "done", "archived", "not_started"] as const).map((f) => (
-                  <button key={f} onClick={() => setProjectFilter(f)} className={tabCls(projectFilter === f)}>
-                    {f === "all" ? "All Projects" : f === "in_progress" ? "In Progress" : f === "done" ? "Done" : f === "archived" ? "Archive" : "Not Started"}
-                    {projectFilter === f && (
-                      <motion.div
-                        layoutId="activeProjectTab"
-                        className="absolute bottom-0 left-0 right-0 h-px bg-[#252525] dark:bg-white"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
+              <LayoutGroup id="projectTabs">
+                <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x flex-1">
+                    {(["all", "in_progress", "done", "archived", "not_started"] as const).map((f) => (
+                      <button key={f} onClick={() => setProjectFilter(f)} className={tabCls(projectFilter === f)}>
+                        {f === "all" ? "All Projects" : f === "in_progress" ? "In Progress" : f === "done" ? "Done" : f === "archived" ? "Archive" : "Not Started"}
+                        {projectFilter === f && (
+                          <motion.div
+                            layoutId="activeProjectTab"
+                            className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                          />
+                        )}
+                      </button>
+                    ))}
+                </div>
+              </LayoutGroup>
             </div>
 
             {/* Row 3: Project Cards */}
@@ -559,15 +598,20 @@ export default function TasksPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                            const isMobile = window.innerWidth < 768;
+                            const x = e.clientX;
+                            const y = e.clientY;
+                            const menuWidth = 140;
                             const menuHeight = 160;
-                            let top = rect.bottom + 6;
-                            // Check bottom overflow
-                            if (top + menuHeight > window.innerHeight - (isMobile ? 80 : 20)) {
-                              top = rect.top - menuHeight - 6;
-                            }
-                            setMenuPosition({ top, right: window.innerWidth - rect.right });
+                            
+                            let top = y + 8;
+                            let left = x - menuWidth + 20; // Position menu so its right side is near the click
+                            
+                            // Boundary checks
+                            if (left < 10) left = 10;
+                            if (left + menuWidth > window.innerWidth - 10) left = window.innerWidth - menuWidth - 10;
+                            if (top + menuHeight > window.innerHeight - 20) top = y - menuHeight - 8;
+                            
+                            setMenuPosition({ top, left });
                             setOpenMenuId(p.id);
                             setMoveMenuId(null);
                           }}
@@ -601,7 +645,7 @@ export default function TasksPage() {
                 TASKS SECTION
             ══════════════════════════════ */}
           <div className="relative mt-6" ref={tasksSectionRef}>
-            <div className="sticky top-0 z-20 bg-[#F5F3EF]/95 backdrop-blur-md dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 pt-4 pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6 transition-colors">
+            <div className="sticky top-0 z-20 bg-[#F5F3EF]/95 backdrop-blur-md dark:bg-[#1A1A1A]/95 md:dark:bg-[#1F1F1F]/95 pt-2 pb-1 transition-colors mb-4">
               <h2 className="text-2xl font-extrabold tracking-tight text-[#161514] dark:text-white mb-3">Tasks</h2>
 
               {/* Row 1: [Search + ⭐]  ................  [New Task →] */}
@@ -643,44 +687,46 @@ export default function TasksPage() {
 
               {/* Row 2: View Toggle Tabs — clean, no extra buttons */}
               <div className="flex border-b border-[#7D7D7D]/40 dark:border-[#333] mb-4 transition-colors">
-                <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
-                  <button onClick={() => setTaskView("kanban")} className={tabCls(taskView === "kanban")}>
-                    <LayoutGrid size={14} className="inline mr-1.5" />Kanban
-                    {taskView === "kanban" && (
-                      <motion.div
-                        layoutId="activeTaskViewTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#252525] dark:bg-white"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                  </button>
-                  <button onClick={() => setTaskView("by_date")} className={tabCls(taskView === "by_date")}>
-                    <CalendarDays size={14} className="inline mr-1.5" />By Date
-                    {taskView === "by_date" && (
-                      <motion.div
-                        layoutId="activeTaskViewTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#252525] dark:bg-white"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                  </button>
-                  <button onClick={() => setTaskView("by_projects")} className={tabCls(taskView === "by_projects")}>
-                    <Layers size={14} className="inline mr-1.5" />By Projects
-                    {taskView === "by_projects" && (
-                      <motion.div
-                        layoutId="activeTaskViewTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#252525] dark:bg-white"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                  </button>
-                </div>
+                <LayoutGroup id="taskViewTabs">
+                  <div className="flex overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
+                    <button onClick={() => setTaskView("kanban")} className={tabCls(taskView === "kanban")}>
+                      <LayoutGrid size={14} className="inline mr-1.5" />Kanban
+                      {taskView === "kanban" && (
+                        <motion.div
+                          layoutId="activeTaskViewTab"
+                          className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                          transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                        />
+                      )}
+                    </button>
+                    <button onClick={() => setTaskView("by_date")} className={tabCls(taskView === "by_date")}>
+                      <CalendarDays size={14} className="inline mr-1.5" />By Date
+                      {taskView === "by_date" && (
+                        <motion.div
+                          layoutId="activeTaskViewTab"
+                          className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                          transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                        />
+                      )}
+                    </button>
+                    <button onClick={() => setTaskView("by_projects")} className={tabCls(taskView === "by_projects")}>
+                      <Layers size={14} className="inline mr-1.5" />By Projects
+                      {taskView === "by_projects" && (
+                        <motion.div
+                          layoutId="activeTaskViewTab"
+                          className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#252525] dark:bg-white"
+                          transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                        />
+                      )}
+                    </button>
+                  </div>
+                </LayoutGroup>
               </div>
             </div>
 
             {/* ── Kanban View ── */}
             {taskView === "kanban" && (
-              <div className="bg-white/80 backdrop-blur-md dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto w-full max-w-full transition-colors">
+              <div className="bg-white/80 backdrop-blur-md dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] rounded-xl border border-[#7D7D7D]/40 dark:border-[#7D7D7D]/20 p-4 min-h-[300px] overflow-x-auto scrollbar-hide w-full max-w-full transition-colors">
                 <div className="flex gap-4">
                   {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
@@ -730,15 +776,20 @@ export default function TasksPage() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                    const isMobile = window.innerWidth < 768;
-                                    const menuHeight = 220; // Task menu is taller
-                                    let top = rect.bottom + 6;
-                                    // Check bottom overflow
-                                    if (top + menuHeight > window.innerHeight - (isMobile ? 80 : 20)) {
-                                      top = rect.top - menuHeight - 6;
-                                    }
-                                    setMenuPosition({ top, right: window.innerWidth - rect.right });
+                                    const x = e.clientX;
+                                    const y = e.clientY;
+                                    const menuWidth = 140;
+                                    const menuHeight = 220;
+                                    
+                                    let top = y + 8;
+                                    let left = x - menuWidth + 20;
+                                    
+                                    // Boundary checks
+                                    if (left < 10) left = 10;
+                                    if (left + menuWidth > window.innerWidth - 10) left = window.innerWidth - menuWidth - 10;
+                                    if (top + menuHeight > window.innerHeight - 20) top = y - menuHeight - 8;
+                                    
+                                    setMenuPosition({ top, left });
                                     setOpenMenuId(t.id);
                                     setMoveMenuId(null);
                                   }}
@@ -973,10 +1024,11 @@ export default function TasksPage() {
 
         return (
           <div
-            className="fixed z-[9999] bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[180px] context-menu"
+            ref={menuRef}
+            className="fixed z-[9999] bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#545454] rounded-xl shadow-2xl py-1 min-w-[140px] context-menu"
             style={{
               top: menuPosition.top,
-              right: menuPosition.right,
+              left: menuPosition.left,
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -991,7 +1043,7 @@ export default function TasksPage() {
                   {p.is_favorite ? "Unfavorite" : "Favorite"}
                 </button>
                 <div className="border-t border-gray-100 dark:border-[#444] my-1" />
-                <button onClick={() => handleDeleteProject(p.id)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                <button onClick={() => handleDeleteProject(p.id, p.name)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                   <Trash2 className="w-4 h-4" />
                   Delete
                 </button>
@@ -1012,32 +1064,67 @@ export default function TasksPage() {
                       e.stopPropagation();
                       setMoveMenuId(moveMenuId === t.id ? null : t.id);
                     }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors transition-all"
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors ${moveMenuId === t.id ? 'bg-gray-50 dark:bg-[#333]' : ''}`}
                   >
                     <MoveRight className="w-4 h-4" />
                     Move to
-                    <span className="ml-auto text-gray-400">›</span>
+                    <ChevronDown className={`w-3.5 h-3.5 ml-auto text-gray-400 transition-transform duration-200 md:hidden ${moveMenuId === t.id ? "rotate-180" : ""}`} />
+                    <span className="ml-auto text-gray-400 hidden md:inline">›</span>
                   </button>
+
+                  {/* MOBILE ACCORDION */}
+                  <div className={`md:hidden overflow-hidden transition-all duration-200 ${moveMenuId === t.id ? "max-h-[200px]" : "max-h-0"}`}>
+                    <div className="bg-gray-50/80 dark:bg-[#252525] border-y border-gray-100 dark:border-[#444] py-1">
+                      {["not_started", "in_progress", "in_review", "done", "archived"]
+                        .filter((s) => s !== t.status)
+                        .map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => handleMoveTaskStatus(t.id, s)}
+                            className="flex items-center gap-2 w-full px-4 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#333] transition-colors capitalize"
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                              s === "done" ? "bg-green-500" : 
+                              s === "in_progress" ? "bg-blue-500" : 
+                              s === "in_review" ? "bg-purple-500" : 
+                              s === "archived" ? "bg-gray-400" : "bg-orange-500"
+                            }`} />
+                            {s.replace("_", " ")}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* DESKTOP POPOUT */}
                   {moveMenuId === t.id && (() => {
-                    const subMenuWidth = 150;
-                    const menuWidth = 180;
-                    const screenLeftSpace = window.innerWidth - menuPosition.right - menuWidth;
-                    const showOnRight = screenLeftSpace < subMenuWidth;
+                    const subMenuWidth = 140;
+                    const canShowOnRight = window.innerWidth - (menuPosition.left + 140) > subMenuWidth + 20;
+                    const showOnRight = canShowOnRight;
 
                     return (
                       <div
-                        className={`absolute top-0 ${showOnRight ? "left-full ml-1" : "right-full mr-1"
-                          } bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-gray-200 dark:border-[#545454] rounded-xl shadow-xl py-1 min-w-[${subMenuWidth}px] animate-in ${showOnRight ? "slide-in-from-left-1" : "slide-in-from-right-1"
+                        className={`hidden md:block absolute top-0 z-[10000] ${showOnRight ? "left-full ml-2" : "right-full mr-2"
+                          } bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-2xl py-1 animate-in ${showOnRight ? "slide-in-from-left-2" : "slide-in-from-right-2"
                           } duration-200`}
+                        style={{ minWidth: `${subMenuWidth}px` }}
                       >
+                        <div className="px-3 py-1.5 border-b border-gray-100 dark:border-[#444] mb-1">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Change Status</p>
+                        </div>
                         {["not_started", "in_progress", "in_review", "done", "archived"]
                           .filter((s) => s !== t.status)
                           .map((s) => (
                             <button
                               key={s}
                               onClick={() => handleMoveTaskStatus(t.id, s)}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors capitalize"
+                              className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors capitalize"
                             >
+                              <div className={`w-1.5 h-1.5 rounded-full ${
+                                s === "done" ? "bg-green-500" : 
+                                s === "in_progress" ? "bg-blue-500" : 
+                                s === "in_review" ? "bg-purple-500" : 
+                                s === "archived" ? "bg-gray-400" : "bg-orange-500"
+                              }`} />
                               {s.replace("_", " ")}
                             </button>
                           ))}
@@ -1046,7 +1133,7 @@ export default function TasksPage() {
                   })()}
                 </div>
                 <div className="border-t border-gray-100 dark:border-[#444] my-1" />
-                <button onClick={() => handleDeleteTask(t.id)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                <button onClick={() => handleDeleteTask(t.id, t.title)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                   <Trash2 className="w-4 h-4" />
                   Delete
                 </button>
