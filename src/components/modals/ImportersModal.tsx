@@ -61,7 +61,7 @@ export const ImportersModal: React.FC<ImportersModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-[500] flex items-center justify-center bg-transparent p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 

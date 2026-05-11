@@ -328,7 +328,7 @@ export function TaskDetailModal({
                                     </button>
 
                                     {isMaterialDropdownOpen && (
-                                        <div className="absolute top-11 right-0 sm:left-0 sm:right-auto w-full sm:w-[21.875rem] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-lg shadow-xl z-50 flex flex-col max-h-[15.625rem] overflow-hidden">
+                                        <div className="absolute top-11 right-0 sm:left-0 sm:right-auto w-full sm:w-[21.875rem] bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-lg shadow-xl z-50 flex flex-col max-h-[240px] overflow-hidden">
                                             <div className="p-2 border-b border-[#E8E5E0] dark:border-[#444] bg-gray-50 dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F]">
                                                 <div className="relative">
                                                     <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />

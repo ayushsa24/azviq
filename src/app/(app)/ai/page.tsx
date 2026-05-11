@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useToast } from "@/contexts/ToastContext";
 import {
   Send,
   Loader2,
@@ -98,6 +99,7 @@ function AiChatCore() {
   const { theme } = useTheme();
   const { open: isMainSidebarOpen, toggle: toggleMainSidebar } = useSidebar();
   const { mutate: globalMutate } = useSWRConfig();
+  const { show } = useToast();
 
   useStudyTracker({ activityType: 'ai_teacher', isEnabled: true });
 
@@ -1205,26 +1207,54 @@ function AiChatCore() {
   };
 
   const handleDelete = async (chatId: string, chatTitle?: string) => {
-    const confirmed = await dialog.showConfirm({
-      title: "Move to Trash?",
-      message: `"${chatTitle || 'This chat'}" will be moved to Trash and permanently deleted after 7 days.`,
-      type: "warning",
-      confirmLabel: "Move to Trash",
-      cancelLabel: "Cancel"
-    });
-    if (!confirmed) return;
-
-    // Optimistic Update
-    mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
-      if (!currentData || !currentData.chats) return currentData;
-      return {
-        ...currentData,
-        chats: currentData.chats.filter((s: ChatSession) => s.id !== chatId)
-      };
-    }, { revalidate: false });
-
+    const previousSessions = sessionData;
+    // Action-First: Delete immediately and show undo toast
     try {
       setActiveMenuId(null);
+
+      // Optimistically remove from history immediately
+      mutateSessions(
+        (current: any) => ({
+          ...current,
+          chats: (current?.chats || []).filter((s: any) => s.id !== chatId),
+        }),
+        false
+      );
+
+      const deletePromise = fetch(`/api/chat/history/${chatId}`, {
+        method: "DELETE",
+      }).then(res => {
+        if (!res.ok) throw new Error("Failed to delete chat");
+        return res;
+      });
+      
+      show({
+        message: "Moved to trash",
+        type: "success",
+        action: {
+          label: "Undo",
+          onClick: () => {
+            // Instantly restore to UI exactly as it was
+            mutateSessions(previousSessions, false);
+
+            const performRestore = async () => {
+              try {
+                await deletePromise;
+                const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${chatId}&type=chat`, {
+                  method: "POST"
+                });
+                if (restoreRes.ok) {
+                  mutateSessions();
+                  globalMutate("/api/trash"); // Remove from trash bin
+                }
+              } catch (err) {
+                console.error("Undo failed:", err);
+              }
+            };
+            performRestore();
+          }
+        }
+      });
 
       if (activeChatId === chatId) {
         const nextChat = sessions.find(
@@ -1234,9 +1264,8 @@ function AiChatCore() {
         else startNewChat();
       }
 
-      await fetch(`/api/chat/history/${chatId}`, {
-        method: "DELETE",
-      });
+      await deletePromise;
+      globalMutate("/api/trash");
       mutateSessions();
     } catch (e) {
       console.error(e);
@@ -2627,7 +2656,7 @@ function AiChatCore() {
                 : "text-red-600 hover:bg-[#F5F3EF]"
                 }`}
             >
-              <Trash2 className="w-3.5 h-3.5 opacity-70" /> Delete
+              <Trash2 className="w-3.5 h-3.5 opacity-70" /> Move to Trash
             </button>
           </div>
         );

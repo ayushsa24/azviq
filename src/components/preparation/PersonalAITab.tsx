@@ -5,13 +5,15 @@ import { FileText, AlertCircle, Minimize2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import NoteSelector from "./personal-ai/NoteSelector";
 import SessionHistorySelector from "./personal-ai/SessionHistorySelector";
 import ModeToggle, { Mode } from "./personal-ai/ModeToggle";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 import UnifiedChatPanel from "./personal-ai/UnifiedChatPanel";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useToast } from "@/contexts/ToastContext";
+import { useSWRConfig } from "swr";
 
 interface Note {
   id: string;
@@ -29,8 +31,11 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const dialog = useAppDialog();
+  const { show } = useToast();
+  const { mutate: globalMutate } = useSWRConfig();
 
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [mode, setMode] = useState<Mode>("chat");
@@ -135,6 +140,10 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
 
   // 2. Sync State to URL
   useEffect(() => {
+    // Only sync if we are on the main preparation page.
+    // If we've navigated to a modal route (like /trash or /settings), don't interfere with its URL.
+    if (pathname !== "/preparation") return;
+
     const params = new URLSearchParams(searchParams.toString());
     const currentParam = params.get("session_id");
     
@@ -149,50 +158,71 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
         router.push(`/preparation?${params.toString()}`, { scroll: false });
       }
     }
-  }, [sessionId, router, searchParams]);
+  }, [sessionId, router, searchParams, pathname]);
 
-  // Fetch available notes on mount
-  useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        setIsNotesLoading(true);
-        const res = await fetch("/api/notes?all=true");
-        if (res.ok) {
-          const data = await res.json();
-          setNotes(data.notes || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch notes:", error);
-      } finally {
-        setIsNotesLoading(false);
+  // Fetch available notes – also exposed so event listeners can trigger a re-fetch
+  const fetchNotes = React.useCallback(async () => {
+    try {
+      setIsNotesLoading(true);
+      const res = await fetch("/api/notes?all=true");
+      if (res.ok) {
+        const data = await res.json();
+        setNotes(data.notes || []);
       }
-    };
-    fetchNotes();
-
-    // Fetch all sessions
-    const fetchAllSessions = async () => {
-      try {
-        setIsSessionsLoading(true);
-        const res = await fetch("/api/personal-ai/sessions");
-        if (res.ok) {
-          const json = await res.json();
-          const sessList = json.data?.sessions || [];
-          setSessions(sessList);
-          const sessionNotes = new Set<string>(
-            sessList.map((s: any) => s.note_id).filter(Boolean)
-          );
-          setNotesWithSessions(sessionNotes);
-        }
-      } catch (e) {
-        console.error("Failed to fetch all sessions", e);
-      } finally {
-        setIsSessionsLoading(false);
-      }
-    };
-    fetchAllSessions();
+    } catch (error) {
+      console.error("Failed to fetch notes:", error);
+    } finally {
+      setIsNotesLoading(false);
+    }
   }, []);
 
-  const fetchAllSessions = async () => {
+  // Initial load of notes + sessions
+  useEffect(() => {
+    fetchNotes();
+    fetchAllSessions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch everything when an external event signals a refresh (e.g., note restored from Trash)
+  useEffect(() => {
+    const handleRefresh = async () => {
+      await fetchNotes();
+      const updatedSessions = await fetchAllSessions();
+
+      // Critical: if the current session's note_id changed (note was restored from Trash),
+      // update selectedNoteId to the original note so the chat unlocks.
+      if (sessionId && updatedSessions) {
+        const currentSession = updatedSessions.find((s: any) => s.id === sessionId);
+        if (currentSession?.note_id && currentSession.note_id !== selectedNoteId) {
+          setSelectedNoteId(currentSession.note_id);
+          const contextRes = await fetch(`/api/personal-ai/context?note_id=${currentSession.note_id}`);
+          if (contextRes.ok) {
+            const contextData = await contextRes.json();
+            setNoteContent(contextData.contentText);
+            setIsPdf(contextData.isPdf);
+            setContextError(null);
+          }
+          return; // done — context reloaded for new note
+        }
+      }
+
+      // Fallback: reload context for the note currently selected
+      if (selectedNoteId) {
+        const contextRes = await fetch(`/api/personal-ai/context?note_id=${selectedNoteId}`);
+        if (contextRes.ok) {
+          const contextData = await contextRes.json();
+          setNoteContent(contextData.contentText);
+          setIsPdf(contextData.isPdf);
+          setContextError(null);
+        }
+      }
+    };
+    window.addEventListener("personal-ai-refresh", handleRefresh);
+    return () => window.removeEventListener("personal-ai-refresh", handleRefresh);
+  }, [fetchNotes, selectedNoteId, sessionId]);
+
+  // Returns sessions so callers (e.g., refresh handler) can inspect updated note_ids
+  const fetchAllSessions = async (): Promise<any[]> => {
     try {
       const res = await fetch("/api/personal-ai/sessions");
       if (res.ok) {
@@ -203,10 +233,12 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
           sessList.map((s: any) => s.note_id).filter(Boolean)
         );
         setNotesWithSessions(sessionNotes);
+        return sessList;
       }
     } catch (e) {
       console.error("Failed to fetch all sessions", e);
     }
+    return [];
   };
 
   const handleSessionCreated = (id: string, noteId?: string | null) => {
@@ -230,22 +262,54 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   }, [isFocusMode, isDark]);
 
   const handleSessionDelete = async (id: string) => {
-    if (!await dialog.showConfirm({ 
-      title: "Move to Trash?", 
-      message: "This session history will be moved to Trash and permanently deleted after 7 days.", 
-      confirmLabel: "Move to Trash", 
-      cancelLabel: "Cancel", 
-      type: "warning" 
-    })) return;
-    try {
-      const res = await fetch(`/api/personal-ai/sessions/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setSessions(prev => prev.filter(s => s.id !== id));
-        // Recalculate notes with sessions after delete
-        setTimeout(fetchAllSessions, 100);
+    const previousSessions = [...sessions];
+
+    // 1. Optimistically remove immediately
+    setSessions(prev => prev.filter(s => s.id !== id));
+
+    // 2. Start delete in background
+    const deletePromise = fetch(`/api/personal-ai/sessions/${id}`, { method: "DELETE" }).then(res => {
+      if (!res.ok) throw new Error("Delete failed");
+      return res;
+    });
+
+    // 3. Show toast immediately
+    show({
+      message: "Moved to trash",
+      type: "success",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          // Instantly restore to UI
+          setSessions(previousSessions);
+
+          const performRestore = async () => {
+            try {
+              await deletePromise;
+              const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${id}&type=personal_ai_session`, {
+                method: "POST"
+              });
+              if (restoreRes.ok) {
+                fetchAllSessions();
+                globalMutate("/api/trash");
+              }
+            } catch (err) {
+              console.error("Undo failed:", err);
+            }
+          };
+          performRestore();
+        }
       }
+    });
+
+    try {
+      await deletePromise;
+      globalMutate("/api/trash");
+      setTimeout(fetchAllSessions, 100);
     } catch (e) {
       console.error("Delete failed", e);
+      setSessions(previousSessions); // Rollback
+      dialog.showAlert("Could not delete the session.", "error");
     }
   };
 
@@ -264,18 +328,27 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   };
 
   return (
-    <div className={`flex flex-col h-full overflow-hidden transition-all duration-300 mx-auto w-full ${isFocusMode ? 'max-w-none gap-0 px-0' : 'max-w-3xl gap-4 px-3 sm:px-0 pb-4'}`}>
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-        className={`flex flex-row items-center gap-1 sm:gap-2.5 transition-all duration-300 
+    <div className={`flex flex-col h-full overflow-hidden transition-all duration-500 mx-auto w-full ${isFocusMode ? 'max-w-none gap-0 px-0' : 'max-w-3xl gap-4 px-3 sm:px-0 pb-4'}`}>
+      <div 
+        className={`flex flex-row items-center gap-1 sm:gap-2.5 transition-all duration-500 border-b
         ${isFocusMode 
-          ? `px-4 h-14 shrink-0 border-b bg-white dark:bg-[#1A1A1A] border-[#7D7D7D]/40 dark:border-[#2E2E2E]` 
-          : ''}`}
+          ? `px-4 h-14 shrink-0 bg-white dark:bg-[#1A1A1A] border-[#7D7D7D]/40 dark:border-[#2E2E2E]` 
+          : 'border-transparent'}`}
       >
         <div className="flex items-center gap-2.5 flex-1 h-full">
-          {isFocusMode && <SidebarToggleButton />}
+          <AnimatePresence mode="popLayout">
+            {isFocusMode && (
+              <motion.div
+                initial={{ width: 0, opacity: 0, x: -10 }}
+                animate={{ width: "auto", opacity: 1, x: 0 }}
+                exit={{ width: 0, opacity: 0, x: -10 }}
+                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+                className="overflow-hidden flex items-center shrink-0"
+              >
+                <SidebarToggleButton />
+              </motion.div>
+            )}
+          </AnimatePresence>
           <SessionHistorySelector
             onSelect={handleSessionSelect}
             selectedSessionId={sessionId}
@@ -296,7 +369,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
           <div className="ml-auto">
             <button
               onClick={() => onFocusModeChange?.(false)}
-              className={`w-8 h-8 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center shrink-0
+              className={`w-8 h-8 rounded-xl transition-all duration-500 hover:scale-110 active:scale-95 flex items-center justify-center shrink-0
                 ${isDark 
                   ? "bg-[#252525] border border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]" 
                   : "bg-white border border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#F0EDE8]"}`}
@@ -306,12 +379,14 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
             </button>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Main Panel */}
-      <div className={`flex flex-col flex-1 transition-all duration-500 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.02)]
-        ${isFocusMode ? "rounded-none" : "rounded-xl border"}
-        ${isDark ? "bg-[#1E1E1E] border-[#333]" : "bg-[#F5F5F5] border-[#E8E5E0]"}`}>
+      <div className={`flex flex-col flex-1 transition-all duration-500 overflow-hidden border
+        ${isFocusMode 
+          ? "rounded-none border-transparent shadow-none" 
+          : "rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.02)] " + (isDark ? "border-[#333]" : "border-[#E8E5E0]")}
+        ${isDark ? "bg-[#1E1E1E]" : "bg-[#F5F5F5]"}`}>
 
         <AnimatePresence>
           {!selectedNoteId ? (

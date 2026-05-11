@@ -145,7 +145,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
         <React.Fragment key="shared-links-list-group">
           <motion.div
             key="shared-links-backdrop"
-            className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-[2px] touch-none"
+            className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-[2px] touch-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -166,7 +166,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                 closeModal();
               }
             }}
-            className={`fixed z-[310] w-full bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-[760px]
+            className={`fixed z-[410] w-full bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-[760px]
               ${isMobile ? "h-[92dvh] pt-2" : "h-[580px]"}
               rounded-t-[20px] sm:rounded-xl
               shadow-2xl overflow-hidden flex flex-col overscroll-contain

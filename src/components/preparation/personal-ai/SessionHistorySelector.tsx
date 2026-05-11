@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { History, ChevronDown, Clock, Search, Loader2, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { History, ChevronDown, Clock, Search, Loader2, Trash2, Lock } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 interface Session {
@@ -15,6 +15,14 @@ interface Props {
   sessions: Session[];
   isLoading: boolean;
   onDelete: (id: string) => void;
+}
+
+/** Strip the hidden archive tag and detect if a session is read-only */
+function parseSession(session: Session) {
+  const TAG = "||ORIGINAL_NOTE_ID||";
+  const isArchived = session.title.includes(TAG);
+  const cleanTitle = isArchived ? session.title.split(TAG)[0] : session.title;
+  return { cleanTitle, isArchived };
 }
 
 export default function SessionHistorySelector({ 
@@ -34,11 +42,13 @@ export default function SessionHistorySelector({
     onDelete(id);
   };
 
-  const filteredSessions = sessions.filter((s) =>
-    s.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSessions = sessions.filter((s) => {
+    const { cleanTitle } = parseSession(s);
+    return cleanTitle.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId) || null;
+  const selectedParsed = selectedSession ? parseSession(selectedSession) : null;
 
   return (
     <div className="relative">
@@ -52,8 +62,13 @@ export default function SessionHistorySelector({
       >
         <History size={17} className={isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"} />
         <span className="text-[13px] font-semibold whitespace-nowrap hidden sm:inline">
-          {selectedSession ? selectedSession.title : "History"}
+          {selectedParsed ? selectedParsed.cleanTitle : "History"}
         </span>
+        {selectedParsed?.isArchived && (
+          <span title="Read-only — note is in Trash">
+            <Lock size={11} className="text-amber-500 shrink-0" />
+          </span>
+        )}
         <ChevronDown size={15} className={isDark ? "text-[#545454]" : "text-[#BABABA]"} />
       </button>
 
@@ -92,39 +107,49 @@ export default function SessionHistorySelector({
                 </div>
               ) : (
                 <div className="p-1">
-                  {filteredSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      onClick={() => {
-                        onSelect(session.id, session.note_id);
-                        setIsOpen(false);
-                      }}
-                      className={`w-full group text-left px-3 py-2.5 rounded-lg flex items-center justify-between transition-colors cursor-pointer
-                        ${session.id === selectedSessionId 
-                          ? (isDark ? "bg-[#252525] text-white" : "bg-[#F0EDE8] text-[#252525]")
-                          : (isDark ? "hover:bg-[#252525] text-[#BABABA]" : "hover:bg-[#F0EDE8] text-[#545454]")
-                        }`}
-                    >
-                      <div className="flex flex-col gap-1 overflow-hidden">
-                        <span className="text-sm font-medium truncate w-full">{session.title || "Untitled Session"}</span>
-                        <div className="flex items-center gap-1 text-[10px] opacity-70">
-                          <Clock size={12} />
-                          <span>{new Date(session.updated_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={(e) => handleDelete(e, session.id)}
-                        className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100
-                          ${isDark 
-                            ? "text-[#7D7D7D] hover:bg-red-500/10 hover:text-red-400" 
-                            : "text-[#BABABA] hover:bg-red-50 hover:text-red-500"}`}
-                        title="Delete session"
+                  {filteredSessions.map((session) => {
+                    const { cleanTitle, isArchived } = parseSession(session);
+                    return (
+                      <div
+                        key={session.id}
+                        onClick={() => {
+                          onSelect(session.id, session.note_id);
+                          setIsOpen(false);
+                        }}
+                        className={`w-full group text-left px-3 py-2.5 rounded-lg flex items-center justify-between transition-colors cursor-pointer
+                          ${session.id === selectedSessionId 
+                            ? (isDark ? "bg-[#252525] text-white" : "bg-[#F0EDE8] text-[#252525]")
+                            : (isDark ? "hover:bg-[#252525] text-[#BABABA]" : "hover:bg-[#F0EDE8] text-[#545454]")
+                          }`}
                       >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex flex-col gap-1 overflow-hidden">
+                          <div className="flex items-center gap-1.5">
+                            {isArchived && (
+                              <span title="Read-only — note is in Trash">
+                                <Lock size={11} className="text-amber-500 shrink-0" />
+                              </span>
+                            )}
+                            <span className="text-sm font-medium truncate">{cleanTitle || "Untitled Session"}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] opacity-70">
+                            <Clock size={12} />
+                            <span>{new Date(session.updated_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={(e) => handleDelete(e, session.id)}
+                          className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100
+                            ${isDark 
+                              ? "text-[#7D7D7D] hover:bg-red-500/10 hover:text-red-400" 
+                              : "text-[#BABABA] hover:bg-red-50 hover:text-red-500"}`}
+                          title="Delete session"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

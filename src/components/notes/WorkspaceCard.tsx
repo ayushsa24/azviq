@@ -199,7 +199,7 @@ export function WorkspaceCard({
                                     className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                    Delete Workspace
+                                    Move to Trash
                                 </button>
                             </div>
                         )}

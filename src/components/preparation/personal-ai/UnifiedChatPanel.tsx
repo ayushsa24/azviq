@@ -751,7 +751,7 @@ export default function UnifiedChatPanel({
         <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-30">
           <button
             onClick={() => onFocusModeChange?.(true)}
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center shrink-0
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl backdrop-blur-md transition-all duration-500 hover:scale-110 active:scale-95 flex items-center justify-center shrink-0
               ${isDark 
                 ? "bg-[#252525]/80 border border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]" 
                 : "bg-white/80 border border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#F0EDE8]"}`}
@@ -1091,42 +1091,65 @@ export default function UnifiedChatPanel({
           {/* ── TEXT MODE ── */}
           {mode === "chat" && (
             <div className="pt-1 pb-0">
-              <div className={`relative flex flex-col w-full transition-all duration-300 p-1
-                ${isDark 
-                  ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40" 
-                  : "bg-white border-[#E5E5E5] focus-within:border-[#252525]/20"}
-                border rounded-[28px]
-              `}>
-                <div className="flex items-center px-1">
-                  <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={handleTextareaChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask anything"
-                    rows={1}
-                    disabled={isLoading || isStarting}
-                    className="flex-1 bg-transparent px-3 py-[9px] outline-none resize-none max-h-48 text-[15px] min-h-[40px] leading-tight
-                      text-[#252525] dark:text-white placeholder-[#9E9E9E] disabled:opacity-50 transition-all font-medium"
-                  />
-                  
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={handleSend}
-                      disabled={!input.trim() || isLoading || isStarting}
-                      className={`flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-90
-                        ${!input.trim() || isLoading || isStarting
-                          ? (isDark ? "bg-[#333] text-[#555]" : "bg-[#F5F5F5] text-[#BABABA]")
-                          : (isDark ? "bg-white text-[#252525] hover:bg-neutral-100" : "bg-[#252525] text-white hover:bg-[#1A1A1A]")
-                        }`}
-                    >
-                      {isLoading
-                        ? <Square size={12} className="fill-current" />
-                        : <Send size={14} />}
-                    </button>
+              {noteTitle === "[Archived] Deleted Material" || noteTitle === "Deleted Material" || noteTitle === "Unknown Document" ? (
+                <div className={`flex items-center justify-between gap-3 px-4 py-2.5 mx-auto w-full max-w-lg rounded-full border shadow-sm
+                  ${isDark ? "bg-[#252525] border-[#333] text-[#BABABA]" : "bg-white border-[#E5E5E5] text-[#545454]"}`}>
+                  <div className="flex items-center gap-2.5 text-xs font-medium">
+                    <AlertCircle size={14} className={isDark ? "text-amber-400" : "text-amber-600"} />
+                    <span>Read-only. Recover note from Trash to chat.</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      // Update URL to include 'from' so closing the modal returns here
+                      const currentFullUrl = window.location.pathname + window.location.search;
+                      const newUrl = `/trash?from=${encodeURIComponent(currentFullUrl)}`;
+                      window.history.pushState(null, '', newUrl);
+                      window.dispatchEvent(new CustomEvent('open-trash'));
+                    }}
+                    className={`text-[10px] font-bold px-3 py-1.5 rounded-full transition-colors shrink-0 uppercase tracking-wider
+                      ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#252525]"}`}
+                  >
+                    Open Trash
+                  </button>
+                </div>
+              ) : (
+                <div className={`relative flex flex-col w-full transition-all duration-500 p-1
+                  ${isDark 
+                    ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40" 
+                    : "bg-white border-[#E5E5E5] focus-within:border-[#252525]/20"}
+                  border rounded-[28px]
+                `}>
+                  <div className="flex items-center px-1">
+                    <textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={handleTextareaChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Ask anything"
+                      rows={1}
+                      disabled={isLoading || isStarting}
+                      className="flex-1 bg-transparent px-3 py-[9px] outline-none resize-none max-h-48 text-[15px] min-h-[40px] leading-tight
+                        text-[#252525] dark:text-white placeholder-[#9E9E9E] disabled:opacity-50 transition-all font-medium"
+                    />
+                    
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={handleSend}
+                        disabled={!input.trim() || isLoading || isStarting}
+                        className={`flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-90
+                          ${!input.trim() || isLoading || isStarting
+                            ? (isDark ? "bg-[#333] text-[#555]" : "bg-[#F5F5F5] text-[#BABABA]")
+                            : (isDark ? "bg-white text-[#252525] hover:bg-neutral-100" : "bg-[#252525] text-white hover:bg-[#1A1A1A]")
+                          }`}
+                      >
+                        {isLoading
+                          ? <Square size={12} className="fill-current" />
+                          : <Send size={14} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -1139,108 +1162,127 @@ export default function UnifiedChatPanel({
         {/* ── VOICE MODE ── */}
         {mode === "voice" && (
           <div className="p-4 sm:p-5 flex flex-col items-center gap-3">
-
-            {/* Unsupported browser */}
-            {!voiceSupported && (
-              <div className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl
-                ${isDark ? "bg-red-900/20 text-red-400" : "bg-red-50 text-red-600"}`}>
-                <MicOff className="w-4 h-4 shrink-0" />
-                Voice not supported. Use Chrome or Edge.
+            {noteTitle === "[Archived] Deleted Material" || noteTitle === "Deleted Material" || noteTitle === "Unknown Document" ? (
+              <div className={`flex flex-col items-center justify-center gap-3 p-5 w-full max-w-sm mx-auto rounded-2xl border text-sm font-medium text-center shadow-sm
+                ${isDark ? "bg-[#252525] border-[#333] text-[#BABABA]" : "bg-white border-[#E5E5E5] text-[#545454]"}`}>
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} className={isDark ? "text-amber-400" : "text-amber-600"} />
+                  <span className="font-bold text-[#252525] dark:text-white">Read-Only Mode</span>
+                </div>
+                <span className="text-xs leading-relaxed max-w-[240px]">Recover the original note from your Trash to continue chatting.</span>
+                <button 
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-trash'))}
+                  className={`mt-2 text-[10px] font-bold px-4 py-2 rounded-full transition-all uppercase tracking-wider
+                    ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#252525] hover:bg-black text-white"}`}
+                >
+                  Open Trash
+                </button>
               </div>
-            )}
-
-            {voiceSupported && (
+            ) : (
               <>
-                {/* Live transcript preview */}
-                {voiceState === "listening" && transcript && (
-                  <div className={`w-full max-w-sm px-4 py-2.5 rounded-xl text-sm text-center italic animate-in fade-in duration-200
-                    ${isDark
-                      ? "bg-[#252525] border border-blue-500/30 text-white/70"
-                      : "bg-blue-50 text-[#252525]/70 border border-blue-200"}`}>
-                    "{transcript}"
+                {/* Unsupported browser */}
+                {!voiceSupported && (
+                  <div className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl
+                    ${isDark ? "bg-red-900/20 text-red-400" : "bg-red-50 text-red-600"}`}>
+                    <MicOff className="w-4 h-4 shrink-0" />
+                    Voice not supported. Use Chrome or Edge.
                   </div>
                 )}
 
-                {/* Premium feature badge (idle state only) */}
-                {voiceState === "idle" && (
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all
-                    ${isDark
-                      ? "bg-white/10 border-white/10 text-white/90"
-                      : "bg-[#4D4D4D] border-black/10 text-white shadow-sm"}`}>
-                    <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
-                    Premium Feature
-                  </div>
-                )}
-
-                {/* Orb + controls row */}
-                <div className="flex items-center gap-4">
-
-                  {/* Stop button (shown when active) */}
-                  {isVoiceActive && (
-                    <button
-                      onClick={stopAll}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-colors
+                {voiceSupported && (
+                  <>
+                    {/* Live transcript preview */}
+                    {voiceState === "listening" && transcript && (
+                      <div className={`w-full max-w-sm px-4 py-2.5 rounded-xl text-sm text-center italic animate-in fade-in duration-200
                         ${isDark
-                          ? "bg-white/5 hover:bg-white/10 text-[#BABABA]"
-                          : "bg-black/5 hover:bg-black/10 text-[#545454]"}`}
-                    >
-                      <Square className="w-3 h-3 fill-current" />
-                      Stop
-                    </button>
-                  )}
-
-                  {/* Mic orb */}
-                  <div className="relative flex items-center justify-center">
-                    {/* Pulse rings */}
-                    {isVoiceActive && (
-                      <>
-                        <div className={`absolute w-20 h-20 rounded-full ${vc.ringClass} animate-ping opacity-50`} />
-                        <div
-                          className={`absolute w-16 h-16 rounded-full ${vc.ringClass} animate-ping opacity-70`}
-                          style={{ animationDelay: "300ms" }}
-                        />
-                      </>
+                          ? "bg-[#252525] border border-blue-500/30 text-white/70"
+                          : "bg-blue-50 text-[#252525]/70 border border-blue-200"}`}>
+                        "{transcript}"
+                      </div>
                     )}
 
-                    <button
-                      onClick={() => {
-                        if (isVoiceActive) stopAll();
-                        else startListening();
-                      }}
-                      disabled={isLoading || isStarting || voiceState === "idle"}
-                      className={`relative z-10 w-14 h-14 rounded-full flex items-center justify-center
-                        shadow-lg transition-all duration-200 focus:outline-none
-                        ${vc.btnClass}
-                        ${(isLoading || isStarting || voiceState === "idle") ? "opacity-70 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
-                      style={voiceState === "listening" && audioLevel > 0.05 ? {
-                        boxShadow: `0 0 ${10 + audioLevel * 28}px ${4 + audioLevel * 14}px rgba(59,130,246,${0.25 + audioLevel * 0.45})`
-                      } : voiceState === "speaking" ? {
-                        boxShadow: "0 0 20px 8px rgba(16,185,129,0.35)"
-                      } : undefined}
-                      title={isVoiceActive ? "Stop" : "Start speaking"}
-                    >
-                      {vc.icon}
-                    </button>
-                  </div>
+                    {/* Premium feature badge (idle state only) */}
+                    {voiceState === "idle" && (
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all
+                        ${isDark
+                          ? "bg-white/10 border-white/10 text-white/90"
+                          : "bg-[#4D4D4D] border-black/10 text-white shadow-sm"}`}>
+                        <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
+                        Premium Feature
+                      </div>
+                    )}
 
-                  {/* Spacer for symmetry when stop button shown */}
-                  {isVoiceActive && <div className="w-[72px]" />}
-                </div>
+                    {/* Orb + controls row */}
+                    <div className="flex items-center gap-4">
 
-                {/* State label */}
-                <p className={`text-xs font-semibold text-center ${
-                  voiceState === "listening" ? "text-blue-500"
-                  : voiceState === "speaking" ? "text-emerald-500"
-                  : voiceState === "thinking" ? "text-[#C2A27A]"
-                  : isDark ? "text-[#545454]" : "text-[#BABABA]"
-                }`}>
-                  {vc.label}
-                  {voiceState === "idle" && (
-                    <span className={`block text-[10px] font-normal mt-0.5 ${isDark ? "text-[#3A3A3A]" : "text-[#CBCBCB]"}`}>
-                      Advanced Voice Mode · Coming Soon
-                    </span>
-                  )}
-                </p>
+                      {/* Stop button (shown when active) */}
+                      {isVoiceActive && (
+                        <button
+                          onClick={stopAll}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-colors
+                            ${isDark
+                              ? "bg-white/5 hover:bg-white/10 text-[#BABABA]"
+                              : "bg-black/5 hover:bg-black/10 text-[#545454]"}`}
+                        >
+                          <Square className="w-3 h-3 fill-current" />
+                          Stop
+                        </button>
+                      )}
+
+                      {/* Mic orb */}
+                      <div className="relative flex items-center justify-center">
+                        {/* Pulse rings */}
+                        {isVoiceActive && (
+                          <>
+                            <div className={`absolute w-20 h-20 rounded-full ${vc.ringClass} animate-ping opacity-50`} />
+                            <div
+                              className={`absolute w-16 h-16 rounded-full ${vc.ringClass} animate-ping opacity-70`}
+                              style={{ animationDelay: "300ms" }}
+                            />
+                          </>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            if (isVoiceActive) stopAll();
+                            else startListening();
+                          }}
+                          disabled={isLoading || isStarting || voiceState === "idle"}
+                          className={`relative z-10 w-14 h-14 rounded-full flex items-center justify-center
+                            shadow-lg transition-all duration-200 focus:outline-none
+                            ${vc.btnClass}
+                            ${(isLoading || isStarting || voiceState === "idle") ? "opacity-70 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
+                          style={voiceState === "listening" && audioLevel > 0.05 ? {
+                            boxShadow: `0 0 ${10 + audioLevel * 28}px ${4 + audioLevel * 14}px rgba(59,130,246,${0.25 + audioLevel * 0.45})`
+                          } : voiceState === "speaking" ? {
+                            boxShadow: "0 0 20px 8px rgba(16,185,129,0.35)"
+                          } : undefined}
+                          title={isVoiceActive ? "Stop" : "Start speaking"}
+                        >
+                          {vc.icon}
+                        </button>
+                      </div>
+
+                      {/* Spacer for symmetry when stop button shown */}
+                      {isVoiceActive && <div className="w-[72px]" />}
+                    </div>
+
+                    {/* State label */}
+                    <p className={`text-xs font-semibold text-center ${
+                      voiceState === "listening" ? "text-blue-500"
+                      : voiceState === "speaking" ? "text-emerald-500"
+                      : voiceState === "thinking" ? "text-[#C2A27A]"
+                      : isDark ? "text-[#545454]" : "text-[#BABABA]"
+                    }`}>
+                      {vc.label}
+                      {voiceState === "idle" && (
+                        <span className={`block text-[10px] font-normal mt-0.5 ${isDark ? "text-[#3A3A3A]" : "text-[#CBCBCB]"}`}>
+                          Advanced Voice Mode · Coming Soon
+                        </span>
+                      )}
+                    </p>
+                  </>
+                )}
               </>
             )}
           </div>

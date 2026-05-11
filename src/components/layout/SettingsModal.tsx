@@ -581,7 +581,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[400] flex items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in"
@@ -1010,8 +1010,8 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                                 handleSaveModelSettings(selectedModel, style);
                               }}
                               className={`flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all active:scale-95 gap-1 ${isActive
-                                  ? isDark ? "bg-[#C2A27A] text-white border-[#C2A27A]" : "bg-[#252525] text-white border-[#252525]"
-                                  : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"
+                                ? isDark ? "bg-[#C2A27A] text-white border-[#C2A27A]" : "bg-[#252525] text-white border-[#252525]"
+                                : isDark ? "bg-[#252525] border-[#333] text-[#7D7D7D] hover:text-white" : "bg-white border-[#E8E5E0] text-[#7D7D7D] hover:text-[#252525]"
                                 }`}
                             >
                               <span>{labels[style]}</span>
@@ -1093,7 +1093,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                           {/* Exercise Usage */}
                           <div className="space-y-1.5">
                             <div className="flex justify-between text-[11px] font-medium">
-                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Exercise Generation</span>
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Exercise/Revision Generation</span>
                               <span className="font-bold">
                                 {subscription.usage.exercise.limit === Infinity ? "Unlimited" : `${subscription.usage.exercise.remaining} / ${subscription.usage.exercise.limit}`}
                               </span>
@@ -1111,7 +1111,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                           {/* Personal AI Usage */}
                           <div className="space-y-1.5">
                             <div className="flex justify-between text-[11px] font-medium">
-                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>Personal AI Teacher</span>
+                              <span className={isDark ? "text-[#CFCFCF]" : "text-[#545454]"}>AI Teacher</span>
                               <span className="font-bold">
                                 {subscription.usage.personal_ai.limit === Infinity ? "Unlimited" : `${subscription.usage.personal_ai.remaining} / ${subscription.usage.personal_ai.limit}`}
                               </span>

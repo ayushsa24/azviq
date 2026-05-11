@@ -39,7 +39,33 @@ export async function GET(req: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ trashItems });
+    // Filter out child items whose parent is also in the trash
+    // This prevents "double listing" when an entire workspace or project is deleted
+    const trashSet = new Set(trashItems?.map(item => item.item_id) || []);
+    
+    const filteredTrashItems = trashItems?.filter(item => {
+      // If it's a note or pdf, hide it if its workspace is in the trash
+      if (item.item_type === "note" || item.item_type === "pdf") {
+        if (item.data?.workspace_id && trashSet.has(item.data.workspace_id)) {
+          return false;
+        }
+      }
+      // If it's an exercise or revision, hide it if its note is in the trash
+      if (item.item_type === "exercise" || item.item_type === "revision") {
+        if (item.data?.note_id && trashSet.has(item.data.note_id)) {
+          return false;
+        }
+      }
+      // If it's a task, hide it if its project is in the trash
+      if (item.item_type === "task" || item.item_type === "todo") {
+        if (item.data?.project_id && trashSet.has(item.data.project_id)) {
+          return false;
+        }
+      }
+      return true;
+    }) || [];
+
+    return NextResponse.json({ trashItems: filteredTrashItems });
   } catch (error) {
     console.error("GET trash error:", error);
     return NextResponse.json({ error: "Failed to fetch trash bin" }, { status: 500 });
@@ -73,6 +99,7 @@ export async function DELETE(req: Request) {
        if (type === "library") query = query.in("item_type", ["note", "pdf", "workspace", "project"]);
        else if (type === "task") query = query.in("item_type", ["task", "todo"]);
        else if (type === "revision") query = query.in("item_type", ["revision", "exercise"]);
+       else if (type === "chat") query = query.in("item_type", ["chat", "personal_ai_session"]);
        else query = query.eq("item_type", type);
     }
 

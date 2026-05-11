@@ -21,9 +21,10 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useToast } from "@/contexts/ToastContext";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
@@ -33,6 +34,7 @@ import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
 import { motion, useDragControls, AnimatePresence, LayoutGroup } from "framer-motion";
 
 export default function TasksPage() {
+  const { mutate } = useSWRConfig();
   const { data: tasksData, mutate: mutateTasks, isLoading: isTasksLoading } = useSWR("/api/tasks", fetcher);
   const { data: projectsData, mutate: mutateProjects, isLoading: isProjectsLoading } = useSWR("/api/projects", fetcher);
   const { data: notesData, mutate: mutateNotes, isLoading: isNotesLoading } = useSWR("/api/notes?all=true", fetcher);
@@ -56,6 +58,7 @@ export default function TasksPage() {
   const [selectedProjectTask, setSelectedProjectTask] = useState<any>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const dialog = useAppDialog();
+  const { show } = useToast();
   const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -274,14 +277,8 @@ export default function TasksPage() {
   };
 
   const handleDeleteTask = async (taskId: string, taskTitle?: string) => {
-    const confirmed = await dialog.showConfirm({
-      title: "Move to Trash?",
-      message: `"${taskTitle || 'This task'}" will be moved to Trash and permanently deleted after 7 days.`,
-      type: "warning",
-      confirmLabel: "Move to Trash",
-      cancelLabel: "Cancel"
-    });
-    if (!confirmed) return;
+    // Optimistic update
+    const previousTasks = tasksData;
     mutateTasks((currentData: any) => {
       if (!currentData) return currentData;
       return {
@@ -290,24 +287,58 @@ export default function TasksPage() {
       };
     }, false);
     setOpenMenuId(null);
+
+    const deletePromise = fetch(`/api/tasks/${taskId}`, { method: "DELETE" }).then(res => {
+      if (!res.ok) throw new Error("Failed to delete task");
+      return res;
+    });
+
+    show({
+      message: "Moved to trash",
+      type: "success",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          // Instantly restore to UI
+          mutateTasks((currentData: any) => {
+            if (!currentData) return currentData;
+            // Need to fetch original task somehow? We don't have the task object here, only taskId.
+            // But we have previousTasks from the closure!
+            return previousTasks; 
+          }, false);
+
+          const performRestore = async () => {
+            try {
+              await deletePromise;
+              const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${taskId}&type=task`, {
+                method: "POST"
+              });
+              if (restoreRes.ok) {
+                mutateTasks();
+                mutate("/api/trash"); // Remove from trash bin
+              }
+            } catch (err) {
+              console.error("Undo failed:", err);
+            }
+          };
+          performRestore();
+        }
+      }
+    });
+
     try {
-      await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+      await deletePromise;
+      mutate("/api/trash");
       mutateTasks();
     } catch (e) {
       console.error("Failed to delete task", e);
-      mutateTasks(); // Revert
+      mutateTasks(previousTasks); // Revert
     }
   };
 
   const handleDeleteProject = async (projectId: string, projectTitle?: string) => {
-    const confirmed = await dialog.showConfirm({
-      title: "Move to Trash?",
-      message: `"${projectTitle || 'This project'}" and all its tasks will be moved to Trash and permanently deleted after 7 days.`,
-      type: "warning",
-      confirmLabel: "Move to Trash",
-      cancelLabel: "Cancel"
-    });
-    if (!confirmed) return;
+    // Optimistic update
+    const previousProjects = projectsData;
     mutateProjects((currentData: any) => {
       if (!currentData) return currentData;
       return {
@@ -316,12 +347,51 @@ export default function TasksPage() {
       };
     }, false);
     setOpenMenuId(null);
+
+    const deletePromise = fetch(`/api/projects/${projectId}`, { method: "DELETE" }).then(res => {
+      if (!res.ok) throw new Error("Failed to delete project");
+      return res;
+    });
+
+    show({
+      message: "Moved to trash",
+      type: "success",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          // Instantly restore to UI
+          mutateProjects((currentData: any) => {
+            if (!currentData) return currentData;
+            return previousProjects;
+          }, false);
+
+          const performRestore = async () => {
+            try {
+              await deletePromise;
+              const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${projectId}&type=project`, {
+                method: "POST"
+              });
+              if (restoreRes.ok) {
+                mutateProjects();
+                mutateTasks(); // Restoring project also restores its tasks
+                mutate("/api/trash"); // Remove from trash bin
+              }
+            } catch (err) {
+              console.error("Undo failed:", err);
+            }
+          };
+          performRestore();
+        }
+      }
+    });
+
     try {
-      await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+      await deletePromise;
+      mutate("/api/trash");
       mutateProjects();
     } catch (e) {
       console.error("Failed to delete project", e);
-      mutateProjects(); // Revert
+      mutateProjects(previousProjects); // Revert
     }
   };
 
@@ -516,7 +586,7 @@ export default function TasksPage() {
               {/* Left group: search bar + star */}
               <div className="flex items-center gap-2 flex-1 sm:flex-none">
                 <div className="relative flex-1 sm:w-80">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D]" size={16} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#252525] dark:text-white z-10 opacity-60" size={16} />
                   <input
                     type="text"
                     placeholder="Search projects..."
@@ -653,7 +723,7 @@ export default function TasksPage() {
                 {/* Left group: search bar + star */}
                 <div className="flex items-center gap-2 flex-1 sm:flex-none">
                   <div className="relative flex-1 sm:w-80">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#BABABA]" size={16} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#252525] dark:text-white z-10 opacity-60" size={16} />
                     <input
                       type="text"
                       placeholder="Search tasks..."
@@ -1045,7 +1115,7 @@ export default function TasksPage() {
                 <div className="border-t border-gray-100 dark:border-[#444] my-1" />
                 <button onClick={() => handleDeleteProject(p.id, p.name)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                   <Trash2 className="w-4 h-4" />
-                  Delete
+                  Move to Trash
                 </button>
               </>
             ) : (
@@ -1135,7 +1205,7 @@ export default function TasksPage() {
                 <div className="border-t border-gray-100 dark:border-[#444] my-1" />
                 <button onClick={() => handleDeleteTask(t.id, t.title)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                   <Trash2 className="w-4 h-4" />
-                  Delete
+                  Move to Trash
                 </button>
               </>
             )}

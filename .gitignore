@@ -56,3 +56,4 @@ tunnel.log
 
 # Environment
 .env.local
+CLAUDE.md

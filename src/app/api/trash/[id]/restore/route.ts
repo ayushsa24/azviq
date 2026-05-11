@@ -112,6 +112,72 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
+    // 3. Recursive Restoration: Handle children if this is a parent (Workspace or Note)
+    if (trashItem.item_type === "note" || trashItem.item_type === "pdf" || trashItem.item_type === "workspace" || trashItem.item_type === "project") {
+      try {
+        let childrenQuery = supabase.from("trash").select("*").eq("user_id", session.user.email ? (await supabase.from("users").select("id").eq("email", session.user.email).single()).data?.id : null);
+        
+        if (trashItem.item_type === "workspace") {
+          childrenQuery = childrenQuery
+            .in("item_type", ["note", "pdf"])
+            .contains("data", { workspace_id: trashItem.item_id });
+        } else if (trashItem.item_type === "project") {
+          childrenQuery = childrenQuery
+            .in("item_type", ["task", "todo"])
+            .contains("data", { project_id: trashItem.item_id });
+        } else {
+          childrenQuery = childrenQuery
+            .in("item_type", ["exercise", "revision"])
+            .contains("data", { note_id: trashItem.item_id });
+        }
+
+        const { data: children } = await childrenQuery;
+
+        if (children && children.length > 0) {
+          for (const child of children) {
+            let childTable = "";
+            switch (child.item_type) {
+              case "note": case "pdf": childTable = "notes"; break;
+              case "exercise": childTable = "exercises"; break;
+              case "revision": childTable = "revisions"; break;
+              case "chat": childTable = "chats"; break;
+              case "task": childTable = "tasks"; break;
+              case "todo": childTable = "todos"; break;
+            }
+
+            if (childTable) {
+              await supabase.from(childTable).insert(child.data);
+              await supabase.from("trash").delete().eq("id", child.id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Recursive restore failed:", err);
+      }
+
+      // Reconnect any orphaned Personal AI sessions back to this restored note
+      if (trashItem.item_type === "note" || trashItem.item_type === "pdf") {
+        try {
+          const { data: orphanedSessions } = await supabase
+            .from("personal_ai_sessions")
+            .select("id, title")
+            .like("title", `%||ORIGINAL_NOTE_ID||${trashItem.item_id}`);
+
+          if (orphanedSessions && orphanedSessions.length > 0) {
+            for (const s of orphanedSessions) {
+              const originalTitle = s.title.split("||ORIGINAL_NOTE_ID||")[0];
+              await supabase
+                .from("personal_ai_sessions")
+                .update({ note_id: trashItem.item_id, title: originalTitle })
+                .eq("id", s.id);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to reconnect orphaned AI sessions:", e);
+        }
+      }
+    }
+
     // 3. Delete from trash bin since it is restored
     const { error: deleteError } = await supabase
       .from("trash")

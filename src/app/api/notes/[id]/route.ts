@@ -245,29 +245,75 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Fetch note to get file URL before deleting
-        const { data: noteData, error: fetchError } = await supabase
-            .from("notes")
-            .select("file_url")
-            .eq("id", id)
-            .eq("user_id", user.id)
-            .single();
 
-        if (fetchError || !noteData) {
-            return NextResponse.json({ error: "Note not found or unauthorized to delete" }, { status: 404 });
-        }
 
-        // Try extracting filename from the file URL if it was stored in the "notes" bucket
-        if (noteData.file_url) {
-            try {
-                const urlParts = noteData.file_url.split('/notes/');
-                if (urlParts.length > 1) {
-                    const fileName = urlParts[1];
-                    await supabase.storage.from("notes").remove([fileName]);
+        // 2. Protect related items (Exercises, Revisions) by moving them to a hidden archive note
+        // This prevents CASCADE deletion since note_id cannot be null
+        try {
+            // Check if there are any related items first
+            const { data: revs } = await supabase.from("revisions").select("id").eq("note_id", id).limit(1);
+            const { data: exes } = await supabase.from("exercises").select("id").eq("note_id", id).limit(1);
+            const { data: sessions } = await supabase.from("personal_ai_sessions").select("id").eq("note_id", id).limit(1);
+
+            if ((revs && revs.length > 0) || (exes && exes.length > 0) || (sessions && sessions.length > 0)) {
+                const archiveTitle = "[Archived] Deleted Material";
+                
+                // Find existing archive note
+                let { data: archiveNote } = await supabase
+                    .from("notes")
+                    .select("id")
+                    .eq("user_id", user.id)
+                    .eq("title", archiveTitle)
+                    .single();
+
+                // Create if it doesn't exist
+                if (!archiveNote) {
+                    const { data: newArchive } = await supabase
+                        .from("notes")
+                        .insert({
+                            user_id: user.id,
+                            title: archiveTitle,
+                            content: "This is a system note used to hold orphaned revisions, exercises, and AI chat sessions from deleted notes.",
+                            is_public: false
+                        })
+                        .select("id")
+                        .single();
+                    archiveNote = newArchive;
                 }
-            } catch (e) {
-                console.error("Failed to delete from storage, proceeding with DB deletion:", e);
+
+                if (archiveNote) {
+                    // Reassign items to the archive note
+                    await supabase
+                        .from("exercises")
+                        .update({ note_id: archiveNote.id })
+                        .eq("note_id", id);
+                    
+                    await supabase
+                        .from("revisions")
+                        .update({ note_id: archiveNote.id })
+                        .eq("note_id", id);
+
+                    // Reassign AI sessions to the archive note and append original note ID for potential recovery
+                    const { data: sessionsToArchive } = await supabase
+                        .from("personal_ai_sessions")
+                        .select("id, title")
+                        .eq("note_id", id);
+                    
+                    if (sessionsToArchive && sessionsToArchive.length > 0) {
+                        for (const s of sessionsToArchive) {
+                            await supabase
+                                .from("personal_ai_sessions")
+                                .update({ 
+                                    note_id: archiveNote.id,
+                                    title: `${s.title}||ORIGINAL_NOTE_ID||${id}`
+                                })
+                                .eq("id", s.id);
+                        }
+                    }
+                }
             }
+        } catch (e) {
+            console.error("Failed to reassign related items to archive, proceeding with deletion:", e);
         }
 
         const { error: deleteError } = await supabase

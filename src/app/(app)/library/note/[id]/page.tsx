@@ -35,6 +35,8 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { supabase as supabaseClient } from "@/lib/supabase";
 import { ImportersModal } from "@/components/modals/ImportersModal";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useToast } from "@/contexts/ToastContext";
+import { useSWRConfig } from "swr";
 
 const lowlight = createLowlight(all)
 const StandardEmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -45,6 +47,8 @@ export default function NoteEditorPage() {
     const router = useRouter();
     const { open: sidebarOpen, toggle: toggleSidebar } = useSidebar();
     const dialog = useAppDialog();
+    const { show } = useToast();
+    const { mutate } = useSWRConfig();
     const searchParams = useSearchParams();
 
     const [title, setTitle] = useState("Untitled Note");
@@ -575,19 +579,43 @@ export default function NoteEditorPage() {
     };
 
     const handleDelete = async () => {
-        if (!await dialog.showConfirm({
-            title: "Move to Trash?",
-            message: "This note will be moved to Trash and permanently deleted after 7 days.",
-            confirmLabel: "Move to Trash",
-            cancelLabel: "Cancel",
-            type: "warning"
-        })) return;
+        const deletePromise = fetch(`/api/notes/${id}`, {
+            method: "DELETE",
+        }).then(res => {
+            if (!res.ok) throw new Error("Failed to delete note");
+            return res;
+        });
+
+        show({
+            message: "Moved to trash",
+            type: "success",
+            action: {
+                label: "Undo",
+                onClick: () => {
+                    // Instantly visually restore the note by returning to it
+                    router.push(`/library/note/${id}`);
+                    
+                    const performRestore = async () => {
+                        try {
+                            await deletePromise;
+                            const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${id}&type=${note?.file_url?.endsWith('.pdf') ? 'pdf' : 'note'}`, {
+                                method: "POST"
+                            });
+                            if (restoreRes.ok) {
+                                // Background refresh
+                            }
+                        } catch (err) {
+                            console.error("Undo failed:", err);
+                        }
+                    };
+                    performRestore();
+                }
+            }
+        });
 
         try {
-            const res = await fetch(`/api/notes/${id}`, {
-                method: "DELETE",
-            });
-            if (!res.ok) throw new Error("Failed to delete note");
+            await deletePromise;
+            mutate("/api/trash");
             router.push("/library");
         } catch (err) {
             console.error(err);

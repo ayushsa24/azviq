@@ -12,8 +12,9 @@ import { CreateWorkspaceModal } from "@/components/notes/CreateWorkspaceModal";
 import { RenameWorkspaceModal } from "@/components/notes/RenameWorkspaceModal";
 import { MoveNoteModal } from "@/components/notes/MoveNoteModal";
 import { Workspace } from "@/types";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useToast } from "@/contexts/ToastContext";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -21,6 +22,7 @@ export default function NotesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dialog = useAppDialog();
+  const { show } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
   const [viewMode, setViewModeState] = useState<"grid" | "list">(
@@ -73,6 +75,7 @@ export default function NotesPage() {
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
   const [selectedWorkspaceForRename, setSelectedWorkspaceForRename] = useState<Workspace | null>(null);
 
+  const { mutate } = useSWRConfig();
   const { data: wsData, isLoading: wsLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
   const workspaces: Workspace[] = wsData?.workspaces || [];
 
@@ -242,28 +245,54 @@ export default function NotesPage() {
   };
 
   const handleDeleteClick = async (note: NoteItem) => {
-    if (await dialog.showConfirm({
-      title: "Move to Trash?",
-      message: `"${note.title || 'Untitled'}" will be moved to the Trash and permanently deleted after 7 days.`,
-      confirmLabel: "Move to Trash",
-      cancelLabel: "Cancel",
-      type: "warning"
-    })) {
-      // Optimistic update
-      mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
-        ...currentData,
-        notes: (currentData?.notes || []).filter((n: NoteItem) => n.id !== note.id)
-      }) as { notes: NoteItem[] }, false);
+    // Optimistic update
+    const previousNotes = notesData;
+    mutateNotes((currentData: { notes: NoteItem[] } | undefined) => ({
+      ...currentData,
+      notes: (currentData?.notes || []).filter((n: NoteItem) => n.id !== note.id)
+    }) as { notes: NoteItem[] }, false);
 
-      try {
-        const res = await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("Failed to delete note");
-        mutateNotes();
-      } catch (err) {
-        console.error(err);
-        dialog.showAlert("Could not delete the note.", "error");
-        mutateNotes(); // Revert on failure
+    const deletePromise = fetch(`/api/notes/${note.id}`, { method: "DELETE" }).then(res => {
+      if (!res.ok) throw new Error("Failed to delete note");
+      return res;
+    });
+      
+    show({
+      message: "Moved to trash",
+      type: "success",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          // Instantly restore to UI exactly as it was
+          mutateNotes(previousNotes, false);
+
+          // Background restoration
+          const performRestore = async () => {
+            try {
+              await deletePromise; // Wait for deletion to complete before attempting restore
+              const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${note.id}&type=${note.file_url?.endsWith('.pdf') ? 'pdf' : 'note'}`, {
+                method: "POST"
+              });
+              if (restoreRes.ok) {
+                mutateNotes();
+                mutate("/api/trash"); // Remove from trash bin
+              }
+            } catch (err) {
+              console.error("Undo failed:", err);
+            }
+          };
+          performRestore();
+        }
       }
+    });
+
+    try {
+      await deletePromise;
+      mutate("/api/trash");
+    } catch (err) {
+      console.error(err);
+      dialog.showAlert("Could not delete the note.", "error");
+      mutateNotes(previousNotes); // Revert on failure
     }
   };
 
@@ -352,34 +381,58 @@ export default function NotesPage() {
   };
 
   const handleDeleteWorkspaceClick = async (workspace: Workspace) => {
-    if (await dialog.showConfirm({
-      title: "Move to Trash?",
-      message: `"${workspace.name}" and all files inside will be moved to Trash and permanently deleted after 7 days.`,
-      confirmLabel: "Move to Trash",
-      cancelLabel: "Cancel",
-      type: "warning"
-    })) {
-      // Optimistic update
-      mutateWorkspaces((currentData: { workspaces: Workspace[] } | undefined) => ({
-        ...currentData,
-        workspaces: (currentData?.workspaces || []).filter((w: Workspace) => w.id !== workspace.id)
-      }) as { workspaces: Workspace[] }, false);
+    // Optimistic update
+    const previousWorkspaces = wsData;
+    mutateWorkspaces((currentData: { workspaces: Workspace[] } | undefined) => ({
+      ...currentData,
+      workspaces: (currentData?.workspaces || []).filter((w: Workspace) => w.id !== workspace.id)
+    }) as { workspaces: Workspace[] }, false);
 
-      try {
-        const res = await fetch(`/api/workspaces/${workspace.id}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("Failed to delete workspace");
+    const deletePromise = fetch(`/api/workspaces/${workspace.id}`, { method: "DELETE" }).then(res => {
+      if (!res.ok) throw new Error("Failed to delete workspace");
+      return res;
+    });
 
-        // If we just deleted the workspace we were currently viewing, go back to root
-        if (activeWorkspace?.id === workspace.id) {
-          router.push("/library", { scroll: false });
+    show({
+      message: `Moved to trash`,
+      type: "success",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          // Instantly restore to UI exactly as it was
+          mutateWorkspaces(previousWorkspaces, false);
+
+          // Background restoration
+          const performRestore = async () => {
+            try {
+              await deletePromise; // Wait for deletion to complete before attempting restore
+              const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${workspace.id}&type=workspace`, {
+                method: "POST"
+              });
+              if (restoreRes.ok) {
+                refetchData();
+                mutate("/api/trash"); // Remove from trash bin
+              }
+            } catch (err) {
+              console.error("Undo failed:", err);
+            }
+          };
+          performRestore();
         }
-
-        refetchData();
-      } catch (err) {
-        console.error(err);
-        dialog.showAlert("Could not delete the workspace.", "error");
-        mutateWorkspaces(); // Revert on failure
       }
+    });
+
+    try {
+      await deletePromise;
+      mutate("/api/trash");
+      // If we just deleted the workspace we were currently viewing, go back to root
+      if (activeWorkspace?.id === workspace.id) {
+        router.push("/library", { scroll: false });
+      }
+    } catch (err) {
+      console.error(err);
+      dialog.showAlert("Could not delete the workspace.", "error");
+      mutateWorkspaces(previousWorkspaces); // Revert on failure
     }
   };
 
@@ -435,7 +488,7 @@ export default function NotesPage() {
 
       <div className="flex flex-row justify-between items-center gap-3 mb-3 w-full px-4 sm:px-6">
         <div className="relative flex-1 sm:w-80 sm:flex-none">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#545454] dark:text-[#7D7D7D] w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#252525] dark:text-white w-4 h-4 z-10 opacity-60" />
           <input
             type="text"
             placeholder={

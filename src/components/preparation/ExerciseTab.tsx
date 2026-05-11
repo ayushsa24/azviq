@@ -5,9 +5,10 @@ import { ClipboardCheck, Plus, Trash2, Clock, Search } from "lucide-react";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useToast } from "@/contexts/ToastContext";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -38,6 +39,8 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     const isDark = theme === 'dark';
     const isList = viewMode === "list";
     const dialog = useAppDialog();
+    const { show } = useToast();
+    const { mutate: globalMutate } = useSWRConfig();
 
 
     // Expose mutate so parent can call after generate
@@ -65,21 +68,56 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     }, [search, exercises, onStartExercise]);
 
     const handleDelete = async (id: string) => {
-        if (!await dialog.showConfirm({ title: "Move to Trash?", message: "This exercise will be moved to Trash and permanently deleted after 7 days.", confirmLabel: "Move to Trash", cancelLabel: "Cancel", type: "warning" })) return;
-        
-        // Optimistic update
+        const previousData = data;
+
+        // 1. Optimistically remove immediately
         mutate((current: any) => ({
             ...current,
             exercises: current.exercises.filter((ex: any) => ex.id !== id)
         }), false);
 
-        try {
-            const res = await fetch(`/api/exercises/${id}`, { method: "DELETE" });
+        // 2. Start delete in background (don't await here)
+        const deletePromise = fetch(`/api/exercises/${id}`, { method: "DELETE" }).then(res => {
             if (!res.ok) throw new Error("Delete failed");
+            return res;
+        });
+
+        // 3. Show toast immediately
+        show({
+            message: `Moved to trash`,
+            type: "success",
+            action: {
+                label: "Undo",
+                onClick: () => {
+                    // Instantly restore to UI
+                    mutate(previousData, false);
+
+                    const performRestore = async () => {
+                        try {
+                            await deletePromise;
+                            const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${id}&type=exercise`, {
+                                method: "POST"
+                            });
+                            if (restoreRes.ok) {
+                                mutate();
+                                globalMutate("/api/trash");
+                            }
+                        } catch (err) {
+                            console.error("Undo failed:", err);
+                        }
+                    };
+                    performRestore();
+                }
+            }
+        });
+
+        try {
+            await deletePromise;
+            globalMutate("/api/trash");
             mutate();
         } catch (error) {
             console.error("Failed to delete exercise:", error);
-            mutate(); // Rollback
+            mutate(previousData); // Rollback
         }
     };
 
@@ -105,7 +143,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     return (
         <div className="flex-1 flex flex-col w-full min-h-0 bg-transparent">
             {isLoading ? (
-                <div className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-3" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"}>
+                <div className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-4" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"}>
                     {Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-3.5 gap-3 h-44'}`}>
                             {isList ? (
@@ -149,7 +187,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
             ) : (
                 <motion.div 
                     layout
-                    className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-3 w-full" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full"}
+                    className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-4 w-full" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 w-full"}
                 >
                         <AnimatePresence mode="popLayout">
                             {filtered.map((ex: any, idx: number) => (
@@ -196,6 +234,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(ex.id); }}
                                                 className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                title="Move to Trash"
                                             >
                                                 <Trash2 size={13} />
                                             </button>
@@ -251,7 +290,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDelete(ex.id); }}
                                                     className="p-1.5 rounded-lg text-[#7D7D7D] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all lg:opacity-0 lg:group-hover:opacity-100"
-                                                    title="Delete Exercise"
+                                                    title="Move to Trash"
                                                 >
                                                     <Trash2 size={14} />
                                                 </button>

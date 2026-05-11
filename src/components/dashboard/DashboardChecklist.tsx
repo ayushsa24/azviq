@@ -20,7 +20,8 @@ import {
     AlarmClock,
     Loader2,
     ArrowRight,
-    File as FileIcon
+    File as FileIcon,
+    AlignLeft
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -383,7 +384,7 @@ export default function DashboardChecklist() {
             {/* Premium Detail Modal */}
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-[300] flex flex-col sm:justify-center sm:items-center">
+                    <div className="fixed inset-0 z-[400] flex flex-col sm:justify-center sm:items-center">
                         {/* Backdrop */}
                         <motion.div 
                             initial={{ opacity: 0 }}
@@ -408,7 +409,7 @@ export default function DashboardChecklist() {
                                     setShowModal(false);
                                 }
                             }}
-                            className="bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full h-[92dvh] pt-2 sm:h-auto sm:max-h-[85vh] sm:max-w-3xl rounded-t-[20px] sm:rounded-xl overflow-hidden flex flex-col shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10"
+                            className={`bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] w-full ${isMobile ? 'h-[92dvh] pt-2' : 'h-auto max-h-[90vh]'} sm:max-w-3xl rounded-t-[20px] sm:rounded-xl shadow-2xl relative border-none sm:border sm:border-[#E8E5E0] sm:dark:border-[#545454] mt-auto sm:mt-0 z-10 overflow-hidden flex flex-col`}
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Mobile Drag Handle */}
@@ -451,17 +452,15 @@ export default function DashboardChecklist() {
                             </div>
 
                             {/* Modal Content */}
-                            <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-2 pt-8 sm:pb-12 pb-12 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto px-4 sm:px-10 py-2 pt-8 sm:pb-12 pb-12 custom-scrollbar">
                                 {/* Giant Title */}
-                                <div className="mb-10">
-                                    <input
-                                        type="text"
-                                        placeholder="Start working on assignment"
-                                        value={form.title}
-                                        onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                                        className="w-full text-4xl sm:text-5xl font-black bg-transparent border-none text-[#252525] dark:text-white placeholder-[#BDBDBD] focus:ring-0 p-0 outline-none leading-tight"
-                                    />
-                                </div>                                {/* Properties Section - Structured like the image */}
+                                <input
+                                    type="text"
+                                    placeholder="Start working on assignment"
+                                    value={form.title}
+                                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                                    className="w-full text-4xl sm:text-5xl font-bold bg-transparent border-none text-[#252525] dark:text-white placeholder-[#BDBDBD] focus:ring-0 p-0 outline-none leading-tight mb-6"
+                                />                                {/* Properties Section - Structured like the image */}
                                 <div className="space-y-3 mb-8 max-w-2xl">
                                     {/* Reminder Time Row */}
                                     <div 
@@ -469,11 +468,11 @@ export default function DashboardChecklist() {
                                             try { (timeInputRef.current as any)?.showPicker(); } 
                                             catch (e) { timeInputRef.current?.focus(); }
                                         }}
-                                        className="grid grid-cols-3 items-center gap-4 group min-h-[32px] cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-lg -mx-2 px-2 transition-colors"
+                                        className="grid grid-cols-3 items-center gap-4 group cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-lg transition-colors"
                                     >
                                         <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] col-span-1">
                                             <Clock className="w-4 h-4 text-[#7D7D7D]/50" />
-                                            <span className="text-sm font-medium">Reminder</span>
+                                            <span className="text-[0.6875rem] font-bold uppercase tracking-wider">Reminder</span>
                                         </div>
                                         <div className="col-span-2 relative flex items-center">
                                             <input
@@ -481,7 +480,7 @@ export default function DashboardChecklist() {
                                                 type="time"
                                                 value={form.time || ""}
                                                 onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
-                                                className={`bg-transparent border-none p-1 -ml-1 text-sm font-medium focus:ring-0 outline-none w-full cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors ${!form.time ? "text-transparent" : "text-[#252525] dark:text-white"}`}
+                                                className={`bg-transparent border-none p-1 -ml-1 text-[0.6875rem] font-bold uppercase tracking-wider focus:ring-0 outline-none w-full cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors ${!form.time ? "text-transparent" : "text-[#252525] dark:text-white"}`}
                                             />
                                             {!form.time && (
                                                 <span className="absolute left-0 text-sm font-medium text-[#7D7D7D] dark:text-[#545454] pointer-events-none">
@@ -492,7 +491,7 @@ export default function DashboardChecklist() {
                                     </div>
 
                                     {/* Frequency Row */}
-                                    <div className="grid grid-cols-3 items-center gap-4 group min-h-[32px] relative" ref={frequencyDropdownRef}>
+                                    <div className="grid grid-cols-3 items-center gap-4 group relative" ref={frequencyDropdownRef}>
                                         <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] col-span-1">
                                             <RotateCcw className="w-4 h-4 text-[#7D7D7D]/50" />
                                             <span className="text-sm font-medium">Frequency</span>
@@ -501,7 +500,7 @@ export default function DashboardChecklist() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowFrequencyDropdown(!showFrequencyDropdown)}
-                                                className={`flex items-center justify-between w-full px-2 py-1.5 rounded-lg border transition-all text-sm
+                                                className={`flex items-center justify-between w-full px-2 py-2 rounded-lg border transition-all text-[0.6875rem] font-bold uppercase tracking-wider
                                                     ${showFrequencyDropdown 
                                                         ? "bg-black/5 dark:bg-white/5 border-[#CFCFCF] dark:border-[#444] text-[#252525] dark:text-white" 
                                                         : "bg-white/50 dark:bg-white/5 border-transparent hover:border-[#D1D1D1] dark:hover:border-[#545454] text-[#252525] dark:text-white"
@@ -514,7 +513,7 @@ export default function DashboardChecklist() {
                                             </button>
 
                                             {showFrequencyDropdown && (
-                                                <div className="absolute top-11 right-0 left-0 bg-[#F5F3EF] dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-xl shadow-xl z-[150] p-1 overflow-hidden">
+                                                <div className="absolute top-[calc(100%+8px)] right-0 left-0 bg-[#F5F3EF] dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-xl shadow-xl z-[150] p-1 pb-2 overflow-hidden">
                                                     {Object.entries(REPEAT_LABELS).map(([key, label]) => {
                                                         const isSelected = form.repeat === key;
                                                         return (
@@ -525,7 +524,7 @@ export default function DashboardChecklist() {
                                                                     setForm(f => ({ ...f, repeat: key as RepeatType }));
                                                                     setShowFrequencyDropdown(false);
                                                                 }}
-                                                                className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between mt-0.5 first:mt-0 ${isSelected ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
+                                                                className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between mt-0.5 first:mt-0 ${isSelected ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
                                                             >
                                                                 {label}
                                                                 {isSelected && <Check className="w-3 h-3 text-gray-600 dark:text-gray-300" />}
@@ -568,21 +567,17 @@ export default function DashboardChecklist() {
                                     )}
 
                                     {/* Material Selection Row */}
-                                    <div className="grid grid-cols-3 items-center gap-4 group min-h-[32px]" ref={materialDropdownRef}>
+                                    <div className="grid grid-cols-3 items-center gap-4 group" ref={materialDropdownRef}>
                                         <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] col-span-1">
                                             <FileText className="w-4 h-4 text-[#7D7D7D]/50" />
-                                            <span className="text-sm font-medium">Material</span>
+                                            <span className="text-[0.6875rem] font-bold uppercase tracking-wider">Material</span>
                                         </div>
                                         <div className="col-span-2 flex items-center gap-2">
                                             <div className="relative flex-1 min-w-0">
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowMaterialDropdown(!showMaterialDropdown)}
-                                                    className={`flex items-center justify-between w-full px-2 py-1.5 rounded-lg border transition-all text-sm min-w-0
-                                                        ${form.linked_document_id 
-                                                            ? "bg-black/5 dark:bg-white/5 border-[#CFCFCF] dark:border-[#444] text-[#252525] dark:text-white" 
-                                                            : "bg-white/50 dark:bg-white/5 border-transparent hover:border-[#D1D1D1] dark:hover:border-[#545454] text-[#7D7D7D] dark:text-[#BABABA]"
-                                                        }`}
+                                                    className="flex items-center justify-between bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-2 rounded-lg transition-colors w-full cursor-pointer border border-[#E8E5E0] dark:border-[#545454] min-w-0"
                                                 >
                                                     <span className="truncate flex-1 text-left flex items-center gap-2">
                                                         {form.linked_document_id ? (() => {
@@ -609,7 +604,7 @@ export default function DashboardChecklist() {
                                                 </button>
 
                                                 {showMaterialDropdown && (
-                                                    <div className="absolute top-11 right-0 left-0 bg-[#F5F3EF] dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-xl shadow-xl max-h-[300px] flex flex-col z-[150]">
+                                                    <div className="absolute top-[calc(100%+8px)] right-0 sm:left-0 sm:right-auto w-full sm:w-[21.875rem] bg-[#F5F3EF] dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-xl shadow-xl max-h-[240px] flex flex-col z-[150] pb-2">
                                                         {/* Search Box */}
                                                         <div className="p-2 border-b border-[#E8E5E0] dark:border-[#545454]">
                                                             <div className="relative">
@@ -634,7 +629,7 @@ export default function DashboardChecklist() {
                                                                     setShowMaterialDropdown(false);
                                                                     setMaterialSearchQuery("");
                                                                 }}
-                                                                className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between mb-1 ${!form.linked_document_id ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
+                                                                className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between mb-1 ${!form.linked_document_id ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
                                                             >
                                                                 None
                                                                 {!form.linked_document_id && <Check className="w-3 h-3" />}
@@ -654,7 +649,7 @@ export default function DashboardChecklist() {
                                                                             setShowMaterialDropdown(false);
                                                                             setMaterialSearchQuery("");
                                                                         }}
-                                                                        className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
+                                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-black/5 dark:bg-white/5 text-[#252525] dark:text-white font-medium" : "text-[#7D7D7D] dark:text-[#BABABA] hover:bg-black/5 dark:hover:bg-white/5"}`}
                                                                     >
                                                                         <div className="flex flex-col min-w-0 pr-2">
                                                                             <span className="truncate flex items-center gap-2">
@@ -693,7 +688,7 @@ export default function DashboardChecklist() {
                                                 <Link
                                                     href={`/library/${form.linked_document_type || 'note'}/${form.linked_document_id}`}
                                                     target="_blank"
-                                                    className="px-2 py-1 text-[0.6875rem] font-bold text-blue-500 bg-blue-50 dark:bg-blue-900/30 rounded shrink-0 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                                                    className="text-xs shrink-0 bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
                                                 >
                                                     Open
                                                 </Link>
@@ -701,19 +696,31 @@ export default function DashboardChecklist() {
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <hr className="border-gray-100 dark:border-gray-800/50 mt-6 mb-10" />
 
                                 {/* Comments / Description Section */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA]">
-                                        <ListTodo className="w-4 h-4" />
-                                        <span className="text-sm font-bold uppercase tracking-wider">Comments / Description</span>
+                                <div>
+                                    <div className="flex items-center gap-2 text-gray-500 text-sm font-bold mb-3">
+                                        <AlignLeft className="w-4 h-4" />
+                                        Comments / Description
                                     </div>
                                     <textarea
-                                        rows={4}
-                                        placeholder="Add a note or details…"
-                                        value={form.note}
-                                        onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-                                        className="w-full p-0 bg-transparent border-none text-sm text-[#252525] dark:text-[#BABABA] placeholder-[#9E9E9E] focus:ring-0 outline-none resize-none"
+                                        ref={(el) => {
+                                            if (el) {
+                                                el.style.height = "auto";
+                                                el.style.height = `${el.scrollHeight}px`;
+                                            }
+                                        }}
+                                        value={form.note || ""}
+                                        onChange={(e) => {
+                                            setForm(f => ({ ...f, note: e.target.value }));
+                                            e.target.style.height = "auto";
+                                            e.target.style.height = `${e.target.scrollHeight}px`;
+                                        }}
+                                        placeholder="Add your notes, action items, or comments here..."
+                                        rows={6}
+                                        className="w-full min-h-[140px] bg-transparent text-sm text-gray-800 dark:text-gray-200 outline-none resize-none placeholder-gray-400 leading-relaxed overflow-hidden transition-all duration-100"
                                     />
                                 </div>
                             </div>

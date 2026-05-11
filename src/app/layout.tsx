@@ -11,6 +11,7 @@ import { UserProvider } from "@/contexts/UserContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import AppShell from "@/components/layout/AppShell";
 import { AppDialogProvider } from "@/components/ui/AppDialog";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -118,9 +119,11 @@ export default function RootLayout({
                 <ThemeProvider>
                   <NotificationProvider>
                     <SettingsProvider>
+                      <ToastProvider>
                         <AppDialogProvider>
                           {children}
                         </AppDialogProvider>
+                      </ToastProvider>
                     </SettingsProvider>
                   </NotificationProvider>
                 </ThemeProvider>

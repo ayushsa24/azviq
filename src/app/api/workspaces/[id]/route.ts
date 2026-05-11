@@ -73,35 +73,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // 1. Fetch all notes inside this workspace to grab their file URLs
-        const { data: notes, error: fetchError } = await supabase
-            .from("notes")
-            .select("file_url")
-            .eq("workspace_id", id)
-            .eq("user_id", user.id);
 
-        if (!fetchError && notes && notes.length > 0) {
-            // Extract the actual filename from the URL, assuming it's stored in the "notes" bucket
-            const filePathsToDelete = notes
-                .map((n) => {
-                    const parts = n.file_url.split('/notes/');
-                    return parts.length > 1 ? parts[1] : null;
-                })
-                .filter(Boolean) as string[];
-
-            if (filePathsToDelete.length > 0) {
-                // Bulk delete from Supabase Storage
-                const { error: storageError } = await supabase.storage
-                    .from("notes")
-                    .remove(filePathsToDelete);
-
-                if (storageError) {
-                    console.error("Failed to delete some files from storage:", storageError);
-                    // Decide whether to fail the whole request or continue to DB delete. 
-                    // Proceeding since DB CASCADE will happen anyway.
-                }
-            }
-        }
 
         // 2. Delete the workspace. Because of ON DELETE CASCADE on notes.workspace_id,
         // the corresponding rows in "notes" will be automatically deleted by Postgres.

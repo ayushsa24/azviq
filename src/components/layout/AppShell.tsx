@@ -85,6 +85,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("open-pricing", handleOpenPricing);
   }, []);
 
+  // Global trigger for Trash Modal
+  useEffect(() => {
+    const handleOpenTrash = () => setIsTrashOpen(true);
+    window.addEventListener("open-trash", handleOpenTrash);
+    return () => window.removeEventListener("open-trash", handleOpenTrash);
+  }, []);
+
   useEffect(() => {
     const tickTimer = () => {
       if (document.hidden) return; // Automatic pause when moving out

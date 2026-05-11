@@ -5,9 +5,10 @@ import { BookOpen, Trash2, Clock, FileText, Search } from "lucide-react";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useToast } from "@/contexts/ToastContext";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -35,27 +36,64 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
     const isDark = theme === "dark";
     const isList = viewMode === "list";
     const dialog = useAppDialog();
+    const { show } = useToast();
 
     const { data, mutate, isLoading } = useSWR(refreshKey ? `/api/revision?refresh=${refreshKey}` : "/api/revision", fetcher);
     const revisions = data?.revisions || [];
+    const { mutate: globalMutate } = useSWRConfig();
 
 
     const handleDelete = async (id: string) => {
-        if (!await dialog.showConfirm({ title: "Move to Trash?", message: "This revision will be moved to Trash and permanently deleted after 7 days.", confirmLabel: "Move to Trash", cancelLabel: "Cancel", type: "warning" })) return;
+        const previousData = data;
 
-        // Optimistic update
+        // 1. Optimistically remove immediately
         mutate((current: any) => ({
             ...current,
             revisions: current.revisions.filter((r: any) => r.id !== id)
         }), false);
 
-        try {
-            const res = await fetch(`/api/revision/${id}`, { method: "DELETE" });
+        // 2. Start delete in background
+        const deletePromise = fetch(`/api/revision/${id}`, { method: "DELETE" }).then(res => {
             if (!res.ok) throw new Error("Delete failed");
+            return res;
+        });
+
+        // 3. Show toast immediately
+        show({
+            message: "Moved to trash",
+            type: "success",
+            action: {
+                label: "Undo",
+                onClick: () => {
+                    // Instantly restore to UI
+                    mutate(previousData, false);
+
+                    const performRestore = async () => {
+                        try {
+                            await deletePromise;
+                            const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${id}&type=revision`, {
+                                method: "POST"
+                            });
+                            if (restoreRes.ok) {
+                                mutate();
+                                globalMutate("/api/trash");
+                            }
+                        } catch (err) {
+                            console.error("Undo failed:", err);
+                        }
+                    };
+                    performRestore();
+                }
+            }
+        });
+
+        try {
+            await deletePromise;
+            globalMutate("/api/trash");
             mutate();
         } catch (e) {
             console.error("Failed to delete revision:", e);
-            mutate(); // Rollback
+            mutate(previousData); // Rollback
         }
     };
 
@@ -66,8 +104,8 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
     return (
         <div className="flex-1 flex flex-col w-full min-h-0 bg-transparent">
             {isLoading ? (
-                <div className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-3" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"}>
-                    {Array.from({ length: 6 }).map((_, i) => (
+                <div className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-4" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"}>
+                    {Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className={`rounded-xl border flex animate-pulse ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E8E5E0]'} ${isList ? 'flex-row items-center p-3 gap-4 h-[72px]' : 'flex-col p-3.5 gap-3 h-44'}`}>
                             {isList ? (
                                 <>
@@ -110,7 +148,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
             ) : (
                 <motion.div 
                     layout
-                    className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-3 w-full" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full"}
+                    className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-4 w-full" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 w-full"}
                 >
                     <AnimatePresence mode="popLayout">
                         {filtered.map((rev: any) => (
@@ -154,6 +192,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(rev.id); }}
                                                 className="lg:opacity-0 lg:group-hover:opacity-100 text-[#7D7D7D] hover:text-red-500 transition-all p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                title="Move to Trash"
                                             >
                                                 <Trash2 size={13} />
                                             </button>
@@ -203,7 +242,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDelete(rev.id); }}
                                                     className="p-1.5 rounded-lg text-[#7D7D7D] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all lg:opacity-0 lg:group-hover:opacity-100"
-                                                    title="Delete Revision"
+                                                    title="Move to Trash"
                                                 >
                                                     <Trash2 size={14} />
                                                 </button>

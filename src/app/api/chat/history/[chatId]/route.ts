@@ -72,31 +72,48 @@ export async function DELETE(req: Request, context: { params: Promise<{ chatId: 
             .eq("email", session.user.email)
             .single();
 
-        const { data: chatData } = await supabase
+        // 1. Fetch chat metadata
+        const { data: chatData, error: fetchError } = await supabase
             .from("chats")
-            .select("*, messages(*)")
+            .select("*")
             .eq("id", chatId)
             .single();
+            
+        if (fetchError || !chatData) {
+            return Response.json({ error: "Chat not found" }, { status: 404 });
+        }
 
-        if (!chatData || !dbUser || chatData.user_id !== dbUser.id) {
+        if (!dbUser || chatData.user_id !== dbUser.id) {
             return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        // Insert into Trash for soft-delete (with messages embedded in data)
+        // 2. Fetch all messages for backup
+        const { data: messages } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("chat_id", chatId)
+            .order("created_at", { ascending: true });
+
+        // Insert into Trash for soft-delete
         await supabase.from("trash").insert({
             user_id: dbUser.id,
             item_type: "chat",
             item_id: chatId,
             title: chatData.title || "Untitled Chat",
-            data: chatData
+            data: { ...chatData, messages: messages || [] }
         });
 
-        const { error } = await supabase
+        // 3. Delete related items explicitly to avoid foreign key errors
+        await supabase.from("shared_chats").delete().eq("chat_id", chatId);
+        await supabase.from("messages").delete().eq("chat_id", chatId);
+
+        // 4. Finally delete the chat
+        const { error: deleteError } = await supabase
             .from("chats")
             .delete()
             .eq("id", chatId);
 
-        if (error) throw error;
+        if (deleteError) throw deleteError;
 
         return Response.json({ success: true });
     } catch (error) {

@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useToast } from "@/contexts/ToastContext";
 
 interface ProjectDetailModalProps {
     project: any | null;
@@ -49,6 +50,7 @@ export function ProjectDetailModal({
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
     const dialog = useAppDialog();
+    const { show } = useToast();
     const [showFavorites, setShowFavorites] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -178,17 +180,30 @@ export function ProjectDetailModal({
     };
 
     const handleDeleteTask = async (taskId: string, taskTitle?: string) => {
-        const confirmed = await dialog.showConfirm({
-            title: "Move to Trash?",
-            message: `"${taskTitle || 'This task'}" will be moved to Trash and permanently deleted after 7 days.`,
-            type: "warning",
-            confirmLabel: "Move to Trash",
-            cancelLabel: "Cancel"
-        });
-        if (!confirmed) return;
         setOpenMenuId(null);
         try {
             await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+            
+            show({
+                message: "Moved to trash",
+                type: "success",
+                action: {
+                    label: "Undo",
+                    onClick: async () => {
+                        try {
+                            const restoreRes = await fetch(`/api/trash/restore-by-item?item_id=${taskId}&type=task`, {
+                                method: "POST"
+                            });
+                            if (restoreRes.ok) {
+                                onTaskUpdated();
+                            }
+                        } catch (err) {
+                            console.error("Undo failed:", err);
+                        }
+                    }
+                }
+            });
+
             onTaskUpdated();
         } catch (e) {
             console.error("Failed to delete task", e);

@@ -29,14 +29,35 @@ export function buildDailyReportEmail({
     const goalMet = targetMinutes ? totalMinutes >= targetMinutes : null;
 
     const ACTIVITY_LABELS: Record<string, string> = {
-        note: "📝 Notes",
-        pdf: "📄 PDFs",
-        exercise: "✏️ Exercises",
-        revision: "🔁 Revision",
-        ai_teacher: "🤖 AI Chat",
+        note: "Notes",
+        pdf: "PDFs",
+        exercise: "Exercises",
+        revision: "Revision",
+        ai_teacher: "AI Chat",
+        personal_ai: "AI Teacher",
+        ai_chat: "AI Chat",
     };
 
-    const topActivity = Object.entries(activitiesSummary).sort((a, b) => b[1] - a[1])[0];
+    const ICON_MAP: Record<string, string> = {
+        note: "https://img.icons8.com/m_outlined/50/252525/note.png",
+        pdf: "https://img.icons8.com/m_outlined/50/252525/pdf.png",
+        exercise: "https://img.icons8.com/m_outlined/50/252525/edit.png",
+        revision: "https://img.icons8.com/m_outlined/50/252525/repeat.png",
+        ai_teacher: "https://img.icons8.com/m_outlined/50/252525/bot.png",
+        personal_ai: "https://img.icons8.com/m_outlined/50/252525/sparkles.png",
+        ai_chat: "https://img.icons8.com/m_outlined/50/252525/bot.png",
+    };
+
+    const STATS_ICON_MAP = {
+        tasks: "https://img.icons8.com/m_outlined/50/252525/ok.png",
+        todos: "https://img.icons8.com/m_outlined/50/252525/list.png",
+        notes_created: "https://img.icons8.com/m_outlined/50/252525/add-file.png",
+        notes_revised: "https://img.icons8.com/m_outlined/50/252525/edit.png",
+        weak_topics: "https://img.icons8.com/m_outlined/50/252525/sparkles.png",
+        revisions: "https://img.icons8.com/m_outlined/50/252525/repeat.png",
+    };
+
+    const topActivity = Object.entries(activitiesSummary).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
     const topActivityLabel = topActivity ? (ACTIVITY_LABELS[topActivity[0]] || topActivity[0]) : null;
 
     const formatTime = (mins: number) => {
@@ -47,12 +68,25 @@ export function buildDailyReportEmail({
         return `${m}m`;
     };
 
-    const activityRows = Object.entries(activitiesSummary)
-        .sort((a, b) => b[1] - a[1])
-        .map(([key, mins]) => `
+    const topActivityTime = topActivity ? formatTime(topActivity[1] as number) : "";
+
+    const activityRows = ['personal_ai', 'ai_teacher', 'note', 'pdf', 'exercise', 'revision']
+        .map(key => ({
+            key,
+            mins: activitiesSummary[key] || 0,
+            label: ACTIVITY_LABELS[key] || key,
+            icon: ICON_MAP[key] || "https://img.icons8.com/m_outlined/50/252525/help.png"
+        }))
+        // Filter out duplicates (like ai_teacher vs ai_chat) if they have the same label and 0 mins
+        // Actually, let's just keep the core ones.
+        .sort((a, b) => b.mins - a.mins)
+        .map(item => `
             <tr>
-                <td style="padding: 8px 0; font-size: 14px; color: #545454;">${ACTIVITY_LABELS[key] || key}</td>
-                <td style="padding: 8px 0; font-size: 14px; color: #252525; font-weight: 600; text-align: right;">${formatTime(mins as number)}</td>
+                <td style="padding: 8px 0; font-size: 14px; color: #545454; vertical-align: middle;">
+                    <img src="${item.icon}" width="18" height="18" style="display:inline-block; vertical-align: middle; margin-right:8px;" />
+                    <span style="vertical-align: middle;">${item.label}</span>
+                </td>
+                <td style="padding: 8px 0; font-size: 14px; color: #252525; font-weight: 600; text-align: right;">${formatTime(item.mins)}</td>
             </tr>
         `).join("");
 
@@ -121,38 +155,56 @@ export function buildDailyReportEmail({
             <td>
               <table width="100%" cellpadding="0" cellspacing="8">
                 <tr>
-                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;">
-                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;">Tasks Done</p>
-                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;">${tasksCompleted}</p>
+                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;text-align:center;">
+                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;text-align:center;">
+                      <img src="${STATS_ICON_MAP.tasks}" width="14" height="14" style="vertical-align:middle;margin-right:4px;opacity:0.6;" />
+                      <span style="vertical-align:middle;">Tasks Done</span>
+                    </p>
+                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;text-align:center;">${tasksCompleted}</p>
                   </td>
                   <td width="4px" style="background:transparent;"></td>
-                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;">
-                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;">To-Dos Done</p>
-                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;">${todosCompleted}</p>
+                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;text-align:center;">
+                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;text-align:center;">
+                      <img src="${STATS_ICON_MAP.todos}" width="14" height="14" style="vertical-align:middle;margin-right:4px;opacity:0.6;" />
+                      <span style="vertical-align:middle;">To-Dos Done</span>
+                    </p>
+                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;text-align:center;">${todosCompleted}</p>
                   </td>
                 </tr>
                 <tr><td colspan="3" style="height:8px;"></td></tr>
                 <tr>
-                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;">
-                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;">Notes Created</p>
-                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;">${notesCreated}</p>
+                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;text-align:center;">
+                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;text-align:center;">
+                      <img src="${STATS_ICON_MAP.notes_created}" width="14" height="14" style="vertical-align:middle;margin-right:4px;opacity:0.6;" />
+                      <span style="vertical-align:middle;">Notes Created</span>
+                    </p>
+                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;text-align:center;">${notesCreated}</p>
                   </td>
                   <td width="4px" style="background:transparent;"></td>
-                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;">
-                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;">Notes Revised</p>
-                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;">${notesRevised}</p>
+                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;text-align:center;">
+                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;text-align:center;">
+                      <img src="${STATS_ICON_MAP.notes_revised}" width="14" height="14" style="vertical-align:middle;margin-right:4px;opacity:0.6;" />
+                      <span style="vertical-align:middle;">Notes Revised</span>
+                    </p>
+                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;text-align:center;">${notesRevised}</p>
                   </td>
                 </tr>
                 <tr><td colspan="3" style="height:8px;"></td></tr>
                 <tr>
-                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;">
-                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;">Weak Topics Cleared</p>
-                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;">${weakTopicsCompleted}</p>
+                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;text-align:center;">
+                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;text-align:center;">
+                      <img src="${STATS_ICON_MAP.weak_topics}" width="14" height="14" style="vertical-align:middle;margin-right:4px;opacity:0.6;" />
+                      <span style="vertical-align:middle;">Weak Topics Cleared</span>
+                    </p>
+                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;text-align:center;">${weakTopicsCompleted}</p>
                   </td>
                   <td width="4px" style="background:transparent;"></td>
-                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;">
-                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;">Revisions Completed</p>
-                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;">${revisionsCompleted}</p>
+                  <td width="50%" style="background:#fff;border-radius:16px;padding:16px 20px;border:1px solid #E8E5E0;vertical-align:top;text-align:center;">
+                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7D7D7D;margin:0 0 4px;text-align:center;">
+                      <img src="${STATS_ICON_MAP.revisions}" width="14" height="14" style="vertical-align:middle;margin-right:4px;opacity:0.6;" />
+                      <span style="vertical-align:middle;">Revisions Completed</span>
+                    </p>
+                    <p style="font-size:28px;font-weight:800;color:#252525;margin:0;text-align:center;">${revisionsCompleted}</p>
                   </td>
                 </tr>
               </table>
@@ -172,7 +224,7 @@ export function buildDailyReportEmail({
               ${topActivityLabel ? `
               <div style="margin-top:16px;padding:12px 16px;background:#F5F3EF;border-radius:10px;">
                 <p style="font-size:12px;color:#7D7D7D;margin:0 0 2px;">Most time spent on</p>
-                <p style="font-size:15px;font-weight:700;color:#252525;margin:0;">${topActivityLabel}</p>
+                <p style="font-size:15px;font-weight:700;color:#252525;margin:0;">${topActivityLabel} · ${topActivityTime}</p>
               </div>` : ""}
             </td>
           </tr>

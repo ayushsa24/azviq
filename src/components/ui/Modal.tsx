@@ -22,7 +22,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-xl p-4 transition-all animate-in fade-in duration-300"
+      className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4 transition-all animate-in fade-in duration-300"
       onClick={onClose}
     >
       <div

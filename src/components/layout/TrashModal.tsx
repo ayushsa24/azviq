@@ -1,12 +1,13 @@
 import React, { useState, useEffect, Suspense } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import useSWR from "swr";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import useSWR, { useSWRConfig } from "swr";
 import { X, Trash2, AlertCircle, FileText, CheckSquare, RotateCcw, Box, BookOpen, FlaskConical, Loader2, RefreshCcw, Check, Trash, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/utils/translations";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface TrashModalProps {
   isOpen: boolean;
@@ -50,7 +51,10 @@ function TrashItemRow({
   const opacity = useTransform(x, [-100, -50, 0, 50, 100], [1, 0, 0, 0, 1]);
   const scale = useTransform(x, [-100, -50, 0, 50, 100], [1, 0.8, 0.8, 0.8, 1]);
 
-  const ItemIcon = getIconForType(item.item_type);
+  const iconMatch = item.title?.match(/^\[(\w+)\]/);
+  const ItemIcon = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : getIconForType(item.item_type);
+  const displayTitle = item.title?.replace(/^\[\w+\]\s*/, "") || "Untitled";
+  
   const daysAgo = Math.floor((new Date().getTime() - new Date(item.deleted_at).getTime()) / (1000 * 3600 * 24));
 
   return (
@@ -82,9 +86,9 @@ function TrashItemRow({
           }`}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
-          <ItemIcon size={18} className="text-[#C2A27A] shrink-0" />
+          <ItemIcon size={18} className="text-[#C2A27A] shrink-0" strokeWidth={1.5} />
           <div className="min-w-0">
-            <p className="text-sm font-bold truncate transition-colors">{item.title}</p>
+            <p className="text-sm font-bold truncate transition-colors">{displayTitle}</p>
             <p className="text-[10px] text-[#7D7D7D]">
               {daysAgo === 0 ? 'Deleted today' : `Deleted ${daysAgo}d ago`} • {item.item_type}
             </p>
@@ -125,39 +129,64 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const fromParam = searchParams.get("from") || "/dashboard";
 
   const handleClose = () => {
     if (typeof window !== "undefined") {
-      window.history.pushState(null, '', fromParam);
+      // Get the latest 'from' param directly from the URL to avoid stale searchParams hook
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnUrl = urlParams.get("from") || fromParam;
+      
+      router.push(returnUrl);
     }
     onClose();
   };
 
-
+  const { data, mutate: localMutate, isLoading } = useSWR(isOpen ? "/api/trash" : null, fetcher);
+  const { mutate: globalMutate } = useSWRConfig();
 
   // Reset to "all" category whenever the modal is opened
   React.useEffect(() => {
     if (isOpen) {
       setActiveCategory("all");
       setShowNotice(true);
+      localMutate(); // Force a fresh sync every time it opens
     }
-  }, [isOpen]);
-
-  const { data, mutate, isLoading } = useSWR(isOpen ? "/api/trash" : null, fetcher);
+  }, [isOpen, localMutate]);
 
   const trashItems = data?.trashItems || [];
 
   const handleRestore = async (id: string, isSwipe: boolean = false) => {
     if (!isSwipe) setIsRestoring(id);
     try {
-      mutate({ ...data, trashItems: trashItems.filter((i: any) => i.id !== id) }, false);
+      localMutate({ ...data, trashItems: trashItems.filter((i: any) => i.id !== id) }, false);
       const res = await fetch(`/api/trash/${id}/restore`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to restore item");
-      mutate();
+      
+      // Revalidate global data
+      globalMutate(
+        (key: any) => typeof key === 'string' && (
+          key.startsWith('/api/workspaces') || 
+          key.startsWith('/api/notes') || 
+          key.startsWith('/api/revision') || 
+          key.startsWith('/api/exercises') ||
+          key.startsWith('/api/tasks') ||
+          key.startsWith('/api/projects') ||
+          key.startsWith('/api/chat/history') ||
+          key.startsWith('/api/personal-ai')
+        ),
+        undefined, 
+        { revalidate: true }
+      );
+
+      // Notify the AI Teacher tab to re-fetch notes + sessions immediately
+      window.dispatchEvent(new CustomEvent('personal-ai-refresh'));
+      
+      localMutate();
     } catch (error) {
       console.error(error);
-      mutate();
+      localMutate();
       if (!isSwipe) dialog.showAlert("Could not restore item.", "error");
     } finally {
       if (!isSwipe) setIsRestoring(null);
@@ -167,13 +196,13 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
   const handlePermanentDelete = async (id: string, isSwipe: boolean = false) => {
     if (!isSwipe && !await dialog.showConfirm({ title: "Permanently Delete?", message: "Permanently delete this item? This cannot be undone.", confirmLabel: "Delete", cancelLabel: "Cancel", danger: true })) return;
     try {
-      mutate({ ...data, trashItems: trashItems.filter((i: any) => i.id !== id) }, false);
+      localMutate({ ...data, trashItems: trashItems.filter((i: any) => i.id !== id) }, false);
       const res = await fetch(`/api/trash/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete item");
-      mutate();
+      localMutate();
     } catch (error) {
       console.error(error);
-      mutate();
+      localMutate();
       if (!isSwipe) dialog.showAlert("Could not delete item.", "error");
     }
   };
@@ -194,13 +223,13 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
         return true;
       });
 
-      mutate({ ...data, trashItems: remainingItems }, false);
+      localMutate({ ...data, trashItems: remainingItems }, false);
       const res = await fetch(`/api/trash?type=${activeCategory}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to empty trash");
-      mutate();
+      localMutate();
     } catch (error) {
       console.error(error);
-      mutate();
+      localMutate();
       dialog.showAlert("Could not empty trash.", "error");
     } finally {
       setIsEmptying(false);
@@ -227,7 +256,7 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[400] flex items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in" onClick={handleClose} />
 
       <div className={`relative w-full h-full sm:h-[580px] sm:max-w-[760px] flex flex-col sm:flex-row rounded-none sm:rounded-xl shadow-2xl overflow-hidden transition-colors border-0 animate-in zoom-in-95 duration-200 ${isDark ? "bg-[#1A1A1A] md:bg-[#1F1F1F] text-white border-[#2E2E2E]" : "bg-[#F5F3EF] text-[#252525] border-[#E8E5E0]"

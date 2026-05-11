@@ -39,6 +39,7 @@ export async function GET(req: Request) {
         )
       `)
       .eq("user_id", user.id)
+      .neq("title", "[Archived] Deleted Material")
       .order("created_at", { ascending: false });
 
     if (imported) {

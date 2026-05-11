@@ -54,13 +54,10 @@ export default function NoteSelector({
     const iconMatch = title.match(/^\[(\w+)\]/);
     if (iconMatch && ICON_MAP[iconMatch[1]]) {
       const IconComp = ICON_MAP[iconMatch[1]];
-      return <IconComp className="w-5 h-5" />;
+      return <IconComp className="w-4 h-4" />;
     }
-    return fileUrl ? (
-      <FileIcon className="w-4 h-4 opacity-60" />
-    ) : (
-      <FileText className="w-4 h-4 opacity-60" />
-    );
+    const Icon = fileUrl ? FileIcon : FileText;
+    return <Icon className={`w-4 h-4 ${isDark ? "text-white" : "text-[#252525]"}`} />;
   };
 
   const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
@@ -148,18 +145,7 @@ export default function NoteSelector({
                     } ${selectedNoteId === note.id ? (isDark ? "bg-white/10" : "bg-[#F0EDE8]") : ""}`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    {(() => {
-                      const iconMatch = note.title.match(/^\[(\w+)\]/);
-                      if (iconMatch && ICON_MAP[iconMatch[1]]) {
-                        const IconComp = ICON_MAP[iconMatch[1]];
-                        return <IconComp className="w-5 h-5" />;
-                      }
-                      return note.file_url ? (
-                        <FileIcon className="w-4 h-4 opacity-60" />
-                      ) : (
-                        <FileText className="w-4 h-4 opacity-60" />
-                      );
-                    })()}
+                    {renderIcon(note.title, note.file_url)}
                     <span className={`truncate text-xs font-medium ${selectedNoteId === note.id ? "opacity-100" : "opacity-80"}`}>{cleanTitle(note.title)}</span>
                   </div>
                   {selectedNoteId === note.id && <Check className="w-3.5 h-3.5 shrink-0 opacity-60" />}

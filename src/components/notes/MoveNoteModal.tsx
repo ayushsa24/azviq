@@ -65,7 +65,7 @@ export function MoveNoteModal({ isOpen, onClose, onSuccess, note, workspaces }: 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/60 backdrop-blur-[2px] px-4">
             <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#7D7D7D] w-full max-w-md rounded-xl p-6 relative shadow-xl transition-colors">
                 <button
                     onClick={onClose}
