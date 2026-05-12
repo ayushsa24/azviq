@@ -101,6 +101,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                             if (restoreRes.ok) {
                                 mutate();
                                 globalMutate("/api/trash");
+                                window.dispatchEvent(new Event("recentActivityUpdated"));
                             }
                         } catch (err) {
                             console.error("Undo failed:", err);
@@ -115,6 +116,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
             await deletePromise;
             globalMutate("/api/trash");
             mutate();
+            window.dispatchEvent(new Event("recentActivityUpdated"));
         } catch (error) {
             console.error("Failed to delete exercise:", error);
             mutate(previousData); // Rollback

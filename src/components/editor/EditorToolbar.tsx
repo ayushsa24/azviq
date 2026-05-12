@@ -71,12 +71,14 @@ function FormattingButton({ editor, type, icon: Icon, onClick }: FormattingButto
 
 interface EditorToolbarProps {
     editor: Editor | null;
+    isQuotaExceeded?: boolean;
 }
 
-export function EditorToolbar({ editor }: EditorToolbarProps) {
+export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbarProps) {
     const [isAiOpen, setIsAiOpen] = useState(false);
     const [aiCoords, setAiCoords] = useState<{ top: number, left: number } | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isError, setIsError] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const isGeneratingRef = useRef(false);
     const [, setUpdateCount] = useState(0);
@@ -219,11 +221,11 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
             {isAiOpen && aiCoords && (
                 <div
-                    className={`z-[2000] drop-shadow-2xl ${isGenerating || isMobile
-                        ? 'fixed bottom-6 left-1/2 -translate-x-1/2'
-                        : 'absolute shadow-2xl'
+                    className={`z-[2000] ${isGenerating || isError || isMobile
+                        ? 'fixed bottom-12 left-1/2 -translate-x-1/2'
+                        : 'absolute shadow-2xl drop-shadow-2xl'
                         }`}
-                    style={(isGenerating || isMobile) ? {} : {
+                    style={(isGenerating || isError || isMobile) ? {} : {
                         top: `${Math.max(0, aiCoords.top - 80)}px`,
                         left: `${Math.max(0, aiCoords.left - 50)}px`
                     }}
@@ -232,6 +234,8 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                         editor={editor}
                         onClose={() => setIsAiOpen(false)}
                         onGenerating={(gen) => { setIsGenerating(gen); isGeneratingRef.current = gen; }}
+                        onError={(err) => setIsError(err)}
+                        isQuotaExceeded={isQuotaExceeded}
                     />
                 </div>
             )}

@@ -173,7 +173,7 @@ export function WorkspaceCard({
                         {/* Menu Dropdown - Fixed to screen for 100% visibility */}
                         {isMenuOpen && menuPosition && (
                             <div
-                                className="fixed z-[9999] w-48 bg-white/95 backdrop-blur-xl dark:bg-[#1C1C1C]/95 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4)] border border-[#E8E5E0] dark:border-[#333333] py-1.5 transition-all animate-in fade-in zoom-in-95 duration-100"
+                                className="fixed z-[9999] w-44 bg-white dark:bg-[#2A2A2A] rounded-xl shadow-xl border border-gray-200 dark:border-[#444] py-1 transition-all animate-in fade-in zoom-in-95 duration-100"
                                 style={{ top: menuPosition.top, right: menuPosition.right }}
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -182,21 +182,21 @@ export function WorkspaceCard({
                             >
                                 <button
                                     onClick={(e) => handleMenuAction(e, () => onTogglePin?.(workspace))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
+                                    className="w-full text-left px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] flex items-center gap-2 transition-colors"
                                 >
                                     <Pin className={`w-3.5 h-3.5 ${workspace.is_pinned ? "fill-current" : ""}`} />
                                     {workspace.is_pinned ? "Unpin" : "Pin to Top"}
                                 </button>
                                 <button
                                     onClick={(e) => handleMenuAction(e, () => onRename?.(workspace))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"
+                                    className="w-full text-left px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] flex items-center gap-2 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"
                                 >
                                     <Edit2 className="w-3.5 h-3.5" />
                                     Rename Workspace
                                 </button>
                                 <button
                                     onClick={(e) => handleMenuAction(e, () => onDelete?.(workspace))}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
+                                    className="w-full text-left px-2.5 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
                                     Move to Trash

@@ -7,7 +7,7 @@ import {
   Send, Sparkles, User, AlertCircle, CheckCircle2,
   Loader2, Mic, Volume2, StopCircle, MicOff,
   Maximize2, Minimize2, Trash2, VolumeX, Plus, X, Crown, ArrowRight, Square,
-  Copy, Check, ChevronDown
+  Copy, Check, ChevronDown, Lock
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -39,6 +39,7 @@ interface Props {
   onFocusModeChange?: (val: boolean) => void;
   sessionId?: string | null;
   onSessionCreated?: (id: string) => void;
+  noteStatus?: "active" | "trashed" | "deleted";
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -115,7 +116,7 @@ function isHindi(text: string): boolean {
 
 export default function UnifiedChatPanel({
   mode, noteTitle, noteId, noteContent, isPdf, isFocusMode = false, onFocusModeChange,
-  sessionId, onSessionCreated
+  sessionId, onSessionCreated, noteStatus = "active"
 }: Props) {
   const { theme } = useTheme();
   const { openSettings } = useSettings();
@@ -1091,26 +1092,34 @@ export default function UnifiedChatPanel({
           {/* ── TEXT MODE ── */}
           {mode === "chat" && (
             <div className="pt-1 pb-0">
-              {noteTitle === "[Archived] Deleted Material" || noteTitle === "Deleted Material" || noteTitle === "Unknown Document" ? (
-                <div className={`flex items-center justify-between gap-3 px-4 py-2.5 mx-auto w-full max-w-lg rounded-full border shadow-sm
+              {noteStatus !== "active" ? (
+                <div className={`flex items-center gap-2.5 px-4 py-2 mx-auto w-fit max-w-[95%] rounded-2xl border shadow-sm animate-in slide-in-from-bottom-2 duration-300
                   ${isDark ? "bg-[#252525] border-[#333] text-[#BABABA]" : "bg-white border-[#E5E5E5] text-[#545454]"}`}>
-                  <div className="flex items-center gap-2.5 text-xs font-medium">
+                  {noteStatus === "deleted" ? (
+                    <Lock size={14} className="text-red-500" />
+                  ) : (
                     <AlertCircle size={14} className={isDark ? "text-amber-400" : "text-amber-600"} />
-                    <span>Read-only. Recover note from Trash to chat.</span>
+                  )}
+                  <div className="text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                    <span className="text-[#252525] dark:text-white font-bold mr-1">Read-only.</span>
+                    {noteStatus === "trashed" 
+                      ? "Recover note from Trash to chat."
+                      : "Source note has been permanently deleted."}
                   </div>
-                  <button 
-                    onClick={() => {
-                      // Update URL to include 'from' so closing the modal returns here
-                      const currentFullUrl = window.location.pathname + window.location.search;
-                      const newUrl = `/trash?from=${encodeURIComponent(currentFullUrl)}`;
-                      window.history.pushState(null, '', newUrl);
-                      window.dispatchEvent(new CustomEvent('open-trash'));
-                    }}
-                    className={`text-[10px] font-bold px-3 py-1.5 rounded-full transition-colors shrink-0 uppercase tracking-wider
-                      ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#252525]"}`}
-                  >
-                    Open Trash
-                  </button>
+                  {noteStatus === "trashed" && (
+                    <button 
+                      onClick={() => {
+                        const currentFullUrl = window.location.pathname + window.location.search;
+                        const newUrl = `/trash?from=${encodeURIComponent(currentFullUrl)}`;
+                        window.history.pushState(null, '', newUrl);
+                        window.dispatchEvent(new CustomEvent('open-trash'));
+                      }}
+                      className={`text-[9px] font-bold px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider active:scale-95 ml-1
+                        ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#252525] hover:bg-black text-white"}`}
+                    >
+                      Open Trash
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className={`relative flex flex-col w-full transition-all duration-500 p-1
@@ -1162,21 +1171,29 @@ export default function UnifiedChatPanel({
         {/* ── VOICE MODE ── */}
         {mode === "voice" && (
           <div className="p-4 sm:p-5 flex flex-col items-center gap-3">
-            {noteTitle === "[Archived] Deleted Material" || noteTitle === "Deleted Material" || noteTitle === "Unknown Document" ? (
-              <div className={`flex flex-col items-center justify-center gap-3 p-5 w-full max-w-sm mx-auto rounded-2xl border text-sm font-medium text-center shadow-sm
+            {noteStatus !== "active" ? (
+              <div className={`flex items-center gap-2.5 px-4 py-2 mx-auto w-fit max-w-[95%] rounded-2xl border shadow-sm animate-in slide-in-from-bottom-2 duration-300
                 ${isDark ? "bg-[#252525] border-[#333] text-[#BABABA]" : "bg-white border-[#E5E5E5] text-[#545454]"}`}>
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={16} className={isDark ? "text-amber-400" : "text-amber-600"} />
-                  <span className="font-bold text-[#252525] dark:text-white">Read-Only Mode</span>
+                {noteStatus === "deleted" ? (
+                  <Lock size={14} className="text-red-500" />
+                ) : (
+                  <AlertCircle size={14} className={isDark ? "text-amber-400" : "text-amber-600"} />
+                )}
+                <div className="text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                  <span className="text-[#252525] dark:text-white font-bold mr-1">Read-only.</span>
+                  {noteStatus === "trashed" 
+                    ? "Recover note from Trash to chat."
+                    : "Source note has been permanently deleted."}
                 </div>
-                <span className="text-xs leading-relaxed max-w-[240px]">Recover the original note from your Trash to continue chatting.</span>
-                <button 
-                  onClick={() => window.dispatchEvent(new CustomEvent('open-trash'))}
-                  className={`mt-2 text-[10px] font-bold px-4 py-2 rounded-full transition-all uppercase tracking-wider
-                    ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#252525] hover:bg-black text-white"}`}
-                >
-                  Open Trash
-                </button>
+                {noteStatus === "trashed" && (
+                  <button 
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-trash'))}
+                    className={`text-[9px] font-bold px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider active:scale-95 ml-1
+                      ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#252525] hover:bg-black text-white"}`}
+                  >
+                    Open Trash
+                  </button>
+                )}
               </div>
             ) : (
               <>

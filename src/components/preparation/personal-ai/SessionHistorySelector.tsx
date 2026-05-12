@@ -15,14 +15,23 @@ interface Props {
   sessions: Session[];
   isLoading: boolean;
   onDelete: (id: string) => void;
+  allTrashedIds?: string[];
 }
 
 /** Strip the hidden archive tag and detect if a session is read-only */
-function parseSession(session: Session) {
+function parseSession(session: Session, allTrashedIds: string[] = []) {
   const TAG = "||ORIGINAL_NOTE_ID||";
   const isArchived = session.title.includes(TAG);
   const cleanTitle = isArchived ? session.title.split(TAG)[0] : session.title;
-  return { cleanTitle, isArchived };
+  
+  let status: "active" | "trashed" | "deleted" = "active";
+  if (isArchived) {
+    const parts = session.title.split(TAG);
+    const originalId = parts[parts.length - 1];
+    status = allTrashedIds.includes(originalId) ? "trashed" : "deleted";
+  }
+  
+  return { cleanTitle, isArchived, status };
 }
 
 export default function SessionHistorySelector({ 
@@ -30,7 +39,8 @@ export default function SessionHistorySelector({
   selectedSessionId,
   sessions,
   isLoading,
-  onDelete
+  onDelete,
+  allTrashedIds = []
 }: Props) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -43,12 +53,12 @@ export default function SessionHistorySelector({
   };
 
   const filteredSessions = sessions.filter((s) => {
-    const { cleanTitle } = parseSession(s);
+    const { cleanTitle } = parseSession(s, allTrashedIds);
     return cleanTitle.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId) || null;
-  const selectedParsed = selectedSession ? parseSession(selectedSession) : null;
+  const selectedParsed = selectedSession ? parseSession(selectedSession, allTrashedIds) : null;
 
   return (
     <div className="relative">
@@ -65,8 +75,8 @@ export default function SessionHistorySelector({
           {selectedParsed ? selectedParsed.cleanTitle : "History"}
         </span>
         {selectedParsed?.isArchived && (
-          <span title="Read-only — note is in Trash">
-            <Lock size={11} className="text-amber-500 shrink-0" />
+          <span title={selectedParsed.status === "trashed" ? "Read-only — note is in Trash" : "Read-only — note is permanently deleted"}>
+            <Lock size={11} className={`${selectedParsed.status === "trashed" ? "text-amber-500" : "text-red-500"} shrink-0`} />
           </span>
         )}
         <ChevronDown size={15} className={isDark ? "text-[#545454]" : "text-[#BABABA]"} />
@@ -108,7 +118,7 @@ export default function SessionHistorySelector({
               ) : (
                 <div className="p-1">
                   {filteredSessions.map((session) => {
-                    const { cleanTitle, isArchived } = parseSession(session);
+                    const { cleanTitle, isArchived, status } = parseSession(session, allTrashedIds);
                     return (
                       <div
                         key={session.id}
@@ -125,8 +135,8 @@ export default function SessionHistorySelector({
                         <div className="flex flex-col gap-1 overflow-hidden">
                           <div className="flex items-center gap-1.5">
                             {isArchived && (
-                              <span title="Read-only — note is in Trash">
-                                <Lock size={11} className="text-amber-500 shrink-0" />
+                              <span title={status === "trashed" ? "Read-only — note is in Trash" : "Read-only — note is permanently deleted"}>
+                                <Lock size={11} className={`${status === "trashed" ? "text-amber-500" : "text-red-500"} shrink-0`} />
                               </span>
                             )}
                             <span className="text-sm font-medium truncate">{cleanTitle || "Untitled Session"}</span>

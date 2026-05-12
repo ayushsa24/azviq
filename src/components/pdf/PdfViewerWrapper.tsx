@@ -7,7 +7,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
 // Set the worker for pdfjs-dist to match the exact API version
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export interface PageDim {
   width: number;
@@ -24,6 +24,7 @@ interface PdfViewerWrapperProps {
   currentPage?: number;
   onThumbnailClick?: (pageNum: number) => void;
   renderOverlay?: (pageNum: number, dim: PageDim) => React.ReactNode;
+  onLoadError?: (error: Error) => void;
 }
 
 export default function PdfViewerWrapper({
@@ -36,6 +37,7 @@ export default function PdfViewerWrapper({
   currentPage = 1,
   onThumbnailClick,
   renderOverlay,
+  onLoadError,
 }: PdfViewerWrapperProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageDims, setPageDims] = useState<Record<number, PageDim>>({});
@@ -60,6 +62,7 @@ export default function PdfViewerWrapper({
       <Document
         file={fileUrl}
         onLoadSuccess={handleLoadSuccess}
+        onLoadError={onLoadError}
         loading={null}
         className="flex flex-col gap-4 items-center"
       >
@@ -72,8 +75,8 @@ export default function PdfViewerWrapper({
               id={`thumb-item-${pg}`}
               className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 ${
                 isActive
-                  ? "border-[#E8E5E0] dark:border-[#545454] bg-[#F0EDE8] dark:bg-[#252525]"
-                  : "border-transparent hover:border-[#E8E5E0] dark:hover:border-[#545454]"
+                  ? "border-[#E8E5E0] dark:border-[#3A3A3A] bg-[#E8E5E0] dark:bg-[#3A3A3A] shadow-md"
+                  : "border-[#E8E5E0] dark:border-[#3A3A3A] hover:border-[#BABABA] dark:hover:border-[#7D7D7D]"
               }`}
               onClick={() => onThumbnailClick?.(pg)}
             >
@@ -105,6 +108,7 @@ export default function PdfViewerWrapper({
     <Document
       file={fileUrl}
       onLoadSuccess={handleLoadSuccess}
+      onLoadError={onLoadError}
       className="flex flex-col gap-4 sm:gap-8 pb-32 items-center"
       loading={
         <div className="flex flex-col gap-8 w-full items-center p-4 sm:p-12">

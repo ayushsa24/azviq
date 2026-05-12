@@ -12,6 +12,7 @@ export interface Note {
   is_favourite?: boolean;
   is_pinned?: boolean;
   is_pinned_in_favourites?: boolean;
+  spellcheck_enabled?: boolean;
   createdAt: Date;
 }
 

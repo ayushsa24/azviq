@@ -353,7 +353,13 @@ export default function Sidebar({
 
               {/* ✨ Upgrade Plan */}
               <button
-                onClick={() => { setMenuOpen(false); onUpgradeClick?.(); }}
+                onClick={() => { 
+                  setMenuOpen(false); 
+                  const currentFullUrl = window.location.pathname + window.location.search;
+                  const newUrl = `/upgrade-plan?from=${encodeURIComponent(currentFullUrl)}`;
+                  window.history.pushState(null, '', newUrl);
+                  onUpgradeClick?.(); 
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-all
                   ${isDark
                     ? "text-[#C2A27A] hover:bg-[#C2A27A]/10"

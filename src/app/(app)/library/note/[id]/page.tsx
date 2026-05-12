@@ -9,7 +9,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import { DownloadCloud, Check, Sun, Moon, LogIn, FileDown, MoreVertical, Share2, FileText, PanelLeft, ArrowLeft, Undo, Redo, Lock, Unlock, Eye, EyeOff, Users, Loader2, FileJson, FileIcon, Save, Trash2, SmilePlus, Globe, Copy, Pencil, X, AlertCircle } from "lucide-react";
+import { DownloadCloud, Check, Sun, Moon, LogIn, FileDown, MoreVertical, Share2, FileText, PanelLeft, ArrowLeft, Undo, Redo, Lock, Unlock, Eye, EyeOff, Users, Loader2, FileJson, FileIcon, Save, Trash2, SmilePlus, Globe, Copy, Pencil, X, AlertCircle, Languages } from "lucide-react";
 import { exportToPdf } from "@/lib/utils/pdf-export";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useDebouncedCallback } from "use-debounce";
@@ -37,6 +37,9 @@ import { ImportersModal } from "@/components/modals/ImportersModal";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { useToast } from "@/contexts/ToastContext";
 import { useSWRConfig } from "swr";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const lowlight = createLowlight(all)
 const StandardEmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
@@ -75,6 +78,10 @@ export default function NoteEditorPage() {
     const [isRevoked, setIsRevoked] = useState(false);
 
     const [aiInlinePos, setAiInlinePos] = useState<{ top: number; left: number; from: number } | null>(null);
+    const [spellCheckEnabled, setSpellCheckEnabled] = useState(true);
+
+    const { data: subscription } = useSWR('/api/user/subscription', fetcher);
+    const isQuotaExceeded = subscription?.usage?.note_ai?.remaining === 0;
 
     // Use a ref to keep track of the latest title for editor closures
     const titleRef = React.useRef(title);
@@ -107,7 +114,7 @@ export default function NoteEditorPage() {
         return () => { console.error = originalError; };
     }, []);
 
-    {/* Component for Reusable Picker Logic */}
+    {/* Component for Reusable Picker Logic */ }
     const PickerContent = () => (
         <EmojiPicker
             theme={typeof document !== 'undefined' && document.documentElement.className.includes('dark') ? 'dark' : 'light'}
@@ -122,6 +129,27 @@ export default function NoteEditorPage() {
             onClose={() => setShowEmojiPicker(false)}
         />
     );
+
+    const [ctrlPressed, setCtrlPressed] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Control' || e.key === 'Meta') {
+                setCtrlPressed(true);
+            }
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Control' || e.key === 'Meta') {
+                setCtrlPressed(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
 
     const editor = useEditor({
         extensions: [
@@ -230,7 +258,18 @@ export default function NoteEditorPage() {
         content: "",
         editorProps: {
             attributes: {
-                class: "prose prose-sm sm:prose-base lg:prose-base xl:prose-lg prose-p:my-1 prose-headings:my-3 px-2 py-4 focus:outline-none dark:prose-invert max-w-none text-[#252525] dark:text-white min-h-[500px] cursor-text",
+                class: `prose prose-sm sm:prose-base lg:prose-base xl:prose-lg prose-p:my-1 prose-headings:my-3 px-2 py-4 focus:outline-none dark:prose-invert max-w-none text-[#252525] dark:text-white min-h-[500px] cursor-text ${ctrlPressed ? 'tiptap-ctrl-active' : ''}`,
+            },
+            handleDOMEvents: {
+                click: (view, event) => {
+                    const target = event.target as HTMLElement;
+                    const link = target.closest('a');
+                    if (link && (event.ctrlKey || event.metaKey)) {
+                        window.open(link.href, '_blank');
+                        return true;
+                    }
+                    return false;
+                }
             },
             handleKeyDown: (view, event) => {
                 if ((event.key === 'Backspace' || event.key === 'Delete') && editor) {
@@ -250,12 +289,12 @@ export default function NoteEditorPage() {
         },
         onUpdate: ({ editor }) => {
             if (isFetchingRef.current || isOriginalUpdateRef.current) return;
-            
+
             // Mark that we are actively typing locally
             isLocalUpdateRef.current = true;
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = setTimeout(() => { 
-                isLocalUpdateRef.current = false; 
+            typingTimeoutRef.current = setTimeout(() => {
+                isLocalUpdateRef.current = false;
                 typingTimeoutRef.current = null;
             }, 3000); // 3s cooldown for sync
 
@@ -269,8 +308,13 @@ export default function NoteEditorPage() {
     useEffect(() => {
         if (editor) {
             editor.setEditable(!isLocked);
+
+            // Direct DOM manipulation to prevent Tiptap from re-rendering and "flicking" the styles
+            if (editor.view?.dom) {
+                editor.view.dom.setAttribute('spellcheck', spellCheckEnabled ? "true" : "false");
+            }
         }
-    }, [isLocked, editor]);
+    }, [isLocked, spellCheckEnabled, editor]);
 
     // Handle clicks outside the more menu / share panel
     useEffect(() => {
@@ -294,7 +338,7 @@ export default function NoteEditorPage() {
         if (!editor) return;
         const html = editor.getHTML();
         const plainText = editor.getText();
-        
+
         console.log("[PDF] Exporting HTML length:", html.length);
         console.log("[PDF] Exporting Text length:", plainText.trim().length);
 
@@ -332,7 +376,8 @@ export default function NoteEditorPage() {
                 setWorkspaceId(noteData.workspace_id);
                 setShareMode(noteData.share_mode ?? 'private');
                 setIsRevoked(!!noteData.is_revoked);
-                
+                setSpellCheckEnabled(noteData.spellcheck_enabled !== false); // Default to true if null/undefined
+
                 const pShareMode = data.parentShareMode;
                 setParentShareMode(pShareMode);
 
@@ -442,6 +487,22 @@ export default function NoteEditorPage() {
         };
     }, [id, editor, note]);
 
+    const toggleSpellCheck = async () => {
+        const newValue = !spellCheckEnabled;
+        setSpellCheckEnabled(newValue);
+
+        // Persist to DB
+        try {
+            await fetch(`/api/notes/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ spellcheck_enabled: newValue }),
+            });
+        } catch (err) {
+            console.error("Failed to save spellcheck preference:", err);
+        }
+    };
+
     const handleSave = async (contentToSave?: string, titleToSave?: string) => {
         // If it's a clone (has original_note_id), respect the parent's view-only lock.
         // If it's the original, let them save unless they manually locked the editor UI.
@@ -449,7 +510,7 @@ export default function NoteEditorPage() {
         if (!editor || isOriginalUpdateRef.current) return;
         if (isClone && (isLocked || parentShareMode === 'view')) return;
         if (!isClone && isLocked) return;
-        
+
         // Final guard: Don't save if we're just loading.
         if (isFetchingRef.current) return;
 
@@ -493,7 +554,7 @@ export default function NoteEditorPage() {
             // so the owner and other importers can see my changes in real-time.
             // Guard: only send if content has actually changed since the last successful sync.
             const currentContent = contentToSave !== undefined ? contentToSave : editor.getHTML();
-            
+
             if (currentContent !== lastSyncedOriginalContent.current) {
                 if (isClone && note.original_note_id && parentShareMode === 'edit') {
                     const syncId = note.original_note_id;
@@ -594,7 +655,7 @@ export default function NoteEditorPage() {
                 onClick: () => {
                     // Instantly visually restore the note by returning to it
                     router.push(`/library/note/${id}`);
-                    
+
                     const performRestore = async () => {
                         try {
                             await deletePromise;
@@ -696,7 +757,7 @@ export default function NoteEditorPage() {
                             <PanelLeft size={20} />
                         </button>
                     )}
- 
+
                     {/* Always visible Back button */}
                     <button
                         onClick={() => router.back()}
@@ -725,7 +786,7 @@ export default function NoteEditorPage() {
                             >
                                 <Undo size={18} />
                             </button>
-        
+
                             <button
                                 onMouseDown={(e) => {
                                     e.preventDefault();
@@ -737,9 +798,9 @@ export default function NoteEditorPage() {
                             >
                                 <Redo size={18} />
                             </button>
-        
+
                             <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
-        
+
                             <button
                                 onClick={() => {
                                     if (parentShareMode === 'view') {
@@ -765,33 +826,40 @@ export default function NoteEditorPage() {
                     <div className="relative" ref={moreMenuRef}>
                         <button
                             onClick={() => setShowMoreMenu(!showMoreMenu)}
-                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95"
+                            className="p-1 text-[#545454] dark:text-[#7D7D7D] hover:bg-gray-50 dark:hover:bg-[#333] rounded-full transition-all duration-300"
                         >
-                            <MoreVertical size={20} />
+                            <MoreVertical size={16} />
                         </button>
 
                         {showMoreMenu && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-xl rounded-xl overflow-hidden z-[60]">
+                            <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden z-[60] py-1">
                                 {/* Share & Publish — Only for Original Owners */}
                                 {!note?.original_note_id && (
                                     <button
                                         onClick={handleShare}
-                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1E1E1E] transition-colors"
+                                        className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
                                     >
-                                        <Share2 size={16} />
+                                        <Share2 size={14} />
                                         Share &amp; Publish
                                     </button>
                                 )}
+                                <button
+                                    onClick={toggleSpellCheck}
+                                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
+                                >
+                                    <Languages size={14} className={spellCheckEnabled ? "text-green-500" : ""} />
+                                    Spell Check: {spellCheckEnabled ? "On" : "Off"}
+                                </button>
                                 {!isRevoked && (
                                     <button
                                         onClick={handleDownloadPdf}
                                         disabled={isDownloadingPdf}
-                                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#545454] dark:text-[#CFCFCF] hover:bg-[#F5F5F5] dark:hover:bg-[#1E1E1E] transition-colors border-t border-[#E8E5E0] dark:border-[#3A3A3A] disabled:opacity-50"
+                                        className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors disabled:opacity-50 ${!note?.original_note_id ? "border-t border-[#F0F0F0] dark:border-[#333333]" : ""}`}
                                     >
                                         {isDownloadingPdf ? (
-                                            <Loader2 size={16} className="animate-spin" />
+                                            <Loader2 size={14} className="animate-spin" />
                                         ) : (
-                                            <FileText size={16} />
+                                            <FileText size={14} />
                                         )}
                                         Download as PDF
                                     </button>
@@ -803,27 +871,27 @@ export default function NoteEditorPage() {
                                             setShowImporters(true);
                                             setShowMoreMenu(false);
                                         }}
-                                        className="w-full h-10 flex items-center gap-2.5 px-4 py-2 text-sm text-[#545454] dark:text-[#A0A0A0] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] transition-colors border-t border-[#E8E5E0] dark:border-[#3A3A3A]"
+                                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors border-t border-[#F0F0F0] dark:border-[#333333]"
                                     >
-                                        <Users size={16} />
+                                        <Users size={14} />
                                         View Importers ({importers.length})
                                     </button>
                                 )}
-                                <div className="h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
+                                <div className="h-px bg-[#F0F0F0] dark:bg-[#333333] mb-0.5 mt-0.5" />
                                 <button
                                     onClick={handleDelete}
-                                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                                 >
-                                    <Trash2 size={16} />
-                                    Remove Note
+                                    <Trash2 size={14} />
+                                    Move to Trash
                                 </button>
                             </div>
                         )}
 
                         {/* SHARE PANEL - Now inside the moreMenuRef container */}
                         {showSharePanel && (
-                            <div className="absolute right-0 top-12 w-60 bg-white dark:bg-[#1E1E1E] border border-[#E8E5E0] dark:border-[#2A2A2A] shadow-2xl rounded-2xl z-[80] p-2 flex flex-col gap-2">
-                                <div className="px-1">
+                            <div className="absolute right-0 top-12 w-48 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl z-[80] p-1.5 flex flex-col gap-1">
+                                <div className="px-1 py-0.5 mb-0.5">
                                     <h3 className="font-bold text-xs text-[#252525] dark:text-white leading-tight">Share Note</h3>
                                     <p className="text-[9px] text-[#7D7D7D]">Control access via a public link.</p>
                                 </div>
@@ -842,11 +910,10 @@ export default function NoteEditorPage() {
                                                 key={mode.id}
                                                 onClick={() => handleSetShareMode(mode.id as any)}
                                                 disabled={isTogglingShare}
-                                                className={`flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all ${
-                                                    isActive 
-                                                        ? 'bg-[#252525] border-[#252525] dark:bg-white dark:border-white' 
+                                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-left transition-all ${isActive
+                                                        ? 'bg-[#252525] border-[#252525] dark:bg-white dark:border-white'
                                                         : 'bg-transparent border-transparent hover:bg-[#F5F3EF] dark:hover:bg-[#252525] hover:border-[#E8E5E0] dark:hover:border-[#3A3A3A]'
-                                                }`}
+                                                    }`}
                                             >
                                                 <Icon size={12} className={isActive ? 'text-white dark:text-[#252525]' : 'text-[#7D7D7D]'} />
                                                 <div className="flex-1">
@@ -860,19 +927,18 @@ export default function NoteEditorPage() {
                                     })}
                                 </div>
 
-                                <div className="h-px bg-[#E8E5E0] dark:bg-[#2A2A2A] mx-1" />
+                                <div className="h-px bg-[#E8E5E0] dark:bg-[#2A2A2A] mx-0.5 my-0.5" />
 
                                 {/* Copy Link */}
                                 <button
                                     onClick={handleCopyLink}
                                     disabled={shareMode === 'private'}
-                                    className={`flex items-center justify-center gap-2 w-full py-1.5 rounded-xl text-[11px] font-semibold transition-all ${
-                                        shareMode !== 'private'
+                                    className={`flex items-center justify-center gap-2 w-full py-1.5 rounded-lg text-[10px] font-semibold transition-all ${shareMode !== 'private'
                                             ? 'bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:opacity-90 active:scale-95'
                                             : 'bg-[#E8E5E0] dark:bg-[#252525] text-[#BABABA] cursor-not-allowed'
-                                    }`}
+                                        }`}
                                 >
-                                    {linkCopied ? <><Check size={10} /> Copied!</> : <><Copy size={10} /> Copy Share Link</>}
+                                    {linkCopied ? <><Check size={10} /> Copied!</> : <><Copy size={10} /> Copy Link</>}
                                 </button>
                             </div>
                         )}
@@ -886,7 +952,7 @@ export default function NoteEditorPage() {
                     <div className="w-20 h-20 bg-[#F0EDE8] dark:bg-white/5 rounded-full flex items-center justify-center mb-6 text-[#7D7D7D] dark:text-[#BABABA] shadow-inner">
                         <EyeOff size={40} />
                     </div>
-                    
+
                     {/* Show the original title as requested */}
                     <div className="mb-4">
                         <span className="text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-2.5 py-1 rounded-full uppercase tracking-widest mb-2 inline-block font-sans">Access Restricted</span>
@@ -904,12 +970,12 @@ export default function NoteEditorPage() {
                     </div>
 
                     <p className="text-[#8B7E6D] dark:text-[#9E9E9E] max-w-sm mb-8 leading-relaxed text-sm">
-                        The owner of this note has restricted access or stopped sharing this content. 
+                        The owner of this note has restricted access or stopped sharing this content.
                         You can still view your local copy in your main library, but real-time updates and collaboration are currently paused.
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <button 
+                        <button
                             onClick={() => router.push('/library')}
                             className="px-6 py-3 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-xl font-semibold hover:opacity-90 transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
                         >
@@ -923,7 +989,7 @@ export default function NoteEditorPage() {
             {/* Main Editor Area */}
             <div className={`flex-1 max-w-4xl mx-auto w-full px-6 pt-4 sm:pt-10 pb-32 sm:pb-[50vh] flex flex-col ${isRevoked ? 'hidden' : 'block'}`}>
                 <div className="flex flex-col gap-2 mb-10 min-w-0">
-                    
+
                     <div className="flex items-center gap-3 w-full px-1">
                         {/* Selected Icon — Shows BIG on the LEFT */}
                         {(() => {
@@ -1004,19 +1070,19 @@ export default function NoteEditorPage() {
                         })()}
                     </div>
 
-                        {isRevoked && (
-                            <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-3 py-1.5 rounded-full shrink-0 animate-in fade-in duration-300 border border-[#E8E5E0] dark:border-white/10" title="Access Revoked">
-                                <EyeOff size={18} />
-                                <span className="text-[10px] font-bold hidden sm:inline uppercase tracking-wider">Private Access</span>
-                            </div>
-                        )}
+                    {isRevoked && (
+                        <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] bg-[#F0EDE8] dark:bg-white/10 px-3 py-1.5 rounded-full shrink-0 animate-in fade-in duration-300 border border-[#E8E5E0] dark:border-white/10" title="Access Revoked">
+                            <EyeOff size={18} />
+                            <span className="text-[10px] font-bold hidden sm:inline uppercase tracking-wider">Private Access</span>
+                        </div>
+                    )}
 
                     {note?.original_note_id && (
                         <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] px-0.5 py-1">
                             <DownloadCloud size={16} className="text-blue-500" />
                             <span className="text-sm font-bold tracking-tight">
-                                {note.original_note?.user?.name 
-                                    ? `Imported from ${note.original_note.user.name}` 
+                                {note.original_note?.user?.name
+                                    ? `Imported from ${note.original_note.user.name}`
                                     : "Imported from Original Owner"}
                             </span>
                         </div>
@@ -1043,12 +1109,13 @@ export default function NoteEditorPage() {
                         }
                     }}
                 >
-                    {editor && <EditorToolbar editor={editor} />}
+                    {editor && <EditorToolbar editor={editor} isQuotaExceeded={isQuotaExceeded} />}
                     {aiInlinePos && (
                         <AiInlineInput
                             initialTop={aiInlinePos.top}
                             initialLeft={aiInlinePos.left}
-                            contextText={editor ? editor.getText() : ""}
+                            contextText={editor?.getText() || ""}
+                            isQuotaExceeded={isQuotaExceeded}
                             onClose={() => {
                                 setAiInlinePos(null);
                                 aiStreamEndPosRef.current = null;
@@ -1062,22 +1129,16 @@ export default function NoteEditorPage() {
                                     const end = aiStreamEndPosRef.current !== null ? aiStreamEndPosRef.current : editor.state.selection.to;
 
                                     editor.chain().focus().run(); // bring focus back gracefully
-
                                     try {
-                                        // By appending the new HTML first and then deleting the old text,
-                                        // we never temporarily leave the table cell completely empty,
-                                        // which avoids Prosemirror's strict schema validation crash.
+                                        // Replace the raw streamed text with the formatted HTML in one atomic step
+                                        // to prevent layout jumping or schema validation issues.
                                         editor.chain()
-                                            .insertContentAt(end, htmlContent || "<p></p>")
-                                            .deleteRange({ from: start, to: end })
+                                            .insertContentAt({ from: start, to: end }, (htmlContent || "") + "<hr>")
                                             .run();
                                     } catch (err) {
                                         console.warn("AI rich text insertion violated schema (e.g. nested tables). Keeping the raw text instead.", err);
-                                        // We swallow the error and leave the raw markdown streamed text in the editor
-                                        // to prevent the entire page setup from crashing.
                                     }
 
-                                    setAiInlinePos(null);
                                     aiStreamEndPosRef.current = null;
                                 }
                             }}

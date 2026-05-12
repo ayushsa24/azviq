@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { X, Crown, Check, Loader2 } from "lucide-react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import React from "react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,7 +45,6 @@ const PLANS = [
       "Gemini 2.5 Flash (Fast)",
       "PDF upload up to 4 MB",
       "Standard response speed",
-      "No ads",
     ],
     cta: "Current Plan",
     highlight: false,
@@ -65,7 +66,6 @@ const PLANS = [
       "GPT-4o Mini (High Quality)",
       "PDF upload up to 10 MB",
       "High priority response speed",
-      "No ads",
     ],
     cta: "Upgrade to Lite",
     highlight: false,
@@ -86,7 +86,6 @@ const PLANS = [
       "GPT-4o + Claude 3.5 Sonnet (The Best)",
       "PDF upload up to 50 MB",
       "Turbo response speed",
-      "No ads + Beta features",
     ],
     cta: "Upgrade to Premium",
     highlight: true,
@@ -116,7 +115,7 @@ async function loadRazorpayScript(): Promise<boolean> {
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function PricingModal({ open, onClose }: PricingModalProps) {
+function PricingModal({ open, onClose }: PricingModalProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
@@ -126,6 +125,20 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
   const [isMobile, setIsMobile] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
+
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const fromParam = searchParams.get("from") || "/dashboard";
+
+  const handleClose = () => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnUrl = urlParams.get("from") || fromParam;
+      router.push(returnUrl);
+    }
+    onClose();
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -225,7 +238,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
-            onClick={onClose}
+            onClick={handleClose}
           />
 
           {/* Modal / Sheet Container */}
@@ -239,7 +252,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
             dragElastic={{ top: 0, bottom: 0.8 }}
             onDragEnd={(_, info) => {
               if (isMobile && (info.offset.y > 150 || info.velocity.y > 600)) {
-                onClose();
+                handleClose();
               }
             }}
             className={`relative w-full ${isMobile ? 'h-[92dvh] pt-2' : 'max-w-5xl max-h-[90vh]'} overflow-hidden rounded-t-[20px] sm:rounded-2xl border shadow-2xl flex flex-col
@@ -263,7 +276,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
                 if (!isMobile) return;
                 const deltaY = e.changedTouches[0].clientY - touchStartY.current;
                 if (deltaY > 60) {
-                  onClose();
+                  handleClose();
                 }
               }}
             >
@@ -282,7 +295,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className={`p-2 rounded-xl transition-all hover:scale-110 cursor-pointer
                   ${isDark ? "hover:bg-[#2E2E2E] text-[#BABABA]" : "hover:bg-[#F0EDE8] text-[#7D7D7D]"}`}
               >
@@ -291,7 +304,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
             </div>
 
             {/* Scrollable Content */}
-            <div 
+            <div
               ref={scrollContainerRef}
               className="flex-1 overflow-y-auto scrollbar-hide overscroll-contain"
               onTouchStart={(e) => {
@@ -303,7 +316,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
                 if (!el) return;
                 const deltaY = e.changedTouches[0].clientY - touchStartY.current;
                 if (deltaY > 60 && el.scrollTop <= 0) {
-                  onClose();
+                  handleClose();
                 }
               }}
             >
@@ -437,5 +450,13 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
         </div>
       )}
     </AnimatePresence>
+  );
+}
+
+export default function PricingModalSuspense(props: PricingModalProps) {
+  return (
+    <Suspense fallback={null}>
+      <PricingModal {...props} />
+    </Suspense>
   );
 }

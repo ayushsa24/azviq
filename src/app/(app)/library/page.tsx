@@ -148,9 +148,20 @@ export default function NotesPage() {
     return filtered;
   }, [workspaces, searchQuery]);
 
-  const handleOpenNote = (note: NoteItem) => {
-    if (note.file_url && note.file_url.toLowerCase().endsWith(".pdf")) {
-      router.push(`/library/pdf/${note.id}`);
+  const handleNoteClick = async (note: NoteItem) => {
+    if (note.file_url?.toLowerCase().endsWith('.pdf')) {
+      // Check if the file is accessible before navigating to avoid landing on a broken page
+      try {
+        const checkRes = await fetch(note.file_url, { method: 'HEAD', cache: 'no-cache' });
+        if (!checkRes.ok) throw new Error("File inaccessible");
+        router.push(`/library/pdf/${note.id}`);
+      } catch (err) {
+        console.error("PDF accessibility check failed:", err);
+        dialog.showAlert(
+          "Failed to open PDF. The file may have been deleted from storage or is currently unreachable.",
+          "error"
+        );
+      }
     } else {
       router.push(`/library/note/${note.id}`);
     }
@@ -218,7 +229,7 @@ export default function NotesPage() {
           window.history.replaceState({}, "", `/library?${newParams.toString()}`);
 
           // Open it
-          handleOpenNote(exactMatch);
+          handleNoteClick(exactMatch);
         }
       }
     }
@@ -276,6 +287,7 @@ export default function NotesPage() {
               if (restoreRes.ok) {
                 mutateNotes();
                 mutate("/api/trash"); // Remove from trash bin
+                window.dispatchEvent(new Event("recentActivityUpdated"));
               }
             } catch (err) {
               console.error("Undo failed:", err);
@@ -289,6 +301,7 @@ export default function NotesPage() {
     try {
       await deletePromise;
       mutate("/api/trash");
+      window.dispatchEvent(new Event("recentActivityUpdated"));
     } catch (err) {
       console.error(err);
       dialog.showAlert("Could not delete the note.", "error");
@@ -412,6 +425,7 @@ export default function NotesPage() {
               if (restoreRes.ok) {
                 refetchData();
                 mutate("/api/trash"); // Remove from trash bin
+                window.dispatchEvent(new Event("recentActivityUpdated"));
               }
             } catch (err) {
               console.error("Undo failed:", err);
@@ -425,6 +439,7 @@ export default function NotesPage() {
     try {
       await deletePromise;
       mutate("/api/trash");
+      window.dispatchEvent(new Event("recentActivityUpdated"));
       // If we just deleted the workspace we were currently viewing, go back to root
       if (activeWorkspace?.id === workspace.id) {
         router.push("/library", { scroll: false });
@@ -719,7 +734,7 @@ export default function NotesPage() {
                         <NoteCard
                           key={note.id}
                           note={note}
-                          onClick={handleOpenNote}
+                          onClick={handleNoteClick}
                           viewMode={viewMode}
                           onRename={handleRenameClick}
                           onMove={handleMoveClick}

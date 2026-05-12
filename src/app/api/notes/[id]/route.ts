@@ -174,6 +174,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (body.content !== undefined) updateData.content = body.content;
         if (body.is_public !== undefined) updateData.is_public = body.is_public;
         if (body.share_mode !== undefined) updateData.share_mode = body.share_mode;
+        if (body.spellcheck_enabled !== undefined) updateData.spellcheck_enabled = body.spellcheck_enabled;
 
         // Spaced repetition fields
         if (body.retention_score !== undefined) updateData.retention_score = body.retention_score;

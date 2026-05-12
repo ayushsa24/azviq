@@ -190,7 +190,13 @@ export default function Header({
                   Settings
                 </button>
                 <button
-                  onClick={() => { setDropdownOpen(false); onUpgradeClick?.(); }}
+                  onClick={() => { 
+                    setDropdownOpen(false); 
+                    const currentFullUrl = window.location.pathname + window.location.search;
+                    const newUrl = `/upgrade-plan?from=${encodeURIComponent(currentFullUrl)}`;
+                    window.history.pushState(null, '', newUrl);
+                    onUpgradeClick?.(); 
+                  }}
                   className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer border-t border-b ${theme === 'dark'
                     ? 'text-[#C2A27A] border-[#545454] hover:bg-[#545454]'
                     : 'text-[#8B6F4E] border-[#E8E5E0] hover:bg-[#F0EDE8]'

@@ -26,15 +26,26 @@ export async function GET(req: Request) {
             .select("id, item_id, item_type, title, href, opened_at")
             .eq("user_id", user.id)
             .order("opened_at", { ascending: false })
-            .limit(15);
+            .limit(30); // Increased limit to account for filtered trashed items
 
         if (error) {
             console.error("Error fetching recent activity:", error);
             return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
         }
 
-        // Fetch original_note_id for notes
-        const noteIds = (items || [])
+        // Fetch trashed item IDs for this user to filter them out
+        const { data: trashItems } = await supabase
+            .from("trash")
+            .select("item_id, item_type")
+            .eq("user_id", user.id);
+        
+        const trashSet = new Set(trashItems?.map(ti => ti.item_id) || []);
+
+        // Filter out items that are in the trash
+        const filteredItems = (items || []).filter(item => !trashSet.has(item.item_id));
+
+        // Fetch original_note_id for notes that are still active
+        const noteIds = filteredItems
             .filter(i => i.item_type === "note")
             .map(i => i.item_id);
 
@@ -42,18 +53,53 @@ export async function GET(req: Request) {
         if (noteIds.length > 0) {
             const { data: noteData } = await supabase
                 .from("notes")
-                .select("id, original_note_id")
+                .select("id, original_note_id, workspace_id")
                 .in("id", noteIds);
 
             if (noteData) {
+                // Also get trashed workspace IDs
+                const trashedWorkspaceIds = new Set(
+                    (trashItems || [])
+                        .filter(ti => ti.item_type === "workspace")
+                        .map(ti => ti.item_id)
+                );
+
+                // Create a set of note IDs whose workspace is trashed
+                const notesInTrashedWorkspaces = new Set(
+                    noteData
+                        .filter(n => n.workspace_id && trashedWorkspaceIds.has(n.workspace_id))
+                        .map(n => n.id)
+                );
+
                 noteMap = noteData.reduce((acc, n) => ({ ...acc, [n.id]: n.original_note_id }), {});
+                
+                // Further filter filteredItems to remove notes in trashed workspaces
+                // and notes that no longer exist in the notes table (hard deleted)
+                const existingNoteIds = new Set(noteData.map(n => n.id));
+                const finalFilteredItems = [];
+                for (const item of filteredItems) {
+                    if (item.item_type === "note" || item.item_type === "pdf") {
+                        if (!existingNoteIds.has(item.item_id) || notesInTrashedWorkspaces.has(item.item_id)) {
+                            continue;
+                        }
+                    }
+                    finalFilteredItems.push(item);
+                }
+                
+                // Update enrichedItems to use finalFilteredItems
+                const enrichedItems = finalFilteredItems.map(item => ({
+                    ...item,
+                    original_note_id: item.item_type === "note" ? noteMap[item.item_id] : null
+                })).slice(0, 15);
+
+                return NextResponse.json({ items: enrichedItems });
             }
         }
 
-        const enrichedItems = (items || []).map(item => ({
+        const enrichedItems = filteredItems.map(item => ({
             ...item,
             original_note_id: item.item_type === "note" ? noteMap[item.item_id] : null
-        }));
+        })).slice(0, 15); // Return only the top 15 non-trashed items
 
         return NextResponse.json({ items: enrichedItems });
     } catch (err) {

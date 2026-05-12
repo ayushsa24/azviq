@@ -8,6 +8,7 @@ import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import useSWR from "swr";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 import { FileText, File as FileIcon } from "lucide-react";
+import { useToast } from "@/contexts/ToastContext";
 
 export default function DashboardTasks() {
     const { theme } = useTheme();
@@ -18,6 +19,8 @@ export default function DashboardTasks() {
     // Selected task state for the detail modal
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [filterRange, setFilterRange] = useState<"today" | "overdue" | "1week" | "2weeks" | "1month">("today");
+    const { show: showToast } = useToast();
+    const pendingDeletes = useRef<Record<string, NodeJS.Timeout>>({});
 
     // Lock scroll when modal is open
     useEffect(() => {
@@ -113,18 +116,52 @@ export default function DashboardTasks() {
 
     const deleteTask = async (taskId: string, e?: React.SyntheticEvent) => {
         if (e) e.stopPropagation();
-        // Optimistic update
+
+        const taskToDelete = tasks.find(t => t.id === taskId);
+        if (!taskToDelete) return;
+
+        // 1. Optimistic update
         mutateTasks((currentData: { tasks: Task[] } | undefined) => ({
             ...currentData,
             tasks: (currentData?.tasks || []).filter((t: Task) => t.id !== taskId)
         }) as { tasks: Task[] }, false);
-        try {
-            await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
-            window.dispatchEvent(new Event("task-updated"));
-        } catch (err) {
-            console.error("Failed to delete task");
-            mutateTasks(); // revert
-        }
+
+        // 2. Show Undo Toast
+        showToast({
+            message: "Moved to trash",
+            type: "info",
+            duration: 5000,
+            action: {
+                label: "Undo",
+                onClick: () => {
+                    // Restore task
+                    mutateTasks((currentData: { tasks: Task[] } | undefined) => ({
+                        ...currentData,
+                        tasks: [taskToDelete, ...(currentData?.tasks || [])]
+                    }) as { tasks: Task[] }, false);
+
+                    // Clear the timeout
+                    if (pendingDeletes.current[taskId]) {
+                        clearTimeout(pendingDeletes.current[taskId]);
+                        delete pendingDeletes.current[taskId];
+                    }
+                }
+            }
+        });
+
+        // 3. Set timeout for actual deletion
+        const timeout = setTimeout(async () => {
+            try {
+                await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+                window.dispatchEvent(new Event("task-updated"));
+                delete pendingDeletes.current[taskId];
+            } catch (err) {
+                console.error("Failed to delete task", err);
+                mutateTasks(); // revert
+            }
+        }, 5000);
+
+        pendingDeletes.current[taskId] = timeout;
     };
 
     const handleTaskUpdated = (updatedTask?: Task) => {

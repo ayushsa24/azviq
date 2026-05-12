@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useToast } from "@/contexts/ToastContext";
 import useSWR from "swr";
 import { motion, AnimatePresence } from "framer-motion";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
@@ -103,6 +104,8 @@ export default function DashboardChecklist() {
     const materialDropdownRef = useRef<HTMLDivElement>(null);
     const frequencyDropdownRef = useRef<HTMLDivElement>(null);
     const timeInputRef = useRef<HTMLInputElement>(null);
+    const pendingDeletes = useRef<Record<string, NodeJS.Timeout>>({});
+    const { show: showToast } = useToast();
 
     const hasChanged = JSON.stringify(form) !== JSON.stringify(initialForm);
 
@@ -250,16 +253,55 @@ export default function DashboardChecklist() {
     };
 
     const deleteItem = async (id: string) => {
+        // Find the item before removing it from local state
+        const itemToDelete = items.find(i => i.id === id);
+        if (!itemToDelete) return;
+
+        // 1. Optimistic UI update
         mutateTodos((currentData: { todos: TodoItem[] } | undefined) => ({
             ...currentData,
             todos: (currentData?.todos || []).filter((i: TodoItem) => i.id !== id)
         }), false);
+        
         setShowModal(false);
-        try {
-            await fetch(`/api/todos/${id}`, { method: "DELETE" });
-        } catch (e) {
-            mutateTodos(); // Revert
-        }
+
+        // 2. Show Undo Toast
+        const toastId = showToast({
+            message: "Moved to trash",
+            type: "info",
+            duration: 5000,
+            action: {
+                label: "Undo",
+                onClick: () => {
+                    // Restore item
+                    mutateTodos((currentData: { todos: TodoItem[] } | undefined) => ({
+                        ...currentData,
+                        todos: [itemToDelete, ...(currentData?.todos || [])].sort((a, b) => 
+                            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                        )
+                    }), false);
+                    
+                    // Clear the timeout to prevent deletion
+                    if (pendingDeletes.current[id]) {
+                        clearTimeout(pendingDeletes.current[id]);
+                        delete pendingDeletes.current[id];
+                    }
+                }
+            }
+        });
+
+        // 3. Set timeout for actual deletion
+        const timeout = setTimeout(async () => {
+            try {
+                await fetch(`/api/todos/${id}`, { method: "DELETE" });
+                delete pendingDeletes.current[id];
+            } catch (e) {
+                console.error("Failed to delete todo:", e);
+                mutateTodos(); // Revert if failed
+            }
+        }, 5000);
+
+        pendingDeletes.current[id] = timeout;
     };
 
     const toggleCustomDay = (day: number) => {

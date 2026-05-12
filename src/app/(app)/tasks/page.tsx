@@ -522,7 +522,13 @@ export default function TasksPage() {
 
   // By Date view: group tasks by due_date
   const tasksByDate = filteredTasks.reduce((acc: Record<string, any[]>, t: any) => {
-    const key = t.due_date ? format(new Date(t.due_date), "MMM d, yyyy") : "No due date";
+    let key = "No due date";
+    if (t.due_date) {
+      const date = new Date(t.due_date);
+      if (!isNaN(date.getTime())) {
+        key = format(date, "MMM d, yyyy");
+      }
+    }
     if (!acc[key]) acc[key] = [];
     acc[key].push(t);
     return acc;
@@ -868,7 +874,9 @@ export default function TasksPage() {
                                   <MoreHorizontal className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-                              {t.due_date && <p className="text-xs text-gray-500 mt-2">Due {format(new Date(t.due_date), "MMM d")}</p>}
+                              {t.due_date && !isNaN(new Date(t.due_date).getTime()) && (
+                                <p className="text-xs text-gray-500 mt-2">Due {format(new Date(t.due_date), "MMM d")}</p>
+                              )}
                               {t.linked_document_id && notes.some((n: any) => n.id === t.linked_document_id) && (
                                 <Link href={`/library/${t.linked_document_type}/${t.linked_document_id}`} className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 rounded text-[10px] font-semibold transition-colors" onClick={(e) => e.stopPropagation()}>
                                   <FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "Open PDF" : "Open Note"}
@@ -912,7 +920,7 @@ export default function TasksPage() {
                       {/* Visual styled button (behind) */}
                       <div className="flex items-center gap-2 px-4 py-2 h-full rounded-xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)] text-xs font-semibold text-[#545454] dark:text-[#BABABA] transition-all duration-300 group-hover/date:border-[#D1D1D1] dark:group-hover/date:border-[#444] group-hover/date:bg-[#F9F8F6] dark:group-hover/date:bg-white/10 group-hover/date:text-[#252525] dark:group-hover/date:text-white group-hover/date:scale-[1.02] active:scale-[0.98]">
                         <CalendarDays size={14} className={dateFilter ? "text-[#C2A27A]" : ""} />
-                        <span>{dateFilter ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All Dates"}</span>
+                        <span>{dateFilter && !isNaN(new Date(dateFilter + 'T00:00:00').getTime()) ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All Dates"}</span>
                         <ChevronDown size={14} className="opacity-40" />
                       </div>
                       

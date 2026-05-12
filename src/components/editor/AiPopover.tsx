@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Sparkles, Loader2, ArrowRight, FileText, Wand2, Minimize2, CheckCheck, Square, X, Check, Crown, AlertCircle } from "lucide-react";
 import { Editor } from "@tiptap/react";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -7,9 +8,17 @@ interface AiPopoverProps {
     editor: Editor;
     onClose: () => void;
     onGenerating?: (generating: boolean) => void;
+    onError?: (error: boolean) => void;
+    isQuotaExceeded?: boolean;
 }
 
-export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
+export function AiPopover({ 
+    editor, 
+    onClose, 
+    onGenerating, 
+    onError,
+    isQuotaExceeded = false 
+}: AiPopoverProps) {
     const { openSettings } = useSettings();
     const [isLoading, setIsLoading] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
@@ -88,6 +97,12 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
 
     const handleSubmit = async (command: string) => {
         if (!selectedText && !command) return;
+
+        // Pre-emptive Quota Check
+        if (isQuotaExceeded) {
+            setError("Your daily AI quota is exhausted now");
+            return;
+        }
 
         setIsLoading(true);
         setIsComplete(false);
@@ -197,12 +212,12 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                     .focus()
                     .setTextSelection({ from: startPos, to: endPos })
                     .deleteSelection()
-                    .insertContentAt(startPos, htmlResult)
+                    .insertContentAt(startPos, (htmlResult as string) + "<hr>")
                     .run();
 
                 const finalEndPos = editor.state.selection.to;
                 insertionRangeRef.current = { from: startPos, to: finalEndPos };
-
+ 
                 setIsComplete(true);
             }
 
@@ -223,7 +238,7 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
                     .focus()
                     .setTextSelection({ from: startPos, to: endPos })
                     .deleteSelection()
-                    .insertContentAt(startPos, htmlResult)
+                    .insertContentAt(startPos, (htmlResult as string) + "<hr>")
                     .run();
                 
                 const finalEndPos = editor.state.selection.to;
@@ -234,9 +249,9 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
             }
         } else {
             console.error(error);
-            // Handle quota exhaustion specifically
-            if (error.message.includes("Daily limit reached") || error.message.includes("QUOTA_EXCEEDED")) {
-                setError(error.message);
+            // Handle quota exhaustion specifically (429 or specific error messages)
+            if (error.status === 429 || error.message?.includes("429") || error.message?.includes("Daily limit reached") || error.message?.includes("QUOTA_EXCEEDED") || error.message?.includes("limit") || error.message?.includes("quota")) {
+                setError("Your daily AI quota is exhausted now");
                 return; // Keep popover open to show error
             }
             setError("Sorry, I encountered an error. Please try again.");
@@ -247,63 +262,42 @@ export function AiPopover({ editor, onClose, onGenerating }: AiPopoverProps) {
     }
 };
 
-const handleUpgrade = () => {
-    openSettings("subscription");
-    onClose();
-};
 
 if (error) {
-    const isQuota = error.toLowerCase().includes("limit") || error.toLowerCase().includes("quota");
-    return (
+    return createPortal(
         <div
-            className={`flex flex-col w-full md:w-[240px] backdrop-blur-md border shadow-2xl rounded-xl overflow-hidden pointer-events-auto transition-all animate-in fade-in zoom-in duration-200 ${
-                isQuota 
-                    ? (isDark ? "bg-red-500/10 border-red-500/30" : "bg-red-50/90 border-red-200")
-                    : (isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E8E5E0]")
-            }`}
+            key="ai-error-pill-popover"
+            className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-full px-4 py-2 pointer-events-auto z-[9999] animate-in fade-in duration-300 min-w-max"
             onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
         >
-            <div className={`flex items-center gap-2 px-3 py-2 border-b ${
-                isQuota 
-                    ? "bg-red-500/10 border-red-500/20" 
-                    : "bg-[#F9F8F6] dark:bg-[#1A1A1A] border-[#E8E5E0] dark:border-[#3A3A3A]"
-            }`}>
-                {isQuota ? <Crown size={14} className="text-red-500" /> : <AlertCircle size={14} className="text-red-500" />}
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isQuota ? "text-red-500" : "text-[#7D7D7D] dark:text-[#BABABA]"}`}>
-                    {isQuota ? "Limit Reached" : "System Error"}
+            <div className="flex items-center gap-2">
+                <Crown size={16} className="text-amber-500 shrink-0" />
+                <span className="text-xs font-bold text-[#252525] dark:text-[#CFCFCF] whitespace-nowrap">
+                    Your daily AI quota is exhausted now
                 </span>
             </div>
-            <div className="p-3 flex flex-col gap-2">
-                <p className={`text-[11px] leading-relaxed ${isDark ? "text-red-100/90" : "text-red-700 font-medium"}`}>
-                    {error}
-                </p>
-                {isQuota ? (
-                    <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
-                        className="flex items-center justify-center gap-2 w-full py-1.5 bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all shadow-sm"
-                    >
-                        Upgrade Plan
-                        <ArrowRight size={12} />
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => setError(null)}
-                        className={`w-full py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${
-                            isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
-                        }`}
-                    >
-                        Try Again
-                    </button>
-                )}
-            </div>
+            <div className="w-px h-4 bg-gray-200 dark:bg-[#444] mx-1" />
+            <button
+                onClick={() => { window.dispatchEvent(new CustomEvent('open-pricing')); onClose(); }}
+                className="flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-tight rounded-full transition-all whitespace-nowrap shadow-sm"
+            >
+                Upgrade
+            </button>
+            <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                <X size={14} className="text-[#A3A3A3]" />
+            </button>
         </div>
+,
+        document.body
     );
 }
 
     if (isLoading) {
-        return (
+        return createPortal(
             <div
-                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-full pointer-events-auto"
+                key="ai-thinking-popover"
+                className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-full pointer-events-auto z-[9999] animate-in fade-in duration-300"
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2.5">
@@ -319,22 +313,24 @@ if (error) {
                         </span>
                     </div>
                 </div>
-                <div className="w-px h-4 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+                <div className="w-px h-4 bg-gray-200 dark:bg-[#444] mx-1" />
                 <button
                     onClick={handleStop}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525]/5 dark:bg-[#CFCFCF]/5 hover:bg-[#252525]/10 dark:hover:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] text-[10px] font-black uppercase tracking-tight rounded-full transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#252525]/5 dark:bg-white/10 hover:bg-[#252525]/10 dark:hover:bg-white/20 text-[#252525] dark:text-[#CFCFCF] text-[10px] font-black uppercase tracking-tight rounded-full transition-all whitespace-nowrap"
                 >
                     <Square size={10} className="fill-current" />
                     Stop
                 </button>
-            </div>
+            </div>,
+            document.body
         );
     }
 
     if (isComplete) {
-        return (
+        return createPortal(
             <div
-                className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-full pointer-events-auto min-w-max"
+                key="ai-complete-popover"
+                className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-full pointer-events-auto min-w-max z-[9999] animate-in fade-in duration-300"
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2 shrink-0">
@@ -359,53 +355,54 @@ if (error) {
                         <Check size={14} sm-size={16} strokeWidth={3} />
                     </button>
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 
     return (
         <div
-            className="flex flex-col md:w-[220px] w-full max-w-[calc(100vw-32px)] bg-white dark:bg-[#252525] border border-[#E8E5E0]/30 dark:border-[#3A3A3A]/30 shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
+            className="flex flex-col md:w-[160px] w-full max-w-[calc(100vw-32px)] bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
             onMouseDown={(e) => e.stopPropagation()}
         >
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#F9F8F6] dark:bg-[#1A1A1A] border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-[#1A1A1A] border-b border-gray-200 dark:border-[#444]">
                 <Sparkles size={13} className="text-[#252525] dark:text-[#BABABA]" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D] dark:text-[#BABABA]">AI Commands</span>
             </div>
 
-            <div className="p-1 flex flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div className="p-1 flex flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar scrollbar-compact">
                 <>
                     <button
                         onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}
-                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
                         <FileText size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">{selectedText ? "Summarize" : "Summarize Note"}</span>
+                        <span className="truncate">{selectedText ? "Summarize" : "Summarize"}</span>
                     </button>
                     <button
                         onClick={() => handleSubmit(selectedText ? "Explain this" : "Explain content")}
-                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
                         <Wand2 size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">{selectedText ? "Explain" : "Explain Content"}</span>
+                        <span className="truncate">Explain</span>
                     </button>
                     <button
                         onClick={() => handleSubmit("Improve writing")}
-                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
                         <Sparkles size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">Improve Writing</span>
+                        <span className="truncate">Improve</span>
                     </button>
                     <button
                         onClick={() => handleSubmit("Make it shorter")}
-                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
                         <Minimize2 size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">Make Shorter</span>
+                        <span className="truncate">Shorter</span>
                     </button>
                     <button
                         onClick={() => handleSubmit("Fix grammar")}
-                        className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#F5F3EF] dark:hover:bg-[#1A1A1A] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
+                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
                     >
                         <CheckCheck size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
                         <span className="truncate">Fix Grammar</span>
@@ -414,10 +411,10 @@ if (error) {
                     {selectedText && (
                         <button
                             onClick={() => handleSubmit("Answer this")}
-                            className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group border border-[#252525]/20 dark:border-white/20"
+                            className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group border border-[#252525]/20 dark:border-white/20"
                         >
                             <ArrowRight size={14} className="shrink-0" />
-                            <span className="truncate">Answer Selection</span>
+                            <span className="truncate">Answer</span>
                         </button>
                     )}
                 </>

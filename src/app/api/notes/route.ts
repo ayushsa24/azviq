@@ -114,6 +114,7 @@ export async function POST(req: Request) {
           title,
           content: content || "",
           workspace_id: workspace_id || null,
+          spellcheck_enabled: true,
         })
         .select()
         .single();
@@ -170,6 +171,7 @@ export async function POST(req: Request) {
         title,
         file_url: publicUrlData.publicUrl,
         workspace_id: workspaceId || null,
+        spellcheck_enabled: true,
       })
       .select()
       .single();

@@ -88,6 +88,50 @@ button {
   background: #7D7D7D;
 }
 
+/* Ctrl+Click Link Pointer */
+.tiptap-ctrl-active a {
+  cursor: pointer !important;
+}
+
+/* Ultra-thin scrollbar for compact menus */
+.scrollbar-compact::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-compact::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-compact::-webkit-scrollbar-thumb {
+  background: #E8E5E0;
+  border-radius: 10px;
+}
+.dark .scrollbar-compact::-webkit-scrollbar-thumb {
+  background: #444;
+}
+.scrollbar-compact::-webkit-scrollbar-thumb:hover {
+  background: #7D7D7D;
+}
+
+/* Compact Dividers */
+.tiptap hr {
+  margin: 1.5rem 0 !important;
+  border-top: 1px solid #E8E5E0;
+}
+.dark .tiptap hr {
+  border-top-color: #3A3A3A;
+}
+
+/* Cleaner, Thinner Typography */
+.tiptap {
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.tiptap p, .tiptap li {
+  font-weight: 400 !important;
+  letter-spacing: -0.01em;
+}
+
 /* Tiptap Table Styles */
 .tiptap table {
   border-collapse: collapse;
@@ -443,8 +487,8 @@ pre::-webkit-scrollbar,
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -452,20 +496,20 @@ pre::-webkit-scrollbar,
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #D1D1D1;
+  background-color: rgba(0, 0, 0, 0.1);
   border-radius: 20px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #BABABA;
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #3A3A3A;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #4A4A4A;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Show scrollbar on hover for desktop */

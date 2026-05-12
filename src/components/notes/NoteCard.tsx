@@ -324,7 +324,7 @@ export function NoteCard({
                         {/* Menu Dropdown - Fixed to screen for 100% visibility */}
                         {isMenuOpen && menuPosition && (
                             <div
-                                className="fixed z-[9999] w-52 bg-white/95 backdrop-blur-xl dark:bg-[#1C1C1C]/95 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.4)] border border-[#E8E5E0] dark:border-[#333333] py-1.5 transition-all animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+                                className="fixed z-[9999] w-44 bg-white dark:bg-[#2A2A2A] rounded-xl shadow-xl border border-gray-200 dark:border-[#444] py-1 transition-all animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
                                 style={{ 
                                     top: menuPosition.top, 
                                     ...(menuPosition as any).right !== undefined ? { right: (menuPosition as any).right } : { left: (menuPosition as any).left }
@@ -338,14 +338,14 @@ export function NoteCard({
                                     <>
                                         <button
                                             onClick={(e) => handleMenuAction(e, () => onTogglePin?.(note))}
-                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
+                                            className="w-full text-left px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] flex items-center gap-2 transition-colors"
                                         >
                                             <Pin className={`w-3.5 h-3.5 ${isPinned ? "fill-current" : ""}`} />
                                             {isPinned ? "Unpin" : "Pin to Top"}
                                         </button>
                                         <button
                                             onClick={(e) => handleMenuAction(e, () => onToggleFavourite?.(note))}
-                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
+                                            className="w-full text-left px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] flex items-center gap-2 transition-colors"
                                         >
                                             <Star className={`w-3.5 h-3.5 ${note.is_favourite ? "fill-current" : ""}`} />
                                             {note.is_favourite ? "Remove Favourite" : "Add to Favourites"}
@@ -357,7 +357,7 @@ export function NoteCard({
                                                 setIsRenaming(true);
                                                 setIsMenuOpen(false);
                                             }}
-                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors"
+                                            className="w-full text-left px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] flex items-center gap-2 transition-colors"
                                         >
                                             <Edit2 className="w-3.5 h-3.5" />
                                             Rename
@@ -368,14 +368,14 @@ export function NoteCard({
                                                 e.stopPropagation();
                                                 setIsMoving(true);
                                             }}
-                                            className="w-full text-left px-4 py-2.5 text-sm text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] flex items-center gap-2.5 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"
+                                            className="w-full text-left px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] flex items-center gap-2 transition-colors border-b border-[#F0F0F0] dark:border-[#333333]"
                                         >
                                             <MoveRight className="w-3.5 h-3.5" />
                                             Move to Workspace
                                         </button>
                                         <button
                                             onClick={(e) => handleMenuAction(e, () => onDelete?.(note))}
-                                            className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
+                                            className="w-full text-left px-2.5 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
                                             Move to Trash
@@ -383,10 +383,10 @@ export function NoteCard({
                                     </>
                                 ) : (
                                     <div className="animate-in slide-in-from-right-4 duration-200">
-                                        <div className="pl-2 pr-4 py-2 flex items-center gap-2 border-b border-[#F0F0F0] dark:border-[#333333] mb-1">
+                                        <div className="pl-2 pr-3 py-1.5 flex items-center gap-2 border-b border-[#F0F0F0] dark:border-[#333333] mb-0.5">
                                             <button 
                                                 onClick={() => setIsMoving(false)}
-                                                className="p-1 rounded-full hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A] transition-colors"
+                                                className="p-1 rounded-full hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
                                             >
                                                 <ChevronLeft size={14} />
                                             </button>
@@ -405,10 +405,10 @@ export function NoteCard({
                                                     setIsMenuOpen(false);
                                                     setIsMoving(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                                                className={`w-full text-left px-2.5 py-1.5 text-sm flex items-center gap-2 transition-colors ${
                                                     !note.workspace_id 
                                                     ? "text-[#BABABA] dark:text-[#545454] cursor-default" 
-                                                    : "text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A]"
+                                                    : "text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333]"
                                                 }`}
                                             >
                                                 <Folder className="w-3.5 h-3.5" />
@@ -429,10 +429,10 @@ export function NoteCard({
                                                         setIsMenuOpen(false);
                                                         setIsMoving(false);
                                                     }}
-                                                    className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                                                    className={`w-full text-left px-2.5 py-1.5 text-sm flex items-center gap-2 transition-colors ${
                                                         note.workspace_id === ws.id 
                                                         ? "text-[#BABABA] dark:text-[#545454] cursor-default" 
-                                                        : "text-[#252525] dark:text-white hover:bg-[#F5F5F3] dark:hover:bg-[#2A2A2A]"
+                                                        : "text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333]"
                                                     }`}
                                                 >
                                                     <Folder className="w-3.5 h-3.5" fill="currentColor" fillOpacity={0.1} />

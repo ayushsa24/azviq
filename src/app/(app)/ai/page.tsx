@@ -2566,12 +2566,12 @@ function AiChatCore() {
               bottom: menuPosition?.openUp ? `${window.innerHeight - (menuPosition?.top ?? 0)}px` : 'auto',
               left: menuPosition ? `${menuPosition.left}px` : 'auto'
             }}
-            className={`fixed w-44 rounded-xl shadow-2xl border z-[9999] overflow-hidden ${theme === "dark"
-              ? "bg-[#252525] border-[#545454]"
-              : "bg-white border-[#E8E5E0] shadow-2xl"
+            className={`fixed w-44 rounded-xl shadow-xl border z-[9999] overflow-hidden ${theme === "dark"
+              ? "bg-[#2A2A2A] border-[#444]"
+              : "bg-white border-gray-200 shadow-xl"
               } ${menuPosition?.openUp ? "origin-bottom-right" : "origin-top-right"}`}
           >
-            <div className={`px-3 py-2 border-b flex items-center gap-2.5 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#545454]" : "border-[#E8E5E0]"}`}>
+            <div className={`px-2.5 py-1.5 border-b flex items-center gap-2 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#444]" : "border-gray-200"}`}>
               <Clock size={12} />
               {formatDate(session.created_at)}
             </div>
@@ -2581,7 +2581,7 @@ function AiChatCore() {
                 await handleShareChat(session);
               }}
               disabled={sharingChatId === session.id}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"}`}
+              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"}`}
             >
               {sharingChatId === session.id
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin opacity-70" />
@@ -2607,7 +2607,7 @@ function AiChatCore() {
                   }, 100);
                 }
               }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
                 }`}
             >
               <Edit2 className="w-3.5 h-3.5 opacity-70" /> Rename
@@ -2617,7 +2617,7 @@ function AiChatCore() {
                 e.stopPropagation();
                 handleTogglePin(session.id, !!session.is_pinned);
               }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
                 }`}
             >
               <Pin className="w-3.5 h-3.5 opacity-70" />{" "}
@@ -2628,7 +2628,7 @@ function AiChatCore() {
                 e.stopPropagation();
                 handleToggleArchive(session.id, !!session.is_archived);
               }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
                 }`}
             >
               <Archive className="w-3.5 h-3.5 opacity-70" /> Archive
@@ -2640,7 +2640,7 @@ function AiChatCore() {
                   setImporterModalData({ id: session.id });
                   setActiveMenuId(null);
                 }}
-                className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#545454]" : "hover:bg-[#F5F3EF]"
+                className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
                   }`}
               >
                 <Users className="w-3.5 h-3.5 opacity-70" /> Chat Importers
@@ -2651,9 +2651,9 @@ function AiChatCore() {
                 e.stopPropagation();
                 handleDelete(session.id, session.title);
               }}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors text-[13px] ${theme === "dark"
-                ? "text-red-400 hover:bg-[#545454]"
-                : "text-red-600 hover:bg-[#F5F3EF]"
+              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark"
+                ? "text-red-400 hover:bg-[#333]"
+                : "text-red-600 hover:bg-gray-50"
                 }`}
             >
               <Trash2 className="w-3.5 h-3.5 opacity-70" /> Move to Trash

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Sparkles, Loader2, ArrowRight, Square, X, Check, Crown } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { showAlertDialog } from "@/components/ui/AppDialog";
@@ -11,6 +12,7 @@ interface AiInlineInputProps {
     onInsert: (content: string) => void;
     onStreamChunk: (content: string) => void;
     onDiscard: () => void;
+    isQuotaExceeded?: boolean;
 }
 
 export function AiInlineInput({
@@ -21,6 +23,7 @@ export function AiInlineInput({
     onInsert,
     onStreamChunk,
     onDiscard,
+    isQuotaExceeded = false,
 }: AiInlineInputProps) {
     const { openSettings } = useSettings();
     const [prompt, setPrompt] = useState("");
@@ -86,7 +89,13 @@ export function AiInlineInput({
     }
 
     const handleSubmit = async () => {
-        if (!prompt) return;
+        if (!prompt.trim() || isLoading) return;
+
+        // Pre-emptive Quota Check
+        if (isQuotaExceeded) {
+            setError("Your daily AI quota is exhausted now");
+            return;
+        }
 
         setIsLoading(true);
         setIsComplete(false);
@@ -146,6 +155,12 @@ export function AiInlineInput({
             }
 
             if (fullResponseRef.current) {
+                // AUTO-FORMAT IMMEDIATELY
+                const { marked } = await import("marked");
+                const htmlResult = await marked.parse(fullResponseRef.current);
+                onInsert(htmlResult);
+                
+                // SHOW BUBBLE
                 setIsComplete(true);
             } else {
                 onClose();
@@ -154,9 +169,9 @@ export function AiInlineInput({
             if (error.name === "AbortError") {
                 console.log("AI Generation aborted by user");
             } else {
-                console.error(error);
-                if (error.message.includes("Daily limit reached") || error.message.includes("QUOTA_EXCEEDED")) {
-                    setError(error.message);
+                // Handle quota exhaustion specifically (429 or specific error messages)
+                if (error.status === 429 || error.message?.includes("429") || error.message?.includes("Daily limit reached") || error.message?.includes("QUOTA_EXCEEDED") || error.message?.includes("limit") || error.message?.includes("quota")) {
+                    setError("Your daily AI quota is exhausted now");
                     return;
                 }
                 showAlertDialog("Sorry, I encountered an error. Please try again.", "error");
@@ -169,32 +184,29 @@ export function AiInlineInput({
     };
 
     const handleAccept = async () => {
-        if (fullResponseRef.current) {
-            const { marked } = await import("marked");
-            const htmlResult = await marked.parse(fullResponseRef.current);
-            onInsert(htmlResult);
-        }
+        // Content is already formatted and inserted via auto-format in handleSubmit
         onClose();
     };
 
     if (error) {
-        return (
+        return createPortal(
             <div
                 ref={containerRef}
-                className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white dark:bg-[#1A1A1A] border border-[#C2A27A]/30 shadow-2xl rounded-full px-4 py-2 pointer-events-auto z-[50] transition-all animate-in slide-in-from-bottom-2 duration-300"
+                key="ai-error-pill"
+                className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-full px-4 py-2 pointer-events-auto z-[9999] animate-in fade-in duration-300 min-w-max"
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center gap-2.5">
-                    <Crown size={16} className="text-[#C2A27A]" />
-                    <span className="text-xs font-medium text-[#252525] dark:text-[#CFCFCF]">
-                        {error}
+                <div className="flex items-center gap-2">
+                    <Crown size={16} className="text-amber-500 shrink-0" />
+                    <span className="text-xs font-bold text-[#252525] dark:text-[#CFCFCF] whitespace-nowrap">
+                        Your daily AI quota is exhausted now
                     </span>
                 </div>
-                <div className="w-px h-4 bg-[#C2A27A]/20 mx-1" />
+                <div className="w-px h-4 bg-gray-200 dark:bg-[#444] mx-1" />
                 <button
-                    onClick={() => { openSettings("subscription"); onClose(); }}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-[#C2A27A] hover:bg-[#B19169] text-white text-[10px] font-black uppercase tracking-tight rounded-full transition-all whitespace-nowrap"
+                    onClick={() => { window.dispatchEvent(new CustomEvent('open-pricing')); onClose(); }}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-tight rounded-full transition-all whitespace-nowrap shadow-sm"
                 >
                     Upgrade
                 </button>
@@ -202,15 +214,18 @@ export function AiInlineInput({
                     <X size={14} className="text-[#A3A3A3]" />
                 </button>
             </div>
+,
+            document.body
         );
     }
 
-    return (
+    const content = (
         <div
             ref={containerRef}
-            className={`flex flex-col bg-white dark:bg-[#1A1A1A] border border-[#E0E0E0] dark:border-[#3A3A3A] shadow-2xl overflow-hidden pointer-events-auto z-[50] transition-all duration-300 ${isLoading || isComplete
+            key={isLoading || isComplete ? "ai-status" : "ai-input"}
+            className={`flex flex-col bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl overflow-hidden pointer-events-auto z-[9999] animate-in fade-in duration-300 ${isLoading || isComplete
                 ? 'fixed bottom-12 left-1/2 -translate-x-1/2 rounded-full w-auto max-w-fit px-2 min-w-max flex-nowrap'
-                : 'absolute rounded-xl w-[90vw] max-w-[450px]'
+                : 'absolute rounded-xl w-[90vw] max-w-[380px]'
                 }`}
             style={isLoading || isComplete ? {} : {
                 top: `${initialTop - 70}px`,
@@ -258,10 +273,10 @@ export function AiInlineInput({
                 <div className="flex items-center gap-1 shrink-0 flex-nowrap">
                     {isLoading ? (
                         <>
-                            <div className="w-px h-4 bg-[#E0E0E0] dark:bg-[#3A3A3A] mx-1" />
+                            <div className="w-px h-4 bg-gray-200 dark:bg-[#444] mx-1" />
                             <button
                                 onClick={handleStop}
-                                className="flex items-center gap-1.5 px-3 py-1 bg-[#252525]/5 dark:bg-[#CFCFCF]/5 hover:bg-[#252525]/10 dark:hover:bg-[#CFCFCF]/10 text-[#252525] dark:text-[#CFCFCF] text-[10px] font-black uppercase tracking-tight rounded-full transition-all whitespace-nowrap"
+                                className="flex items-center gap-1.5 px-3 py-1 bg-[#252525]/5 dark:bg-white/10 hover:bg-[#252525]/10 dark:hover:bg-white/20 text-[#252525] dark:text-[#CFCFCF] text-[10px] font-black uppercase tracking-tight rounded-full transition-all whitespace-nowrap"
                                 title="Stop Generation"
                             >
                                 <Square size={10} className="fill-current" />
@@ -298,4 +313,10 @@ export function AiInlineInput({
             </div>
         </div>
     );
+
+    if (isLoading || isComplete) {
+        return createPortal(content, document.body);
+    }
+
+    return content;
 }

@@ -54,6 +54,8 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
   const [contextError, setContextError] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState<string | null>(null);
   const [isPdf, setIsPdf] = useState(false);
+  const [trashItems, setTrashItems] = useState<any[]>([]);
+  const [allTrashedIds, setAllTrashedIds] = useState<string[]>([]);
 
   useStudyTracker({ activityType: "personal_ai", isEnabled: true });
 
@@ -176,17 +178,32 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     }
   }, []);
 
-  // Initial load of notes + sessions
+  // Initial load of notes + sessions + trash
   useEffect(() => {
     fetchNotes();
     fetchAllSessions();
+    fetchTrash();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchTrash = async () => {
+    try {
+      const res = await fetch("/api/trash");
+      if (res.ok) {
+        const data = await res.json();
+        setTrashItems(data.trashItems || []);
+        setAllTrashedIds(data.allTrashedIds || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch trash", e);
+    }
+  };
 
   // Re-fetch everything when an external event signals a refresh (e.g., note restored from Trash)
   useEffect(() => {
     const handleRefresh = async () => {
       await fetchNotes();
+      await fetchTrash();
       const updatedSessions = await fetchAllSessions();
 
       // Critical: if the current session's note_id changed (note was restored from Trash),
@@ -292,6 +309,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
               if (restoreRes.ok) {
                 fetchAllSessions();
                 globalMutate("/api/trash");
+                window.dispatchEvent(new Event("recentActivityUpdated"));
               }
             } catch (err) {
               console.error("Undo failed:", err);
@@ -305,6 +323,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     try {
       await deletePromise;
       globalMutate("/api/trash");
+      window.dispatchEvent(new Event("recentActivityUpdated"));
       setTimeout(fetchAllSessions, 100);
     } catch (e) {
       console.error("Delete failed", e);
@@ -355,6 +374,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
             sessions={sessions}
             isLoading={isSessionsLoading}
             onDelete={handleSessionDelete}
+            allTrashedIds={allTrashedIds}
           />
           <NoteSelector
             notes={notes.filter(n => !notesWithSessions.has(n.id) || n.id === selectedNoteId)}
@@ -455,6 +475,31 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
                 onFocusModeChange={onFocusModeChange}
                 sessionId={sessionId}
                 onSessionCreated={(id) => handleSessionCreated(id, selectedNoteId)}
+                noteStatus={(() => {
+                  if (!selectedNoteId) return "active";
+
+                  // 1. Check if this is an archived session (source note was deleted/trashed)
+                  const currentSession = sessions.find(s => s.id === sessionId);
+                  if (currentSession?.title?.includes("||ORIGINAL_NOTE_ID||")) {
+                    const parts = currentSession.title.split("||ORIGINAL_NOTE_ID||");
+                    const originalId = parts[parts.length - 1];
+                    if (allTrashedIds.includes(originalId)) return "trashed";
+                    return "deleted";
+                  }
+
+                  // 2. Standard check for currently selected note
+                  const noteExists = notes.some(n => n.id === selectedNoteId);
+                  if (noteExists) return "active";
+                  const noteInTrash = allTrashedIds.includes(selectedNoteId);
+                  if (noteInTrash) return "trashed";
+                  
+                  // 3. Fallback for generic "Deleted Material" archive note
+                  if (selectedNoteTitle === "Deleted Material" || selectedNoteTitle === "Unknown Document") {
+                    return "deleted";
+                  }
+
+                  return "deleted";
+                })()}
               />
             </motion.div>
           ) : null}

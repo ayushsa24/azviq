@@ -65,7 +65,10 @@ export async function GET(req: Request) {
       return true;
     }) || [];
 
-    return NextResponse.json({ trashItems: filteredTrashItems });
+    return NextResponse.json({ 
+      trashItems: filteredTrashItems,
+      allTrashedIds: Array.from(trashSet)
+    });
   } catch (error) {
     console.error("GET trash error:", error);
     return NextResponse.json({ error: "Failed to fetch trash bin" }, { status: 500 });

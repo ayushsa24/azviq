@@ -641,7 +641,7 @@ export default function PdfEditorPage() {
     const canRedo = historyIdx < history.length - 1;
 
     return (
-        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors overflow-hidden">
+        <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] sm:bg-white sm:dark:bg-[#1A1A1A] transition-colors overflow-hidden">
 
             {/* Top Navigation Bar — fixed on mobile so keyboard can't push it off screen */}
             {/* On desktop (sm:) it reverts to normal static flow */}
@@ -783,21 +783,29 @@ export default function PdfEditorPage() {
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
                     className={`
-                    flex-col w-40 flex-shrink-0 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] overflow-y-auto p-4 gap-4 custom-scrollbar transition-colors
+                    flex-col w-64 flex-shrink-0 bg-white dark:bg-[#24221F] overflow-y-auto custom-scrollbar transition-colors
                     ${showThumbnails ? 'flex absolute top-0 bottom-0 left-0 z-50 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
                 `}>
-                    <PdfViewerWrapper
-                        fileUrl={note.file_url}
-                        mode="thumbnails"
-                        currentPage={currentPage}
-                        onNumPagesLoaded={(total) => setNumPages(total)}
-                        onThumbnailClick={(pg) => {
-                            document.getElementById(`pdf-page-${pg}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                            if (window.innerWidth < 640) setShowThumbnails(false);
-                            setActiveTool("select");
-                            if (textInput) commitText();
-                        }}
-                    />
+                    <div className="flex flex-col gap-4 py-4">
+                        <PdfViewerWrapper
+                            fileUrl={note.file_url}
+                            mode="thumbnails"
+                            currentPage={currentPage}
+                            onNumPagesLoaded={(total) => setNumPages(total)}
+                            onLoadError={() => {
+                                dialog.showAlert(
+                                    "Failed to fetch PDF file. It may have been deleted from storage or your internet connection is unstable.",
+                                    "error"
+                                );
+                            }}
+                            onThumbnailClick={(pg) => {
+                                document.getElementById(`pdf-page-${pg}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                if (window.innerWidth < 640) setShowThumbnails(false);
+                                setActiveTool("select");
+                                if (textInput) commitText();
+                            }}
+                        />
+                    </div>
                 </div>
 
                 {/* Center Canvas Area - min-w-0 is crucial for flex-1 to not overflow siblings */}
@@ -819,6 +827,12 @@ export default function PdfEditorPage() {
                         scale={zoomLevel}
                         width={containerWidth || undefined}
                         onNumPagesLoaded={(total) => setNumPages(total)}
+                        onLoadError={() => {
+                            dialog.showAlert(
+                                "Failed to fetch PDF file. It may have been deleted from storage or your internet connection is unstable.",
+                                "error"
+                            );
+                        }}
                         onPageDimLoaded={(pg, dim) => {
                             setAllPageDims(prev => {
                                 if (prev[pg]) return prev;
@@ -1157,7 +1171,7 @@ export default function PdfEditorPage() {
                     }}
                 >
                     <div 
-                        className="fixed bg-white dark:bg-[#1A1A1A] border border-[#E8E5E0] dark:border-[#3A3A3A] rounded-lg shadow-2xl py-1 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-[101]"
+                        className="fixed bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-[101]"
                         style={{
                             // Check if it should be above or below based on screen height
                             top: menuPos.top > window.innerHeight / 2 
@@ -1180,7 +1194,7 @@ export default function PdfEditorPage() {
                                     setShowFontMenu(false);
                                 }}
                                 style={{ fontFamily: f }}
-                                className={`w-full text-left px-4 py-2.5 text-xs transition-colors ${textFontFamily === f ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "text-[#252525] dark:text-white active:bg-gray-100 dark:active:bg-[#2A2A2A]"}`}
+                                className={`w-full text-left px-2.5 py-1.5 text-[13px] transition-colors ${textFontFamily === f ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333]"}`}
                             >
                                 {f}
                             </button>

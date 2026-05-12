@@ -77,6 +77,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                             if (restoreRes.ok) {
                                 mutate();
                                 globalMutate("/api/trash");
+                                window.dispatchEvent(new Event("recentActivityUpdated"));
                             }
                         } catch (err) {
                             console.error("Undo failed:", err);
@@ -91,6 +92,7 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
             await deletePromise;
             globalMutate("/api/trash");
             mutate();
+            window.dispatchEvent(new Event("recentActivityUpdated"));
         } catch (e) {
             console.error("Failed to delete revision:", e);
             mutate(previousData); // Rollback
