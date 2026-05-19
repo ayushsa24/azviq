@@ -67,6 +67,7 @@ function applyTheme(theme: Theme, pathname: string | null = null) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
   // On mount: read saved preference and apply without any flash
@@ -82,12 +83,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     setTheme(resolved);
     localStorage.setItem("theme", resolved);
+    setMounted(true);
   }, []);
 
   // Update theme color meta tags when navigating between pages with different header colors
   useEffect(() => {
-    applyTheme(theme, pathname);
-  }, [pathname, theme]);
+    if (mounted) {
+      applyTheme(theme, pathname);
+    }
+  }, [pathname, theme, mounted]);
 
   const toggleTheme = () => {
     setTheme(prev => {

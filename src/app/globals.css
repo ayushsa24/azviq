@@ -627,3 +627,51 @@ pre::-webkit-scrollbar,
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+/* Premium Shimmer Skeleton Loading */
+@keyframes shimmer-move {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-pulse {
+  animation: shimmer-move 2.5s ease-in-out infinite !important;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  background-repeat: no-repeat !important;
+}
+
+.dark .animate-pulse {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  ) !important;
+}
+
+/* Custom Text Selection Color */
+::selection {
+  background-color: rgba(194, 162, 122, 0.25); /* Premium Tan/Gold with transparency */
+  color: inherit;
+}
+
+.dark ::selection {
+  background-color: rgba(194, 162, 122, 0.4);
+  color: #FFFFFF;
+}
+
+/* For Firefox */
+::-moz-selection {
+  background-color: rgba(194, 162, 122, 0.25);
+  color: inherit;
+}
+
+.dark ::-moz-selection {
+  background-color: rgba(194, 162, 122, 0.4);
+  color: #FFFFFF;
+}

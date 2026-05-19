@@ -22,12 +22,14 @@ interface ExerciseRow {
     id: string;
     title: string | null;
     score: number | null;
+    note_id: string | null;
 }
 
 interface NoteRow {
     id: string;
     title: string;
     file_url: string | null;
+    workspace_id: string | null;
 }
 
 export async function GET() {
@@ -42,15 +44,19 @@ export async function GET() {
         const todayString = new Date().toISOString().split("T")[0];
 
         // Run independent queries in parallel for speed
-        const [dailyResult, exercisesResult, notesResult] = await Promise.all([
+        const [dailyResult, exercisesResult, notesResult, trashResult] = await Promise.all([
             supabase.from("daily_study_summary").select("total_minutes").eq("user_id", userId).eq("study_date", todayString).single(),
-            supabase.from("exercises").select("id, title, score").eq("user_id", userId).eq("status", "Completed").not("score", "is", null),
-            supabase.from("notes").select("id, title, file_url").eq("user_id", userId).lt("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true })
+            supabase.from("exercises").select("id, title, score, note_id").eq("user_id", userId).eq("status", "Completed").not("score", "is", null),
+            supabase.from("notes").select("id, title, file_url, workspace_id").eq("user_id", userId).lt("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
+            supabase.from("trash").select("item_id").eq("user_id", userId)
         ]);
 
         const dailySummary = dailyResult.data;
-        const exercises = exercisesResult.data;
-        const notes = notesResult.data;
+        const trashedIds = new Set(trashResult.data?.map(i => i.item_id) || []);
+        
+        // Filter out items that are in trash or belong to a trashed workspace/note
+        const exercises = (exercisesResult.data || []).filter(ex => !trashedIds.has(ex.id) && !(ex.note_id && trashedIds.has(ex.note_id)));
+        const notes = (notesResult.data || []).filter(n => !trashedIds.has(n.id) && !(n.workspace_id && trashedIds.has(n.workspace_id)));
 
         // 1. Daily Study Target
         const totalMinutes = (dailySummary as { total_minutes?: number } | null)?.total_minutes || 0;

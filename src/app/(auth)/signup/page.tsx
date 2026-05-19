@@ -256,7 +256,7 @@ function SignupForm() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col lg:flex-row bg-background text-foreground">
+    <div className="h-full flex flex-col lg:flex-row bg-background text-foreground">
 
       {/* Left Side - Laptop ONLY (Greeting / Graphic) */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden bg-[#f7f3e9] dark:bg-[#161412]">
@@ -268,7 +268,7 @@ function SignupForm() {
           <img
             src="/azviq_logo.png"
             alt="Azviq Logo"
-            className={`w-10 h-10 rounded-xl object-contain shadow-sm ${theme === 'dark' ? 'invert opacity-90' : ''}`}
+            className={`w-10 h-10 rounded-xl object-contain shadow-sm dark:invert dark:opacity-90`}
           />
           <span className="font-bold text-2xl tracking-tight font-[var(--font-lexend)]">Azviq</span>
         </div>
@@ -276,7 +276,7 @@ function SignupForm() {
         <div className="relative z-10 max-w-lg mt-24 mb-auto">
           <h1 className="text-5xl lg:text-6xl font-extrabold tracking-tight font-[var(--font-lexend)] mb-6 leading-[1.1]">
             Start your <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8B4513] to-[#D2691E]">academic</span> journey.
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C2A27A] to-[#D2B48C]">academic</span> journey.
           </h1>
           <p className="text-lg opacity-70 font-medium max-w-md">
             Join 10+ top-achieving students using Azviq to master their studies with AI power.
@@ -285,9 +285,9 @@ function SignupForm() {
 
         <div className="relative z-10">
           <div className="flex -space-x-3 mb-3">
-            <div className={`w-8 h-8 rounded-full border-2 ${theme === 'dark' ? 'border-[#161412] bg-[#8B4513]' : 'border-[#f7f3e9] bg-[#A0522D]'}`} />
-            <div className={`w-8 h-8 rounded-full border-2 ${theme === 'dark' ? 'border-[#161412] bg-[#D2691E]' : 'border-[#f7f3e9] bg-[#CD853F]'}`} />
-            <div className={`w-8 h-8 rounded-full border-2 ${theme === 'dark' ? 'border-[#161412] bg-[#DEB887]' : 'border-[#f7f3e9] bg-[#F5DEB3]'}`} />
+            <div className={`w-8 h-8 rounded-full border-2 border-[#f7f3e9] bg-[#A68A61] dark:border-[#161412] dark:bg-[#C2A27A]`} />
+            <div className={`w-8 h-8 rounded-full border-2 border-[#f7f3e9] bg-[#B89C76] dark:border-[#161412] dark:bg-[#D2B48C]`} />
+            <div className={`w-8 h-8 rounded-full border-2 border-[#f7f3e9] bg-[#F2E6D5] dark:border-[#161412] dark:bg-[#E0CDAE]`} />
           </div>
           <p className="text-xs font-bold opacity-50 uppercase tracking-widest">
             Join 10+ top achievers
@@ -296,30 +296,30 @@ function SignupForm() {
       </div>
 
       {/* Right Side - Form Container */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative overflow-y-auto">
+      <div className={`w-full lg:w-1/2 h-full flex items-start justify-center p-6 sm:p-12 relative ${step === 'onboarding' ? 'pt-12' : 'pt-20'} lg:pt-[20vh] overflow-y-auto`}>
 
         {/* Simple Straight Separator */}
         <div className={`hidden lg:block absolute top-0 left-0 w-px h-full z-10 pointer-events-none ${
-          theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+          'bg-black/5 dark:bg-white/5'
         }`} />
 
         {/* Mobile Only Logo */}
         <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
-          <img
-            src="/azviq_logo.png"
-            alt="Azviq Logo"
-            className={`w-8 h-8 rounded-lg object-contain ${theme === 'dark' ? 'invert' : ''}`}
+          <img 
+            src="/azviq_logo.png" 
+            alt="Azviq Logo" 
+            className={`w-10 h-10 rounded-xl object-contain shadow-sm dark:invert dark:opacity-90`} 
           />
-          <span className="font-bold text-xl tracking-tight font-[var(--font-lexend)]">Azviq</span>
+          <span className="font-bold text-2xl tracking-tight font-[var(--font-lexend)]">Azviq</span>
         </div>
 
         <div className="w-full max-w-[25rem]">
           {step !== 'onboarding' && (
-            <div className="mb-8 mt-12 lg:mt-0">
-              <h2 className="text-3xl font-bold mb-2 font-[var(--font-lexend)]">
+            <div className="mb-6 mt-4 lg:mt-0">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-1 font-[var(--font-lexend)]">
                 {successMessage ? "Welcome!" : step === 'verify' ? "Check Email" : "Create an Account"}
               </h2>
-              <p className="text-sm opacity-60">
+              <p className="text-xs sm:text-sm opacity-60">
                 {successMessage
                   ? "Taking you to your dashboard..."
                   : step === 'verify'
@@ -331,7 +331,7 @@ function SignupForm() {
 
           {successMessage ? (
             <div className="flex flex-col items-center py-10">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${theme === 'dark' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'}`}>
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400`}>
                 <Check className="w-8 h-8" />
               </div>
               <div className="w-8 h-8 border-4 border-green-500/20 border-t-green-500 rounded-full animate-spin mt-2" />
@@ -350,7 +350,7 @@ function SignupForm() {
                 <button
                   onClick={handleResendCode}
                   disabled={countdown > 0 || isVerifying}
-                  className="text-xs uppercase font-bold tracking-widest text-center opacity-70 hover:opacity-100 hover:text-[#8B4513] disabled:hover:opacity-70 transition-all"
+                  className="text-xs uppercase font-bold tracking-widest text-center opacity-70 hover:opacity-100 hover:text-[#C2A27A] disabled:hover:opacity-70 transition-all"
                 >
                   {countdown > 0 ? `Resend code in ${countdown}s` : "Resend Code"}
                 </button>
@@ -359,7 +359,7 @@ function SignupForm() {
                     setStep('form');
                     setVerifyError("");
                   }}
-                  className="text-xs underline uppercase font-bold tracking-widest text-center opacity-70 hover:opacity-100 hover:text-[#8B4513] transition-all"
+                  className="text-xs underline uppercase font-bold tracking-widest text-center opacity-70 hover:opacity-100 hover:text-[#C2A27A] transition-all"
                 >
                   Change Email
                 </button>
@@ -367,12 +367,12 @@ function SignupForm() {
             </div>
           ) : step === 'onboarding' ? (
             <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex flex-col items-center mb-1 mt-6 lg:mt-0">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg mb-2 ${theme === 'dark' ? 'bg-[#8B4513]/20 text-[#D2691E]' : 'bg-[#8B4513]/10 text-[#8B4513]'}`}>
+              <div className="flex flex-col items-center mb-1 mt-1 lg:mt-0">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg mb-2 bg-[#C2A27A]/10 text-[#C2A27A] dark:bg-[#C2A27A]/20 dark:text-[#D2B48C]`}>
                   <User className="w-5 h-5" />
                 </div>
-                <h2 className="text-2xl font-bold mb-1 font-[var(--font-lexend)]">Complete Profile</h2>
-                <p className="text-xs opacity-60 text-center">Add details to personalize your experience.</p>
+                <h2 className="text-xl sm:text-2xl font-bold mb-1 font-[var(--font-lexend)]">Complete Profile</h2>
+                <p className="text-[10px] sm:text-xs opacity-60 text-center">Add details to personalize your experience.</p>
               </div>
 
               <div className="flex justify-center mb-1">
@@ -381,15 +381,15 @@ function SignupForm() {
                     <img
                       src={avatarPreview || profileForm.avatar_url}
                       alt="Avatar"
-                      className={`w-16 h-16 rounded-full object-cover border-2 ${theme === 'dark' ? 'border-[#333]' : 'border-gray-200'}`}
+                      className={`w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-[#333]`}
                     />
                   ) : (
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 border-dashed ${theme === 'dark' ? 'bg-[#1c1c1c] border-[#333]' : 'bg-gray-50 border-gray-300'}`}>
-                      <User className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 border-dashed bg-gray-50 border-gray-300 dark:bg-[#1c1c1c] dark:border-[#333]`}>
+                      <User className={`w-6 h-6 text-gray-400 dark:text-gray-500`} />
                     </div>
                   )}
 
-                  <label className={`absolute bottom-0 right-0 p-1.5 rounded-full cursor-pointer shadow-lg transform transition-transform hover:scale-110 ${theme === 'dark' ? 'bg-[#8B4513] text-white' : 'bg-[#8B4513] text-white'}`}>
+                  <label className={`absolute bottom-0 right-0 p-1.5 rounded-full cursor-pointer shadow-lg transform transition-transform hover:scale-110 bg-[#C2A27A] text-white dark:bg-[#C2A27A] dark:text-white`}>
                     <Camera className="w-3 h-3" />
                     <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                   </label>
@@ -413,10 +413,7 @@ function SignupForm() {
                     placeholder="Your name"
                     value={profileForm.name}
                     onChange={handleProfileChange}
-                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs ${theme === 'dark'
-                      ? 'bg-[#1c1c1c] border-[#333] text-white focus:ring-[#8B4513]/50 focus:border-[#8B4513]/50'
-                      : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#8B4513]/20 focus:border-[#8B4513]'
-                      } ${onboardingErrors.name ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs 'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus' ${onboardingErrors.name ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                   />
                   {onboardingErrors.name && <p className="text-red-500 text-[10px] mt-0.5 font-bold">{onboardingErrors.name}</p>}
                 </div>
@@ -428,10 +425,7 @@ function SignupForm() {
                     placeholder="@username"
                     value={profileForm.username}
                     onChange={handleProfileChange}
-                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs ${theme === 'dark'
-                      ? 'bg-[#1c1c1c] border-[#333] text-white focus:ring-[#8B4513]/50 focus:border-[#8B4513]/50'
-                      : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#8B4513]/20 focus:border-[#8B4513]'
-                      } ${onboardingErrors.username ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs 'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus' ${onboardingErrors.username ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                   />
                   {onboardingErrors.username && <p className="text-red-500 text-[10px] mt-0.5 font-bold">{onboardingErrors.username}</p>}
                 </div>
@@ -443,10 +437,7 @@ function SignupForm() {
                     placeholder="Phone"
                     value={profileForm.mobile_no}
                     onChange={handleProfileChange}
-                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs ${theme === 'dark'
-                      ? 'bg-[#1c1c1c] border-[#333] text-white focus:ring-[#8B4513]/50 focus:border-[#8B4513]/50'
-                      : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#8B4513]/20 focus:border-[#8B4513]'
-                      } ${onboardingErrors.mobile_no ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs 'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus' ${onboardingErrors.mobile_no ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                   />
                   {onboardingErrors.mobile_no && <p className="text-red-500 text-[10px] mt-0.5 font-bold">{onboardingErrors.mobile_no}</p>}
                 </div>
@@ -458,10 +449,7 @@ function SignupForm() {
                     placeholder="Your city"
                     value={profileForm.city}
                     onChange={handleProfileChange}
-                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs ${theme === 'dark'
-                      ? 'bg-[#1c1c1c] border-[#333] text-white focus:ring-[#8B4513]/50 focus:border-[#8B4513]/50'
-                      : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#8B4513]/20 focus:border-[#8B4513]'
-                      }`}
+                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs 'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus'`}
                   />
                 </div>
 
@@ -471,10 +459,7 @@ function SignupForm() {
                     name="pronouns"
                     value={profileForm.pronouns}
                     onChange={handleProfileChange}
-                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs appearance-none ${theme === 'dark'
-                      ? 'bg-[#1c1c1c] border-[#333] text-white focus:ring-[#8B4513]/50 focus:border-[#8B4513]/50'
-                      : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#8B4513]/20 focus:border-[#8B4513]'
-                      }`}
+                    className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all text-xs appearance-none 'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus'`}
                   >
                     <option value="">Select</option>
                     <option value="he/him">he/him</option>
@@ -492,18 +477,15 @@ function SignupForm() {
                   value={profileForm.bio}
                   onChange={handleProfileChange}
                   rows={2}
-                  className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all resize-none text-xs ${theme === 'dark'
-                    ? 'bg-[#1c1c1c] border-[#333] text-white focus:ring-[#8B4513]/50 focus:border-[#8B4513]/50'
-                    : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#8B4513]/20 focus:border-[#8B4513]'
-                    }`}
+                  className={`w-full px-3 py-2 rounded-xl border focus:outline-none focus:ring-2 transition-all resize-none text-xs 'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus'`}
                 />
               </div>
 
               <button
                 onClick={handleCompleteSetup}
                 disabled={isSavingProfile}
-                className={`w-full py-3.5 mt-2 rounded-xl font-bold text-sm shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2
-                  ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#1a1a1a] text-white hover:bg-black'}`}
+                className={`w-full py-3 lg:py-3.5 mt-1 rounded-xl font-bold text-sm shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2
+                  bg-[#1a1a1a] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-100`}
               >
                 {isSavingProfile ? (
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -514,7 +496,7 @@ function SignupForm() {
               </button>
             </div>
           ) : (
-            <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }} className="space-y-5">
+            <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }} className="space-y-4 lg:space-y-5">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-70">Email Address</label>
                 <div className="relative">
@@ -524,11 +506,8 @@ function SignupForm() {
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all
-                      ${theme === 'dark'
-                        ? 'bg-[#1c1c1c] border-[#333] text-white focus:ring-[#8B4513]/50 focus:border-[#8B4513]/50'
-                        : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#8B4513]/20 focus:border-[#8B4513]'
-                      } ${errors.email ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+                    className={`w-full pl-10 pr-4 py-2.5 lg:py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all
+                      'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus' ${errors.email ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                   />
                 </div>
               </div>
@@ -539,7 +518,7 @@ function SignupForm() {
                   placeholder="••••••••"
                   value={password}
                   onChange={setPassword}
-                  className={`py-3 text-sm rounded-xl ${theme === 'dark' ? 'bg-[#1c1c1c] border-[#333]' : 'bg-white border-gray-200'} ${errors.password ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+                  className={`py-2.5 lg:py-3 text-sm rounded-xl bg-white border-gray-200 dark:bg-[#1c1c1c] dark:border-[#333] ${errors.password ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                 />
                 {errors.password && <p className="text-xs text-red-500 mt-2 font-medium">{errors.password}</p>}
               </div>
@@ -550,29 +529,26 @@ function SignupForm() {
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={setConfirmPassword}
-                  className={`py-3 text-sm rounded-xl ${theme === 'dark' ? 'bg-[#1c1c1c] border-[#333]' : 'bg-white border-gray-200'} ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500/30' : ''}`}
+                  className={`py-2.5 lg:py-3 text-sm rounded-xl bg-white border-gray-200 dark:bg-[#1c1c1c] dark:border-[#333] ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isVerifying}
-                className={`w-full py-3.5 mt-2 rounded-xl font-bold text-sm shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2
-                  ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#1a1a1a] text-white hover:bg-black'}`}
+                className={`w-full py-3 lg:py-3.5 mt-1 rounded-xl font-bold text-sm shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2
+                  bg-[#1a1a1a] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-100`}
               >
                 <UserPlus className="w-4 h-4" />
                 {isVerifying ? "Processing..." : "Create Account"}
               </button>
 
-              <div className="relative my-6">
-                <div className={`absolute inset-0 flex items-center ${theme === 'dark' ? 'opacity-10' : 'opacity-20'}`}>
-                  <div className="w-full border-t border-current"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase font-bold tracking-widest">
-                  <span className={`${theme === 'dark' ? 'bg-[#0f0f0f] px-3 text-gray-500' : 'bg-white px-3 text-gray-400'}`}>
-                    Or continue with
-                  </span>
-                </div>
+              <div className="relative my-8 flex items-center">
+                <div className={`flex-grow h-px bg-gradient-to-r from-transparent to-black/10 dark:to-white/10`}></div>
+                <span className="mx-4 text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 whitespace-nowrap">
+                  Or continue with
+                </span>
+                <div className={`flex-grow h-px bg-gradient-to-l from-transparent to-black/10 dark:to-white/10`}></div>
               </div>
 
               <button
@@ -584,24 +560,23 @@ function SignupForm() {
                     prompt: "select_account",
                   });
                 }}
-                className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all border flex items-center justify-center gap-2
-                  ${theme === 'dark'
-                    ? 'bg-transparent border-[#333] text-white hover:bg-white/5'
-                    : 'bg-white border-gray-200 text-[#1a1a1a] hover:bg-gray-50 shadow-sm'}`}
+                className={`w-full py-3 lg:py-3.5 rounded-xl font-bold text-sm transition-all border flex items-center justify-center gap-2
+                  'bg-white/5' : 'bg-white border-gray-200 text-[#1a1a1a] hover:bg-gray-50 shadow-sm' dark:'bg-transparent dark:border-[#333] dark:text-white dark:hover'`}
               >
-                <img 
-                  src={theme === "dark" ? "/icon-dark.png" : "/icon-light.png"} 
-                  alt="AI" 
-                  className="w-4 h-4 object-contain" 
-                />
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.29.81-.55z" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
                 Sign up with Google
               </button>
             </form>
           )}
 
-          <p className={`text-center text-sm opacity-70 ${step === 'onboarding' ? 'mt-4' : 'mt-8'}`}>
+          <p className={`text-center text-sm opacity-70 ${step === 'onboarding' ? 'mt-3' : 'mt-6 lg:mt-8'}`}>
             Have an account?{" "}
-            <Link href="/login" className="font-bold underline cursor-pointer hover:text-[#8B4513] hover:opacity-100 transition-all">
+            <Link href="/login" className="font-bold underline cursor-pointer hover:text-[#C2A27A] hover:opacity-100 transition-all">
               Sign in here
             </Link>
           </p>

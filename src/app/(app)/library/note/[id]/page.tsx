@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEditor, EditorContent, ReactNodeViewRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -94,6 +94,7 @@ export default function NoteEditorPage() {
     // Tracks the last content successfully synced to the original note in a collab session.
     // Guards the second PATCH so it only fires when content has actually changed.
     const lastSyncedOriginalContent = React.useRef<string | null>(null);
+    const lastScrollTimeRef = useRef<number>(0);
 
     useStudyTracker({ activityType: 'note', isEnabled: !isLoading, subject: "Note", topic: title });
 
@@ -315,6 +316,57 @@ export default function NoteEditorPage() {
             }
         }
     }, [isLocked, spellCheckEnabled, editor]);
+
+    // Mobile specific: Scroll focused word/cursor to center when keyboard is open
+    useEffect(() => {
+        if (!editor || !mounted) return;
+
+        const scrollIntoCenter = () => {
+            // Only run on mobile
+            if (window.innerWidth >= 768) return;
+            if (!editor.isFocused) return;
+            
+            // Debounce to prevent "double scroll"
+            const now = Date.now();
+            if (now - lastScrollTimeRef.current < 500) return;
+            lastScrollTimeRef.current = now;
+
+            // Wait for keyboard and layout shifts
+            setTimeout(() => {
+                try {
+                    const { selection } = editor.state;
+                    const { head } = selection;
+                    const coords = editor.view.coordsAtPos(head);
+                    
+                    // The main scrollable container is the page itself with custom-scrollbar
+                    const scrollContainer = document.querySelector('.custom-scrollbar');
+                    if (!scrollContainer) return;
+
+                    // Get the visible height (accounting for keyboard)
+                    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+                    
+                    // Calculate current absolute position of cursor in the scrollable content
+                    const absoluteCursorTop = coords.top + scrollContainer.scrollTop;
+                    
+                    // Subtract half of visible viewport to put it in the center
+                    const targetScrollTop = absoluteCursorTop - (viewportHeight / 2);
+
+                    scrollContainer.scrollTo({
+                        top: Math.max(0, targetScrollTop),
+                        behavior: 'smooth'
+                    });
+                } catch (e) {
+                    // Fail silently
+                }
+            }, 400);
+        };
+
+        editor.on('selectionUpdate', scrollIntoCenter);
+
+        return () => {
+            editor.off('selectionUpdate', scrollIntoCenter);
+        };
+    }, [editor, mounted]);
 
     // Handle clicks outside the more menu / share panel
     useEffect(() => {
@@ -699,7 +751,7 @@ export default function NoteEditorPage() {
         return (
             <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors">
                 {/* Clean Loading Header */}
-                <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E]">
+                <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] select-none">
                     <div className="flex items-center gap-1 sm:gap-3">
                         {!sidebarOpen && (
                             <button
@@ -745,7 +797,10 @@ export default function NoteEditorPage() {
         <div className="flex flex-col h-full overflow-y-auto custom-scrollbar bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors relative">
 
             {/* Top Navigation Bar */}
-            <div className="sticky top-0 z-[60] flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] transition-colors">
+            <div
+                className="sticky top-0 z-[60] flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] transition-colors select-none"
+                style={{ WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
+            >
                 <div className="flex items-center gap-1 sm:gap-3">
                     {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
                     {!sidebarOpen && (
@@ -778,7 +833,12 @@ export default function NoteEditorPage() {
                             <button
                                 onMouseDown={(e) => {
                                     e.preventDefault();
-                                    editor?.chain().focus().undo().run();
+                                    // On mobile, skip .focus() so the keyboard doesn't auto-open
+                                    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                                        editor?.commands.undo();
+                                    } else {
+                                        editor?.chain().focus().undo().run();
+                                    }
                                 }}
                                 disabled={isLocked || !editor?.can().undo()}
                                 className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
@@ -790,7 +850,12 @@ export default function NoteEditorPage() {
                             <button
                                 onMouseDown={(e) => {
                                     e.preventDefault();
-                                    editor?.chain().focus().redo().run();
+                                    // On mobile, skip .focus() so the keyboard doesn't auto-open
+                                    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                                        editor?.commands.redo();
+                                    } else {
+                                        editor?.chain().focus().redo().run();
+                                    }
                                 }}
                                 disabled={isLocked || !editor?.can().redo()}
                                 className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
@@ -799,7 +864,7 @@ export default function NoteEditorPage() {
                                 <Redo size={18} />
                             </button>
 
-                            <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+                            <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-2" />
 
                             <button
                                 onClick={() => {
@@ -820,46 +885,46 @@ export default function NoteEditorPage() {
                         </>
                     )}
 
-                    <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] hidden sm:block mx-1" />
+                    <div className="w-px h-5 bg-[#E8E5E0] dark:bg-[#3A3A3A] hidden sm:block mx-2" />
 
                     {/* 3-DOT MENU */}
-                    <div className="relative" ref={moreMenuRef}>
+                    <div className="relative ml-1.5" ref={moreMenuRef}>
                         <button
                             onClick={() => setShowMoreMenu(!showMoreMenu)}
-                            className="p-1 text-[#545454] dark:text-[#7D7D7D] hover:bg-gray-50 dark:hover:bg-[#333] rounded-full transition-all duration-300"
+                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-gray-50 dark:hover:bg-[#333] rounded-full transition-all duration-300"
                         >
-                            <MoreVertical size={16} />
+                            <MoreVertical size={18} />
                         </button>
 
                         {showMoreMenu && (
-                            <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden z-[60] py-1">
+                            <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden z-[60] py-1.5">
                                 {/* Share & Publish — Only for Original Owners */}
                                 {!note?.original_note_id && (
                                     <button
                                         onClick={handleShare}
-                                        className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
+                                        className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
                                     >
-                                        <Share2 size={14} />
+                                        <Share2 size={16} />
                                         Share &amp; Publish
                                     </button>
                                 )}
                                 <button
                                     onClick={toggleSpellCheck}
-                                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
+                                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
                                 >
-                                    <Languages size={14} className={spellCheckEnabled ? "text-green-500" : ""} />
+                                    <Languages size={16} className={spellCheckEnabled ? "text-green-500" : ""} />
                                     Spell Check: {spellCheckEnabled ? "On" : "Off"}
                                 </button>
                                 {!isRevoked && (
                                     <button
                                         onClick={handleDownloadPdf}
                                         disabled={isDownloadingPdf}
-                                        className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors disabled:opacity-50 ${!note?.original_note_id ? "border-t border-[#F0F0F0] dark:border-[#333333]" : ""}`}
+                                        className={`flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors disabled:opacity-50 ${!note?.original_note_id ? "border-t border-[#F0F0F0] dark:border-[#333333]" : ""}`}
                                     >
                                         {isDownloadingPdf ? (
-                                            <Loader2 size={14} className="animate-spin" />
+                                            <Loader2 size={16} className="animate-spin" />
                                         ) : (
-                                            <FileText size={14} />
+                                            <FileText size={16} />
                                         )}
                                         Download as PDF
                                     </button>
@@ -871,18 +936,18 @@ export default function NoteEditorPage() {
                                             setShowImporters(true);
                                             setShowMoreMenu(false);
                                         }}
-                                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-sm text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors border-t border-[#F0F0F0] dark:border-[#333333]"
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors border-t border-[#F0F0F0] dark:border-[#333333]"
                                     >
-                                        <Users size={14} />
+                                        <Users size={16} />
                                         View Importers ({importers.length})
                                     </button>
                                 )}
                                 <div className="h-px bg-[#F0F0F0] dark:bg-[#333333] mb-0.5 mt-0.5" />
                                 <button
                                     onClick={handleDelete}
-                                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                                 >
-                                    <Trash2 size={14} />
+                                    <Trash2 size={16} />
                                     Move to Trash
                                 </button>
                             </div>

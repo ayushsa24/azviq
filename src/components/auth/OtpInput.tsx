@@ -104,7 +104,7 @@ export default function OtpInput({
 
   return (
     <div
-      className={`flex gap-3 justify-center transition-all duration-150 ${
+      className={`flex gap-2 sm:gap-3 justify-center transition-all duration-150 ${
         shaking ? "animate-[shake_0.5s_ease-in-out]" : ""
       }`}
       style={
@@ -142,7 +142,7 @@ export default function OtpInput({
           onPaste={handlePaste}
           onFocus={(e) => e.target.select()}
           className={`
-            w-11 h-14 text-center text-xl font-bold rounded-xl border-2 transition-all duration-200
+            w-9 h-12 sm:w-11 sm:h-14 text-center text-lg sm:text-xl font-bold rounded-xl border-2 transition-all duration-200
             focus:outline-none focus:scale-105
             ${disabled ? "opacity-50 cursor-not-allowed" : ""}
             ${success

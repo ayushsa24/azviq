@@ -18,8 +18,11 @@ import {
   LayoutGrid,
   ChevronDown,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
+import { CustomCalendar } from "@/components/ui/CustomCalendar";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
@@ -32,6 +35,7 @@ import { AITaskModal } from "@/components/tasks/AITaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
 import { motion, useDragControls, AnimatePresence, LayoutGroup } from "framer-motion";
+
 
 export default function TasksPage() {
   const { mutate } = useSWRConfig();
@@ -64,7 +68,19 @@ export default function TasksPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const tasksSectionRef = useRef<HTMLDivElement>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
+  // Close date picker on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(e.target as Node)) {
+        setIsDatePickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   // Reset scroll to top when page mounts
   useEffect(() => {
@@ -901,38 +917,38 @@ export default function TasksPage() {
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-[#545454] dark:text-[#7D7D7D] uppercase tracking-widest">Filter by date</span>
                   <div className="flex items-center gap-2">
-                    <div 
-                      className="relative group/date h-9 cursor-pointer"
-                      onClick={() => {
-                        try {
-                          if (dateInputRef.current) {
-                            if ('showPicker' in HTMLInputElement.prototype) {
-                              dateInputRef.current.showPicker();
-                            } else {
-                              dateInputRef.current.click();
-                            }
-                          }
-                        } catch (e) {
-                          dateInputRef.current?.click();
-                        }
-                      }}
-                    >
-                      {/* Visual styled button (behind) */}
-                      <div className="flex items-center gap-2 px-4 py-2 h-full rounded-xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)] text-xs font-semibold text-[#545454] dark:text-[#BABABA] transition-all duration-300 group-hover/date:border-[#D1D1D1] dark:group-hover/date:border-[#444] group-hover/date:bg-[#F9F8F6] dark:group-hover/date:bg-white/10 group-hover/date:text-[#252525] dark:group-hover/date:text-white group-hover/date:scale-[1.02] active:scale-[0.98]">
+                    <div className="relative group/date h-9" ref={datePickerRef}>
+                      {/* Visual styled button */}
+                      <button 
+                        onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                        className="flex items-center gap-2 px-4 py-2 h-full rounded-xl bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)] text-xs font-semibold text-[#545454] dark:text-[#BABABA] transition-all duration-300 hover:border-[#D1D1D1] dark:hover:border-[#444] hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:text-[#252525] dark:hover:text-white active:scale-[0.98]"
+                      >
                         <CalendarDays size={14} className={dateFilter ? "text-[#C2A27A]" : ""} />
                         <span>{dateFilter && !isNaN(new Date(dateFilter + 'T00:00:00').getTime()) ? format(new Date(dateFilter + 'T00:00:00'), "MMM d, yyyy") : "All Dates"}</span>
-                        <ChevronDown size={14} className="opacity-40" />
-                      </div>
-                      
-                      {/* Hidden native input */}
-                      <input
-                        ref={dateInputRef}
-                        type="date"
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
-                        className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
-                        style={{ colorScheme: 'dark' }}
-                      />
+                        <ChevronDown size={14} className={`transition-all duration-300 ${isDatePickerOpen ? "rotate-180" : ""} ${dateFilter ? "text-[#C2A27A] opacity-100" : "opacity-40"}`} />
+                      </button>
+
+                      {/* Custom Calendar Dropdown */}
+                      <AnimatePresence>
+                        {isDatePickerOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 5, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute right-0 top-full z-[100] mt-2 bg-white/90 dark:bg-[#252525]/90 backdrop-blur-xl border border-gray-200 dark:border-[#444] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden min-w-[280px]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <CustomCalendar 
+                              selectedDate={dateFilter} 
+                              onSelect={(date) => {
+                                setDateFilter(date);
+                                setIsDatePickerOpen(false);
+                              }} 
+                              onClose={() => setIsDatePickerOpen(false)}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {dateFilter && (

@@ -4,7 +4,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden">
       {children}
     </div>
   );

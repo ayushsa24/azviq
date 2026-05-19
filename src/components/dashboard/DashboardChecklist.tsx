@@ -375,14 +375,14 @@ export default function DashboardChecklist() {
                             ))}
                         </div>
                     ) : visibleItems.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-2 sm:py-3 gap-2">
+                        <div className="flex flex-col items-center justify-center py-2 sm:py-3 gap-2 animate-in fade-in duration-500">
                             <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
                                 <ListTodo className="w-5 h-5 text-[#7D7D7D] dark:text-[#BABABA]" />
                             </div>
                             <p className="text-xs text-[#7D7D7D] dark:text-[#BABABA] text-center">No tasks found.<br />Tap <strong>Add</strong> to create one.</p>
                         </div>
                     ) : (
-                        <>
+                        <div className="space-y-1.5 animate-in fade-in duration-500">
                             {pending.map(item => (
                                 <TodoRow key={item.id} item={item} isDark={isDark} notes={notes} onToggle={toggleDone} onEdit={openEdit} onDelete={deleteItem} />
                             ))}
@@ -398,7 +398,7 @@ export default function DashboardChecklist() {
                                     ))}
                                 </>
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
 
@@ -512,9 +512,9 @@ export default function DashboardChecklist() {
                                         }}
                                         className="grid grid-cols-3 items-center gap-4 group cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-lg transition-colors"
                                     >
-                                        <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] col-span-1">
-                                            <Clock className="w-4 h-4 text-[#7D7D7D]/50" />
-                                            <span className="text-[0.6875rem] font-bold uppercase tracking-wider">Reminder</span>
+                                        <div className="flex items-center gap-2 text-gray-500 col-span-1">
+                                            <Clock className="w-4 h-4 text-gray-400" />
+                                            <span className="text-sm font-medium">Reminder</span>
                                         </div>
                                         <div className="col-span-2 relative flex items-center">
                                             <input
@@ -522,7 +522,7 @@ export default function DashboardChecklist() {
                                                 type="time"
                                                 value={form.time || ""}
                                                 onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
-                                                className={`bg-transparent border-none p-1 -ml-1 text-[0.6875rem] font-bold uppercase tracking-wider focus:ring-0 outline-none w-full cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors ${!form.time ? "text-transparent" : "text-[#252525] dark:text-white"}`}
+                                                className={`bg-transparent border-none p-1 -ml-1 text-sm font-medium focus:ring-0 outline-none w-full cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors ${!form.time ? "text-transparent" : "text-[#252525] dark:text-white"}`}
                                             />
                                             {!form.time && (
                                                 <span className="absolute left-0 text-sm font-medium text-[#7D7D7D] dark:text-[#545454] pointer-events-none">
@@ -534,15 +534,15 @@ export default function DashboardChecklist() {
 
                                     {/* Frequency Row */}
                                     <div className="grid grid-cols-3 items-center gap-4 group relative" ref={frequencyDropdownRef}>
-                                        <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] col-span-1">
-                                            <RotateCcw className="w-4 h-4 text-[#7D7D7D]/50" />
+                                        <div className="flex items-center gap-2 text-gray-500 col-span-1">
+                                            <RotateCcw className="w-4 h-4 text-gray-400" />
                                             <span className="text-sm font-medium">Frequency</span>
                                         </div>
                                         <div className="col-span-2 relative">
                                             <button
                                                 type="button"
                                                 onClick={() => setShowFrequencyDropdown(!showFrequencyDropdown)}
-                                                className={`flex items-center justify-between w-full px-2 py-2 rounded-lg border transition-all text-[0.6875rem] font-bold uppercase tracking-wider
+                                                className={`flex items-center justify-between w-full px-2 py-2 rounded-lg border transition-all text-sm font-medium
                                                     ${showFrequencyDropdown 
                                                         ? "bg-black/5 dark:bg-white/5 border-[#CFCFCF] dark:border-[#444] text-[#252525] dark:text-white" 
                                                         : "bg-white/50 dark:bg-white/5 border-transparent hover:border-[#D1D1D1] dark:hover:border-[#545454] text-[#252525] dark:text-white"
@@ -610,9 +610,9 @@ export default function DashboardChecklist() {
 
                                     {/* Material Selection Row */}
                                     <div className="grid grid-cols-3 items-center gap-4 group" ref={materialDropdownRef}>
-                                        <div className="flex items-center gap-2 text-[#7D7D7D] dark:text-[#BABABA] col-span-1">
-                                            <FileText className="w-4 h-4 text-[#7D7D7D]/50" />
-                                            <span className="text-[0.6875rem] font-bold uppercase tracking-wider">Material</span>
+                                        <div className="flex items-center gap-2 text-gray-500 col-span-1">
+                                            <FileText className="w-4 h-4 text-gray-400" />
+                                            <span className="text-sm font-medium">Material</span>
                                         </div>
                                         <div className="col-span-2 flex items-center gap-2">
                                             <div className="relative flex-1 min-w-0">
@@ -729,7 +729,6 @@ export default function DashboardChecklist() {
                                             {form.linked_document_id && (
                                                 <Link
                                                     href={`/library/${form.linked_document_type || 'note'}/${form.linked_document_id}`}
-                                                    target="_blank"
                                                     className="text-xs shrink-0 bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
                                                 >
                                                     Open

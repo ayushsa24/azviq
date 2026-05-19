@@ -42,7 +42,7 @@ export default function DashboardStats() {
                     if (!t.due_date) return false;
                     const dueDate = new Date(t.due_date);
                     dueDate.setHours(0, 0, 0, 0);
-                    return dueDate.getTime() <= today.getTime();
+                    return dueDate.getTime() === today.getTime();
                 }).length;
                 setTasksDue(dueTodayCount);
             }
@@ -242,8 +242,8 @@ export default function DashboardStats() {
             {isLoadingTasks ? (
                 <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse hidden sm:block"></div>
             ) : (
-                <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
-                    <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Tasks Due</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDue}</h3></div>
+                <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] animate-in fade-in duration-500 ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
+                    <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Due Today</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{tasksDue}</h3></div>
                     <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" /></div>
                 </div>
             )}
@@ -257,13 +257,13 @@ export default function DashboardStats() {
             ) : (
                 <>
                     {/* Revision Due — desktop only */}
-                    <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
+                    <div className={`hidden sm:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] animate-in fade-in duration-500 ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
                         <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Revision Due</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{revisionsDue}</h3></div>
                         <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center"><BookOpen className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" /></div>
                     </div>
 
                     {/* Weak Topics — laptop only */}
-                    <div className={`hidden lg:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
+                    <div className={`hidden lg:flex bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 shadow-sm items-center justify-between transition-all duration-200 min-h-[88px] animate-in fade-in duration-500 ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1] shadow-md"}`}>
                         <div><p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Weak Topics</p><h3 className="text-2xl font-bold text-[#252525] dark:text-white">{weakTopics}</h3></div>
                         <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
                             <Target className="w-5 h-5 text-[#545454] dark:text-[#BABABA]" />
@@ -276,8 +276,8 @@ export default function DashboardStats() {
             {isLoadingTasks || isLoadingSuggestions ? (
                 <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse sm:hidden"></div>
             ) : (
-                <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[88px]`}>
-                    <p className="text-xs font-semibold text-[#545454] dark:text-[#BABABA] mb-2">Today&apos;s Due</p>
+                <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[88px] animate-in fade-in duration-500`}>
+                    <p className="text-xs font-semibold text-[#545454] dark:text-[#BABABA] mb-2">Today's Due</p>
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-[#E8E5E0] dark:bg-[#3C3C3C] flex items-center justify-center"><CheckCircle2 className="w-3 h-3 text-[#545454] dark:text-[#BABABA]" /></div><span className="text-xs text-[#7D7D7D] dark:text-[#BABABA]">Tasks</span></div>

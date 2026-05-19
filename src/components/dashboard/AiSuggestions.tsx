@@ -22,7 +22,7 @@ export default function AiSuggestions() {
     const isDark = theme === "dark";
     const { data, isLoading: suggestionsLoading } = useSWR("/api/suggestions");
     const suggestions = (data?.suggestions || []) as AiSuggestion[];
-    
+
     const [showHistory, setShowHistory] = useState<Record<string, boolean>>({});
 
     const updateItemStatus = async (suggestionId: string, itemId: string, newStatus: string) => {
@@ -31,7 +31,7 @@ export default function AiSuggestions() {
             if (s.id === suggestionId && s.multiple_actions) {
                 return {
                     ...s,
-                    multiple_actions: s.multiple_actions.map(act => 
+                    multiple_actions: s.multiple_actions.map(act =>
                         act.id === itemId ? { ...act, status: newStatus } : act
                     )
                 };
@@ -111,27 +111,26 @@ export default function AiSuggestions() {
                     const completedActions = suggestion.multiple_actions?.filter(act => act.status === 'completed') || [];
                     const isHistoryVisible = !!showHistory[suggestion.id];
                     const itemCount = (activeActions.length + (completedActions.length > 0 ? completedActions.length + 1 : 0));
-                    
+
                     return (
                         <div
                             key={suggestion.id}
                             className={`group relative flex flex-col p-5 rounded-3xl border transition-all duration-200 
-                                ${itemCount > 5 ? "min-h-[260px] max-h-[365px]" : "min-h-[180px] h-auto"} 
-                                md:h-[365px] 
+                                h-auto max-h-[345px] min-h-[180px] 
+                                md:max-h-[325px] 
                                 ${isDark
-                                ? "bg-[#252525] border-[#545454] hover:bg-white/5 hover:border-[#444]"
-                                : "bg-white/80 backdrop-blur-md border-[#CFCFCF] hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
+                                    ? "bg-[#252525] border-[#545454] hover:bg-white/5 hover:border-[#444]"
+                                    : "bg-white/80 backdrop-blur-md border-[#CFCFCF] hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
                                 } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md`}
                         >
                             {/* History Toggle */}
                             {suggestion.multiple_actions && completedActions.length > 0 && (
                                 <button
                                     onClick={(e) => toggleHistory(suggestion.id, e)}
-                                    className={`absolute top-3.5 right-3.5 z-10 p-2 rounded-xl transition-all shadow-sm border ${
-                                        isHistoryVisible 
-                                        ? isDark ? "bg-white text-[#252525] border-white" : "bg-[#252525] text-white border-[#252525]" 
+                                    className={`absolute top-3.5 right-3.5 z-10 p-2 rounded-xl transition-all shadow-sm border ${isHistoryVisible
+                                        ? isDark ? "bg-white text-[#252525] border-white" : "bg-[#252525] text-white border-[#252525]"
                                         : isDark ? "bg-[#333] text-[#BABABA] border-[#444] hover:text-white" : "bg-[#F0EDE8] text-[#545454] border-[#E8E5E0] hover:text-[#252525]"
-                                    }`}
+                                        }`}
                                     title={isHistoryVisible ? "Show active items" : "View completed history"}
                                 >
                                     <ChevronDown className={`w-5 h-5 transition-transform duration-150 ${isHistoryVisible ? "rotate-180" : ""}`} />
@@ -154,7 +153,7 @@ export default function AiSuggestions() {
                             </div>
 
                             {/* Scrollable Items Area */}
-                            <div className={`flex-1 overflow-y-auto pr-1 ${itemCount > 5 ? "pb-12" : "pb-1"} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
+                            <div className={`flex-1 overflow-y-auto pr-1 ${itemCount > 5 ? "pb-2" : "pb-1"} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
                                 {suggestion.multiple_actions ? (
                                     <div className="flex flex-col gap-2 relative">
                                         {!isHistoryVisible ? (
@@ -202,7 +201,7 @@ export default function AiSuggestions() {
                             {/* Center bottom indicator for more items */}
                             {suggestion.multiple_actions && (isHistoryVisible ? completedActions.length > 5 : activeActions.length > 5) && (
                                 <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none z-20">
-                                    <button 
+                                    <button
                                         onClick={(e) => {
                                             const container = e.currentTarget.closest('.group')?.querySelector('.overflow-y-auto');
                                             if (container) {

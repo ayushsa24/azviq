@@ -26,7 +26,7 @@ export default function DashboardWrapper({ session }: { session: Session }) {
   const { openProfile } = useProfile();
   const [isPricingOpen, setIsPricingOpen] = useState(false);
 
-  if (isLoading) return null;
+
 
   // Extract first name: 
   // 1. Prioritize database full name from UserContext

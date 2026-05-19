@@ -18,6 +18,30 @@ interface MobileSelectionBarProps {
 }
 
 export function MobileSelectionBar({ editor, onOpenAi, isVisible }: MobileSelectionBarProps) {
+    const [bottomOffset, setBottomOffset] = React.useState(0);
+
+    React.useEffect(() => {
+        if (!isVisible || typeof window === 'undefined' || !window.visualViewport) return;
+
+        const handleResize = () => {
+            const viewport = window.visualViewport;
+            if (!viewport) return;
+            
+            // Calculate how much the keyboard is covering the screen
+            const offset = window.innerHeight - viewport.height;
+            setBottomOffset(Math.max(0, offset));
+        };
+
+        window.visualViewport.addEventListener('resize', handleResize);
+        window.visualViewport.addEventListener('scroll', handleResize);
+        handleResize();
+
+        return () => {
+            window.visualViewport?.removeEventListener('resize', handleResize);
+            window.visualViewport?.removeEventListener('scroll', handleResize);
+        };
+    }, [isVisible]);
+
     if (!isVisible) return null;
 
     const isActive = (type: string) => editor.isActive(type);
@@ -27,7 +51,13 @@ export function MobileSelectionBar({ editor, onOpenAi, isVisible }: MobileSelect
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-[50] animate-in slide-in-from-bottom duration-300 pb-safe">
+        <div 
+            className="fixed left-0 right-0 z-[100] animate-in slide-in-from-bottom duration-300"
+            style={{ 
+                bottom: `${bottomOffset}px`,
+                paddingBottom: bottomOffset > 0 ? '8px' : 'env(safe-area-inset-bottom, 16px)'
+            }}
+        >
             {/* Glossy Backdrop - Minimal version */}
             <div className="w-fit mx-auto mb-3 bg-white/95 dark:bg-[#252525]/95 backdrop-blur-xl border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-xl overflow-hidden px-1">
                 <div className="flex items-center justify-center gap-1 py-1">

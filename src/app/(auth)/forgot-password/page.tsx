@@ -123,22 +123,18 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className={`fixed inset-0 flex items-center justify-center p-4 overflow-y-auto ${theme === 'dark'
-      ? 'bg-gradient-to-br from-[#1A1A1A] via-[#2A2A2A] to-[#1A1A1A]'
-      : 'bg-gradient-to-br from-[#EAEAEA] via-[#FFFFFF] to-[#EAEAEA]'}`}>
+    <div className={`fixed inset-0 flex items-center lg:items-start justify-center p-4 pt-32 lg:pt-[20vh] overflow-y-auto bg-gradient-to-br from-[#EAEAEA] via-[#FFFFFF] to-[#EAEAEA] dark:bg-gradient-to-br dark:from-[#1A1A1A] dark:via-[#2A2A2A] dark:to-[#1A1A1A]`}>
 
-      <div className={`w-full max-w-sm p-8 rounded-3xl shadow-2xl backdrop-blur-md border transition-all ${theme === 'dark'
-        ? 'bg-[#252525]/80 border-[#444]/50 text-white'
-        : 'bg-white/90 border-[#DDD]/50 text-[#252525]'}`}>
+      <div className={`w-full max-w-sm p-8 rounded-3xl shadow-2xl backdrop-blur-md border transition-all bg-white/90 border-[#DDD]/50 text-[#252525] dark:bg-[#252525]/80 dark:border-[#444]/50 dark:text-white`}>
 
         {step === "EMAIL" && (
           <>
-            <div className="flex flex-col items-center mb-8">
-              <div className={`p-4 rounded-2xl mb-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-[#252525]/5'}`}>
-                <Mail className={`w-8 h-8 ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`} />
+            <div className="flex flex-col items-center mb-6">
+              <div className={`p-3 rounded-2xl mb-3 bg-[#252525]/5 dark:bg-white/5`}>
+                <Mail className={`w-6 h-6 text-[#252525] dark:text-white`} />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight mb-2">Forgot Password?</h1>
-              <p className={`text-xs text-center opacity-60 px-4 leading-relaxed`}>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1">Forgot Password?</h1>
+              <p className={`text-[10px] sm:text-xs text-center opacity-60 px-4 leading-relaxed`}>
                 Enter your email address and we'll send you a 6-digit code to reset your password.
               </p>
             </div>
@@ -154,16 +150,14 @@ export default function ForgotPassword() {
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2
-                      ${theme === 'dark'
-                        ? 'bg-[#1A1A1A]/50 border-[#444] text-white focus:ring-white/10'
-                        : 'bg-white border-[#DDD] text-[#252525] focus:ring-black/5'}`}
+                    className={`w-full pl-10 pr-4 py-2.5 lg:py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2
+                      bg-white border-[#DDD] text-[#252525] focus:ring-black/5 dark:bg-[#1A1A1A]/50 dark:border-[#444] dark:text-white dark:focus:ring-white/10`}
                   />
                 </div>
               </div>
 
               {error && (
-                <div className={`p-4 rounded-xl text-xs flex flex-col items-center gap-2 border ${theme === 'dark' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50/10 border-red-200 text-red-600'}`}>
+                <div className={`p-4 rounded-xl text-xs flex flex-col items-center gap-2 border bg-red-50/10 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400`}>
                   <span>{error}</span>
                   {error.includes("sign up") && (
                     <Link href="/signup" className="font-bold underline uppercase tracking-tighter">
@@ -176,8 +170,8 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]
-                  ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#252525] text-white hover:bg-[#333]'}`}
+                className={`w-full py-3 lg:py-3.5 rounded-xl font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]
+                  bg-[#252525] text-white hover:bg-[#333] dark:bg-white dark:text-black dark:hover:bg-gray-100`}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Reset Code"}
               </button>
@@ -212,12 +206,12 @@ export default function ForgotPassword() {
 
         {step === "NEW_PASSWORD" && (
           <>
-            <div className="flex flex-col items-center mb-8">
-              <div className={`p-4 rounded-2xl mb-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-[#252525]/5'}`}>
-                <Lock className={`w-8 h-8 ${theme === 'dark' ? 'text-white' : 'text-[#252525]'}`} />
+            <div className="flex flex-col items-center mb-6">
+              <div className={`p-3 rounded-2xl mb-3 bg-[#252525]/5 dark:bg-white/5`}>
+                <Lock className={`w-6 h-6 text-[#252525] dark:text-white`} />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight mb-2">Reset Password</h1>
-              <p className={`text-xs text-center opacity-60`}>Choose a new secure password for your account.</p>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1">Reset Password</h1>
+              <p className={`text-[10px] sm:text-xs text-center opacity-60`}>Choose a new secure password for your account.</p>
             </div>
 
             <form onSubmit={handleResetPassword} className="space-y-4">
@@ -227,7 +221,7 @@ export default function ForgotPassword() {
                   value={newPassword}
                   onChange={setNewPassword}
                   placeholder="••••••••"
-                  className="py-3"
+                  className="py-2.5 lg:py-3"
                 />
               </div>
 
@@ -237,7 +231,7 @@ export default function ForgotPassword() {
                   value={confirmPassword}
                   onChange={setConfirmPassword}
                   placeholder="••••••••"
-                  className="py-3"
+                  className="py-2.5 lg:py-3"
                 />
               </div>
 
@@ -251,8 +245,8 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]
-                  ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#252525] text-white hover:bg-[#333]'}`}
+                className={`w-full py-3 lg:py-3.5 rounded-xl font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]
+                  bg-[#252525] text-white hover:bg-[#333] dark:bg-white dark:text-black dark:hover:bg-gray-100`}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}
               </button>
@@ -262,7 +256,7 @@ export default function ForgotPassword() {
 
         {step === "SUCCESS" && (
           <div className="flex flex-col items-center py-6 text-center">
-            <div className={`p-4 rounded-full mb-6 ${theme === 'dark' ? 'bg-green-500/10' : 'bg-green-500/5'}`}>
+            <div className={`p-4 rounded-full mb-6 bg-green-500/5 dark:bg-green-500/10`}>
               <CheckCircle2 className="w-12 h-12 text-green-500" />
             </div>
             <h1 className="text-2xl font-bold mb-3">Password Updated!</h1>
@@ -274,7 +268,7 @@ export default function ForgotPassword() {
         )}
 
         {step === "EMAIL" && (
-          <div className="mt-8 flex justify-center">
+          <div className="mt-6 lg:mt-8 flex justify-center">
             <Link 
               href="/login" 
               className="flex items-center gap-2 text-xs font-bold opacity-50 hover:opacity-100 transition-opacity"

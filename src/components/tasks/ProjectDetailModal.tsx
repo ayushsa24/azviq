@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
     X,
     FolderOpen,
@@ -12,8 +13,11 @@ import {
     Star,
     Trash2,
     MoveRight,
-    ChevronDown
+    ChevronDown,
+    RotateCcw,
+    CalendarDays
 } from "lucide-react";
+import { CustomCalendar } from "@/components/ui/CustomCalendar";
 import { format } from "date-fns";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { TaskDetailModal } from "./TaskDetailModal";
@@ -56,6 +60,25 @@ export function ProjectDetailModal({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const dragControls = useDragControls();
     const touchStartY = useRef(0);
+    const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
+    const [isDueDatePickerOpen, setIsDueDatePickerOpen] = useState(false);
+    const startDatePickerRef = useRef<HTMLDivElement>(null);
+    const dueDatePickerRef = useRef<HTMLDivElement>(null);
+
+    // Close date pickers on outside click
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (startDatePickerRef.current && !startDatePickerRef.current.contains(target)) {
+                setIsStartDatePickerOpen(false);
+            }
+            if (dueDatePickerRef.current && !dueDatePickerRef.current.contains(target)) {
+                setIsDueDatePickerOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
+    }, []);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -378,41 +401,89 @@ export function ProjectDetailModal({
                                         <Calendar className="w-4 h-4 text-gray-400" />
                                         <span>Timing</span>
                                     </div>
-                                    <div className="col-span-2 flex items-center gap-2 flex-wrap min-w-0">
-                                        <div className="relative flex items-center">
-                                            <input
-                                                type="date"
-                                                value={localProject.start_date ? new Date(localProject.start_date).toISOString().split('T')[0] : ""}
-                                                onChange={(e) => {
-                                                    const dateVal = e.target.value ? new Date(e.target.value).toISOString() : null;
-                                                    handleUpdateField("start_date", dateVal);
-                                                }}
-                                                className={`bg-transparent text-sm font-medium outline-none p-1 -ml-1 rounded transition-colors min-w-[120px] cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 ${!localProject.start_date ? "text-transparent" : "text-gray-700 dark:text-gray-300"}`}
-                                            />
-                                            {!localProject.start_date && (
-                                                <span className="absolute left-0 text-sm font-medium text-gray-400 dark:text-gray-500 pointer-events-none">
-                                                    dd-mm-yyyy
-                                                </span>
-                                            )}
+                                    <div className="col-span-2 flex items-center gap-1.5 flex-nowrap min-w-0 max-sm:relative">
+                                        {/* Start Date */}
+                                        <div className="flex-1 min-w-0" ref={startDatePickerRef}>
+                                            <div className="sm:relative group/date h-9">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setIsStartDatePickerOpen(!isStartDatePickerOpen)}
+                                                    className="flex items-center gap-2 px-2 py-1.5 h-full w-full rounded-lg bg-transparent border border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[13px] font-medium text-gray-700 dark:text-gray-300 transition-all duration-300 truncate"
+                                                >
+                                                    <CalendarDays size={14} className={`shrink-0 ${localProject.start_date ? "text-[#C2A27A]" : "text-gray-400"}`} />
+                                                    <span className={`truncate ${!localProject.start_date ? "text-gray-400 dark:text-gray-500" : ""}`}>
+                                                        {localProject.start_date && !isNaN(new Date(localProject.start_date).getTime()) 
+                                                            ? format(new Date(localProject.start_date), "MMM d, yyyy") 
+                                                            : "Start Date"}
+                                                    </span>
+                                                    <ChevronDown size={13} className={`ml-auto shrink-0 transition-all duration-300 ${isStartDatePickerOpen ? "rotate-180" : ""} ${localProject.start_date ? "text-[#C2A27A] opacity-100" : "opacity-40"}`} />
+                                                </button>
+
+                                                <AnimatePresence>
+                                                    {isStartDatePickerOpen && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            animate={{ opacity: 1, y: 5, scale: 1 }}
+                                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            className="absolute sm:left-0 max-sm:right-2 top-full z-[100] mt-2 bg-white/90 dark:bg-[#252525]/90 backdrop-blur-xl border border-gray-200 dark:border-[#444] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden min-w-[280px]"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <CustomCalendar 
+                                                                selectedDate={localProject.start_date} 
+                                                                onSelect={(date) => {
+                                                                    const dateVal = date ? new Date(date + 'T00:00:00').toISOString() : null;
+                                                                    handleUpdateField("start_date", dateVal);
+                                                                    setIsStartDatePickerOpen(false);
+                                                                }} 
+                                                                onClose={() => setIsStartDatePickerOpen(false)}
+                                                            />
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                         </div>
 
                                         <span className="text-gray-400 flex-shrink-0">→</span>
 
-                                        <div className="relative flex items-center">
-                                            <input
-                                                type="date"
-                                                value={localProject.due_date ? new Date(localProject.due_date).toISOString().split('T')[0] : ""}
-                                                onChange={(e) => {
-                                                    const dateVal = e.target.value ? new Date(e.target.value).toISOString() : null;
-                                                    handleUpdateField("due_date", dateVal);
-                                                }}
-                                                className={`bg-transparent text-sm font-medium outline-none p-1 -ml-1 rounded transition-colors min-w-[120px] cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 ${!localProject.due_date ? "text-transparent" : "text-gray-700 dark:text-gray-300"}`}
-                                            />
-                                            {!localProject.due_date && (
-                                                <span className="absolute left-0 text-sm font-medium text-gray-400 dark:text-gray-500 pointer-events-none">
-                                                    dd-mm-yyyy
-                                                </span>
-                                            )}
+                                        {/* Due Date */}
+                                        <div className="flex-1 min-w-0" ref={dueDatePickerRef}>
+                                            <div className="sm:relative group/date h-9">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setIsDueDatePickerOpen(!isDueDatePickerOpen)}
+                                                    className="flex items-center gap-2 px-2 py-1.5 h-full w-full rounded-lg bg-transparent border border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[13px] font-medium text-gray-700 dark:text-gray-300 transition-all duration-300 truncate"
+                                                >
+                                                    <CalendarDays size={14} className={`shrink-0 ${localProject.due_date ? "text-[#C2A27A]" : "text-gray-400"}`} />
+                                                    <span className={`truncate ${!localProject.due_date ? "text-gray-400 dark:text-gray-500" : ""}`}>
+                                                        {localProject.due_date && !isNaN(new Date(localProject.due_date).getTime()) 
+                                                            ? format(new Date(localProject.due_date), "MMM d, yyyy") 
+                                                            : "Due Date"}
+                                                    </span>
+                                                    <ChevronDown size={13} className={`ml-auto shrink-0 transition-all duration-300 ${isDueDatePickerOpen ? "rotate-180" : ""} ${localProject.due_date ? "text-[#C2A27A] opacity-100" : "opacity-40"}`} />
+                                                </button>
+
+                                                <AnimatePresence>
+                                                    {isDueDatePickerOpen && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            animate={{ opacity: 1, y: 5, scale: 1 }}
+                                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            className="absolute sm:left-0 max-sm:right-2 top-full z-[100] mt-2 bg-white/90 dark:bg-[#252525]/90 backdrop-blur-xl border border-gray-200 dark:border-[#444] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden min-w-[280px]"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <CustomCalendar 
+                                                                selectedDate={localProject.due_date} 
+                                                                onSelect={(date) => {
+                                                                    const dateVal = date ? new Date(date + 'T00:00:00').toISOString() : null;
+                                                                    handleUpdateField("due_date", dateVal);
+                                                                    setIsDueDatePickerOpen(false);
+                                                                }} 
+                                                                onClose={() => setIsDueDatePickerOpen(false)}
+                                                            />
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -494,7 +565,16 @@ export function ProjectDetailModal({
                                                         </button>
                                                     </div>
                                                     {t.due_date && <p className="text-xs text-gray-400 font-medium mt-2">Due {format(new Date(t.due_date), "MMM d")}</p>}
-                                                    {t.linked_document_id && notes.some(n => n.id === t.linked_document_id) && <span className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-gray-300 rounded-md text-[0.625rem] font-semibold"><FileText className="w-3 h-3" />{t.linked_document_type === "pdf" ? "PDF Linked" : "Note Linked"}</span>}
+                                                    {t.linked_document_id && notes.some(n => n.id === t.linked_document_id) && (
+                                                        <Link 
+                                                            href={`/library/${t.linked_document_type}/${t.linked_document_id}`}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="mt-3 flex items-center gap-1 w-fit px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 rounded-md text-[0.625rem] font-semibold transition-colors"
+                                                        >
+                                                            <FileText className="w-3 h-3" />
+                                                            {t.linked_document_type === "pdf" ? "Open PDF" : "Open Note"}
+                                                        </Link>
+                                                    )}
                                                     {openMenuId === t.id && (
                                                         <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[11.25rem] context-menu" onClick={(e) => e.stopPropagation()}>
                                                             <button onClick={() => handleToggleTaskPin(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><Pin className="w-4 h-4" />{t.is_pinned ? "Unpin" : "Pin"}</button>

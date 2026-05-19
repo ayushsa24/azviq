@@ -593,6 +593,7 @@ function AiChatCore() {
     if (isSwitchingChat) {
       prevChatIdRef.current = activeChatId;
       setAtBottom(true);
+      setShowScrollDown(false);
       // Instant jump on switch
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       return;
@@ -602,6 +603,7 @@ function AiChatCore() {
       // During active generation or if we were already at the bottom, follow the text
       // We do this instantly in useLayoutEffect to prevent any 'jumpy' frames
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      setShowScrollDown(false);
     }
   }, [messages, activeChatId, atBottom, isActuallySending, isLoading]);
 
@@ -1716,10 +1718,10 @@ function AiChatCore() {
           onScroll={() => {
             if (chatContainerRef.current) {
               const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-              // If within 100px of bottom, consider user 'at bottom' for auto-scroll
               const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+              const hasScroll = scrollHeight > clientHeight + 50; // Only show if there's meaningful content to scroll through
               setAtBottom(isNearBottom);
-              setShowScrollDown(!isNearBottom);
+              setShowScrollDown(!isNearBottom && hasScroll);
             }
           }}
           className={`absolute inset-0 custom-scrollbar space-y-3 md:space-y-4 md:p-6 ${messages.length === 0
@@ -2648,7 +2650,7 @@ function AiChatCore() {
             )}
             <button
               onClick={(e) => {
-                e.stopPropagation();
+                e.stopPropagation();  
                 handleDelete(session.id, session.title);
               }}
               className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark"

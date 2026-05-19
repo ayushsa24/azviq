@@ -11,11 +11,14 @@ import {
     Check,
     ChevronDown,
     Search,
-    File as FileIcon
+    File as FileIcon,
+    RotateCcw,
+    CalendarDays
 } from "lucide-react";
+import { CustomCalendar } from "@/components/ui/CustomCalendar";
 import { format } from "date-fns";
 import Link from "next/link";
-import { motion, useDragControls } from "framer-motion";
+import { motion, useDragControls, AnimatePresence } from "framer-motion";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface TaskDetailModalProps {
@@ -44,6 +47,19 @@ export function TaskDetailModal({
     const materialDropdownRef = useRef<HTMLDivElement>(null);
     const dragControls = useDragControls();
     const [scrollTop, setScrollTop] = useState(0);
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const datePickerRef = useRef<HTMLDivElement>(null);
+
+    // Close date picker on outside click
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (datePickerRef.current && !datePickerRef.current.contains(e.target as Node)) {
+                setIsDatePickerOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
+    }, []);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -274,20 +290,56 @@ export function TaskDetailModal({
                                 <Calendar className="w-4 h-4 text-gray-400" />
                                 <span>Due Date</span>
                             </div>
-                            <div className="col-span-2 relative flex items-center">
-                                <input
-                                    type="date"
-                                    value={localTask.due_date ? new Date(localTask.due_date).toISOString().split('T')[0] : ""}
-                                    onChange={(e) => {
-                                        const dateVal = e.target.value ? new Date(e.target.value).toISOString() : null;
-                                        handleUpdateField("due_date", dateVal);
-                                    }}
-                                    className={`bg-transparent text-sm font-medium outline-none p-1 -ml-1 rounded transition-colors w-full cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 ${!localTask.due_date ? "text-transparent" : "text-gray-700 dark:text-gray-300"}`}
-                                />
-                                {!localTask.due_date && (
-                                    <span className="absolute left-0 text-sm font-medium text-gray-400 dark:text-gray-500 pointer-events-none">
-                                        dd-mm-yyyy
-                                    </span>
+                            <div className="col-span-2 relative flex items-center" ref={datePickerRef}>
+                                <div className="relative group/date h-9 w-full">
+                                    {/* Visual styled button */}
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                                        className="flex items-center gap-2 px-3 py-1.5 h-full w-full rounded-lg bg-transparent border border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-sm font-medium text-gray-700 dark:text-gray-300 transition-all duration-300"
+                                    >
+                                        <CalendarDays size={14} className={localTask.due_date ? "text-[#C2A27A]" : "text-gray-400"} />
+                                        <span className={!localTask.due_date ? "text-gray-400 dark:text-gray-500" : ""}>
+                                            {localTask.due_date && !isNaN(new Date(localTask.due_date).getTime()) 
+                                                ? format(new Date(localTask.due_date), "MMM d, yyyy") 
+                                                : "No due date"}
+                                        </span>
+                                        <ChevronDown size={14} className={`ml-auto transition-all duration-300 ${isDatePickerOpen ? "rotate-180" : ""} ${localTask.due_date ? "text-[#C2A27A] opacity-100" : "opacity-40"}`} />
+                                    </button>
+
+                                    {/* Custom Calendar Dropdown */}
+                                    <AnimatePresence>
+                                        {isDatePickerOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 5, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                className="absolute sm:left-0 max-sm:-right-6 top-full z-[100] mt-2 bg-white/90 dark:bg-[#252525]/90 backdrop-blur-xl border border-gray-200 dark:border-[#444] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden min-w-[280px]"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <CustomCalendar 
+                                                    selectedDate={localTask.due_date} 
+                                                    onSelect={(date) => {
+                                                        const dateVal = date ? new Date(date + 'T00:00:00').toISOString() : null;
+                                                        handleUpdateField("due_date", dateVal);
+                                                        setIsDatePickerOpen(false);
+                                                    }} 
+                                                    onClose={() => setIsDatePickerOpen(false)}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                {localTask.due_date && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleUpdateField("due_date", null)}
+                                        className="h-8 w-8 ml-2 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-white/5 border border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all active:scale-90"
+                                        title="Clear Date"
+                                    >
+                                        <RotateCcw size={14} />
+                                    </button>
                                 )}
                             </div>
                         </div>
