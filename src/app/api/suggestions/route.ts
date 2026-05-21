@@ -44,14 +44,26 @@ export async function GET() {
         const todayString = new Date().toISOString().split("T")[0];
 
         // Run independent queries in parallel for speed
-        const [dailyResult, exercisesResult, notesResult, trashResult] = await Promise.all([
-            supabase.from("daily_study_summary").select("total_minutes").eq("user_id", userId).eq("study_date", todayString).single(),
+        const [dailyResult, exercisesResult, notesResult, trashResult, pcResult] = await Promise.all([
+            supabase.from("daily_study_summary").select("total_minutes, activities_summary").eq("user_id", userId).eq("study_date", todayString).maybeSingle(),
             supabase.from("exercises").select("id, title, score, note_id").eq("user_id", userId).eq("status", "Completed").not("score", "is", null),
             supabase.from("notes").select("id, title, file_url, workspace_id").eq("user_id", userId).lt("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
-            supabase.from("trash").select("item_id").eq("user_id", userId)
+            supabase.from("trash").select("item_id").eq("user_id", userId),
+            supabase.from("parent_control").select("daily_target_hours").eq("user_id", userId).limit(1)
         ]);
 
         const dailySummary = dailyResult.data;
+        const pcEntries = pcResult.data;
+        const targetHours = pcEntries && pcEntries.length > 0 ? pcEntries[0].daily_target_hours : null;
+        
+        // Retrieve dynamic target override from today's synchronized timer state if active
+        const dbTimerState = (dailySummary as any)?.activities_summary?.["__timer_state"];
+        const customTargetMinutes = dbTimerState?.targetMinutes;
+        
+        const targetMinutes = customTargetMinutes !== undefined && customTargetMinutes !== null
+            ? customTargetMinutes
+            : (targetHours !== null && targetHours !== undefined ? targetHours * 60 : 60);
+
         const trashedIds = new Set(trashResult.data?.map(i => i.item_id) || []);
         
         // Filter out items that are in trash or belong to a trashed workspace/note
@@ -60,12 +72,12 @@ export async function GET() {
 
         // 1. Daily Study Target
         const totalMinutes = (dailySummary as { total_minutes?: number } | null)?.total_minutes || 0;
-        if (totalMinutes < 60) {
+        if (totalMinutes < targetMinutes) {
             suggestions.push({
                 id: `short-study-${todayString}`,
                 suggestion_type: "short_study",
                 title: "Quick Study Session",
-                description: `You studied only ${totalMinutes} minutes today. Continuing now will help you reach your daily target!`,
+                description: `You studied only ${totalMinutes} minutes today. Continuing now will help you reach your daily target of ${targetMinutes} minutes!`,
                 action_type: "/library",
                 action_label: "Start Study",
             });

@@ -1,0 +1,12 @@
+{
+  "daily_study_summary": [
+    "id",
+    "user_id",
+    "study_date",
+    "total_minutes",
+    "activity_count",
+    "activities_summary",
+    "created_at"
+  ],
+  "user_stats": []
+}

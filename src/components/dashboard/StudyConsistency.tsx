@@ -374,14 +374,16 @@ export default function StudyConsistency() {
                     <div className="font-semibold text-sm mb-1">{format(hoveredDay.date, 'MMM d, yyyy')}</div>
                     <div className="text-xs text-[#CFCFCF] mb-2">{formatTime(hoveredDay.summary?.total_minutes || 0)} studied</div>
 
-                    {hoveredDay.summary?.activities_summary && Object.keys(hoveredDay.summary.activities_summary).length > 0 ? (
+                    {hoveredDay.summary?.activities_summary && Object.keys(hoveredDay.summary.activities_summary).filter(k => !k.startsWith("__")).length > 0 ? (
                         <div className="space-y-1 mt-2 pt-2 border-t border-[#545454]">
-                            {Object.entries(hoveredDay.summary.activities_summary).map(([key, count]) => (
-                                <div key={key} className="flex justify-between items-center text-[11px]">
-                                    <span className="text-[#CFCFCF]">{ACTIVITY_LABELS[key] || key}</span>
-                                    <span className="font-bold">{formatTime(count as number)}</span>
-                                </div>
-                            ))}
+                            {Object.entries(hoveredDay.summary.activities_summary)
+                                .filter(([key]) => !key.startsWith("__"))
+                                .map(([key, count]) => (
+                                    <div key={key} className="flex justify-between items-center text-[11px]">
+                                        <span className="text-[#CFCFCF]">{ACTIVITY_LABELS[key] || key}</span>
+                                        <span className="font-bold">{formatTime(count as number)}</span>
+                                    </div>
+                                ))}
                         </div>
                     ) : (
                         <div className="mt-2 pt-2 border-t border-[#545454] text-[11px] text-[#7D7D7D] font-medium">

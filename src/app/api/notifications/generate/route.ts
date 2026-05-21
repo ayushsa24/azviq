@@ -70,20 +70,39 @@ export async function POST() {
         // ─────────────────────────────────────────────────────────────
         // 1. DAILY STUDY REMINDER
         // ─────────────────────────────────────────────────────────────
-        const { data: todaySummary } = await supabase
-            .from("daily_study_summary")
-            .select("total_minutes")
-            .eq("user_id", userId)
-            .eq("study_date", todayStr)
-            .single();
+        const [todaySummaryResult, pcResult] = await Promise.all([
+            supabase
+                .from("daily_study_summary")
+                .select("total_minutes, activities_summary")
+                .eq("user_id", userId)
+                .eq("study_date", todayStr)
+                .maybeSingle(),
+            supabase
+                .from("parent_control")
+                .select("daily_target_hours")
+                .eq("user_id", userId)
+                .limit(1)
+        ]);
 
+        const todaySummary = todaySummaryResult?.data;
         const totalMinutesToday = todaySummary?.total_minutes ?? 0;
+        
+        const pcEntries = pcResult?.data;
+        const targetHours = pcEntries && pcEntries.length > 0 ? pcEntries[0].daily_target_hours : null;
+        
+        // Retrieve dynamic target override from today's synchronized timer state if active
+        const dbTimerState = (todaySummary as any)?.activities_summary?.["__timer_state"];
+        const customTargetMinutes = dbTimerState?.targetMinutes;
+        
+        const targetMinutes = customTargetMinutes !== undefined && customTargetMinutes !== null
+            ? customTargetMinutes
+            : (targetHours !== null && targetHours !== undefined ? targetHours * 60 : 60);
 
-        if (totalMinutesToday < 60) {
+        if (totalMinutesToday < targetMinutes) {
             if (await createNotif(supabase, userId, {
                 type: "study_reminder",
                 title: "Time to Study",
-                message: "Study 60+ min today to keep your streak.",
+                message: `Study ${targetMinutes}+ min today to keep your streak.`,
             })) {
                 generated.push("study_reminder");
             }

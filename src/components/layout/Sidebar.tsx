@@ -140,7 +140,7 @@ export default function Sidebar({
     <>
       <aside
         onMouseLeave={onMouseLeave}
-        className={`fixed flex flex-col z-[100] transition-all duration-300 ease-in-out hidden md:flex antialiased tracking-tight
+        className={`fixed flex flex-col z-[90] transition-all duration-300 ease-in-out hidden md:flex antialiased tracking-tight
           ${isDark ? "bg-[#1A1A1A]" : "bg-white"}
           ${open
             /* Pinned open: flush full height, no radius */
@@ -296,7 +296,7 @@ export default function Sidebar({
         {/* ── BOTTOM PROFILE + POPUP ── */}
         <div
           ref={menuRef}
-          className={`shrink-0 border-t px-3 py-2 relative ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}
+          className={`shrink-0 border-t px-3 pt-1 pb-2.5 relative bg-gradient-to-t from-[#C2A27A]/12 via-transparent to-transparent ${isDark ? "border-[#2E2E2E]" : "border-[#7D7D7D]/40"}`}
         >
           {/* Popup — opens upward */}
           {menuOpen && (

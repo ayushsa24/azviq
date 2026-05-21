@@ -28,6 +28,11 @@ export function buildDailyReportEmail({
     const targetMinutes = targetHours ? targetHours * 60 : null;
     const goalMet = targetMinutes ? totalMinutes >= targetMinutes : null;
 
+    // Filter out internal metadata keys (like __timer_state)
+    const cleanActivitiesSummary = Object.fromEntries(
+        Object.entries(activitiesSummary || {}).filter(([key]) => !key.startsWith("__"))
+    );
+
     const ACTIVITY_LABELS: Record<string, string> = {
         note: "Notes",
         pdf: "PDFs",
@@ -57,7 +62,7 @@ export function buildDailyReportEmail({
         revisions: "https://img.icons8.com/m_outlined/50/252525/repeat.png",
     };
 
-    const topActivity = Object.entries(activitiesSummary).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
+    const topActivity = Object.entries(cleanActivitiesSummary).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
     const topActivityLabel = topActivity ? (ACTIVITY_LABELS[topActivity[0]] || topActivity[0]) : null;
 
     const formatTime = (mins: number) => {
@@ -73,7 +78,7 @@ export function buildDailyReportEmail({
     const activityRows = ['personal_ai', 'ai_teacher', 'note', 'pdf', 'exercise', 'revision']
         .map(key => ({
             key,
-            mins: activitiesSummary[key] || 0,
+            mins: cleanActivitiesSummary[key] || 0,
             label: ACTIVITY_LABELS[key] || key,
             icon: ICON_MAP[key] || "https://img.icons8.com/m_outlined/50/252525/help.png"
         }))

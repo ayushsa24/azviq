@@ -340,10 +340,25 @@ function LoginForm() {
 
               <p className="text-center mt-6 lg:mt-8 text-sm opacity-70">
                 Don't have an account?{" "}
-                <Link href="/signup" className="font-bold underline cursor-pointer hover:text-[#C2A27A] hover:opacity-100 transition-all">
+                <Link
+                  href={callbackUrl !== "/dashboard" ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"}
+                  className="font-bold underline cursor-pointer hover:text-[#C2A27A] hover:opacity-100 transition-all"
+                >
                   Sign up now
                 </Link>
               </p>
+
+              <div className="mt-6 flex justify-center">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium opacity-40 hover:opacity-80 transition-opacity group"
+                >
+                  <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  What is Azviq?
+                </Link>
+              </div>
             </>
           ) : (
             <div className="py-4 mt-4 lg:mt-0">

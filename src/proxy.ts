@@ -90,16 +90,17 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
 
 export const config = {
     matcher: [
-        "/",
+        // Protected app routes — must be logged in
         "/dashboard",
         "/dashboard/:path*",
         "/library/:path*",
         "/ai/:path*",
         "/tasks/:path*",
         "/settings/:path*",
-        "/onboarding/:path*",
-        "/api/:path*", // Added standard APIs to the middleware matcher so they get rate limited
-        // Share pages are public — they must NOT be in the auth matcher
-        // so they are intentionally excluded here
+        "/preparation/:path*",
+        "/profile/:path*",
+        "/api/:path*",
+        // NOTE: / (root), /login, /signup, /share are intentionally excluded
+        // They are public pages and must NOT go through auth middleware
     ],
 };

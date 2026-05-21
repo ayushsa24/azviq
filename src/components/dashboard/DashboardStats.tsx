@@ -27,6 +27,7 @@ export default function DashboardStats() {
 
     const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR('/api/tasks');
     const { data: suggestionData, isLoading: suggestionLoading, mutate: mutateSuggestions } = useSWR('/api/suggestions');
+    const { data: pcData } = useSWR('/api/parent-control');
 
     const isLoadingTasks = tasksLoading && !tasksData;
     const isLoadingSuggestions = suggestionLoading && !suggestionData;
@@ -88,6 +89,32 @@ export default function DashboardStats() {
         }
     }, []);
 
+    // Sync database daily study target hours automatically (only once per day at the start of the day)
+    useEffect(() => {
+        const syncTarget = () => {
+            if (pcData?.entries && pcData.entries.length > 0) {
+                const dbTargetHours = pcData.entries[0].daily_target_hours;
+                const today = getTodayString();
+                const targetMins = dbTargetHours !== null && dbTargetHours !== undefined ? dbTargetHours * 60 : null;
+
+                setStudyData(prev => {
+                    const updated = { ...prev, date: today, targetMinutes: targetMins };
+                    localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
+                    return updated;
+                });
+                localStorage.setItem("dashboard_study_target_synced_date", today);
+            }
+        };
+
+        const today = getTodayString();
+        const lastSyncedDate = localStorage.getItem("dashboard_study_target_synced_date");
+
+        // Sync automatically if it's a new day
+        if (lastSyncedDate !== today) {
+            syncTarget();
+        }
+    }, [pcData]);
+
     useEffect(() => {
         setIsActive(localStorage.getItem('study_timer_active') === 'true');
 
@@ -110,6 +137,17 @@ export default function DashboardStats() {
         };
     }, [isActive]);
 
+    // Keep goalInput state in sync with studyData.targetMinutes
+    useEffect(() => {
+        if (studyData.targetMinutes !== null && studyData.targetMinutes !== undefined) {
+            const h = Math.floor(studyData.targetMinutes / 60);
+            const m = studyData.targetMinutes % 60;
+            setGoalInput(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+        } else {
+            setGoalInput("00:00");
+        }
+    }, [studyData.targetMinutes]);
+
     useEffect(() => {
         if (showPicker) {
             document.body.style.overflow = 'hidden';
@@ -127,7 +165,7 @@ export default function DashboardStats() {
             const [hours, mins] = goalInput.split(':').map(Number);
             const totalMins = (hours || 0) * 60 + (mins || 0);
             if (totalMins > 0) {
-                const newData = { ...studyData, targetMinutes: totalMins };
+                const newData = { ...studyData, targetMinutes: totalMins, lastUpdated: new Date().toISOString() };
                 setStudyData(newData);
                 localStorage.setItem("dashboard_study_data", JSON.stringify(newData));
                 setIsActive(true);
@@ -137,19 +175,43 @@ export default function DashboardStats() {
         } else {
             const nextActive = !isActive;
             setIsActive(nextActive);
+            const newData = { ...studyData, lastUpdated: new Date().toISOString() };
+            setStudyData(newData);
+            localStorage.setItem("dashboard_study_data", JSON.stringify(newData));
             localStorage.setItem('study_timer_active', nextActive ? 'true' : 'false');
             window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: nextActive } }));
         }
     };
 
-    const handleResetGoal = () => {
-        const reset = { date: getTodayString(), elapsedSeconds: 0, targetMinutes: null };
+    const handleResetGoal = async () => {
+        const reset = { date: getTodayString(), elapsedSeconds: 0, targetMinutes: null, lastUpdated: new Date().toISOString() };
         setStudyData(reset);
         setIsActive(false);
         setGoalInput("00:00");
         localStorage.setItem("dashboard_study_data", JSON.stringify(reset));
         localStorage.setItem('study_timer_active', 'false');
+        
+        // Dispatch events so other components/tabs/AppShell receive the updates
         window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: false } }));
+        window.dispatchEvent(new CustomEvent('study-timer-tick', { detail: { studyData: reset, isActive: false } }));
+        
+        // Sync reset state to database immediately
+        try {
+            await fetch("/api/study/timer", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    date: reset.date,
+                    timerState: {
+                        elapsedSeconds: 0,
+                        targetMinutes: null,
+                        isActive: false
+                    }
+                })
+            });
+        } catch (e) {
+            console.error("Failed to sync timer state on reset:", e);
+        }
     };
 
     const openPicker = () => {
@@ -188,9 +250,9 @@ export default function DashboardStats() {
                 ? "hover:bg-white/5 hover:border-[#444]"
                 : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
                 } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col pt-3.5 px-3.5 pb-2.5 min-h-[110px] sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:min-h-[88px]`}>
-                <p className="text-xs sm:text-sm font-semibold text-[#545454] dark:text-[#BABABA] sm:hidden mb-1">Study Time Today</p>
+                <p className="text-xs sm:text-sm font-semibold text-[#545454] dark:text-[#BABABA] sm:hidden mb-1">Daily Study Target</p>
                 <div className="hidden sm:block flex-1 sm:pr-2">
-                    <p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Study Time Today</p>
+                    <p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Daily Study Target</p>
                     <div className="flex items-center mt-1">
                         {studyData.targetMinutes === null ? (
                             <div className="text-[1.65rem] font-bold text-[#252525] dark:text-white cursor-pointer select-none tracking-wider" onClick={openPicker}>
@@ -352,8 +414,37 @@ export default function DashboardStats() {
                             </div>
                         </div>
                         <button 
-                            onClick={() => {
-                                setGoalInput(`${(pickerHours || 0).toString().padStart(2, '0')}:${(pickerMins || 0).toString().padStart(2, '0')}`);
+                            onClick={async () => {
+                                const totalMins = (pickerHours || 0) * 60 + (pickerMins || 0);
+                                const formatted = `${(pickerHours || 0).toString().padStart(2, '0')}:${(pickerMins || 0).toString().padStart(2, '0')}`;
+                                setGoalInput(formatted);
+                                
+                                const today = getTodayString();
+                                const newData = { ...studyData, date: today, targetMinutes: totalMins > 0 ? totalMins : null, lastUpdated: new Date().toISOString() };
+                                setStudyData(newData);
+                                localStorage.setItem("dashboard_study_data", JSON.stringify(newData));
+                                
+                                // Dispatch tick event to notify other parts of application
+                                window.dispatchEvent(new CustomEvent('study-timer-tick', { detail: { studyData: newData, isActive: isActive } }));
+                                
+                                // Sync new target state to database immediately
+                                try {
+                                    await fetch("/api/study/timer", {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                            date: today,
+                                            timerState: {
+                                                elapsedSeconds: newData.elapsedSeconds,
+                                                targetMinutes: newData.targetMinutes,
+                                                isActive: isActive
+                                            }
+                                        })
+                                    });
+                                } catch (e) {
+                                    console.error("Failed to sync timer state on set goal:", e);
+                                }
+                                
                                 setShowPicker(false);
                             }}
                             className="mt-6 w-full py-3.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] rounded-2xl font-bold text-[15px] hover:opacity-90 active:scale-[0.98] transition-all relative z-10"

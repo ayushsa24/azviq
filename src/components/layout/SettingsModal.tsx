@@ -43,7 +43,8 @@ import {
   Lock,
   Save,
   CheckCircle2,
-  Crown
+  Crown,
+  ChevronDown
 } from "lucide-react";
 import { SharedLinksModal } from "./SharedLinksModal";
 import { ImportersModal } from "../modals/ImportersModal";
@@ -426,10 +427,25 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [localReportTime, setLocalReportTime] = useState("20:00");
   const [isCustomTime, setIsCustomTime] = useState(false);
 
+  // Custom dropdown for Daily Target in settings
+  const [isTargetDropdownOpen, setIsTargetDropdownOpen] = useState(false);
+  const targetDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close daily target dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (targetDropdownRef.current && !targetDropdownRef.current.contains(event.target as Node)) {
+        setIsTargetDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (pcSettings) {
       const target = pcSettings.daily_target_hours;
-      const presets = ["1", "3", "5", "8"];
+      const presets = ["1", "2", "4", "6", "8"];
       if (target === null) {
         setLocalTarget("unlimited");
       } else if (presets.includes(String(target))) {
@@ -1395,10 +1411,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
                   {/* Existing emails */}
                   <div className="flex flex-col gap-2">
-                    {pcEntries.length === 0 && (
+                    {pcEntries.filter(entry => entry.family_email !== "").length === 0 && (
                       <p className="text-xs text-[#BABABA] dark:text-[#545454] py-2 text-center">No family members added yet</p>
                     )}
-                    {pcEntries.map((entry) => (
+                    {pcEntries.filter(entry => entry.family_email !== "").map((entry) => (
                       <div
                         key={entry.id}
                         className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${isDark ? "bg-[#252525] border-[#3A3A3A]" : "bg-[#F7F7F8] border-[#E8E5E0]"
@@ -1419,7 +1435,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   </div>
 
                   {/* Add email input */}
-                  {pcEntries.length < 5 && (
+                  {pcEntries.filter(entry => entry.family_email !== "").length < 5 && (
                     <div className="flex flex-col gap-1.5">
                       <div className="flex gap-2">
                         <input
@@ -1471,33 +1487,75 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                   </div>
 
                   {/* Daily Study Target */}
-                  <div className="flex flex-col gap-2 pb-6 border-b border-[#E8E5E0] dark:border-[#3A3A3A]">
+                  <div className="flex flex-col gap-2 pb-6 border-b border-[#E8E5E0] dark:border-[#3A3A3A]" ref={targetDropdownRef}>
                     <h3 className="text-sm font-semibold">Daily Study Target</h3>
                     <p className="text-xs text-[#7D7D7D] mb-1">Set a minimum study time for your child — tracked in the Study Consistency graph</p>
                     <div className="relative">
                       {localTarget !== "custom" ? (
-                        <select
-                          value={localTarget}
-                          onChange={(e) => {
-                            setLocalTarget(e.target.value);
-                            if (e.target.value !== "custom") {
-                              const t = e.target.value === "unlimited" ? null : parseFloat(e.target.value);
-                              handleSaveParentSettings(t);
-                            }
-                          }}
-                          className={`w-full p-3 rounded-xl border text-sm transition-all appearance-none outline-none cursor-pointer
-                            ${isDark
-                              ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]"
-                              : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
-                          `}
-                        >
-                          <option value="unlimited">No target set</option>
-                          <option value="1">1 Hour</option>
-                          <option value="3">3 Hours</option>
-                          <option value="5">5 Hours</option>
-                          <option value="8">8 Hours</option>
-                          <option value="custom">Custom Goal</option>
-                        </select>
+                        <div className="relative">
+                          {/* Trigger button */}
+                          <button
+                            type="button"
+                            onClick={() => setIsTargetDropdownOpen(!isTargetDropdownOpen)}
+                            className={`w-full p-3 rounded-xl border text-sm transition-all flex items-center justify-between text-left outline-none
+                              ${isDark
+                                ? "bg-[#252525] border-[#3A3A3A] text-white hover:border-[#545454]"
+                                : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] hover:border-[#D1D1D1]"}
+                            `}
+                          >
+                            <span>
+                              {localTarget === "unlimited" ? "No target set" :
+                               localTarget === "1" ? "1 hrs/day" :
+                               localTarget === "2" ? "2 hrs/day" :
+                               localTarget === "4" ? "4 hrs/day" :
+                               localTarget === "6" ? "6 hrs/day" :
+                               localTarget === "8" ? "8 hrs/day" : "No target set"}
+                            </span>
+                            <ChevronDown className={`w-4 h-4 text-[#7D7D7D] transition-transform duration-200 ${isTargetDropdownOpen ? "rotate-180" : ""}`} />
+                          </button>
+
+                          {/* Floating Dropdown list */}
+                          {isTargetDropdownOpen && (
+                            <div className={`absolute left-0 right-0 top-full mt-1.5 backdrop-blur-md border rounded-2xl shadow-xl z-[100] p-1.5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150
+                              ${isDark
+                                ? "bg-[#1c1c1c]/95 border-[#3A3A3A]"
+                                : "bg-white/95 border-[#E8E5E0]"}
+                            `}>
+                              {[
+                                { value: "unlimited", label: "No target set" },
+                                { value: "1", label: "1 hrs/day" },
+                                { value: "2", label: "2 hrs/day" },
+                                { value: "4", label: "4 hrs/day" },
+                                { value: "6", label: "6 hrs/day" },
+                                { value: "8", label: "8 hrs/day" },
+                                { value: "custom", label: "Custom Goal..." },
+                              ].map((opt) => (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setLocalTarget(opt.value);
+                                    setIsTargetDropdownOpen(false);
+                                    if (opt.value !== "custom") {
+                                      const t = opt.value === "unlimited" ? null : parseFloat(opt.value);
+                                      handleSaveParentSettings(t);
+                                    }
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
+                                    localTarget === opt.value
+                                      ? "bg-[#C2A27A]/10 dark:bg-[#C2A27A]/20 text-[#C2A27A]"
+                                      : isDark
+                                        ? "text-[#BABABA] hover:bg-white/5 hover:text-white"
+                                        : "text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"
+                                  }`}
+                                >
+                                  <span>{opt.label}</span>
+                                  {localTarget === opt.value && <Check className="w-3.5 h-3.5" />}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <div className="flex items-stretch gap-6 sm:gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
                           <div className="flex-1 min-w-0 relative">
