@@ -513,7 +513,7 @@ export function ProjectDetailModal({
                         </div>
 
                         {/* Tasks Content */}
-                        <div className="px-4 sm:px-10 flex-1 sm:flex-initial pb-6 custom-scrollbar">
+                        <div className="px-4 sm:px-10 pb-6">
                             {/* Tasks Header - sticky so it pins when scrolled to */}
                             <div className="sticky top-0 z-10 mb-4 flex items-center justify-between pt-2 pb-2 bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F]">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b-[3px] border-black dark:border-white pb-1 inline-block">Tasks</h2>
@@ -529,7 +529,7 @@ export function ProjectDetailModal({
                                 </button>
                             </div>
 
-                            <div className="bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] min-h-[300px] overflow-x-auto overscroll-behavior-x-contain pb-4 scrollbar-hide">
+                            <div className="bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] min-h-[150px] overflow-x-auto overscroll-behavior-x-contain pb-4 scrollbar-hide">
                                 <div className="flex gap-4 min-w-max px-1">
                                     {["not_started", "in_progress", "in_review", "done", "archived"].map((status) => (
                                         <div
@@ -576,18 +576,55 @@ export function ProjectDetailModal({
                                                         </Link>
                                                     )}
                                                     {openMenuId === t.id && (
-                                                        <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[11.25rem] context-menu" onClick={(e) => e.stopPropagation()}>
-                                                            <button onClick={() => handleToggleTaskPin(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><Pin className="w-4 h-4" />{t.is_pinned ? "Unpin" : "Pin"}</button>
-                                                            <button onClick={() => handleToggleTaskFavorite(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><Star className="w-4 h-4" />{t.is_favorite ? "Unfavorite" : "Favorite"}</button>
+                                                        <div className="absolute top-8 right-1 z-50 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl overflow-hidden min-w-[11.25rem] context-menu" onClick={(e) => e.stopPropagation()}>
+                                                            <button
+                                                                onClick={() => handleToggleTaskPin(t)}
+                                                                className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
+                                                            >
+                                                                <Pin className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
+                                                                {t.is_pinned ? "Unpin" : "Pin"}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleToggleTaskFavorite(t)}
+                                                                className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
+                                                            >
+                                                                <Star className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
+                                                                {t.is_favorite ? "Unfavorite" : "Favorite"}
+                                                            </button>
                                                             <div className="relative">
-                                                                <button onClick={() => setMoveMenuId(moveMenuId === t.id ? null : t.id)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"><MoveRight className="w-4 h-4" />Move to<span className="ml-auto text-gray-400">›</span></button>
+                                                                <button
+                                                                    onClick={() => setMoveMenuId(moveMenuId === t.id ? null : t.id)}
+                                                                    className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
+                                                                >
+                                                                    <MoveRight className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
+                                                                    Move to
+                                                                    <span className="ml-auto text-gray-400">›</span>
+                                                                </button>
                                                                 {moveMenuId === t.id && (
-                                                                    <div className="absolute left-full top-0 ml-1 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 min-w-[9.375rem]">
-                                                                        {["not_started", "in_progress", "in_review", "done", "archived"].filter(s => s !== status).map(s => <button key={s} onClick={() => handleMoveTaskStatus(t.id, s)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors capitalize">{s.replace("_", " ")}</button>)}
+                                                                    <div className="absolute left-full top-0 ml-1 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl overflow-hidden min-w-[9.375rem]">
+                                                                        {["not_started", "in_progress", "in_review", "done", "archived"]
+                                                                            .filter(s => s !== status)
+                                                                            .map(s => (
+                                                                                <button
+                                                                                    key={s}
+                                                                                    onClick={() => handleMoveTaskStatus(t.id, s)}
+                                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors capitalize"
+                                                                                >
+                                                                                    {s.replace("_", " ")}
+                                                                                </button>
+                                                                            ))
+                                                                        }
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            <div className="border-t border-gray-100 dark:border-[#444] my-1" /><button onClick={() => handleDeleteTask(t.id, t.title)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-4 h-4" />Move to Trash</button>
+                                                            <div className="border-t border-[#F0F0F0] dark:border-[#333333]" />
+                                                            <button
+                                                                onClick={() => handleDeleteTask(t.id, t.title)}
+                                                                className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
+                                                                Move to Trash
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>

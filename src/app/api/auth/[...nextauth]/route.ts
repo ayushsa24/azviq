@@ -12,22 +12,21 @@ const handler = async (req: Request, ctx: any) => {
 
       // Dynamically update cookie settings to match the request protocol
       const isHttps = proto === "https";
-      authOptions.useSecureCookies = isHttps;
-      if (isHttps) {
-        authOptions.cookies = {
-          sessionToken: {
-            name: `__Secure-next-auth.session-token`,
-            options: {
-              httpOnly: true,
-              sameSite: "lax",
-              path: "/",
-              secure: true,
-            },
+      const useSecurePrefix = isHttps && process.env.NODE_ENV === "production";
+      authOptions.useSecureCookies = useSecurePrefix;
+      authOptions.cookies = {
+        sessionToken: {
+          name: useSecurePrefix
+            ? `__Secure-next-auth.session-token`
+            : `next-auth.session-token`,
+          options: {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            secure: isHttps,
           },
-        };
-      } else {
-        authOptions.cookies = undefined;
-      }
+        },
+      };
     }
 
     return NextAuth(authOptions)(req, ctx);

@@ -6,6 +6,7 @@ import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, Trophy } from "lucide-rea
 import { useTheme } from "@/contexts/ThemeContext";
 import { useStudyTracker } from "@/hooks/useStudyTracker";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface Question {
     question: string;
@@ -96,8 +97,30 @@ export default function TakeExerciseModal({ isOpen, onClose, exercise, onComplet
         }
     };
 
+    const renderIcon = (title: string, size = 20) => {
+        const iconMatch = title.match(/^\[(\w+)\]/);
+        if (iconMatch && ICON_MAP[iconMatch[1]]) {
+            const IconComp = ICON_MAP[iconMatch[1]];
+            return <IconComp size={size} className="shrink-0" />;
+        }
+        return null;
+    };
+
+    const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
+
     return (
-        <Modal open={isOpen} onClose={onClose} title={isSubmitted ? "Results Review" : exercise.title}>
+        <Modal 
+            open={isOpen} 
+            onClose={onClose} 
+            title={
+                isSubmitted ? "Results Review" : (
+                    <div className="flex items-center gap-2 truncate">
+                        {renderIcon(exercise.title, 20)}
+                        <span className="truncate">{cleanTitle(exercise.title)}</span>
+                    </div>
+                )
+            }
+        >
             <div className={`py-3 ${isDark ? 'text-[#CFCFCF]' : 'text-[#252525]'}`}>
 
                 {/* Score Banner (shown when reviewing at Q1) */}

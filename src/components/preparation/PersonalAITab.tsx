@@ -436,9 +436,9 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
               transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
               className="flex-1 flex flex-col items-center justify-center p-10 text-center"
             >
-              <div className="w-10 h-10 border-4 border-[#C2A27A] border-t-transparent rounded-full animate-spin mb-4" />
-              <h3 className="text-sm font-semibold">Extracting Material</h3>
-              <p className={`text-xs mt-1 ${isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"}`}>
+              <div className="w-10 h-10 border-4 border-[#C2A27A] border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
+              <h3 className="text-sm font-semibold text-[#252525] dark:text-white">Extracting Material</h3>
+              <p className={`text-xs mt-1 max-w-xs mx-auto leading-relaxed ${isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"}`}>
                 Reading and preparing your document for the AI Teacher…
               </p>
             </motion.div>

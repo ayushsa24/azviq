@@ -172,7 +172,14 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                 {isList ? (
                                     <>
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isDark ? "bg-white/10" : "bg-[#F0EDE8]"} text-[#545454] dark:text-[#BABABA] group-hover:text-black dark:group-hover:text-white transition-colors`}>
-                                            <BookOpen className="w-5 h-5" />
+                                            {(() => {
+                                                const iconMatch = rev.title.match(/^\[(\w+)\]/);
+                                                if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                    const IconComp = ICON_MAP[iconMatch[1]];
+                                                    return <IconComp className="w-5 h-5" strokeWidth={1.5} />;
+                                                }
+                                                return <BookOpen className="w-5 h-5" />;
+                                            })()}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h3 className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] group-hover:text-black dark:group-hover:text-white transition-colors truncate flex items-center gap-1.5">
@@ -215,7 +222,14 @@ export default function RevisionTab({ search = "", onNeedCreate, refreshKey, onO
                                         {/* Center Icon */}
                                         <div className="flex-1 flex items-center justify-center py-1 overflow-hidden">
                                             <div className="relative">
-                                                <BookOpen className="w-10 h-10 text-[#545454] dark:text-[#7D7D7D] group-hover:text-black dark:group-hover:text-white transition-all duration-300 transform group-hover:scale-110" strokeWidth={1.5} />
+                                                {(() => {
+                                                    const iconMatch = rev.title.match(/^\[(\w+)\]/);
+                                                    if (iconMatch && ICON_MAP[iconMatch[1]]) {
+                                                        const IconComp = ICON_MAP[iconMatch[1]];
+                                                        return <IconComp className="w-10 h-10 text-[#545454] dark:text-[#7D7D7D] group-hover:text-black dark:group-hover:text-white transition-all duration-300 transform group-hover:scale-110" strokeWidth={1.5} />;
+                                                    }
+                                                    return <BookOpen className="w-10 h-10 text-[#545454] dark:text-[#7D7D7D] group-hover:text-black dark:group-hover:text-white transition-all duration-300 transform group-hover:scale-110" strokeWidth={1.5} />;
+                                                })()}
                                             </div>
                                         </div>
 

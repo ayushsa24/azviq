@@ -512,6 +512,45 @@ pre::-webkit-scrollbar,
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+/* Always-visible scrollbar (note page) — never auto-hides on focus loss or OS overlay */
+.scrollbar-always {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.dark .scrollbar-always {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.scrollbar-always::-webkit-scrollbar {
+  width: 5px;
+  display: block;
+}
+
+.scrollbar-always::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-always::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+  min-height: 30px;
+}
+
+.scrollbar-always::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.28);
+}
+
+.dark .scrollbar-always::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark .scrollbar-always::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
 /* Show scrollbar on hover for desktop */
 @media (hover: hover) {
 

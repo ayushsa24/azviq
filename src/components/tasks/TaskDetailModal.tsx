@@ -396,7 +396,7 @@ export function TaskDetailModal({
                                                 </div>
                                             </div>
                                             
-                                            <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
+                                            <div className="overflow-y-auto flex-1 custom-scrollbar">
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -404,7 +404,7 @@ export function TaskDetailModal({
                                                         setIsMaterialDropdownOpen(false);
                                                         setMaterialSearchQuery("");
                                                     }}
-                                                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between mb-1 ${!localTask.linked_document_id ? "bg-gray-100 dark:bg-[#333] text-black dark:text-white" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3A3A3A]"}`}
+                                                    className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${!localTask.linked_document_id ? "bg-[#F0EDE8] dark:bg-[#333] text-black dark:text-white" : "text-gray-700 dark:text-gray-300 hover:bg-[#F0EDE8] dark:hover:bg-[#333]"}`}
                                                 >
                                                     Empty
                                                     {!localTask.linked_document_id && <Check className="w-4 h-4" />}
@@ -423,7 +423,7 @@ export function TaskDetailModal({
                                                                 setIsMaterialDropdownOpen(false);
                                                                 setMaterialSearchQuery("");
                                                             }}
-                                                            className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between mt-0.5 ${isSelected ? "bg-gray-100 dark:bg-[#333] text-black dark:text-white font-medium" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3A3A3A]"}`}
+                                                            className={`group/btn w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between border-t border-[#F0F0F0] dark:border-[#333333] ${isSelected ? "bg-[#F0EDE8] dark:bg-[#333] text-black dark:text-white font-medium" : "text-gray-700 dark:text-gray-300 hover:bg-[#F0EDE8] dark:hover:bg-[#333]"}`}
                                                         >
                                                             <div className="flex flex-col min-w-0 pr-2">
                                                                 <span className="truncate flex items-center gap-2">
@@ -433,7 +433,7 @@ export function TaskDetailModal({
                                                                         const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (n.file_url ? FileIcon : FileText);
                                                                         return (
                                                                             <>
-                                                                                {IconComp && <IconComp size={14} className="opacity-60 shrink-0" />}
+                                                                                {IconComp && <IconComp size={14} className="opacity-60 shrink-0 transition-transform duration-200 group-hover/btn:scale-110" />}
                                                                                 {cleanTitle}
                                                                             </>
                                                                         );

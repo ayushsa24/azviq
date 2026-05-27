@@ -144,18 +144,17 @@ export const authOptions: NextAuthOptions = {
   },
 
   // ⚠️ DO NOT REMOVE — This is required for both localhost AND Cloudflare tunnel login to work.
-  // Localhost (http://):  useSecureCookies=false, no __Secure- prefix → plain cookie, works on HTTP
-  // Cloudflare (https://): useSecureCookies=true, __Secure- prefix + sameSite:none → works on HTTPS
-  useSecureCookies: process.env.NODE_ENV === "production" || process.env.NEXTAUTH_URL?.startsWith("https://"),
+  // In production, enforce __Secure- prefix. In development, use a consistent name to avoid static/dynamic mismatch.
+  useSecureCookies: process.env.NODE_ENV === "production",
 
   cookies: {
     sessionToken: {
-      name: (process.env.NODE_ENV === "production" || process.env.NEXTAUTH_URL?.startsWith("https://"))
+      name: process.env.NODE_ENV === "production"
         ? `__Secure-next-auth.session-token`
         : `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: "lax", // Standard for same-domain, but Cloudflare proxy needs lax or none
+        sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production" || process.env.NEXTAUTH_URL?.startsWith("https://"),
       },

@@ -8,21 +8,27 @@ type DialogType = "confirm" | "alert" | "info" | "success" | "error" | "warning"
 
 interface DialogConfig {
   title?: string;
-  message: string;
+  message: React.ReactNode;
   type?: DialogType;
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
 }
 
-interface DialogState extends DialogConfig {
+interface DialogState {
+  title?: string;
+  message: React.ReactNode;
+  type?: DialogType;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
   open: boolean;
   resolve?: (value: boolean) => void;
 }
 
 interface DialogContextValue {
   showConfirm: (config: DialogConfig) => Promise<boolean>;
-  showAlert: (message: string, type?: DialogType, title?: string) => Promise<void>;
+  showAlert: (message: React.ReactNode, type?: DialogType, title?: string) => Promise<void>;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -40,13 +46,14 @@ let _showAlertGlobal: DialogContextValue["showAlert"] | null = null;
 
 export async function showConfirmDialog(config: DialogConfig): Promise<boolean> {
   if (_showConfirmGlobal) return _showConfirmGlobal(config);
-  // Fallback to browser dialog if provider not mounted
-  return window.confirm(config.message);
+  const textMessage = typeof config.message === "string" ? config.message : "Are you sure?";
+  return window.confirm(textMessage);
 }
 
-export async function showAlertDialog(message: string, type?: DialogType, title?: string): Promise<void> {
+export async function showAlertDialog(message: React.ReactNode, type?: DialogType, title?: string): Promise<void> {
   if (_showAlertGlobal) return _showAlertGlobal(message, type, title);
-  window.alert(message);
+  const textMessage = typeof message === "string" ? message : "Notice";
+  window.alert(textMessage);
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -61,7 +68,7 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const showAlert = useCallback((message: string, type: DialogType = "info", title?: string): Promise<void> => {
+  const showAlert = useCallback((message: React.ReactNode, type: DialogType = "info", title?: string): Promise<void> => {
     return new Promise((resolve) => {
       resolveRef.current = (v: boolean) => resolve();
       setState({

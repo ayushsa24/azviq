@@ -693,7 +693,7 @@ export default function TasksPage() {
                             const x = e.clientX;
                             const y = e.clientY;
                             const menuWidth = 140;
-                            const menuHeight = 160;
+                            const menuHeight = 120;
                             
                             let top = y + 8;
                             let left = x - menuWidth + 20; // Position menu so its right side is near the click
@@ -871,7 +871,7 @@ export default function TasksPage() {
                                     const x = e.clientX;
                                     const y = e.clientY;
                                     const menuWidth = 140;
-                                    const menuHeight = 220;
+                                    const menuHeight = 155;
                                     
                                     let top = y + 8;
                                     let left = x - menuWidth + 20;
@@ -1119,7 +1119,7 @@ export default function TasksPage() {
         return (
           <div
             ref={menuRef}
-            className="fixed z-[9999] bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#545454] rounded-xl shadow-2xl py-1 min-w-[140px] context-menu"
+            className="fixed z-[9999] bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#545454] rounded-xl shadow-2xl overflow-hidden min-w-[140px] context-menu"
             style={{
               top: menuPosition.top,
               left: menuPosition.left,
@@ -1128,28 +1128,43 @@ export default function TasksPage() {
           >
             {p ? (
               <>
-                <button onClick={() => handleToggleProjectPin(p)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
-                  <Pin className="w-4 h-4" />
+                <button
+                  onClick={() => handleToggleProjectPin(p)}
+                  className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
+                >
+                  <Pin className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
                   {p.is_pinned ? "Unpin" : "Pin"}
                 </button>
-                <button onClick={() => handleToggleProjectFavorite(p)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
-                  <Star className="w-4 h-4" />
+                <button
+                  onClick={() => handleToggleProjectFavorite(p)}
+                  className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
+                >
+                  <Star className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
                   {p.is_favorite ? "Unfavorite" : "Favorite"}
                 </button>
-                <div className="border-t border-gray-100 dark:border-[#444] my-1" />
-                <button onClick={() => handleDeleteProject(p.id, p.name)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                  <Trash2 className="w-4 h-4" />
+                <div className="border-t border-[#F0F0F0] dark:border-[#333333]" />
+                <button
+                  onClick={() => handleDeleteProject(p.id, p.name)}
+                  className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
                   Move to Trash
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => handleToggleTaskPin(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
-                  <Pin className="w-4 h-4" />
+                <button
+                  onClick={() => handleToggleTaskPin(t)}
+                  className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
+                >
+                  <Pin className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
                   {t.is_pinned ? "Unpin" : "Pin"}
                 </button>
-                <button onClick={() => handleToggleTaskFavorite(t)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors">
-                  <Star className="w-4 h-4" />
+                <button
+                  onClick={() => handleToggleTaskFavorite(t)}
+                  className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
+                >
+                  <Star className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
                   {t.is_favorite ? "Unfavorite" : "Favorite"}
                 </button>
                 <div className="relative">
@@ -1158,9 +1173,9 @@ export default function TasksPage() {
                       e.stopPropagation();
                       setMoveMenuId(moveMenuId === t.id ? null : t.id);
                     }}
-                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors ${moveMenuId === t.id ? 'bg-gray-50 dark:bg-[#333]' : ''}`}
+                    className={`group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors ${moveMenuId === t.id ? 'bg-[#F0EDE8] dark:bg-[#333]' : ''}`}
                   >
-                    <MoveRight className="w-4 h-4" />
+                    <MoveRight className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
                     Move to
                     <ChevronDown className={`w-3.5 h-3.5 ml-auto text-gray-400 transition-transform duration-200 md:hidden ${moveMenuId === t.id ? "rotate-180" : ""}`} />
                     <span className="ml-auto text-gray-400 hidden md:inline">›</span>
@@ -1175,7 +1190,7 @@ export default function TasksPage() {
                           <button
                             key={s}
                             onClick={() => handleMoveTaskStatus(t.id, s)}
-                            className="flex items-center gap-2 w-full px-4 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#333] transition-colors capitalize"
+                            className="flex items-center gap-2 w-full px-4 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors capitalize"
                           >
                             <div className={`w-1.5 h-1.5 rounded-full ${
                               s === "done" ? "bg-green-500" : 
@@ -1198,7 +1213,7 @@ export default function TasksPage() {
                     return (
                       <div
                         className={`hidden md:block absolute top-0 z-[10000] ${showOnRight ? "left-full ml-2" : "right-full mr-2"
-                          } bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-2xl py-1 animate-in ${showOnRight ? "slide-in-from-left-2" : "slide-in-from-right-2"
+                          } bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-2xl overflow-hidden animate-in ${showOnRight ? "slide-in-from-left-2" : "slide-in-from-right-2"
                           } duration-200`}
                         style={{ minWidth: `${subMenuWidth}px` }}
                       >
@@ -1211,7 +1226,7 @@ export default function TasksPage() {
                             <button
                               key={s}
                               onClick={() => handleMoveTaskStatus(t.id, s)}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors capitalize"
+                              className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors capitalize"
                             >
                               <div className={`w-1.5 h-1.5 rounded-full ${
                                 s === "done" ? "bg-green-500" : 
@@ -1226,9 +1241,12 @@ export default function TasksPage() {
                     );
                   })()}
                 </div>
-                <div className="border-t border-gray-100 dark:border-[#444] my-1" />
-                <button onClick={() => handleDeleteTask(t.id, t.title)} className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                  <Trash2 className="w-4 h-4" />
+                <div className="border-t border-[#F0F0F0] dark:border-[#333333]" />
+                <button
+                  onClick={() => handleDeleteTask(t.id, t.title)}
+                  className="group/btn flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 transition-transform duration-200 group-hover/btn:scale-110" />
                   Move to Trash
                 </button>
               </>

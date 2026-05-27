@@ -16,6 +16,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 function applyTheme(theme: Theme, pathname: string | null = null) {
   const root = document.documentElement;
 
+  // Force light mode on the landing page (/)
+  const targetTheme = pathname === "/" ? "light" : theme;
+
   // Temporarily disable all transitions so the class-swap is instantaneous
   const style = document.createElement("style");
   style.id = "__theme-transition-disable";
@@ -33,14 +36,13 @@ function applyTheme(theme: Theme, pathname: string | null = null) {
     document.head.appendChild(themeMeta);
   }
 
-  if (theme === "dark") {
+  if (targetTheme === "dark") {
     root.classList.add("dark");
     root.style.backgroundColor = "#1A1A1A";
     // Update all theme-color tags (including media-query ones) for Brave
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', '#1A1A1A'));
   } else {
     root.classList.remove("dark");
-    root.style.backgroundColor = "#F5F3EF";
     const isWhiteHeader = 
       pathname?.includes("/library/note/") || 
       pathname?.includes("/library/pdf/") ||
@@ -49,7 +51,10 @@ function applyTheme(theme: Theme, pathname: string | null = null) {
       pathname?.includes("/preparation/personal-ai/") ||
       pathname === "/ai" || 
       pathname?.startsWith("/ai/");
-    const lightColor = isWhiteHeader ? "#FFFFFF" : "#F5F3EF";
+    
+    // For landing page, use its exact light background color #F4F4F6
+    const lightColor = pathname === "/" ? "#F4F4F6" : (isWhiteHeader ? "#FFFFFF" : "#F5F3EF");
+    root.style.backgroundColor = lightColor;
     // Update all theme-color tags for Brave + the media-query light one
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', lightColor));
   }

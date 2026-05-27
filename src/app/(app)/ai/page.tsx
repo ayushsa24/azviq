@@ -2557,6 +2557,23 @@ function AiChatCore() {
         const formatDate = (iso: string) => {
           if (!iso) return "";
           const date = new Date(iso);
+          const now = new Date();
+          const diffMs = now.getTime() - date.getTime();
+          const diffMins = Math.floor(diffMs / (1000 * 60));
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+          if (diffMins < 1) {
+            return "Just now";
+          }
+          if (diffMins < 60) {
+            return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+          }
+          if (diffHours < 24) {
+            return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+          }
+          if (diffHours < 48) {
+            return "Yesterday";
+          }
           return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
         };
 
@@ -2573,33 +2590,37 @@ function AiChatCore() {
               : "bg-white border-gray-200 shadow-xl"
               } ${menuPosition?.openUp ? "origin-bottom-right" : "origin-top-right"}`}
           >
-            <div className={`px-2.5 py-1.5 border-b flex items-center gap-2 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#444]" : "border-gray-200"}`}>
+            {/* Header */}
+            <div className={`px-3 py-1.5 border-b flex items-center gap-2 opacity-50 text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[#444]" : "border-gray-200"}`}>
               <Clock size={12} />
               {formatDate(session.created_at)}
             </div>
+
+            {/* Share */}
             <button
               onClick={async (e) => {
                 e.stopPropagation();
                 await handleShareChat(session);
               }}
               disabled={sharingChatId === session.id}
-              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"}`}
+              className={`group/btn w-full px-3 py-2 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-[#F0EDE8]"}`}
             >
               {sharingChatId === session.id
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin opacity-70" />
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin opacity-70 shrink-0" />
                 : sharedLinkCopied === session.id
-                  ? <Check className="w-3.5 h-3.5 text-green-500" />
-                  : <Share className="w-3.5 h-3.5 opacity-70" />
+                  ? <Check className="w-3.5 h-3.5 text-green-500 shrink-0 transition-transform group-hover/btn:scale-110" />
+                  : <Share className="w-3.5 h-3.5 opacity-70 shrink-0 transition-transform group-hover/btn:scale-110" />
               }
               {sharedLinkCopied === session.id ? "Link copied!" : "Share"}
             </button>
+
+            {/* Rename */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setIsRenamingId(session.id);
                 setRenameTitle(session.title);
                 setActiveMenuId(null);
-                // Auto-scroll on mobile
                 if (window.innerWidth < 768) {
                   setTimeout(() => {
                     document.getElementById(`session-item-${session.id}`)?.scrollIntoView({
@@ -2609,32 +2630,35 @@ function AiChatCore() {
                   }, 100);
                 }
               }}
-              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
-                }`}
+              className={`group/btn w-full px-3 py-2 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-[#F0EDE8]"}`}
             >
-              <Edit2 className="w-3.5 h-3.5 opacity-70" /> Rename
+              <Edit2 className="w-3.5 h-3.5 opacity-70 shrink-0 transition-transform group-hover/btn:scale-110" /> Rename
             </button>
+
+            {/* Pin / Unpin */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleTogglePin(session.id, !!session.is_pinned);
               }}
-              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
-                }`}
+              className={`group/btn w-full px-3 py-2 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-[#F0EDE8]"}`}
             >
-              <Pin className="w-3.5 h-3.5 opacity-70" />{" "}
+              <Pin className="w-3.5 h-3.5 opacity-70 shrink-0 transition-transform group-hover/btn:scale-110" />
               {session.is_pinned ? "Unpin chat" : "Pin chat"}
             </button>
+
+            {/* Archive */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleToggleArchive(session.id, !!session.is_archived);
               }}
-              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
-                }`}
+              className={`group/btn w-full px-3 py-2 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-[#F0EDE8]"}`}
             >
-              <Archive className="w-3.5 h-3.5 opacity-70" /> Archive
+              <Archive className="w-3.5 h-3.5 opacity-70 shrink-0 transition-transform group-hover/btn:scale-110" /> Archive
             </button>
+
+            {/* Chat Importers (conditional) */}
             {session.share_links && session.share_links.length > 0 && (
               <button
                 onClick={(e) => {
@@ -2642,24 +2666,27 @@ function AiChatCore() {
                   setImporterModalData({ id: session.id });
                   setActiveMenuId(null);
                 }}
-                className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-gray-50"
-                  }`}
+                className={`group/btn w-full px-3 py-2 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark" ? "hover:bg-[#333]" : "hover:bg-[#F0EDE8]"}`}
               >
-                <Users className="w-3.5 h-3.5 opacity-70" /> Chat Importers
+                <Users className="w-3.5 h-3.5 opacity-70 shrink-0 transition-transform group-hover/btn:scale-110" /> Chat Importers
               </button>
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();  
-                handleDelete(session.id, session.title);
-              }}
-              className={`w-full px-2.5 py-1.5 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark"
-                ? "text-red-400 hover:bg-[#333]"
-                : "text-red-600 hover:bg-gray-50"
-                }`}
-            >
-              <Trash2 className="w-3.5 h-3.5 opacity-70" /> Move to Trash
-            </button>
+
+            {/* Delete — separated by a thin border */}
+            <div className={`border-t ${theme === "dark" ? "border-[#444]" : "border-gray-100"}`}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(session.id, session.title);
+                }}
+                className={`group/btn w-full px-3 py-2 text-left flex items-center gap-2 transition-colors text-[13px] ${theme === "dark"
+                  ? "text-red-400 hover:bg-[#333]"
+                  : "text-red-600 hover:bg-red-50"
+                  }`}
+              >
+                <Trash2 className="w-3.5 h-3.5 opacity-70 shrink-0 transition-transform group-hover/btn:scale-110" /> Move to Trash
+              </button>
+            </div>
           </div>
         );
       })()}

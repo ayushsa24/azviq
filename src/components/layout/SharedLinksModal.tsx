@@ -425,9 +425,31 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                             <button
                               onClick={async () => {
                                 const isArchive = linksType === "archive";
+                                const rawTitle = link.title || 'Untitled';
+                                const iconMatch = rawTitle.match(/^\[(\w+)\]/);
+                                const hasCustomIcon = iconMatch && ICON_MAP[iconMatch[1]];
+                                const IconComp = hasCustomIcon ? ICON_MAP[iconMatch[1]] : null;
+                                
+                                const messageContent = (
+                                  <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                    Are you sure you want to delete &quot;
+                                    <span className="inline-flex items-center gap-1.5 font-semibold text-[#252525] dark:text-white">
+                                      {hasCustomIcon ? (
+                                        IconComp && <IconComp size={14} className="shrink-0" />
+                                      ) : link.file_url ? (
+                                        <FileIcon2 size={14} className="shrink-0 opacity-70" />
+                                      ) : (
+                                        <LinkIcon size={14} className="shrink-0 opacity-70" />
+                                      )}
+                                      {rawTitle.replace(/^\[\w+\]\s*/, "")}
+                                    </span>
+                                    &quot;? This action cannot be undone.
+                                  </span>
+                                );
+
                                 const confirmed = await dialog.showConfirm({
                                   title: isArchive ? "Delete Archive?" : "Delete Link?",
-                                  message: `Are you sure you want to delete "${link.title || 'Untitled'}"? This action cannot be undone.`,
+                                  message: messageContent,
                                   type: "error",
                                   confirmLabel: "Delete",
                                   cancelLabel: "Cancel"

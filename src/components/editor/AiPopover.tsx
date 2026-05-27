@@ -363,6 +363,7 @@ if (error) {
     return (
         <div
             className="flex flex-col md:w-[160px] w-full max-w-[calc(100vw-32px)] bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
+            style={{ contain: "layout style paint" }}
             onMouseDown={(e) => e.stopPropagation()}
         >
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-[#1A1A1A] border-b border-gray-200 dark:border-[#444]">
@@ -370,7 +371,7 @@ if (error) {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D] dark:text-[#BABABA]">AI Commands</span>
             </div>
 
-            <div className="p-1 flex flex-col gap-0.5 max-h-[60vh] overflow-y-auto custom-scrollbar scrollbar-compact">
+            <div className="p-1 flex flex-col gap-0.5 max-h-[260px] overflow-y-auto custom-scrollbar scrollbar-compact">
                 <>
                     <button
                         onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}

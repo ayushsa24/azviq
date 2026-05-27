@@ -338,8 +338,8 @@ export default function NoteEditorPage() {
                     const { head } = selection;
                     const coords = editor.view.coordsAtPos(head);
                     
-                    // The main scrollable container is the page itself with custom-scrollbar
-                    const scrollContainer = document.querySelector('.custom-scrollbar');
+                    // The main scrollable container is the page itself — identified by note-page-scroll class
+                    const scrollContainer = document.querySelector('.note-page-scroll');
                     if (!scrollContainer) return;
 
                     // Get the visible height (accounting for keyboard)
@@ -794,7 +794,7 @@ export default function NoteEditorPage() {
     }
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto custom-scrollbar bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors relative">
+        <div className="flex flex-col h-full scrollbar-always note-page-scroll bg-[#F5F3EF] dark:bg-[#1E1E1E] transition-colors relative">
 
             {/* Top Navigation Bar */}
             <div
@@ -897,34 +897,34 @@ export default function NoteEditorPage() {
                         </button>
 
                         {showMoreMenu && (
-                            <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden z-[60] py-1.5">
+                            <div className="absolute right-0 mt-4 w-max bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden z-[60]">
                                 {/* Share & Publish — Only for Original Owners */}
                                 {!note?.original_note_id && (
                                     <button
                                         onClick={handleShare}
-                                        className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
+                                        className="group flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
                                     >
-                                        <Share2 size={16} />
+                                        <Share2 size={16} className="transition-transform duration-200 group-hover:scale-110" />
                                         Share &amp; Publish
                                     </button>
                                 )}
                                 <button
                                     onClick={toggleSpellCheck}
-                                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
+                                    className="group flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors"
                                 >
-                                    <Languages size={16} className={spellCheckEnabled ? "text-green-500" : ""} />
+                                    <Languages size={16} className={`transition-transform duration-200 group-hover:scale-110 ${spellCheckEnabled ? "text-green-500" : ""}`} />
                                     Spell Check: {spellCheckEnabled ? "On" : "Off"}
                                 </button>
                                 {!isRevoked && (
                                     <button
                                         onClick={handleDownloadPdf}
                                         disabled={isDownloadingPdf}
-                                        className={`flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors disabled:opacity-50 ${!note?.original_note_id ? "border-t border-[#F0F0F0] dark:border-[#333333]" : ""}`}
+                                        className={`group flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors disabled:opacity-50 ${!note?.original_note_id ? "border-t border-[#F0F0F0] dark:border-[#333333]" : ""}`}
                                     >
                                         {isDownloadingPdf ? (
                                             <Loader2 size={16} className="animate-spin" />
                                         ) : (
-                                            <FileText size={16} />
+                                            <FileText size={16} className="transition-transform duration-200 group-hover:scale-110" />
                                         )}
                                         Download as PDF
                                     </button>
@@ -936,18 +936,18 @@ export default function NoteEditorPage() {
                                             setShowImporters(true);
                                             setShowMoreMenu(false);
                                         }}
-                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-gray-50 dark:hover:bg-[#333] transition-colors border-t border-[#F0F0F0] dark:border-[#333333]"
+                                        className="group w-full flex items-center gap-2.5 px-3 py-2 text-[15px] text-[#252525] dark:text-white hover:bg-[#F0EDE8] dark:hover:bg-[#333] transition-colors border-t border-[#F0F0F0] dark:border-[#333333]"
                                     >
-                                        <Users size={16} />
-                                        View Importers ({importers.length})
+                                        <Users size={16} className="shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                                        <span className="whitespace-nowrap">View Importers ({importers.length})</span>
                                     </button>
                                 )}
                                 <div className="h-px bg-[#F0F0F0] dark:bg-[#333333] mb-0.5 mt-0.5" />
                                 <button
                                     onClick={handleDelete}
-                                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                                    className="group flex items-center gap-2.5 w-full px-3 py-2 text-[15px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={16} className="transition-transform duration-200 group-hover:scale-110" />
                                     Move to Trash
                                 </button>
                             </div>

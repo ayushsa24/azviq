@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { History, ChevronDown, Clock, Search, Loader2, Trash2, Lock } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 interface Session {
   id: string;
@@ -22,7 +23,11 @@ interface Props {
 function parseSession(session: Session, allTrashedIds: string[] = []) {
   const TAG = "||ORIGINAL_NOTE_ID||";
   const isArchived = session.title.includes(TAG);
-  const cleanTitle = isArchived ? session.title.split(TAG)[0] : session.title;
+  const rawTitle = isArchived ? session.title.split(TAG)[0] : session.title;
+  
+  const iconMatch = rawTitle.match(/^\[(\w+)\]/);
+  const cleanTitle = rawTitle.replace(/^\[\w+\]\s*/, "");
+  const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : null;
   
   let status: "active" | "trashed" | "deleted" = "active";
   if (isArchived) {
@@ -31,7 +36,7 @@ function parseSession(session: Session, allTrashedIds: string[] = []) {
     status = allTrashedIds.includes(originalId) ? "trashed" : "deleted";
   }
   
-  return { cleanTitle, isArchived, status };
+  return { cleanTitle, isArchived, status, IconComp };
 }
 
 export default function SessionHistorySelector({ 
@@ -70,7 +75,11 @@ export default function SessionHistorySelector({
             : "bg-white border-[#E8E5E0] hover:bg-[#F0EDE8] text-[#252525]"
           }`}
       >
-        <History size={17} className={isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"} />
+        {selectedParsed?.IconComp ? (
+          <selectedParsed.IconComp size={17} className={isDark ? "text-white" : "text-[#252525]"} />
+        ) : (
+          <History size={17} className={isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"} />
+        )}
         <span className="text-[13px] font-semibold whitespace-nowrap hidden sm:inline">
           {selectedParsed ? selectedParsed.cleanTitle : "History"}
         </span>
@@ -118,7 +127,7 @@ export default function SessionHistorySelector({
               ) : (
                 <div className="p-1">
                   {filteredSessions.map((session) => {
-                    const { cleanTitle, isArchived, status } = parseSession(session, allTrashedIds);
+                    const { cleanTitle, isArchived, status, IconComp } = parseSession(session, allTrashedIds);
                     return (
                       <div
                         key={session.id}
@@ -132,12 +141,17 @@ export default function SessionHistorySelector({
                             : (isDark ? "hover:bg-[#252525] text-[#BABABA]" : "hover:bg-[#F0EDE8] text-[#545454]")
                           }`}
                       >
-                        <div className="flex flex-col gap-1 overflow-hidden">
-                          <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col gap-1 overflow-hidden min-w-0 pr-2">
+                          <div className="flex items-center gap-1.5 min-w-0 pr-2">
                             {isArchived && (
                               <span title={status === "trashed" ? "Read-only — note is in Trash" : "Read-only — note is permanently deleted"}>
                                 <Lock size={11} className={`${status === "trashed" ? "text-amber-500" : "text-red-500"} shrink-0`} />
                               </span>
+                            )}
+                            {IconComp ? (
+                              <IconComp size={14} className="shrink-0 text-gray-500 dark:text-gray-400" />
+                            ) : (
+                              <History size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />
                             )}
                             <span className="text-sm font-medium truncate">{cleanTitle || "Untitled Session"}</span>
                           </div>

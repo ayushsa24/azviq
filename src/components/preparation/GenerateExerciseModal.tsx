@@ -318,10 +318,16 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                         </div>
                         <div className={`w-full p-4 rounded-xl border text-left flex items-start gap-3 ${isDark ? 'bg-[#1A1A1A] border-[#333]' : 'bg-[#F5F3EF] border-[#E8E5E0]'}`}>
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-[#252525] border border-[#545454]' : 'bg-white border border-[#E8E5E0]'}`}>
-                                <FileText className="w-4 h-4 text-[#BABABA]" />
+                                {selectedNote ? (
+                                    renderIcon(selectedNote.title, selectedNote.file_url, 18)
+                                ) : (
+                                    <FileText className="w-[18px] h-[18px] text-[#BABABA]" />
+                                )}
                             </div>
-                            <div>
-                                <h4 className="font-semibold text-sm text-[#252525] dark:text-white">{selectedNote?.title || "Custom"} Quiz</h4>
+                            <div className="min-w-0 flex-1">
+                                <h4 className="font-semibold text-sm text-[#252525] dark:text-white truncate">
+                                    {selectedNote ? cleanTitle(selectedNote.title) : "Custom"} Quiz
+                                </h4>
                                 <p className="text-xs text-[#BABABA] mt-0.5">{createdExercise?.questions?.length || questionCount} Questions · Medium Difficulty</p>
                             </div>
                         </div>

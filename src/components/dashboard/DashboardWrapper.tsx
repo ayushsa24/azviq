@@ -46,9 +46,6 @@ export default function DashboardWrapper({ session }: { session: Session }) {
 
   return (
     <div className="flex flex-col h-full bg-transparent dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-[#252525] dark:text-white overflow-hidden transition-colors relative">
-      {/* Top Right Ambient Glow */}
-      <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-[radial-gradient(circle_at_top_right,rgba(194,162,122,0.18),transparent_65%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(194,162,122,0.12),transparent_60%)] pointer-events-none z-0" />
-      
       <div className="flex-1 w-full overflow-y-auto min-h-0 scrollbar-hide md:scrollbar-default relative">
         <div className="md:hidden sticky top-0 z-[100] w-full">
           <Header 

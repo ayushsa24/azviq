@@ -134,7 +134,7 @@ export default function UnifiedChatPanel({
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState("");
   const [voiceSupported, setVoiceSupported] = useState(true);
-  const [audioLevel, setAudioLevel]  = useState(0); // 0–1 for orb glow visualization
+  const [audioLevel, setAudioLevel] = useState(0); // 0–1 for orb glow visualization
   const [copiedCodeBlock, setCopiedCodeBlock] = useState<string | null>(null);
   const [thinkingIdx, setThinkingIdx] = useState(0);
   const justCreatedRef = useRef(false);
@@ -162,22 +162,22 @@ export default function UnifiedChatPanel({
   }, [isLoading, isStarting, isHistoryLoading]);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
-  const messagesEndRef   = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const textareaRef      = useRef<HTMLTextAreaElement>(null);
-  const abortRef         = useRef<AbortController | null>(null);
-  const synthRef         = useRef<SpeechSynthesis | null>(null);
-  const transcriptRef    = useRef("");
-  const modeRef          = useRef<Mode>(mode);
-  const messagesRef      = useRef<Message[]>([]); // always-fresh snapshot (avoids stale closures)
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const transcriptRef = useRef("");
+  const modeRef = useRef<Mode>(mode);
+  const messagesRef = useRef<Message[]>([]); // always-fresh snapshot (avoids stale closures)
   const isSwitchingFocus = useRef(false);
-  const savedScrollPos   = useRef(0);
+  const savedScrollPos = useRef(0);
   const [showScrollDown, setShowScrollDown] = useState(false);
   // MediaRecorder-based voice recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioStreamRef   = useRef<MediaStream | null>(null);
-  const audioChunksRef   = useRef<Blob[]>([]);
-  const animFrameRef     = useRef<number | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const animFrameRef = useRef<number | null>(null);
 
   // Keep modeRef and messagesRef in sync with latest state
   useEffect(() => { modeRef.current = mode; }, [mode]);
@@ -207,7 +207,7 @@ export default function UnifiedChatPanel({
     if (messagesEndRef.current && chatContainerRef.current) {
       const container = chatContainerRef.current;
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
-      
+
       if (isLoading || isNearBottom) {
         messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
       }
@@ -387,7 +387,7 @@ export default function UnifiedChatPanel({
       }
       // ─── Save Session ───────────────────────────────────────────────────────
       const finalMessages = [...conversationMessages, { role: "assistant", content: fullText }];
-        
+
       if (sessionId) {
         fetch(`/api/personal-ai/sessions/${sessionId}`, {
           method: "PATCH",
@@ -425,7 +425,7 @@ export default function UnifiedChatPanel({
   useEffect(() => {
     // If we have a sessionId, we are loading an existing session, do not auto-start
     if (sessionId) return;
-    
+
     setMessages([]);
     setIsStarting(true);
     setVoiceState("idle");
@@ -502,9 +502,9 @@ export default function UnifiedChatPanel({
       }
 
       const utterance = new SpeechSynthesisUtterance(sentences[index]);
-      utterance.lang   = effectiveLang === "hi" ? "hi-IN" : "en-US";
-      utterance.rate   = effectiveLang === "hi" ? 0.85 : 0.88;  // slightly slower = clearer
-      utterance.pitch  = effectiveLang === "hi" ? 1.0  : 0.92;  // lower pitch = authoritative male
+      utterance.lang = effectiveLang === "hi" ? "hi-IN" : "en-US";
+      utterance.rate = effectiveLang === "hi" ? 0.85 : 0.88;  // slightly slower = clearer
+      utterance.pitch = effectiveLang === "hi" ? 1.0 : 0.92;  // lower pitch = authoritative male
       utterance.volume = 1.0;
 
       // Apply best available voice (retry if voices not yet loaded)
@@ -518,7 +518,7 @@ export default function UnifiedChatPanel({
         window.speechSynthesis.addEventListener("voiceschanged", applyBestVoice, { once: true });
       }
 
-      utterance.onend   = () => speakNext(index + 1);
+      utterance.onend = () => speakNext(index + 1);
       utterance.onerror = () => { setVoiceState("idle"); onEnd?.(); };
 
       synthRef.current!.speak(utterance);
@@ -545,14 +545,14 @@ export default function UnifiedChatPanel({
 
       // ── Silence detection via AudioContext analyser ──────────────────────
       const audioCtx = new AudioContext();
-      const source   = audioCtx.createMediaStreamSource(stream);
+      const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
       source.connect(analyser);
 
-      const dataArray     = new Uint8Array(analyser.frequencyBinCount);
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
       let silenceStartMs: number | null = null;
-      let hasSpoken       = false;
+      let hasSpoken = false;
 
       const monitorAudio = () => {
         analyser.getByteFrequencyData(dataArray);
@@ -560,7 +560,7 @@ export default function UnifiedChatPanel({
         setAudioLevel(Math.min(rms / 25, 1));
 
         if (rms > 10) {
-          hasSpoken      = true;
+          hasSpoken = true;
           silenceStartMs = null;
         } else if (hasSpoken) {
           if (!silenceStartMs) silenceStartMs = Date.now();
@@ -577,7 +577,7 @@ export default function UnifiedChatPanel({
       // ── MediaRecorder setup ───────────────────────────────────────────────
       const preferred = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"]
         .find(t => MediaRecorder.isTypeSupported(t)) || "";
-      const recorder  = new MediaRecorder(stream, preferred ? { mimeType: preferred } : undefined);
+      const recorder = new MediaRecorder(stream, preferred ? { mimeType: preferred } : undefined);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -589,7 +589,7 @@ export default function UnifiedChatPanel({
         audioStreamRef.current = null;
         setAudioLevel(0);
 
-        const mimeType  = preferred || "audio/webm";
+        const mimeType = preferred || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         if (audioBlob.size < 2000) { setVoiceState("idle"); return; }
 
@@ -601,7 +601,7 @@ export default function UnifiedChatPanel({
           fd.append("audio", audioBlob, `rec.${mimeType.split("/")[1].split(";")[0]}`);
           fd.append("noteTitle", noteTitle);
 
-          const res  = await fetch("/api/personal-ai/transcribe", { method: "POST", body: fd });
+          const res = await fetch("/api/personal-ai/transcribe", { method: "POST", body: fd });
           const json = await res.json();
 
           if (!res.ok) {
@@ -746,15 +746,15 @@ export default function UnifiedChatPanel({
 
   return (
     <div className="flex-1 flex flex-col relative overflow-hidden bg-transparent">
-      
+
       {/* ── Focus Mode Toggle (Enter Only) ────────────────────────── */}
       {!isFocusMode && (
         <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-30">
           <button
             onClick={() => onFocusModeChange?.(true)}
             className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl backdrop-blur-md transition-all duration-500 hover:scale-110 active:scale-95 flex items-center justify-center shrink-0
-              ${isDark 
-                ? "bg-[#252525]/80 border border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]" 
+              ${isDark
+                ? "bg-[#252525]/80 border border-[#545454] text-[#BABABA] hover:bg-[#545454] hover:text-white hover:border-[#545454]"
                 : "bg-white/80 border border-[#7D7D7D]/40 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#F0EDE8]"}`}
             title="Enter Fullscreen"
           >
@@ -764,221 +764,243 @@ export default function UnifiedChatPanel({
       )}
 
       {/* ── Message Bubbles ───────────────────────────────────────── */}
-      <div 
+      <div
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto custom-scrollbar px-1 sm:px-4 pb-32"
       >
         <div className="flex flex-col pt-4 space-y-3 sm:space-y-6">
 
-        {/* Case A: New Session Initialization (Show Reading Status) */}
-        {isStarting && messages.length === 0 && (
-          <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 animate-in fade-in duration-300">
-            <div className="w-10 h-10 flex items-center justify-center shrink-0">
-              <motion.img 
-                src={isDark ? "/icon-dark.png" : "/icon-light.png"} 
-                alt="AI" 
-                className="w-8 h-8 object-contain" 
-                animate={{
-                  scale: [1, 1.1, 1],
-                  opacity: [1, 0.7, 1],
-                  filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"]
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            </div>
-            <div className={`px-4 py-3 rounded-2xl rounded-tl-sm text-sm flex items-center gap-2
-              ${isDark ? "bg-[#252525] text-white border border-[#545454]" : "bg-[#F0EDE8] text-[#252525]"}`}>
-              <Loader2 className="w-4 h-4 animate-spin text-[#C2A27A]" />
-              <span className="text-[#7D7D7D]">{isStarting ? (isPdf ? "Reading your PDF..." : "Reading your note...") : thinkingMessages[thinkingIdx % thinkingMessages.length]}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Case B: Resuming Existing Session (Show Skeleton Loader) */}
-        {((!isStarting && isLoading && messages.length === 0) || isHistoryLoading) && (
-          <div className="flex-1 flex flex-col space-y-6 py-6 opacity-100">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className={`flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 ${i % 2 === 0 ? "justify-end" : "justify-start"}`}>
-                
-                {/* AI Avatar Skeleton */}
-                {i % 2 !== 0 && (
-                  <div className={`hidden sm:flex w-10 h-10 rounded-full shrink-0 animate-pulse mt-0.5 ${isDark ? "bg-[#333]" : "bg-[#E8E5E0]"}`} />
-                )}
-
-                {/* Bubble Skeleton */}
-                <div className={`flex flex-col gap-2 w-full animate-pulse px-4 py-4 ${i % 2 === 0 ? "max-w-md rounded-2xl rounded-tr-sm items-end " + (isDark ? "bg-[#333]" : "bg-[#E8E5E0]") : "md:w-[calc(100%-48px)] rounded-2xl rounded-tl-sm items-start " + (isDark ? "bg-[#252525] border border-[#333]" : "bg-[#F0EDE8]")}`}>
-                  <div className={`h-3 rounded-full w-full ${isDark ? "bg-white/10" : "bg-black/10"}`} />
-                  <div className={`h-3 rounded-full w-5/6 ${isDark ? "bg-white/10" : "bg-black/10"}`} />
-                  {i % 2 !== 0 && <div className={`h-3 rounded-full w-4/6 ${isDark ? "bg-white/10" : "bg-black/10"}`} />}
-                </div>
-
-                {/* User Avatar Skeleton */}
-                {i % 2 === 0 && (
-                  <div className={`hidden sm:flex w-8 h-8 rounded-full shrink-0 animate-pulse mt-1 ${isDark ? "bg-[#333]" : "bg-[#E8E5E0]"}`} />
-                )}
+          {/* Case A: New Session Initialization (Show Reading Status) */}
+          {isStarting && messages.length === 0 && (
+            <div className="flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 animate-in fade-in duration-300">
+              <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                <motion.img
+                  src={isDark ? "/icon-dark.png" : "/icon-light.png"}
+                  alt="AI"
+                  className="w-8 h-8 object-contain"
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [1, 0.7, 1],
+                    filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"]
+                  }}
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
               </div>
-            ))}
-          </div>
-        )}
+              <div className={`px-4 py-3 rounded-2xl rounded-tl-sm text-sm flex items-center gap-2
+              ${isDark ? "bg-[#252525] text-white border border-[#545454]" : "bg-[#F0EDE8] text-[#252525]"}`}>
+                <Loader2 className="w-4 h-4 animate-spin text-[#C2A27A]" />
+                <span className="text-[#7D7D7D]">{isStarting ? (isPdf ? "Reading your PDF..." : "Reading your note...") : thinkingMessages[thinkingIdx % thinkingMessages.length]}</span>
+              </div>
+            </div>
+          )}
 
-        {/* Message list */}
-        {(() => {
-          const filteredMessages = messages.filter((m) => !(m.role === "user" && m.content === "SESSION_START"));
-          return filteredMessages.map((msg, idx) => {
-            const msgType = msg.role === "assistant" ? parseMessageType(msg.content) : "normal";
-            const display = msg.role === "assistant" ? cleanContent(msg.content) : msg.content;
-            const isLast = idx === filteredMessages.length - 1;
+          {/* Case B: Resuming Existing Session (Show Spinner) */}
+          {((!isStarting && isLoading && messages.length === 0) || isHistoryLoading) && (
+            <div className="flex-1 flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-300">
+              <div className="w-10 h-10 border-4 border-[#C2A27A] border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
+              <h3 className="text-sm font-semibold text-[#252525] dark:text-white">Loading Chat</h3>
+              <p className={`text-xs mt-1 ${isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"}`}>
+                Retrieving your conversation history...
+              </p>
+            </div>
+          )}
 
-            return (
-              <div
-                key={idx}
-                className={`group flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                {/* AI Avatar */}
-                {msg.role === "assistant" && (
-                  <div className="hidden sm:flex w-10 h-10 items-center justify-center shrink-0 mt-0.5">
-                    <motion.img 
-                      src={isDark ? "/icon-dark.png" : "/icon-light.png"} 
-                      alt="AI" 
-                      className="w-9 h-9 object-contain" 
-                      animate={isLoading && isLast ? {
-                        scale: [1, 1.1, 1],
-                        opacity: [1, 0.6, 1],
-                        filter: ["brightness(1)", "brightness(1.4)", "brightness(1)"]
-                      } : {}}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
+          {/* Case C: Empty History State (Custom Full-Page Skeleton Animation) */}
+          {!isStarting && !isLoading && !isHistoryLoading && messages.length === 0 && (
+            <div className="flex-1 flex flex-col space-y-6 py-6 opacity-70 select-none pointer-events-none">
+              {[
+                { type: 'user', lines: 1 },
+                { type: 'ai', lines: 3 },
+                { type: 'user', lines: 2 },
+                { type: 'ai', lines: 2 },
+                { type: 'user', lines: 1 },
+                { type: 'ai', lines: 1 },
+
+              ].map((msg, i) => (
+                <div key={i} className={`flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 ${msg.type === 'user' ? "justify-end" : "justify-start"} animate-in fade-in duration-700`} style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}>
+
+                  {/* AI Avatar Skeleton */}
+                  {msg.type === 'ai' && (
+                    <div className={`hidden sm:flex w-10 h-10 rounded-full shrink-0 mt-0.5 animate-pulse ${isDark ? "bg-[#333]/70" : "bg-[#E8E5E0]/90"}`} />
+                  )}
+
+                  {/* Bubble Skeleton */}
+                  <div className={`flex flex-col gap-2 w-full px-4 py-4 animate-pulse ${msg.type === 'user' ? "max-w-md rounded-2xl rounded-tr-sm items-end " + (isDark ? "bg-[#333]/60" : "bg-[#E8E5E0]/80") : "md:w-[calc(100%-48px)] rounded-2xl rounded-tl-sm items-start " + (isDark ? "bg-[#252525]/60 border border-[#444]/60" : "bg-[#F0EDE8]/80 border border-[#DCD9D4]/60")}`}>
+                    {Array.from({ length: msg.lines }).map((_, lineIdx) => (
+                      <div
+                        key={lineIdx}
+                        className={`h-3 rounded-full ${isDark ? "bg-white/15" : "bg-black/15"} ${lineIdx === msg.lines - 1 && msg.lines > 1 ? "w-2/3" : "w-full"
+                          }`}
+                      />
+                    ))}
                   </div>
-                )}
 
-                <div className={`flex flex-col gap-1 min-w-0 ${msg.role === "user" ? "items-end max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}>
-                  {/* Correction / Correct badge */}
-                  {msg.role === "assistant" && msgType !== "normal" && (
-                    <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full w-fit
-                      ${msgType === "correction"
-                        ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"}`}>
-                      {msgType === "correction"
-                        ? <><AlertCircle size={10} /> Correction</>
-                        : <><CheckCircle2 size={10} /> Correct!</>}
+                  {/* User Avatar Skeleton */}
+                  {msg.type === 'user' && (
+                    <div className={`hidden sm:flex w-8 h-8 rounded-full shrink-0 mt-1 animate-pulse ${isDark ? "bg-[#333]/50" : "bg-[#E8E5E0]/60"}`} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Message list */}
+          {(() => {
+            const filteredMessages = messages.filter((m) => !(m.role === "user" && m.content === "SESSION_START"));
+            return filteredMessages.map((msg, idx) => {
+              const msgType = msg.role === "assistant" ? parseMessageType(msg.content) : "normal";
+              const display = msg.role === "assistant" ? cleanContent(msg.content) : msg.content;
+              const isLast = idx === filteredMessages.length - 1;
+
+              return (
+                <div
+                  key={idx}
+                  className={`group flex gap-3 md:gap-4 max-w-4xl min-w-0 mx-auto w-full px-3 md:px-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  {/* AI Avatar */}
+                  {msg.role === "assistant" && (
+                    <div className="hidden sm:flex w-10 h-10 items-center justify-center shrink-0 mt-0.5">
+                      <motion.img
+                        src={isDark ? "/icon-dark.png" : "/icon-light.png"}
+                        alt="AI"
+                        className="w-9 h-9 object-contain"
+                        animate={isLoading && isLast ? {
+                          scale: [1, 1.1, 1],
+                          opacity: [1, 0.6, 1],
+                          filter: ["brightness(1)", "brightness(1.4)", "brightness(1)"]
+                        } : {}}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      />
                     </div>
                   )}
 
-                  {/* Bubble */}
-                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed transition-all duration-200 max-w-full overflow-hidden
-                    ${msg.role === "user"
-                      ? isDark
-                        ? "bg-white text-[#252525] rounded-tr-sm"
-                        : "bg-[#252525] text-white rounded-tr-sm"
-                      : isDark
-                        ? "bg-[#252525] text-white border border-[#545454] rounded-tl-sm"
-                        : "bg-[#F0EDE8] text-[#252525] rounded-tl-sm"}`}>
-
-                    {/* Voice mic indicator for user voice messages */}
-                    {msg.role === "user" && msg.inputType === "voice" && (
-                      <span className="float-left mt-1 mr-2 opacity-60">
-                        <Mic className="w-4 h-4" />
-                      </span>
-                    )}
-
-                    {msg.role === "assistant" && msg.isThinking ? (
-                      <div className="flex items-center py-1 px-0.5 min-w-[140px] animate-pulse">
-                        <span className="text-[13px] font-medium opacity-80">
-                          {thinkingMessages[thinkingIdx % thinkingMessages.length]}
-                        </span>
+                  <div className={`flex flex-col gap-1 min-w-0 ${msg.role === "user" ? "items-end max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}>
+                    {/* Correction / Correct badge */}
+                    {msg.role === "assistant" && msgType !== "normal" && (
+                      <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full w-fit
+                      ${msgType === "correction"
+                          ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"}`}>
+                        {msgType === "correction"
+                          ? <><AlertCircle size={10} /> Correction</>
+                          : <><CheckCircle2 size={10} /> Correct!</>}
                       </div>
-                    ) : display ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          table: ({ ...props }) => (
-                            <div className="block w-full max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454] custom-scrollbar">
-                              <table className="w-full text-sm text-left border-collapse min-w-max" {...props} />
-                            </div>
-                          ),
-                          thead: ({ ...props }) => (
-                            <thead className={isDark ? "bg-[#545454]" : "bg-[#F0EDE8]"} {...props} />
-                          ),
-                          th: ({ ...props }) => (
-                            <th className={`px-3 py-2 font-bold border-b
-                              ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
-                          ),
-                          td: ({ ...props }) => (
-                            <td className={`px-3 py-2 border-b
-                              ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
-                          ),
-                          ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-1 my-2" {...props} />,
-                          ol: ({ ...props }) => <ol className="list-decimal ml-4 space-y-1 my-2" {...props} />,
-                          p: ({ ...props }) => <div className="mb-2 last:mb-0" {...props} />,
-                          pre: ({ children }) => <div className="not-prose">{children}</div>,
-                          code({ inline, className, children, ...props }: any) {
-                            const match = /language-(\w+)/.exec(className || "");
-                            const codeString = String(children).replace(/\n$/, "");
-                            if (inline) {
-                              return (
-                                <code className={`px-1 py-0.5 rounded font-mono text-[11px] ${isDark ? "bg-white/10 text-[#C2A27A]" : "bg-black/5 text-[#A2825A]"}`} {...props}>
-                                  {children}
-                                </code>
-                              );
-                            }
-                            return (
-                              <div className="relative group/code mb-4 mt-3 block w-full max-w-full">
-                                <div className={`flex items-center justify-between px-4 py-2 text-[10px] font-sans rounded-t-xl ${isDark ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
-                                  <span className="uppercase font-bold tracking-widest">{match?.[1] || "code"}</span>
-                                  <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
-                                    {copiedCodeBlock === codeString ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                                    <span className="font-bold">{copiedCodeBlock === codeString ? "Copied" : "Copy"}</span>
-                                  </button>
-                                </div>
-                                <div className={`block w-full overflow-x-auto text-[13px] rounded-b-xl custom-scrollbar ${isDark ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800 shadow-lg"}`}>
-                                  <SyntaxHighlighter 
-                                    style={vscDarkPlus} 
-                                    language={match?.[1] || "text"} 
-                                    PreTag="div" 
-                                    customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", fontSize: "13px", lineHeight: "1.6" }} 
-                                    {...props}
-                                  >
-                                    {codeString}
-                                  </SyntaxHighlighter>
-                                </div>
-                              </div>
-                            );
-                          },
-                        }}
-                      >
-                        {display}
-                      </ReactMarkdown>
-                    ) : (
-                      <span className="inline-flex gap-1 items-center text-[#BABABA]">
-                        <span className="animate-bounce" style={{ animationDelay: "0ms" }}>·</span>
-                        <span className="animate-bounce" style={{ animationDelay: "150ms" }}>·</span>
-                        <span className="animate-bounce" style={{ animationDelay: "300ms" }}>·</span>
-                      </span>
                     )}
-                  </div>
-                </div>
 
-                {/* User Avatar */}
-                {msg.role === "user" && (
-                  <div className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center shrink-0 mt-1
+                    {/* Bubble */}
+                    <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed transition-all duration-200 max-w-full overflow-hidden
+                    ${msg.role === "user"
+                        ? isDark
+                          ? "bg-white text-[#252525] rounded-tr-sm"
+                          : "bg-[#252525] text-white rounded-tr-sm"
+                        : isDark
+                          ? "bg-[#252525] text-white border border-[#545454] rounded-tl-sm"
+                          : "bg-[#F0EDE8] text-[#252525] rounded-tl-sm"}`}>
+
+                      {/* Voice mic indicator for user voice messages */}
+                      {msg.role === "user" && msg.inputType === "voice" && (
+                        <span className="float-left mt-1 mr-2 opacity-60">
+                          <Mic className="w-4 h-4" />
+                        </span>
+                      )}
+
+                      {msg.role === "assistant" && msg.isThinking ? (
+                        <div className="flex items-center py-1 px-0.5 min-w-[140px] animate-pulse">
+                          <span className="text-[13px] font-medium opacity-80">
+                            {thinkingMessages[thinkingIdx % thinkingMessages.length]}
+                          </span>
+                        </div>
+                      ) : display ? (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            table: ({ ...props }) => (
+                              <div className="block w-full max-w-full overflow-x-auto mb-4 mt-2 border rounded-lg border-[#E8E5E0] dark:border-[#545454] custom-scrollbar">
+                                <table className="w-full text-sm text-left border-collapse min-w-max" {...props} />
+                              </div>
+                            ),
+                            thead: ({ ...props }) => (
+                              <thead className={isDark ? "bg-[#545454]" : "bg-[#F0EDE8]"} {...props} />
+                            ),
+                            th: ({ ...props }) => (
+                              <th className={`px-3 py-2 font-bold border-b
+                              ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
+                            ),
+                            td: ({ ...props }) => (
+                              <td className={`px-3 py-2 border-b
+                              ${isDark ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
+                            ),
+                            ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-1 my-2" {...props} />,
+                            ol: ({ ...props }) => <ol className="list-decimal ml-4 space-y-1 my-2" {...props} />,
+                            p: ({ ...props }) => <div className="mb-2 last:mb-0" {...props} />,
+                            pre: ({ children }) => <div className="not-prose">{children}</div>,
+                            code({ inline, className, children, ...props }: any) {
+                              const match = /language-(\w+)/.exec(className || "");
+                              const codeString = String(children).replace(/\n$/, "");
+                              if (inline) {
+                                return (
+                                  <code className={`px-1 py-0.5 rounded font-mono text-[11px] ${isDark ? "bg-white/10 text-[#C2A27A]" : "bg-black/5 text-[#A2825A]"}`} {...props}>
+                                    {children}
+                                  </code>
+                                );
+                              }
+                              return (
+                                <div className="relative group/code mb-4 mt-3 block w-full max-w-full">
+                                  <div className={`flex items-center justify-between px-4 py-2 text-[10px] font-sans rounded-t-xl ${isDark ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
+                                    <span className="uppercase font-bold tracking-widest">{match?.[1] || "code"}</span>
+                                    <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                                      {copiedCodeBlock === codeString ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                      <span className="font-bold">{copiedCodeBlock === codeString ? "Copied" : "Copy"}</span>
+                                    </button>
+                                  </div>
+                                  <div className={`block w-full overflow-x-auto text-[13px] rounded-b-xl custom-scrollbar ${isDark ? "bg-[#161514] border border-[#545454]" : "bg-[#1e1e1e] border border-gray-800 shadow-lg"}`}>
+                                    <SyntaxHighlighter
+                                      style={vscDarkPlus}
+                                      language={match?.[1] || "text"}
+                                      PreTag="div"
+                                      customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", fontSize: "13px", lineHeight: "1.6" }}
+                                      {...props}
+                                    >
+                                      {codeString}
+                                    </SyntaxHighlighter>
+                                  </div>
+                                </div>
+                              );
+                            },
+                          }}
+                        >
+                          {display}
+                        </ReactMarkdown>
+                      ) : (
+                        <span className="inline-flex gap-1 items-center text-[#BABABA]">
+                          <span className="animate-bounce" style={{ animationDelay: "0ms" }}>·</span>
+                          <span className="animate-bounce" style={{ animationDelay: "150ms" }}>·</span>
+                          <span className="animate-bounce" style={{ animationDelay: "300ms" }}>·</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* User Avatar */}
+                  {msg.role === "user" && (
+                    <div className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center shrink-0 mt-1
                     ${isDark ? "bg-white/10 border border-white/20" : "bg-[#252525]/10 border border-[#252525]/20"}`}>
-                    <User className="w-5 h-5" />
-                  </div>
-                )}
-              </div>
-            );
-          });
-        })()}
+                      <User className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
 
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
@@ -994,8 +1016,8 @@ export default function UnifiedChatPanel({
             <button
               onClick={scrollToBottom}
               className={`flex items-center justify-center w-8 h-8 rounded-full shadow-lg border transition-all active:scale-90
-                ${isDark 
-                  ? "bg-[#252525] border-[#545454] text-white hover:bg-[#333]" 
+                ${isDark
+                  ? "bg-[#252525] border-[#545454] text-white hover:bg-[#333]"
                   : "bg-white border-[#E8E5E0] text-[#252525] hover:bg-[#F9F8F6]"}`}
             >
               <ChevronDown size={18} />
@@ -1007,21 +1029,20 @@ export default function UnifiedChatPanel({
       {/* ── Input Area ────────────────────────────────────────────── */}
       <div className="absolute bottom-0 left-0 right-0 z-20">
         {/* Subtle gradient to mask scroll behind bar */}
-        <div className={`absolute inset-0 pointer-events-none h-16 bottom-0 top-auto translate-y-0 ${
-          isDark 
-            ? "bg-gradient-to-t from-[#1E1E1E] via-[#1E1E1E]/95 to-transparent" 
-            : "bg-gradient-to-t from-white via-white/95 to-transparent"
-        }`} />
-        
+        <div className={`absolute inset-0 pointer-events-none h-16 bottom-0 top-auto translate-y-0 ${isDark
+          ? "bg-gradient-to-t from-[#1E1E1E] via-[#1E1E1E]/95 to-transparent"
+          : "bg-gradient-to-t from-white via-white/95 to-transparent"
+          }`} />
+
         <div className={`${isFocusMode ? "max-w-4xl md:pl-16" : "max-w-2xl"} mx-auto w-full relative z-10 px-3 md:px-4 pb-2 pt-0`}>
-          
+
           {/* Integrated Technical Error Banner */}
           {technicalError && (
             <div className="mb-2">
               {(() => {
                 // Only show the Daily Limit banner if the message explicitly says "Daily AI quota reached"
                 const isQuotaError = String(technicalError).toLowerCase().includes("daily ai quota reached");
-                
+
                 if (isQuotaError) {
                   return (
                     <div className={`p-3 rounded-2xl flex items-start gap-4 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 shadow-sm
@@ -1042,7 +1063,7 @@ export default function UnifiedChatPanel({
                           {technicalError}
                         </p>
                         <div className="flex items-center gap-3">
-                          <button 
+                          <button
                             onClick={() => window.dispatchEvent(new CustomEvent('open-pricing'))}
                             className="px-3.5 py-1.5 rounded-lg bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
                           >
@@ -1070,7 +1091,7 @@ export default function UnifiedChatPanel({
                         {String(technicalError)}
                       </p>
                       <div className="flex items-center gap-3 mt-1.5">
-                        <button 
+                        <button
                           onClick={() => {
                             setTechnicalError(null);
                             const lastMsgs = [...messages];
@@ -1102,12 +1123,12 @@ export default function UnifiedChatPanel({
                   )}
                   <div className="text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                     <span className="text-[#252525] dark:text-white font-bold mr-1">Read-only.</span>
-                    {noteStatus === "trashed" 
+                    {noteStatus === "trashed"
                       ? "Recover note from Trash to chat."
                       : "Source note has been permanently deleted."}
                   </div>
                   {noteStatus === "trashed" && (
-                    <button 
+                    <button
                       onClick={() => {
                         const currentFullUrl = window.location.pathname + window.location.search;
                         const newUrl = `/trash?from=${encodeURIComponent(currentFullUrl)}`;
@@ -1123,8 +1144,8 @@ export default function UnifiedChatPanel({
                 </div>
               ) : (
                 <div className={`relative flex flex-col w-full transition-all duration-500 p-1
-                  ${isDark 
-                    ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40" 
+                  ${isDark
+                    ? "bg-[#252525] border-[#333] focus-within:border-[#C2A27A]/40"
                     : "bg-white border-[#E5E5E5] focus-within:border-[#252525]/20"}
                   border rounded-[28px]
                 `}>
@@ -1140,7 +1161,7 @@ export default function UnifiedChatPanel({
                       className="flex-1 bg-transparent px-3 py-[9px] outline-none resize-none max-h-48 text-[15px] min-h-[40px] leading-tight
                         text-[#252525] dark:text-white placeholder-[#9E9E9E] disabled:opacity-50 transition-all font-medium"
                     />
-                    
+
                     <div className="flex items-center gap-1">
                       <button
                         onClick={handleSend}
@@ -1168,142 +1189,141 @@ export default function UnifiedChatPanel({
             </p>
           )}
 
-        {/* ── VOICE MODE ── */}
-        {mode === "voice" && (
-          <div className="p-4 sm:p-5 flex flex-col items-center gap-3">
-            {noteStatus !== "active" ? (
-              <div className={`flex items-center gap-2.5 px-4 py-2 mx-auto w-fit max-w-[95%] rounded-2xl border shadow-sm animate-in slide-in-from-bottom-2 duration-300
+          {/* ── VOICE MODE ── */}
+          {mode === "voice" && (
+            <div className="p-4 sm:p-5 flex flex-col items-center gap-3">
+              {noteStatus !== "active" ? (
+                <div className={`flex items-center gap-2.5 px-4 py-2 mx-auto w-fit max-w-[95%] rounded-2xl border shadow-sm animate-in slide-in-from-bottom-2 duration-300
                 ${isDark ? "bg-[#252525] border-[#333] text-[#BABABA]" : "bg-white border-[#E5E5E5] text-[#545454]"}`}>
-                {noteStatus === "deleted" ? (
-                  <Lock size={14} className="text-red-500" />
-                ) : (
-                  <AlertCircle size={14} className={isDark ? "text-amber-400" : "text-amber-600"} />
-                )}
-                <div className="text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                  <span className="text-[#252525] dark:text-white font-bold mr-1">Read-only.</span>
-                  {noteStatus === "trashed" 
-                    ? "Recover note from Trash to chat."
-                    : "Source note has been permanently deleted."}
-                </div>
-                {noteStatus === "trashed" && (
-                  <button 
-                    onClick={() => window.dispatchEvent(new CustomEvent('open-trash'))}
-                    className={`text-[9px] font-bold px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider active:scale-95 ml-1
-                      ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#252525] hover:bg-black text-white"}`}
-                  >
-                    Open Trash
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                {/* Unsupported browser */}
-                {!voiceSupported && (
-                  <div className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl
-                    ${isDark ? "bg-red-900/20 text-red-400" : "bg-red-50 text-red-600"}`}>
-                    <MicOff className="w-4 h-4 shrink-0" />
-                    Voice not supported. Use Chrome or Edge.
+                  {noteStatus === "deleted" ? (
+                    <Lock size={14} className="text-red-500" />
+                  ) : (
+                    <AlertCircle size={14} className={isDark ? "text-amber-400" : "text-amber-600"} />
+                  )}
+                  <div className="text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                    <span className="text-[#252525] dark:text-white font-bold mr-1">Read-only.</span>
+                    {noteStatus === "trashed"
+                      ? "Recover note from Trash to chat."
+                      : "Source note has been permanently deleted."}
                   </div>
-                )}
+                  {noteStatus === "trashed" && (
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-trash'))}
+                      className={`text-[9px] font-bold px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider active:scale-95 ml-1
+                      ${isDark ? "bg-[#333] hover:bg-[#444] text-white" : "bg-[#252525] hover:bg-black text-white"}`}
+                    >
+                      Open Trash
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Unsupported browser */}
+                  {!voiceSupported && (
+                    <div className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl
+                    ${isDark ? "bg-red-900/20 text-red-400" : "bg-red-50 text-red-600"}`}>
+                      <MicOff className="w-4 h-4 shrink-0" />
+                      Voice not supported. Use Chrome or Edge.
+                    </div>
+                  )}
 
-                {voiceSupported && (
-                  <>
-                    {/* Live transcript preview */}
-                    {voiceState === "listening" && transcript && (
-                      <div className={`w-full max-w-sm px-4 py-2.5 rounded-xl text-sm text-center italic animate-in fade-in duration-200
+                  {voiceSupported && (
+                    <>
+                      {/* Live transcript preview */}
+                      {voiceState === "listening" && transcript && (
+                        <div className={`w-full max-w-sm px-4 py-2.5 rounded-xl text-sm text-center italic animate-in fade-in duration-200
                         ${isDark
-                          ? "bg-[#252525] border border-blue-500/30 text-white/70"
-                          : "bg-blue-50 text-[#252525]/70 border border-blue-200"}`}>
-                        "{transcript}"
-                      </div>
-                    )}
-
-                    {/* Premium feature badge (idle state only) */}
-                    {voiceState === "idle" && (
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all
-                        ${isDark
-                          ? "bg-white/10 border-white/10 text-white/90"
-                          : "bg-[#4D4D4D] border-black/10 text-white shadow-sm"}`}>
-                        <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
-                        Premium Feature
-                      </div>
-                    )}
-
-                    {/* Orb + controls row */}
-                    <div className="flex items-center gap-4">
-
-                      {/* Stop button (shown when active) */}
-                      {isVoiceActive && (
-                        <button
-                          onClick={stopAll}
-                          className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-colors
-                            ${isDark
-                              ? "bg-white/5 hover:bg-white/10 text-[#BABABA]"
-                              : "bg-black/5 hover:bg-black/10 text-[#545454]"}`}
-                        >
-                          <Square className="w-3 h-3 fill-current" />
-                          Stop
-                        </button>
+                            ? "bg-[#252525] border border-blue-500/30 text-white/70"
+                            : "bg-blue-50 text-[#252525]/70 border border-blue-200"}`}>
+                          "{transcript}"
+                        </div>
                       )}
 
-                      {/* Mic orb */}
-                      <div className="relative flex items-center justify-center">
-                        {/* Pulse rings */}
+                      {/* Premium feature badge (idle state only) */}
+                      {voiceState === "idle" && (
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all
+                        ${isDark
+                            ? "bg-white/10 border-white/10 text-white/90"
+                            : "bg-[#4D4D4D] border-black/10 text-white shadow-sm"}`}>
+                          <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          Premium Feature
+                        </div>
+                      )}
+
+                      {/* Orb + controls row */}
+                      <div className="flex items-center gap-4">
+
+                        {/* Stop button (shown when active) */}
                         {isVoiceActive && (
-                          <>
-                            <div className={`absolute w-20 h-20 rounded-full ${vc.ringClass} animate-ping opacity-50`} />
-                            <div
-                              className={`absolute w-16 h-16 rounded-full ${vc.ringClass} animate-ping opacity-70`}
-                              style={{ animationDelay: "300ms" }}
-                            />
-                          </>
+                          <button
+                            onClick={stopAll}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-colors
+                            ${isDark
+                                ? "bg-white/5 hover:bg-white/10 text-[#BABABA]"
+                                : "bg-black/5 hover:bg-black/10 text-[#545454]"}`}
+                          >
+                            <Square className="w-3 h-3 fill-current" />
+                            Stop
+                          </button>
                         )}
 
-                        <button
-                          onClick={() => {
-                            if (isVoiceActive) stopAll();
-                            else startListening();
-                          }}
-                          disabled={isLoading || isStarting || voiceState === "idle"}
-                          className={`relative z-10 w-14 h-14 rounded-full flex items-center justify-center
+                        {/* Mic orb */}
+                        <div className="relative flex items-center justify-center">
+                          {/* Pulse rings */}
+                          {isVoiceActive && (
+                            <>
+                              <div className={`absolute w-20 h-20 rounded-full ${vc.ringClass} animate-ping opacity-50`} />
+                              <div
+                                className={`absolute w-16 h-16 rounded-full ${vc.ringClass} animate-ping opacity-70`}
+                                style={{ animationDelay: "300ms" }}
+                              />
+                            </>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              if (isVoiceActive) stopAll();
+                              else startListening();
+                            }}
+                            disabled={isLoading || isStarting || voiceState === "idle"}
+                            className={`relative z-10 w-14 h-14 rounded-full flex items-center justify-center
                             shadow-lg transition-all duration-200 focus:outline-none
                             ${vc.btnClass}
                             ${(isLoading || isStarting || voiceState === "idle") ? "opacity-70 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
-                          style={voiceState === "listening" && audioLevel > 0.05 ? {
-                            boxShadow: `0 0 ${10 + audioLevel * 28}px ${4 + audioLevel * 14}px rgba(59,130,246,${0.25 + audioLevel * 0.45})`
-                          } : voiceState === "speaking" ? {
-                            boxShadow: "0 0 20px 8px rgba(16,185,129,0.35)"
-                          } : undefined}
-                          title={isVoiceActive ? "Stop" : "Start speaking"}
-                        >
-                          {vc.icon}
-                        </button>
+                            style={voiceState === "listening" && audioLevel > 0.05 ? {
+                              boxShadow: `0 0 ${10 + audioLevel * 28}px ${4 + audioLevel * 14}px rgba(59,130,246,${0.25 + audioLevel * 0.45})`
+                            } : voiceState === "speaking" ? {
+                              boxShadow: "0 0 20px 8px rgba(16,185,129,0.35)"
+                            } : undefined}
+                            title={isVoiceActive ? "Stop" : "Start speaking"}
+                          >
+                            {vc.icon}
+                          </button>
+                        </div>
+
+                        {/* Spacer for symmetry when stop button shown */}
+                        {isVoiceActive && <div className="w-[72px]" />}
                       </div>
 
-                      {/* Spacer for symmetry when stop button shown */}
-                      {isVoiceActive && <div className="w-[72px]" />}
-                    </div>
-
-                    {/* State label */}
-                    <p className={`text-xs font-semibold text-center ${
-                      voiceState === "listening" ? "text-blue-500"
-                      : voiceState === "speaking" ? "text-emerald-500"
-                      : voiceState === "thinking" ? "text-[#C2A27A]"
-                      : isDark ? "text-[#545454]" : "text-[#BABABA]"
-                    }`}>
-                      {vc.label}
-                      {voiceState === "idle" && (
-                        <span className={`block text-[10px] font-normal mt-0.5 ${isDark ? "text-[#3A3A3A]" : "text-[#CBCBCB]"}`}>
-                          Advanced Voice Mode · Coming Soon
-                        </span>
-                      )}
-                    </p>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        )}
+                      {/* State label */}
+                      <p className={`text-xs font-semibold text-center ${voiceState === "listening" ? "text-blue-500"
+                        : voiceState === "speaking" ? "text-emerald-500"
+                          : voiceState === "thinking" ? "text-[#C2A27A]"
+                            : isDark ? "text-[#545454]" : "text-[#BABABA]"
+                        }`}>
+                        {vc.label}
+                        {voiceState === "idle" && (
+                          <span className={`block text-[10px] font-normal mt-0.5 ${isDark ? "text-[#3A3A3A]" : "text-[#CBCBCB]"}`}>
+                            Advanced Voice Mode · Coming Soon
+                          </span>
+                        )}
+                      </p>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

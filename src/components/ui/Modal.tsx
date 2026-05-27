@@ -12,7 +12,7 @@ export default function Modal({
 }: {
   open: boolean;
   onClose: () => void;
-  title?: string;
+  title?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const { theme } = useTheme();
