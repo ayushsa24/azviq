@@ -714,3 +714,57 @@ pre::-webkit-scrollbar,
   background-color: rgba(194, 162, 122, 0.4);
   color: #FFFFFF;
 }
+
+/* Inline Link Icon in Editor */
+.ProseMirror a {
+  color: #C2A27A !important;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-weight: 500;
+  box-decoration-break: slice !important;
+  -webkit-box-decoration-break: slice !important;
+}
+
+.ProseMirror a::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 14px;
+  margin-left: 0;
+  background-color: #3b82f6;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'%3E%3C/path%3E%3Cpolyline points='15 3 21 3 21 9'%3E%3C/polyline%3E%3Cline x1='10' y1='14' x2='21' y2='3'%3E%3C/line%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'%3E%3C/path%3E%3Cpolyline points='15 3 21 3 21 9'%3E%3C/polyline%3E%3Cline x1='10' y1='14' x2='21' y2='3'%3E%3C/line%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity 0.15s ease, width 0.15s ease, margin-left 0.15s ease;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ProseMirror a:hover::after {
+  opacity: 0.85;
+  width: 14px;
+  margin-left: 4px;
+}
+
+/* On mobile / touch devices (where hover doesn't exist), make the icon always visible */
+@media (max-width: 1024px) {
+  .ProseMirror a::after {
+    opacity: 0.85 !important;
+    width: 14px !important;
+    margin-left: 4px !important;
+  }
+}
+
+
+
+
+
+
+
+
+

@@ -265,9 +265,13 @@ export default function NoteEditorPage() {
                 click: (view, event) => {
                     const target = event.target as HTMLElement;
                     const link = target.closest('a');
-                    if (link && (event.ctrlKey || event.metaKey)) {
-                        window.open(link.href, '_blank');
-                        return true;
+                    if (link) {
+                        const rect = link.getBoundingClientRect();
+                        const isIconClick = event.clientX > rect.right - 22;
+                        if (isIconClick || event.ctrlKey || event.metaKey) {
+                            window.open(link.href, '_blank', 'noopener,noreferrer');
+                            return true;
+                        }
                     }
                     return false;
                 }

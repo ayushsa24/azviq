@@ -10,6 +10,8 @@ import {
     ChevronDown,
     X
 } from "lucide-react";
+import { LinkPopover } from "./LinkPopover";
+
 
 interface MobileSelectionBarProps {
     editor: Editor;
@@ -19,9 +21,12 @@ interface MobileSelectionBarProps {
 
 export function MobileSelectionBar({ editor, onOpenAi, isVisible }: MobileSelectionBarProps) {
     const [bottomOffset, setBottomOffset] = React.useState(0);
+    const isKeyboardOpenRef = React.useRef(false);
+    const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+    const [isLinkOpen, setIsLinkOpen] = React.useState(false);
 
     React.useEffect(() => {
-        if (!isVisible || typeof window === 'undefined' || !window.visualViewport) return;
+        if (typeof window === 'undefined' || !window.visualViewport) return;
 
         const handleResize = () => {
             const viewport = window.visualViewport;
@@ -29,6 +34,8 @@ export function MobileSelectionBar({ editor, onOpenAi, isVisible }: MobileSelect
             
             // Calculate how much the keyboard is covering the screen
             const offset = window.innerHeight - viewport.height;
+            const keyboardOpen = offset > 100; // >100px offset = keyboard is up
+            isKeyboardOpenRef.current = keyboardOpen;
             setBottomOffset(Math.max(0, offset));
         };
 
@@ -40,15 +47,58 @@ export function MobileSelectionBar({ editor, onOpenAi, isVisible }: MobileSelect
             window.visualViewport?.removeEventListener('resize', handleResize);
             window.visualViewport?.removeEventListener('scroll', handleResize);
         };
-    }, [isVisible]);
+    }, []);
+
+    // Re-render any time the editor's marks/selection change (debounced via rAF)
+    React.useEffect(() => {
+        if (!editor) return;
+        let rafId: number;
+        const onUpdate = () => {
+            cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => forceUpdate());
+        };
+        editor.on('transaction', onUpdate);
+        return () => {
+            editor.off('transaction', onUpdate);
+            cancelAnimationFrame(rafId);
+        };
+    }, [editor]);
 
     if (!isVisible) return null;
 
     const isActive = (type: string) => editor.isActive(type);
 
-    const toggleFormat = (type: string) => {
-        (editor.chain().focus() as any)[`toggle${type.charAt(0).toUpperCase() + type.slice(1)}`]().run();
+
+    /**
+     * Apply formatting WITHOUT triggering the keyboard.
+     * If keyboard is already open → use .focus() (normal flow).
+     * If keyboard is closed → apply mark directly via dispatchTransaction so the
+     *   editor DOM is never re-focused and the iOS/Android keyboard stays closed.
+     */
+    const applyFormat = (command: () => void) => {
+        if (isKeyboardOpenRef.current) {
+            // Keyboard already up — safe to focus
+            command();
+        } else {
+            // Keyboard is closed: blur first to be extra safe, apply, then re-blur
+            const domElem = editor.view.dom as HTMLElement;
+            // Temporarily disable focusability so .run() can't steal focus
+            domElem.setAttribute('contenteditable', 'false');
+            command();
+            domElem.setAttribute('contenteditable', 'true');
+            // Make sure we didn't accidentally steal focus
+            if (document.activeElement === domElem) {
+                domElem.blur();
+            }
+        }
     };
+
+    const toggleFormat = (type: string) => {
+        applyFormat(() =>
+            (editor.chain() as any)[`toggle${type.charAt(0).toUpperCase() + type.slice(1)}`]().run()
+        );
+    };
+
 
     return (
         <div 
@@ -102,34 +152,35 @@ export function MobileSelectionBar({ editor, onOpenAi, isVisible }: MobileSelect
                         <MobileFormatButton 
                             icon={Highlighter} 
                             active={isActive('highlight')} 
-                            onClick={() => editor.chain().focus().toggleHighlight({ color: '#ffcc00' }).run()} 
+                            onClick={() => applyFormat(() => editor.chain().toggleHighlight({ color: '#ffcc00' }).run())} 
                         />
                         <MobileFormatButton 
                             icon={LinkIcon} 
                             active={isActive('link')} 
-                            onClick={() => {
-                                const previousUrl = editor.getAttributes('link').href;
-                                const url = window.prompt("URL", previousUrl);
-                                if (url === null) return;
-                                if (url === "") {
-                                    editor.chain().focus().extendMarkRange('link').unsetLink().run();
-                                } else {
-                                    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-                                }
-                            }} 
+                            onClick={() => setIsLinkOpen(true)} 
                         />
                     </div>
                     
                     <div className="w-px h-4 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-0.5" />
 
                     <button 
-                        onClick={() => editor.chain().focus().setTextSelection(editor.state.selection.to).run()}
+                        onTouchEnd={(e) => { e.preventDefault(); editor.commands.setTextSelection(editor.state.selection.to); }}
+                        onClick={() => editor.commands.setTextSelection(editor.state.selection.to)}
                         className="p-1 text-[#7D7D7D] dark:text-[#BABABA] active:bg-black/5 rounded-full"
                     >
                         <X size={16} />
                     </button>
                 </div>
             </div>
+
+            {/* Mobile Link Popover (bottom sheet) */}
+            {isLinkOpen && (
+                <LinkPopover
+                    editor={editor}
+                    isMobile
+                    onClose={() => setIsLinkOpen(false)}
+                />
+            )}
         </div>
     );
 }

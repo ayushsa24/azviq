@@ -6,9 +6,10 @@ import {
     Sparkles, Highlighter, Rows, Columns,
     Plus, Minus, Trash2, Copy, ChevronDown,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useReducer } from "react";
 import { AiPopover } from "./AiPopover";
 import { MobileSelectionBar } from "./MobileSelectionBar";
+import { LinkPopover } from "./LinkPopover";
 
 interface EditorToolbarProps {
     editor: Editor | null;
@@ -17,16 +18,17 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbarProps) {
     const [isMobile, setIsMobile] = useState(false);
-    // toolbar position: x = left, bottom = bottom-of-selection in viewport
     const [toolbarPos, setToolbarPos] = useState<{ x: number; bottom: number } | null>(null);
     const [isAiOpen, setIsAiOpen] = useState(false);
-    // position where AI popup should appear (same as toolbar)
     const [aiPos, setAiPos] = useState<{ x: number; bottom: number } | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isError, setIsError] = useState(false);
     const isGeneratingRef = useRef(false);
-    // Suppresses the mouseup right after AI closes (prevent re-triggering toolbar)
     const suppressNextMouseUpRef = useRef(false);
+    const [mobileHasSelection, setMobileHasSelection] = useState(false);
+    const [isLinkOpen, setIsLinkOpen] = useState(false);
+    // Force re-render on every editor transaction so isActive() is always current
+    const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
     // ── Mobile detection ──────────────────────────────────────────────────────
     useEffect(() => {
@@ -68,6 +70,9 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
             if (editor.state.selection.empty) {
                 setToolbarPos(null);
                 if (!isGeneratingRef.current) setIsAiOpen(false);
+                setIsLinkOpen(false);
+                // also hide mobile bar
+                setMobileHasSelection(false);
             }
         };
 
@@ -80,6 +85,45 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
         };
     }, [editor, isMobile]);
 
+    // ── Mobile: detect selection via touchend + selectionchange ───────────────
+    useEffect(() => {
+        if (!editor || !isMobile) return;
+
+        const checkMobileSelection = () => {
+            // Give the browser a moment to update the selection
+            setTimeout(() => {
+                if (!editor.isEditable) { setMobileHasSelection(false); return; }
+                const { selection } = editor.state;
+                setMobileHasSelection(!selection.empty);
+            }, 50);
+        };
+
+        // touchend fires after the user lifts their finger (drag-to-select)
+        document.addEventListener("touchend", checkMobileSelection, { passive: true });
+        // selectionchange fires when the browser's native selection changes
+        document.addEventListener("selectionchange", checkMobileSelection, { passive: true });
+
+        return () => {
+            document.removeEventListener("touchend", checkMobileSelection);
+            document.removeEventListener("selectionchange", checkMobileSelection);
+        };
+    }, [editor, isMobile]);
+
+    // ── Re-render on editor transactions (debounced via rAF to prevent infinite loops) ──
+    useEffect(() => {
+        if (!editor) return;
+        let rafId: number;
+        const onTx = () => {
+            cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => forceUpdate());
+        };
+        editor.on('transaction', onTx);
+        return () => {
+            editor.off('transaction', onTx);
+            cancelAnimationFrame(rafId);
+        };
+    }, [editor]);
+
     if (!editor) return null;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -90,12 +134,17 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
 
     const isActive = (type: string) => editor.isActive(type);
 
-    const btnBase = "p-1.5 rounded-md transition-all text-[#545454] dark:text-[#BABABA] hover:bg-[#F0EDE8] dark:hover:bg-[#1A1A1A] hover:text-[#252525] dark:hover:text-white";
-    const btnActive = "bg-[#252525] text-white dark:bg-white dark:text-[#252525]";
+    const btnBase = "p-1.5 rounded-md transition-all duration-100 text-[#7D7D7D] dark:text-[#7D7D7D]";
+    const btnActive = "bg-[#252525] dark:bg-white text-white dark:text-[#252525] shadow-sm";
 
     const openAi = () => {
-        // Capture current toolbar position so AI popup appears in the same spot
-        if (toolbarPos) setAiPos(toolbarPos);
+        if (isMobile) {
+            // On mobile, anchor the popup to the bottom of the visual viewport
+            const vvh = window.visualViewport?.height ?? window.innerHeight;
+            setAiPos({ x: window.innerWidth / 2, bottom: vvh });
+        } else if (toolbarPos) {
+            setAiPos(toolbarPos);
+        }
         setIsAiOpen(true);
     };
 
@@ -106,7 +155,7 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
             <MobileSelectionBar
                 editor={editor}
                 onOpenAi={openAi}
-                isVisible={isMobile && editor.isEditable && !editor.state.selection.empty && !isAiOpen}
+                isVisible={isMobile && editor.isEditable && mobileHasSelection && !isAiOpen}
             />
 
             {/* Desktop selection toolbar — portal into body, fixed near last selected word */}
@@ -161,13 +210,7 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
                             <Highlighter size={16} />
                         </button>
                         {/* Link */}
-                        <button onMouseDown={prevent(() => {
-                            const prev = editor.getAttributes("link").href;
-                            const url = window.prompt("URL", prev);
-                            if (url === null) return;
-                            if (url === "") { editor.chain().focus().extendMarkRange("link").unsetLink().run(); return; }
-                            editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-                        })}
+                        <button onMouseDown={prevent(() => setIsLinkOpen(true))}
                             className={`${btnBase} ${isActive("link") ? btnActive : ""}`}>
                             <LinkIcon size={16} />
                         </button>
@@ -176,31 +219,48 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
                 )
             }
 
-            {/* AI commands popup — same position as the toolbar, flips up when near bottom */}
+            {/* Desktop Link Popover */}
+            {!isMobile && isLinkOpen && toolbarPos &&
+                createPortal(
+                    <LinkPopover
+                        editor={editor}
+                        anchorPos={toolbarPos}
+                        onClose={() => setIsLinkOpen(false)}
+                    />,
+                    document.body
+                )
+            }
+            {/* AI commands popup */}
             {isAiOpen && aiPos &&
                 createPortal(
                     <div
                         className="fixed z-[2000]"
-                        style={{
-                            // If toolbar is in bottom half of screen, open popup UPWARD so it's never clipped
-                            ...(aiPos.bottom > window.innerHeight / 2
-                                ? { bottom: window.innerHeight - aiPos.bottom + 48 }
-                                : { top: aiPos.bottom + 8 }
-                            ),
+                        style={isMobile ? {
+                            // Mobile: bottom-sheet anchored just above the mobile toolbar
+                            bottom: 80,
+                            left: 0,
+                            right: 0,
+                            display: 'flex',
+                            justifyContent: 'center',
+                        } : {
+                            // Desktop: positioned exactly where the EditorToolbar was (below text)
+                            top: Math.min(aiPos.bottom + 8, window.innerHeight - 280),
                             left: Math.max(80, Math.min(aiPos.x, window.innerWidth - 80)),
                             transform: "translateX(-50%) translateZ(0)",
                             willChange: "transform",
                             isolation: "isolate",
                         }}
                         onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.stopPropagation()}
                     >
                         <AiPopover
                             editor={editor}
                             onClose={() => {
-                                suppressNextMouseUpRef.current = true; // block the mouseup from this button click
+                                suppressNextMouseUpRef.current = true;
                                 setIsAiOpen(false);
                                 setToolbarPos(null);
                                 setAiPos(null);
+                                setMobileHasSelection(false);
                                 // Collapse selection to cursor so no stale text range remains
                                 try { editor.commands.setTextSelection(editor.state.selection.to); } catch {}
                             }}

@@ -362,63 +362,77 @@ if (error) {
 
     return (
         <div
-            className="flex flex-col md:w-[160px] w-full max-w-[calc(100vw-32px)] bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl rounded-xl overflow-hidden pointer-events-auto"
+            className="bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] shadow-xl pointer-events-auto overflow-hidden
+                /* Mobile: compact horizontal row */
+                flex flex-row items-center gap-1 px-2 py-1.5 rounded-full
+                /* Desktop: vertical list card */
+                md:flex-col md:rounded-xl md:px-0 md:py-0 md:w-auto md:min-w-[110px] md:gap-0"
             style={{ contain: "layout style paint" }}
             onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
         >
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-[#1A1A1A] border-b border-gray-200 dark:border-[#444]">
+            {/* Header — desktop only */}
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50/50 dark:bg-[#1A1A1A] border-b border-gray-200 dark:border-[#444]">
                 <Sparkles size={13} className="text-[#252525] dark:text-[#BABABA]" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D] dark:text-[#BABABA]">AI Commands</span>
             </div>
 
-            <div className="p-1 flex flex-col gap-0.5 max-h-[260px] overflow-y-auto custom-scrollbar scrollbar-compact">
-                <>
+            {/* Mobile: horizontal scrollable pills */}
+            <div className="flex md:hidden items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-[calc(100vw-80px)]"
+                style={{ WebkitOverflowScrolling: 'touch' }}>
+                {[
+                    { label: "Summarize", cmd: selectedText ? "Summarize this" : "Summarize document", icon: FileText },
+                    { label: "Explain", cmd: selectedText ? "Explain this" : "Explain content", icon: Wand2 },
+                    { label: "Improve", cmd: "Improve writing", icon: Sparkles },
+                    { label: "Shorter", cmd: "Make it shorter", icon: Minimize2 },
+                    { label: "Grammar", cmd: "Fix grammar", icon: CheckCheck },
+                    ...(selectedText ? [{ label: "Answer", cmd: "Answer this", icon: ArrowRight }] : []),
+                ].map(({ label, cmd, icon: Icon }) => (
                     <button
-                        onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}
-                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
+                        key={label}
+                        onClick={() => handleSubmit(cmd)}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#333] hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-[#CFCFCF] text-[11px] font-semibold rounded-full whitespace-nowrap transition-colors shrink-0 active:scale-95"
                     >
-                        <FileText size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">{selectedText ? "Summarize" : "Summarize"}</span>
+                        <Icon size={11} className="shrink-0" />
+                        {label}
                     </button>
-                    <button
-                        onClick={() => handleSubmit(selectedText ? "Explain this" : "Explain content")}
-                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
-                    >
-                        <Wand2 size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">Explain</span>
+                ))}
+            </div>
+
+            {/* Desktop: vertical list */}
+            <div className="hidden md:flex flex-col p-1 gap-0 max-h-[260px] overflow-y-auto custom-scrollbar scrollbar-compact">
+                <button onClick={() => handleSubmit(selectedText ? "Summarize this" : "Summarize document")}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] font-medium rounded-md transition-colors group">
+                    <FileText size={13} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
+                    <span className="truncate">Summarize</span>
+                </button>
+                <button onClick={() => handleSubmit(selectedText ? "Explain this" : "Explain content")}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] font-medium rounded-md transition-colors group">
+                    <Wand2 size={13} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
+                    <span className="truncate">Explain</span>
+                </button>
+                <button onClick={() => handleSubmit("Improve writing")}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] font-medium rounded-md transition-colors group">
+                    <Sparkles size={13} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
+                    <span className="truncate">Improve</span>
+                </button>
+                <button onClick={() => handleSubmit("Make it shorter")}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] font-medium rounded-md transition-colors group">
+                    <Minimize2 size={13} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
+                    <span className="truncate">Shorter</span>
+                </button>
+                <button onClick={() => handleSubmit("Fix grammar")}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] font-medium rounded-md transition-colors group">
+                    <CheckCheck size={13} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
+                    <span className="truncate">Fix Grammar</span>
+                </button>
+                {selectedText && (
+                    <button onClick={() => handleSubmit("Answer this")}
+                        className="flex items-center gap-2 px-2 py-1.5 mt-0.5 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] font-bold rounded-md transition-colors group border border-[#252525]/20 dark:border-white/20">
+                        <ArrowRight size={13} className="shrink-0" />
+                        <span className="truncate">Answer</span>
                     </button>
-                    <button
-                        onClick={() => handleSubmit("Improve writing")}
-                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
-                    >
-                        <Sparkles size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">Improve</span>
-                    </button>
-                    <button
-                        onClick={() => handleSubmit("Make it shorter")}
-                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
-                    >
-                        <Minimize2 size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">Shorter</span>
-                    </button>
-                    <button
-                        onClick={() => handleSubmit("Fix grammar")}
-                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-[#333] text-[#252525] dark:text-[#CFCFCF] text-[11px] md:text-xs font-medium rounded-lg transition-colors group"
-                    >
-                        <CheckCheck size={14} className="text-[#A3A3A3] group-hover:text-[#252525] dark:group-hover:text-white shrink-0" />
-                        <span className="truncate">Fix Grammar</span>
-                    </button>
- 
-                    {selectedText && (
-                        <button
-                            onClick={() => handleSubmit("Answer this")}
-                            className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[#252525] hover:text-white dark:hover:bg-white dark:hover:text-[#252525] text-[#252525] dark:text-white text-[11px] md:text-xs font-bold rounded-lg transition-colors group border border-[#252525]/20 dark:border-white/20"
-                        >
-                            <ArrowRight size={14} className="shrink-0" />
-                            <span className="truncate">Answer</span>
-                        </button>
-                    )}
-                </>
+                )}
             </div>
         </div>
     );
