@@ -364,14 +364,7 @@ export default function DashboardChecklist() {
                     {isLoading ? (
                         <div className="space-y-1.5">
                             {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-[#E8E5E0] dark:border-[#3C3C3C] bg-white/80 backdrop-blur-md dark:bg-[#252525] animate-pulse">
-                                    <div className="w-4 h-4 rounded-full bg-[#E8E5E0] dark:bg-[#383838] flex-shrink-0" />
-                                    <div className="flex-1 space-y-1.5">
-                                        <div className={`h-3 rounded-full bg-[#E8E5E0] dark:bg-[#383838] ${i === 1 ? "w-3/4" : i === 2 ? "w-1/2" : "w-2/3"}`} />
-                                        <div className="h-2 rounded-full bg-[#F0EDE8] dark:bg-[#2C2C2C] w-1/3" />
-                                    </div>
-                                    <div className="w-5 h-5 rounded bg-[#F0EDE8] dark:bg-[#2C2C2C] flex-shrink-0" />
-                                </div>
+                                <div key={i} className="h-[44px] rounded-xl bg-[#E8E5E0] dark:bg-[#2C2C2C] animate-pulse w-full" />
                             ))}
                         </div>
                     ) : visibleItems.length === 0 ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, useParams } from "next/navigation";
 import { Search, Sparkles, LayoutGrid, List as ListIcon } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
@@ -13,12 +13,12 @@ import GenerateExerciseModal from "@/components/preparation/GenerateExerciseModa
 import CreateRevisionModal from "@/components/preparation/CreateRevisionModal";
 import { logRecentActivity } from "@/lib/logRecentActivity";
 
-type TabType = "exercise" | "revision" | "personal_ai";
+type TabType = "exercise" | "revision" | "ai_teacher";
 
 const TABS: { id: TabType; label: string }[] = [
     { id: "exercise", label: "Exercise" },
     { id: "revision", label: "Revision" },
-    { id: "personal_ai", label: "AI Teacher" },
+    { id: "ai_teacher", label: "AI Teacher" },
 ];
 
 const tabCls = (active: boolean) =>
@@ -30,16 +30,16 @@ const tabCls = (active: boolean) =>
 export default function PreparationPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const params = useParams();
+    const slug = params?.slug as string[] | undefined;
     
-    // Sync active tab with URL query parameter (?tab=)
-    // We use a state to remember the last tab so it doesn't reset to "exercise" 
-    // when the URL changes to something like "/trash?from=..."
-    const activeTabFromUrl = searchParams.get("tab") as TabType;
+    // Read the tab from the URL path directly (defaults to "exercise")
+    const activeTabFromUrl = (slug?.[0] as TabType) || "exercise";
     const [lastTab, setLastTab] = useState<TabType>("exercise");
-    const activeTab = activeTabFromUrl || lastTab;
+    const activeTab = activeTabFromUrl;
 
     useEffect(() => {
-        if (activeTabFromUrl) {
+        if (activeTabFromUrl && ["exercise", "revision", "ai_teacher"].includes(activeTabFromUrl)) {
             setLastTab(activeTabFromUrl);
         }
     }, [activeTabFromUrl]);
@@ -85,14 +85,20 @@ export default function PreparationPage() {
         } else {
             params.delete("fullscreen");
         }
-        router.push(`/preparation?${params.toString()}`, { scroll: false });
+        
+        const qs = params.toString() ? `?${params.toString()}` : "";
+        const targetPath = activeTab === "exercise" ? "/preparation" : `/preparation/${activeTab}`;
+        router.push(`${targetPath}${qs}`, { scroll: false });
     }, [isFocusMode]);
 
-    // Change tab and update URL query params
+    // Change tab and update URL
     const handleTabChange = (tabId: TabType) => {
         const params = new URLSearchParams(searchParams.toString());
-        params.set("tab", tabId);
-        router.push(`/preparation?${params.toString()}`, { scroll: false });
+        params.delete("tab");
+        
+        const qs = params.toString() ? `?${params.toString()}` : "";
+        const targetPath = tabId === "exercise" ? "/preparation" : `/preparation/${tabId}`;
+        router.push(`${targetPath}${qs}`, { scroll: false });
     };
 
     // Card click handlers — simply navigate to dedicated route pages
@@ -247,7 +253,7 @@ export default function PreparationPage() {
 
                 <div
                     ref={scrollContentRef}
-                    className={`flex-1 flex flex-col ${activeTab === 'personal_ai' ? 'overflow-hidden' : 'overflow-y-auto'} custom-scrollbar min-h-0 transition-all duration-300 ${isFocusMode ? 'px-0 mt-0' : 'px-4 sm:px-6 mt-2'}`}
+                    className={`flex-1 flex flex-col ${activeTab === 'ai_teacher' ? 'overflow-hidden' : 'overflow-y-auto'} custom-scrollbar min-h-0 transition-all duration-300 ${isFocusMode ? 'px-0 mt-0' : 'px-4 sm:px-6 mt-2'}`}
                 >
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -256,7 +262,7 @@ export default function PreparationPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className={`flex-1 flex flex-col ${activeTab === 'personal_ai' ? 'overflow-hidden' : ''}`}
+                            className={`flex-1 flex flex-col ${activeTab === 'ai_teacher' ? 'overflow-hidden' : ''}`}
                         >
                             {activeTab === "exercise" && (
                                 <ExerciseTab
@@ -275,7 +281,7 @@ export default function PreparationPage() {
                                     viewMode={viewMode}
                                 />
                             )}
-                            {activeTab === "personal_ai" && (
+                            {activeTab === "ai_teacher" && (
                                 <PersonalAITab 
                                     isFocusMode={isFocusMode}
                                     onFocusModeChange={setIsFocusMode}

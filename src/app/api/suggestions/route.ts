@@ -120,12 +120,15 @@ export async function GET() {
                     .in("item_id", weakExercises.map(ex => ex.id));
 
                 if (currentItems && currentItems.length > 0) {
-                    const multiple_actions = currentItems.map((item) => ({
-                        id: item.item_id,
-                        action_type: `/preparation/exercise/${item.item_id}`,
-                        action_label: item.title,
-                        status: item.status
-                    }));
+                    const multiple_actions = currentItems.map((item) => {
+                        const realEx = weakExercises.find(ex => ex.id === item.item_id);
+                        return {
+                            id: item.item_id,
+                            action_type: `/preparation/exercise/${item.item_id}`,
+                            action_label: realEx?.title || item.title,
+                            status: item.status
+                        };
+                    });
 
                     suggestions.push({
                         id: `weak-topics-${userId}`,
@@ -174,12 +177,15 @@ export async function GET() {
                 .in("item_id", typedNotes.map(n => n.id));
 
             if (currentItems && currentItems.length > 0) {
-                const multiple_actions = currentItems.map((item) => ({
-                    id: item.item_id,
-                    action_type: `/library/${item.item_type === 'pdf' ? "pdf" : "note"}/${item.item_id}`,
-                    action_label: item.title,
-                    status: item.status
-                }));
+                const multiple_actions = currentItems.map((item) => {
+                    const realNote = typedNotes.find(n => n.id === item.item_id);
+                    return {
+                        id: item.item_id,
+                        action_type: `/library/${item.item_type === 'pdf' ? "pdf" : "note"}/${item.item_id}`,
+                        action_label: realNote?.title || item.title,
+                        status: item.status
+                    };
+                });
 
                 suggestions.push({
                     id: `spaced-revision-${userId}`,

@@ -20,15 +20,16 @@ function Toast({ message, type = "info", action, duration = 5000, onDismiss }: T
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
+  const onDismissRef = React.useRef(onDismiss);
+  useEffect(() => { onDismissRef.current = onDismiss; });
+
   useEffect(() => {
     if (!duration || duration === 0) return;
-    
     const timer = setTimeout(() => {
-      onDismiss();
+      onDismissRef.current();
     }, duration);
-
     return () => clearTimeout(timer);
-  }, [duration, onDismiss]);
+  }, [duration]);
 
   const handleAction = async () => {
     if (action) {
@@ -47,11 +48,10 @@ function Toast({ message, type = "info", action, duration = 5000, onDismiss }: T
       initial={{ opacity: 0, y: 12, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-      layout
-      className={`pointer-events-auto relative flex items-center gap-4 pl-5 pr-3 py-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border backdrop-blur-md transition-all mx-auto w-fit overflow-hidden ${
+      className={`pointer-events-auto relative flex items-center gap-4 pl-5 pr-3 py-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border mx-auto w-fit overflow-hidden ${
         isDark 
-          ? "bg-[#1A1A1A]/90 border-white/10 text-white/90" 
-          : "bg-white/90 border-black/5 text-[#252525]/90"
+          ? "bg-[#1A1A1A] border-white/10 text-white/90" 
+          : "bg-white border-black/5 text-[#252525]/90"
       }`}
     >
       <span className="text-[13px] font-medium tracking-tight whitespace-nowrap leading-none">

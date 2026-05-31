@@ -237,6 +237,7 @@ export default function DashboardTasks() {
     return (
         <>
             <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 flex flex-col group/card relative
+                ${isDropdownOpen ? "z-30" : "z-10"}
                 ${displayTasks.length > 5 ? "min-h-[220px] max-h-[365px]" : "h-auto"}
                 ${isDark ? "hover:bg-white/5 hover:border-[#444]" : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"}
                 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md
@@ -262,9 +263,9 @@ export default function DashboardTasks() {
                         >
                             <span>
                                 {filterRange === "today" ? "Today" :
-                                 filterRange === "overdue" ? "Overdue" :
-                                 filterRange === "1week" ? "1 Week" :
-                                 filterRange === "2weeks" ? "2 Weeks" : "1 Month"}
+                                    filterRange === "overdue" ? "Overdue" :
+                                        filterRange === "1week" ? "1 Week" :
+                                            filterRange === "2weeks" ? "2 Weeks" : "1 Month"}
                             </span>
                             <ChevronDown className={`w-3.5 h-3.5 text-[#7D7D7D] transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
                         </button>
@@ -315,22 +316,17 @@ export default function DashboardTasks() {
                     custom-scrollbar-alt
                 `}>
                     {isLoading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-[#E8E5E0] dark:border-[#3C3C3C] bg-white/80 backdrop-blur-md dark:bg-[#252525] animate-pulse">
-                                <div className="w-4 h-4 rounded-full bg-[#E8E5E0] dark:bg-[#383838] flex-shrink-0" />
-                                <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                                    <div className={`h-3 rounded-full bg-[#E8E5E0] dark:bg-[#383838] ${i % 2 === 0 ? "w-1/2" : "w-2/3"}`} />
-                                    <div className="h-2 rounded-full bg-[#F0EDE8] dark:bg-[#2C2C2C] w-1/4" />
-                                </div>
-                                <div className="w-5 h-5 rounded bg-[#F0EDE8] dark:bg-[#2C2C2C] flex-shrink-0" />
-                            </div>
-                        ))
+                        <div className="space-y-2">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="h-[44px] rounded-xl bg-[#E8E5E0] dark:bg-[#2C2C2C] animate-pulse w-full" />
+                            ))}
+                        </div>
                     ) : displayTasks.length === 0 ? (
                         <div className="text-center py-4 sm:py-6 animate-in fade-in duration-500">
                             <p className="text-sm text-[#545454] dark:text-[#7D7D7D]">
                                 {filterRange === "today" ? "All caught up for today! 🎉" :
-                                 filterRange === "overdue" ? "No overdue tasks! Great job! 🙌" : 
-                                 "No tasks found for this period."}
+                                    filterRange === "overdue" ? "No overdue tasks! Great job! 🙌" :
+                                        "No tasks found for this period."}
                             </p>
                         </div>
                     ) : (
@@ -455,7 +451,7 @@ function TaskRow({ task, projects, workspaces, notes, isDark, setSelectedTask, t
                     } else if (swipeOffset < -60) {
                         deleteTask(task.id, e);
                     }
-                    
+
                     setSwipeOffset(0);
                     touchStartRef.current = null;
                 }}
@@ -487,19 +483,19 @@ function TaskRow({ task, projects, workspaces, notes, isDark, setSelectedTask, t
                                     {projects.find((p: any) => p.id === task.project_id)?.title}
                                 </span>
                             )}
-                        {task.linked_document_id && (() => {
-                            const n = notes.find((note: any) => note.id === task.linked_document_id);
-                            if (!n) return null;
-                            const iconMatch = n.title.match(/^\[(\w+)\]/);
-                            const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
-                            const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (n.file_url ? FileIcon : FileText);
-                            return (
-                                <div className="flex items-center gap-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase truncate max-w-[120px]">
-                                    · <IconComp className="w-2.5 h-2.5 opacity-60" />
-                                    <span className="truncate">{cleanTitle}</span>
-                                </div>
-                            );
-                        })()}
+                            {task.linked_document_id && (() => {
+                                const n = notes.find((note: any) => note.id === task.linked_document_id);
+                                if (!n) return null;
+                                const iconMatch = n.title.match(/^\[(\w+)\]/);
+                                const cleanTitle = n.title.replace(/^\[\w+\]\s*/, "");
+                                const IconComp = iconMatch && ICON_MAP[iconMatch[1]] ? ICON_MAP[iconMatch[1]] : (n.file_url ? FileIcon : FileText);
+                                return (
+                                    <div className="flex items-center gap-1 text-[10px] font-bold text-[#7D7D7D] dark:text-[#BABABA] uppercase truncate max-w-[120px]">
+                                        · <IconComp className="w-2.5 h-2.5 opacity-60" />
+                                        <span className="truncate">{cleanTitle}</span>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>

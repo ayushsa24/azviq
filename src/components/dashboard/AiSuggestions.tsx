@@ -69,18 +69,8 @@ export default function AiSuggestions() {
                     <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-[#252525]"}`}>AI Suggestions</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:items-stretch">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className={`flex flex-col p-5 rounded-2xl border ${isDark ? "bg-[#252525] border-[#545454]" : "bg-white border-[#CFCFCF]"} animate-pulse h-[200px] md:h-[365px]`}>
-                            <div className="flex items-start gap-3 mb-3">
-                                <div className={`w-9 h-9 rounded-xl shrink-0 ${isDark ? "bg-[#383838]" : "bg-[#E8E5E0]"}`}></div>
-                                <div className={`h-4 mt-2 w-24 rounded-full ${isDark ? "bg-[#383838]" : "bg-[#E8E5E0]"}`}></div>
-                            </div>
-                            <div className="space-y-2 mt-2">
-                                <div className={`h-3 w-full rounded-full ${isDark ? "bg-[#383838]" : "bg-[#E8E5E0]"}`}></div>
-                                <div className={`h-3 w-4/5 rounded-full ${isDark ? "bg-[#383838]" : "bg-[#E8E5E0]"}`}></div>
-                            </div>
-                            <div className={`mt-auto w-full h-10 rounded-xl ${isDark ? "bg-[#383838]" : "bg-[#E8E5E0]"}`}></div>
-                        </div>
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className={`rounded-3xl border ${isDark ? "bg-[#252525] border-[#545454]" : "bg-white border-[#CFCFCF]"} animate-pulse h-[180px] md:h-[240px]`} />
                     ))}
                 </div>
             </div>

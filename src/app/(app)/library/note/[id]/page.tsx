@@ -1188,7 +1188,11 @@ export default function NoteEditorPage() {
                             onClose={() => {
                                 setAiInlinePos(null);
                                 aiStreamEndPosRef.current = null;
-                                editor?.commands.focus();
+                                if (editor) {
+                                    try {
+                                        editor.chain().focus().setTextSelection(editor.state.selection.to).run();
+                                    } catch {}
+                                }
                             }}
                             onInsert={(htmlContent) => {
                                 if (editor && aiInlinePos) {

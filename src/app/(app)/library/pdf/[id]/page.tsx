@@ -22,58 +22,99 @@ const CanvasSkeleton = () => (
 );
 
 const PdfSkeleton = () => {
-    const router = require("next/navigation").useRouter();
     return (
         <div className="flex flex-col h-full bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-hidden relative">
             {/* Elegant Header Skeleton */}
-            <div className="relative sm:static flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] z-50 transition-colors">
+            <div className="relative sm:static flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+2px)] sm:pt-0">
                 <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        <Skeleton className="w-10 h-10 rounded-xl opacity-50" />
-                        <div className="hidden sm:flex flex-col gap-1.5 ml-1">
-                            <Skeleton className="w-48 h-4 rounded-md opacity-60" />
-                            <Skeleton className="w-24 h-3 rounded-md opacity-40" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Skeleton className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl opacity-40 animate-pulse" />
+                        <div className="flex flex-col gap-1.5 ml-1">
+                            <Skeleton className="w-28 sm:w-48 h-4 rounded-md opacity-40 animate-pulse" />
+                            <Skeleton className="w-16 sm:w-24 h-2.5 rounded-md opacity-30 animate-pulse" />
                         </div>
                     </div>
-                    
-                    {/* Tool Skeleton */}
-                    <div className="flex items-center gap-2">
-                        <Skeleton className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl opacity-40" />
-                        <Skeleton className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl opacity-40" />
-                    </div>
-                </div>
 
-                {/* Desktop Toolbar Skeleton */}
-                <div className="hidden sm:flex items-center justify-center gap-2 pb-3 px-4">
-                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
-                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
-                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
-                     <Skeleton className="w-14 h-12 rounded-xl opacity-40" />
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                        {/* Undo / Redo */}
+                        <Skeleton className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg opacity-40 animate-pulse" />
+                        <Skeleton className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg opacity-40 animate-pulse" />
+                        <div className="hidden sm:block w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+                        {/* Download / Save */}
+                        <Skeleton className="w-8 h-8 sm:w-24 sm:h-9 rounded-lg opacity-40 animate-pulse" />
+                        <Skeleton className="w-8 h-8 sm:w-20 sm:h-9 rounded-lg opacity-40 animate-pulse" />
+                    </div>
                 </div>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-                {/* Skeleton Sidebar - Laptop only */}
-                <div className="hidden sm:flex flex-col w-40 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="flex flex-col gap-2">
-                            <Skeleton className="w-full h-32 rounded-lg opacity-40 animate-pulse" />
+            {/* Main body area */}
+            <div className="flex flex-row flex-1 min-h-0 overflow-hidden relative">
+                {/* Left Sidebar - Thumbnails */}
+                <div className="hidden sm:flex flex-col w-64 bg-white dark:bg-[#24221F] border-r border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-4 flex-shrink-0">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="flex flex-col gap-2 items-center">
+                            <Skeleton className="w-40 h-56 rounded-lg opacity-30 animate-pulse border border-[#E8E5E0] dark:border-[#3A3A3A]" />
+                            <Skeleton className="w-8 h-3 rounded opacity-30 animate-pulse" />
                         </div>
                     ))}
                 </div>
 
-                {/* Main View Skeleton (A4 Page style) */}
-                <div className="flex-1 overflow-hidden flex flex-col items-center pt-8 sm:pt-12 px-4 sm:px-12 pb-24 sm:pb-12">
-                     <Skeleton className="w-full max-w-[800px] h-full sm:h-[1000px] bg-white dark:bg-[#1C1C1C] rounded-t-md shadow-2xl animate-pulse" />
+                {/* Center Canvas Area */}
+                <div className="flex-1 min-w-0 bg-[#F5F3EF] dark:bg-[#1E1E1E] overflow-hidden flex justify-center p-4 pt-4 sm:pt-12 sm:px-12">
+                    <div className="w-full max-w-[800px] h-[85vh] bg-white dark:bg-[#1A1A1A] rounded-t-md shadow-lg border border-[#E8E5E0] dark:border-[#2E2E2E] p-8 flex flex-col gap-6 animate-pulse">
+                        <Skeleton className="w-3/4 h-6 rounded-md opacity-30" />
+                        <div className="space-y-3">
+                            <Skeleton className="w-full h-4 rounded-md opacity-20" />
+                            <Skeleton className="w-full h-4 rounded-md opacity-20" />
+                            <Skeleton className="w-5/6 h-4 rounded-md opacity-20" />
+                        </div>
+                        <div className="space-y-3 pt-6">
+                            <Skeleton className="w-full h-4 rounded-md opacity-20" />
+                            <Skeleton className="w-4/5 h-4 rounded-md opacity-20" />
+                            <Skeleton className="w-full h-4 rounded-md opacity-20" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Sidebar - Tools */}
+                <div className="hidden sm:flex flex-col w-60 bg-white dark:bg-[#24221F] border-l border-[#E8E5E0] dark:border-[#2A2A2A] p-4 gap-5 flex-shrink-0">
+                    {/* Tool Grid */}
+                    <div className="flex flex-col gap-2.5">
+                        <Skeleton className="w-16 h-3 rounded-md opacity-35 animate-pulse" />
+                        <div className="grid grid-cols-2 gap-2">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <Skeleton key={i} className="h-10 rounded-xl opacity-30 animate-pulse" />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
+                    {/* Size selector */}
+                    <div className="flex flex-col gap-2.5">
+                        <Skeleton className="w-12 h-3 rounded-md opacity-35 animate-pulse" />
+                        <div className="flex items-center gap-2">
+                            <Skeleton className="w-4 h-4 rounded-full opacity-35 animate-pulse" />
+                            <Skeleton className="flex-1 h-2 rounded opacity-30 animate-pulse" />
+                            <Skeleton className="w-3 h-3 rounded-full opacity-35 animate-pulse" />
+                        </div>
+                    </div>
+                    <div className="w-full h-px bg-[#E8E5E0] dark:bg-[#3A3A3A]" />
+                    {/* Colors */}
+                    <div className="flex flex-col gap-2.5">
+                        <Skeleton className="w-16 h-3 rounded-md opacity-35 animate-pulse" />
+                        <div className="grid grid-cols-5 gap-2">
+                            {Array.from({ length: 10 }).map((_, i) => (
+                                <Skeleton key={i} className="w-8 h-8 rounded-full opacity-35 animate-pulse" />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Mobile Toolbar Skeleton */}
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#24221F]/90 backdrop-blur-xl border-t border-[#E8E5E0] dark:border-[#2A2A2A] p-2 pb-[env(safe-area-inset-bottom)] flex overflow-x-auto gap-2 z-50">
-                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
-                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
-                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
-                <Skeleton className="w-16 h-12 flex-shrink-0 rounded-xl opacity-40" />
+            {/* Mobile Bottom Toolbar Skeleton */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#24221F]/90 backdrop-blur-xl border-t border-[#E8E5E0] dark:border-[#2A2A2A] p-2 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-around gap-2 z-50 animate-pulse">
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="w-14 h-11 rounded-xl opacity-30" />
+                ))}
             </div>
         </div>
     );
@@ -98,6 +139,166 @@ interface TextInput {
     initialX?: number;
     initialY?: number;
 }
+
+const hslToHex = (h: number, s: number, l: number): string => {
+    l /= 100;
+    const a = (s * Math.min(l, 1 - l)) / 100;
+    const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+};
+
+const hexToHsl = (hex: string): { h: number; s: number; l: number } => {
+    hex = hex.replace(/^#/, "");
+    if (hex.length === 3) {
+        hex = hex.split("").map(c => c + c).join("");
+    }
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+
+    if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (max === r) {
+            h = (g - b) / d + (g < b ? 6 : 0);
+        } else if (max === g) {
+            h = (b - r) / d + 2;
+        } else if (max === b) {
+            h = (r - g) / d + 4;
+        }
+        h /= 6;
+    }
+
+    return {
+        h: Math.round(h * 360),
+        s: Math.round(s * 100),
+        l: Math.round(l * 100)
+    };
+};
+
+const CustomColorPicker = ({
+    color,
+    onChange,
+    position
+}: {
+    color: string;
+    onChange: (hex: string) => void;
+    position: { top: number; left: number };
+}) => {
+    const { h, s, l } = hexToHsl(color);
+
+    return (
+        <div
+            className="custom-color-picker fixed z-[200] bg-white dark:bg-[#1C1C1B] border border-[#E8E5E0] dark:border-[#2E2E2E] shadow-xl rounded-2xl p-3.5 w-[195px] space-y-3.5 animate-in fade-in slide-in-from-top-1 duration-150"
+            style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7D7D7D] dark:text-[#8D8D8C]">Color Picker</span>
+                <div className="flex items-center gap-1.5">
+                    <div
+                        className="w-5 h-5 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
+                        style={{ backgroundColor: color }}
+                    />
+                    <span className="text-[10px] font-bold font-mono uppercase text-[#252525] dark:text-[#E8E5E0]">
+                        {color}
+                    </span>
+                </div>
+            </div>
+
+            {/* Sliders */}
+            <div className="space-y-3">
+                {/* Hue */}
+                <div className="space-y-1">
+                    <div className="flex justify-between text-[9px] uppercase tracking-wider font-bold text-[#7D7D7D]">
+                        <span>Hue</span>
+                        <span>{h}°</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={h}
+                        onChange={(e) => {
+                            const newH = Number(e.target.value);
+                            // If base color is grayscale/black/white, boost saturation and normalize lightness
+                            let newS = s;
+                            let newL = l;
+                            if (s <= 10) {
+                                newS = 85;
+                            }
+                            if (l <= 15 || l >= 90) {
+                                newL = 50;
+                            }
+                            onChange(hslToHex(newH, newS, newL));
+                        }}
+                        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-black/30 [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-black/30 [&::-moz-range-thumb]:appearance-none"
+                        style={{
+                            background: 'linear-gradient(to right, red, #ff0, #0f0, #0ff, #00f, #f0f, red)',
+                            outline: 'none'
+                        }}
+                    />
+                </div>
+
+                {/* Saturation */}
+                <div className="space-y-1">
+                    <div className="flex justify-between text-[9px] uppercase tracking-wider font-bold text-[#7D7D7D]">
+                        <span>Saturation</span>
+                        <span>{s}%</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={s}
+                        onChange={(e) => {
+                            const newS = Number(e.target.value);
+                            onChange(hslToHex(h, newS, l));
+                        }}
+                        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-black/30 [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-black/30 [&::-moz-range-thumb]:appearance-none"
+                        style={{
+                            background: `linear-gradient(to right, hsl(${h}, 0%, ${l}%), hsl(${h}, 100%, ${l}%))`,
+                            outline: 'none'
+                        }}
+                    />
+                </div>
+
+                {/* Lightness */}
+                <div className="space-y-1">
+                    <div className="flex justify-between text-[9px] uppercase tracking-wider font-bold text-[#7D7D7D]">
+                        <span>Lightness</span>
+                        <span>{l}%</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={l}
+                        onChange={(e) => {
+                            const newL = Number(e.target.value);
+                            onChange(hslToHex(h, s, newL));
+                        }}
+                        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-black/30 [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-black/30 [&::-moz-range-thumb]:appearance-none"
+                        style={{
+                            background: `linear-gradient(to right, black, hsl(${h}, ${s}%, 50%), white)`,
+                            outline: 'none'
+                        }}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function PdfEditorPage() {
     const { id } = useParams() as { id: string };
@@ -146,8 +347,6 @@ export default function PdfEditorPage() {
     );
     const [zoomLevel, setZoomLevel] = useState(1); // Manage desktop PDF zoom
     const [currentPage, setCurrentPage] = useState(1); // Track current active page for sidebar highlighting
-
-    const pageContainerRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const fontButtonRef = useRef<HTMLButtonElement>(null);
     const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
     // Ref to the header div for direct DOM manipulation (no re-render)
@@ -159,6 +358,21 @@ export default function PdfEditorPage() {
     const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
     const textValueRef = useRef("");
     const textInputRef = useRef<any>(null);
+    const annotsByPageRef = useRef<Record<number, Annotation[]>>({});
+    const [showColorPicker, setShowColorPicker] = useState<"pen" | "highlight" | null>(null);
+    const [colorPickerPosition, setColorPickerPosition] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        const handleOutsideClick = (e: PointerEvent) => {
+            if (!showColorPicker) return;
+            const target = e.target as HTMLElement;
+            if (!target.closest(".custom-color-picker") && !target.closest(".rainbow-picker-btn")) {
+                setShowColorPicker(null);
+            }
+        };
+        document.addEventListener("pointerdown", handleOutsideClick, true);
+        return () => document.removeEventListener("pointerdown", handleOutsideClick, true);
+    }, [showColorPicker]);
 
     useLayoutEffect(() => {
         textValueRef.current = textValue;
@@ -167,6 +381,10 @@ export default function PdfEditorPage() {
     useLayoutEffect(() => {
         textInputRef.current = textInput;
     }, [textInput]);
+
+    useLayoutEffect(() => {
+        annotsByPageRef.current = annotsByPage;
+    }, [annotsByPage]);
 
     // Worker is managed inside PdfViewerWrapper — no setup needed here
 
@@ -228,11 +446,11 @@ export default function PdfEditorPage() {
             // Header is no longer fixed, so it doesn't need counter-scrolling
             // Keyboard is considered open if viewport shrank by more than 120px
             const keyboardOpen = vv.height < initialHeight - 120;
-            
+
             // Bring the tools bar up above the keyboard on mobile
             // Toolbar position is now handled by CSS fixed bottom-0 when keyboard is open
             // No manual top adjustment needed to prevent JS-induced bounce
-            
+
             setIsKeyboardOpen(keyboardOpen);
         };
 
@@ -267,10 +485,9 @@ export default function PdfEditorPage() {
             rootMargin: '-20% 0px -20% 0px' // Focus on the middle 60% of the viewport
         });
 
-        // Observe all page containers
-        Object.values(pageContainerRefs.current).forEach(ref => {
-            if (ref) observer.observe(ref);
-        });
+        // Observe all page containers in the DOM
+        const pageElements = container.querySelectorAll('[id^="pdf-page-"]');
+        pageElements.forEach((el) => observer.observe(el));
 
         return () => observer.disconnect();
     }, [numPages, zoomLevel]); // Re-bind if page count or zoom (and thus heights) change
@@ -278,10 +495,28 @@ export default function PdfEditorPage() {
     // ── Auto-scroll the thumbnail sidebar to keep the current page in view ──
     useEffect(() => {
         if (!showThumbnails && window.innerWidth < 640) return;
-        const thumb = document.getElementById(`thumb-item-${currentPage}`);
-        if (thumb) {
-            thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+        
+        const scrollActiveThumb = () => {
+            const thumb = document.getElementById(`thumb-item-${currentPage}`);
+            if (thumb) {
+                // 'auto' scroll is extremely resilient on mobile browsers, preventing animations from getting aborted
+                thumb.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+            }
+        };
+
+        // Run immediately if DOM is already fully rendered
+        scrollActiveThumb();
+
+        // Multi-stage fallbacks to handle mounting delays, layout paint ticks, and cold loads
+        const t1 = setTimeout(scrollActiveThumb, 100);
+        const t2 = setTimeout(scrollActiveThumb, 300);
+        const t3 = setTimeout(scrollActiveThumb, 600);
+
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+            clearTimeout(t3);
+        };
     }, [currentPage, showThumbnails]);
     // Observe container width for responsive PDF pages
     useEffect(() => {
@@ -293,12 +528,12 @@ export default function PdfEditorPage() {
                 const isMobile = window.innerWidth < 640;
                 // For mobile, subtract minimal padding (8px each side) or 0 if we want flush
                 // For desktop, margin guarantees a clear gap (96px total = 48px each side)
-                const margin = isMobile ? 0 : 96; 
+                const margin = isMobile ? 0 : 96;
                 // Set the default "100%" scale for desktop to be physically 60% of the available area 
                 // as requested for ideal readability
                 const availableWidth = entry.contentRect.width - margin;
                 const finalWidth = isMobile ? availableWidth : availableWidth * 0.6;
-                
+
                 // Math.max(10, ...) ensures React-PDF doesn't crash from 0 width, but allows full shrinking
                 setContainerWidth(Math.max(10, finalWidth));
             }
@@ -363,7 +598,7 @@ export default function PdfEditorPage() {
             const sliced = prev.slice(0, historyIdx + 1);
             return [...sliced, newAnnots];
         });
-        setHistoryIdx((prev) => prev + 1);
+        setHistoryIdx(historyIdx + 1);
     }, [historyIdx]);
 
     const undo = () => {
@@ -382,36 +617,36 @@ export default function PdfEditorPage() {
 
     // ── Annotation helpers ─────────────────────────────────────────────────────
     const addAnnotation = useCallback((pg: number, annotation: Annotation) => {
-        setAnnotsByPage((prev) => {
-            const updated = { ...prev, [pg]: [...(prev[pg] || []), annotation] };
-            pushHistory(updated);
-            return updated;
-        });
+        const current = annotsByPageRef.current;
+        const updated = { ...current, [pg]: [...(current[pg] || []), annotation] };
+        setAnnotsByPage(updated);
+        pushHistory(updated);
     }, [pushHistory]);
 
     const eraseAt = useCallback((pg: number, coords: { x: number; y: number }) => {
-        setAnnotsByPage((prev) => {
-            const eraserRadius = strokeWidth * 3;
-            const filtered = (prev[pg] || []).filter((ann) => {
-                if (ann.kind === "stroke") {
-                    return !ann.path.some(
-                        (p) => Math.sqrt((p.x - coords.x) ** 2 + (p.y - coords.y) ** 2) < eraserRadius
-                    );
-                }
-                if (ann.kind === "text") {
-                    return Math.abs(ann.x - coords.x) > 60 || Math.abs(ann.y - coords.y) > 20;
-                }
-                return true;
-            });
-            if (filtered.length === (prev[pg] || []).length) return prev;
-            const updated = { ...prev, [pg]: filtered };
-            return updated;
+        const current = annotsByPageRef.current;
+        const eraserRadius = strokeWidth * 3;
+        const filtered = (current[pg] || []).filter((ann) => {
+            if (ann.kind === "stroke") {
+                return !ann.path.some(
+                    (p) => Math.sqrt((p.x - coords.x) ** 2 + (p.y - coords.y) ** 2) < eraserRadius
+                );
+            }
+            if (ann.kind === "text") {
+                return Math.abs(ann.x - coords.x) > 60 || Math.abs(ann.y - coords.y) > 20;
+            }
+            return true;
         });
-    }, [strokeWidth]);
+        if (filtered.length === (current[pg] || []).length) return;
+        const updated = { ...current, [pg]: filtered };
+        setAnnotsByPage(updated);
+        pushHistory(updated);
+    }, [strokeWidth, pushHistory]);
 
     const handleTextClick = (pg: number, x: number, y: number) => {
         // Did we hit an existing text annotation?
-        const annots = annotsByPage[pg] || [];
+        const current = annotsByPageRef.current;
+        const annots = current[pg] || [];
         let hitIndex = -1;
         for (let i = 0; i < annots.length; i++) {
             const ann = annots[i];
@@ -430,7 +665,7 @@ export default function PdfEditorPage() {
                 }
             }
         }
-        
+
         if (hitIndex !== -1) {
             // Edit existing text
             const hit = annots[hitIndex];
@@ -442,16 +677,14 @@ export default function PdfEditorPage() {
                 setTextItalic(hit.italic || false);
                 setTextUnderline(hit.underline || false);
                 setTextAlign(hit.textAlign || "left");
-                
+
                 setTextInput({ pageNum: pg, x: hit.x, y: hit.y });
                 setTextValue(hit.text);
-                
+
                 // Remove from canvas temporarily while editing
-                setAnnotsByPage(prev => {
-                    const newAnnots = [...(prev[pg] || [])];
-                    newAnnots.splice(hitIndex, 1);
-                    return { ...prev, [pg]: newAnnots };
-                });
+                const newAnnots = [...annots];
+                newAnnots.splice(hitIndex, 1);
+                setAnnotsByPage({ ...current, [pg]: newAnnots });
                 return;
             }
         }
@@ -475,7 +708,7 @@ export default function PdfEditorPage() {
 
     const handleDragPointerMove = (e: React.PointerEvent) => {
         if (!textInput?.isDragging) return;
-        const container = pageContainerRefs.current[textInput.pageNum];
+        const container = document.getElementById(`pdf-page-${textInput.pageNum}`);
         const pageDims = allPageDims[textInput.pageNum];
         if (container && pageDims) {
             const rect = container.getBoundingClientRect();
@@ -615,7 +848,7 @@ export default function PdfEditorPage() {
             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-medium transition-all ${extraClass} ${activeTool === tool
                 ? "bg-[#252525] text-white shadow-md"
                 : "bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A]"
-            }`}
+                }`}
             title={label}
         >
             <div className="transition-transform duration-200">{icon}</div>
@@ -645,8 +878,8 @@ export default function PdfEditorPage() {
 
             {/* Top Navigation Bar — fixed on mobile so keyboard can't push it off screen */}
             {/* On desktop (sm:) it reverts to normal static flow */}
-            <div 
-                ref={headerRef} 
+            <div
+                ref={headerRef}
                 onPointerDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                     // If we're editing text and click header (but not a tool button which is separate), commit it
@@ -657,104 +890,82 @@ export default function PdfEditorPage() {
                 className="relative sm:static flex shrink-0 items-center justify-between px-4 h-14 bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] z-50 transition-colors pt-[calc(env(safe-area-inset-top,0px)+2px)] sm:pt-0"
             >
                 <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-1 sm:gap-2">
-                    {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
-                    {!sidebarOpen && (
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        {/* Sidebar Toggle - Only on Laptop + if sidebar is closed */}
+                        {!sidebarOpen && (
+                            <button
+                                onClick={toggleSidebar}
+                                className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
+                                title="Open Sidebar"
+                            >
+                                <PanelLeft size={20} />
+                            </button>
+                        )}
+
+                        {/* Always visible Back button */}
                         <button
-                            onClick={toggleSidebar}
-                            className="hidden md:flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
-                            title="Open Sidebar"
+                            onClick={() => router.back()}
+                            className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
+                            title="Back"
                         >
-                            <PanelLeft size={20} />
+                            <ArrowLeft size={20} />
                         </button>
-                    )}
- 
-                    {/* Always visible Back button */}
-                    <button
-                        onClick={() => router.back()}
-                        className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
-                        title="Back"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
 
-                    {/* Mobile Thumbnail Toggle */}
-                    <button
-                        onClick={() => setShowThumbnails(!showThumbnails)}
-                        className={`sm:hidden p-2 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 ${showThumbnails ? "bg-[#252525] text-white" : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"}`}
-                        title="Toggle Thumbnails"
-                    >
-                        <Layout size={20} />
-                    </button>
-                    <span className="text-sm font-semibold text-[#252525] dark:text-white max-w-[120px] sm:max-w-md truncate">
-                        {note.title}
-                    </span>
-                </div>
-
-                <div className="flex items-center gap-1 sm:gap-2">
-                    <button
-                        onPointerDown={(e) => e.preventDefault()}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={undo}
-                        disabled={!canUndo}
-                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
-                        title="Undo"
-                    >
-                        <Undo2 size={18} />
-                    </button>
-                    <button
-                        onPointerDown={(e) => e.preventDefault()}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={redo}
-                        disabled={!canRedo}
-                        className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
-                        title="Redo"
-                    >
-                        <Redo2 size={18} />
-                    </button>
-
-                    {/* Zoom Controls (Desktop only) */}
-                    <div className="hidden sm:flex items-center mx-2 gap-1 bg-[#F5F3EF] dark:bg-[#1A1A1A] rounded-md p-0.5">
+                        {/* Mobile Thumbnail Toggle */}
                         <button
-                            onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.2))}
-                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded transition-all duration-300 hover:scale-110 active:scale-95"
-                            title="Zoom Out"
+                            onClick={() => setShowThumbnails(!showThumbnails)}
+                            className={`sm:hidden p-2 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 ${showThumbnails ? "bg-[#252525] text-white" : "text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"}`}
+                            title="Toggle Thumbnails"
                         >
-                            <ZoomOut size={16} />
+                            <Layout size={20} />
                         </button>
-                        <span className="text-xs font-medium text-[#545454] dark:text-[#7D7D7D] w-12 text-center select-none">
-                            {Math.round(zoomLevel * 100)}%
+                        <span className="text-sm font-semibold text-[#252525] dark:text-white max-w-[120px] sm:max-w-md truncate">
+                            {note.title}
                         </span>
-                        <button
-                            onClick={() => setZoomLevel(z => Math.min(3, z + 0.2))}
-                            className="p-1.5 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded transition-all duration-300 hover:scale-110 active:scale-95"
-                            title="Zoom In"
-                        >
-                            <ZoomIn size={16} />
-                        </button>
                     </div>
 
-                    <div className="hidden sm:block w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
-                    <button
-                        onClick={() => window.open(note.file_url, "_blank")}
-                        className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-transparent border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 text-sm font-medium"
-                        title="Download"
-                    >
-                        <Download size={16} />
-                        <span className="hidden lg:inline ml-2">Download</span>
-                    </button>
-                    <button
-                        onClick={handleSavePdf}
-                        disabled={isSaving}
-                        className="flex items-center justify-center p-2 sm:px-4 sm:py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#3A3A3A] dark:hover:bg-[#F5F3EF] rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 text-sm font-medium disabled:opacity-50 shadow-sm"
-                        title="Save PDF"
-                    >
-                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        <span className="hidden sm:inline ml-2">Save</span>
-                    </button>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        <button
+                            onPointerDown={(e) => e.preventDefault()}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={undo}
+                            disabled={!canUndo}
+                            className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
+                            title="Undo"
+                        >
+                            <Undo2 size={18} />
+                        </button>
+                        <button
+                            onPointerDown={(e) => e.preventDefault()}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={redo}
+                            disabled={!canRedo}
+                            className="inline-flex p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-30"
+                            title="Redo"
+                        >
+                            <Redo2 size={18} />
+                        </button>
+                        <div className="hidden sm:block w-px h-6 bg-[#E8E5E0] dark:bg-[#3A3A3A] mx-1" />
+                        <button
+                            onClick={() => window.open(note.file_url, "_blank")}
+                            className="flex items-center justify-center p-2 sm:px-3 sm:py-1.5 bg-transparent border border-[#E8E5E0] dark:border-[#3A3A3A] text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 text-sm font-medium"
+                            title="Download"
+                        >
+                            <Download size={16} />
+                            <span className="hidden lg:inline ml-2">Download</span>
+                        </button>
+                        <button
+                            onClick={handleSavePdf}
+                            disabled={isSaving}
+                            className="flex items-center justify-center p-2 sm:px-4 sm:py-1.5 bg-[#252525] dark:bg-white text-white dark:text-[#252525] hover:bg-[#3A3A3A] dark:hover:bg-[#F5F3EF] rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 text-sm font-medium disabled:opacity-50 shadow-sm"
+                            title="Save PDF"
+                        >
+                            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                            <span className="hidden sm:inline ml-2">Save</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
 
             {/* Spacer for fixed header on mobile — height is set dynamically via ResizeObserver */}
             {/* This ensures content is never hidden behind the header regardless of header height */}
@@ -762,10 +973,10 @@ export default function PdfEditorPage() {
 
             {/* Main Content Area — vertical on mobile, horizontal on laptop */}
             <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden relative">
-                
+
                 {/* Mobile Overlay - Closes sidebar when tapped outside */}
                 {showThumbnails && (
-                    <div 
+                    <div
                         className="sm:hidden absolute inset-0 z-40 bg-black/60 transition-opacity backdrop-blur-sm"
                         onClick={() => setShowThumbnails(false)}
                     />
@@ -773,7 +984,7 @@ export default function PdfEditorPage() {
 
                 {/* Left Sidebar - Thumbnails */}
                 {/* Left Sidebar - Thumbnails: Always show on laptop, toggle on mobile as overlay */}
-                <div 
+                <div
                     ref={thumbnailSidebarRef}
                     onClick={(e) => {
                         // If we're editing text and click sidebar (but not a tool button which is separate), commit it
@@ -783,7 +994,7 @@ export default function PdfEditorPage() {
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
                     className={`
-                    flex-col w-64 flex-shrink-0 bg-white dark:bg-[#24221F] overflow-y-auto custom-scrollbar transition-colors
+                    flex-col w-44 sm:w-64 flex-shrink-0 bg-white dark:bg-[#24221F] overflow-y-auto custom-scrollbar transition-colors
                     ${showThumbnails ? 'flex absolute top-0 bottom-0 left-0 z-50 shadow-xl sm:static sm:inset-auto sm:z-auto sm:shadow-none' : 'hidden sm:flex sm:static'}
                 `}>
                     <div className="flex flex-col gap-4 py-4">
@@ -809,8 +1020,8 @@ export default function PdfEditorPage() {
                 </div>
 
                 {/* Center Canvas Area - min-w-0 is crucial for flex-1 to not overflow siblings */}
-                <div 
-                    ref={documentContainerRef} 
+                <div
+                    ref={documentContainerRef}
                     onClick={(e) => {
                         // If we're editing text and click outside the editor group, commit it
                         if (textInputRef.current && !(e.target as Element).closest('.group')) {
@@ -855,92 +1066,97 @@ export default function PdfEditorPage() {
                                     onStrokeWidthChange={(w) => setStrokeWidth(w)}
                                 />
                                 {textInput && textInput.pageNum === pg && allPageDims[pg] && (
+                                    <div
+                                        className="absolute z-30 flex flex-col items-start gap-1 group pointer-events-auto select-text"
+                                        style={{
+                                            left: textInput.x,
+                                            top: textInput.y - textFontSize - 28,
+                                            transform: `translateX(${textAlign === "center" ? "-50%" : textAlign === "right" ? "-100%" : "0"})`,
+                                        }}
+                                    >
+                                        {/* Drag Handle & Controls */}
                                         <div
-                                            className="absolute z-30 flex flex-col items-start gap-1 group pointer-events-auto select-text"
-                                            style={{
-                                                left: textInput.x,
-                                                top: textInput.y - textFontSize - 28,
-                                                transform: `translateX(${textAlign === "center" ? "-50%" : textAlign === "right" ? "-100%" : "0"})`,
-                                            }}
+                                            className="flex items-center bg-white/95 dark:bg-[#1A1A1A]/95 border border-[#3B82F6] rounded-md shadow-md px-2 py-1 cursor-grab active:cursor-grabbing backdrop-blur-sm self-center transition-opacity opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+                                            onPointerDown={handleDragPointerDown}
+                                            onPointerMove={handleDragPointerMove}
+                                            onPointerUp={handleDragPointerUp}
+                                            onPointerCancel={handleDragPointerUp}
                                         >
-                                            {/* Drag Handle & Controls */}
-                                            <div
-                                                className="flex items-center bg-white/95 dark:bg-[#1A1A1A]/95 border border-[#3B82F6] rounded-md shadow-md px-2 py-1 cursor-grab active:cursor-grabbing backdrop-blur-sm self-center transition-opacity opacity-0 group-hover:opacity-100 focus-within:opacity-100"
-                                                onPointerDown={handleDragPointerDown}
-                                                onPointerMove={handleDragPointerMove}
-                                                onPointerUp={handleDragPointerUp}
-                                                onPointerCancel={handleDragPointerUp}
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#545454] dark:text-[#7D7D7D]"><path d="M5 9h14M5 15h14" /></svg>
+                                            <div className="w-px h-3 bg-gray-300 dark:bg-gray-600 mx-2" />
+                                            <button
+                                                onClick={deleteActiveText}
+                                                onPointerDown={(e) => e.stopPropagation()}
+                                                className="text-red-500 hover:text-red-600 pointer-events-auto transition-colors"
+                                                title="Delete Text"
                                             >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#545454] dark:text-[#7D7D7D]"><path d="M5 9h14M5 15h14"/></svg>
-                                                <div className="w-px h-3 bg-gray-300 dark:bg-gray-600 mx-2" />
-                                                <button
-                                                    onClick={deleteActiveText}
-                                                    onPointerDown={(e) => e.stopPropagation()}
-                                                    className="text-red-500 hover:text-red-600 pointer-events-auto transition-colors"
-                                                    title="Delete Text"
-                                                >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                                                </button>
-                                            </div>
-
-                                            <textarea
-                                                ref={textareaRef}
-                                                autoFocus
-                                                value={textValue}
-                                                onChange={(e) => setTextValue(e.target.value)}
-                                                onFocus={() => {
-                                                    if (commitTimerRef.current) {
-                                                        clearTimeout(commitTimerRef.current);
-                                                        commitTimerRef.current = null;
-                                                    }
-                                                }}
-                                                onBlur={(e) => {
-                                                    // On mobile, relatedTarget is often null.
-                                                    // We use a small timeout to see if focus comes back (e.g. after clicking a formatting button)
-                                                    commitTimerRef.current = setTimeout(() => {
-                                                        // Only commit if we haven't refocused already
-                                                        if (document.activeElement !== textareaRef.current) {
-                                                            const groupElement = (e.relatedTarget as Element)?.closest?.('.group');
-                                                            if (!e.relatedTarget || !groupElement) {
-                                                                commitText();
-                                                            }
-                                                        }
-                                                    }, 150);
-                                                }}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitText(); }
-                                                    if (e.key === "Escape") { deleteActiveText(e as any); }
-                                                }}
-                                                placeholder="Insert text here…"
-                                                rows={1}
-                                                className="bg-transparent border-0 border-b-2 border-dashed border-[#3B82F6] focus:border-solid outline-none resize-none overflow-hidden leading-tight p-0 mt-[-4px] select-text pointer-events-auto"
-                                                style={{
-                                                    color: currentColor,
-                                                    fontSize: `${textFontSize}px`,
-                                                    fontFamily: textFontFamily,
-                                                    fontWeight: textBold ? "bold" : "normal",
-                                                    fontStyle: textItalic ? "italic" : "normal",
-                                                    textDecoration: textUnderline ? "underline" : "none",
-                                                    textAlign: textAlign,
-                                                    minWidth: 120,
-                                                    width: "auto",
-                                                    caretColor: currentColor,
-                                                }}
-                                            />
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                                            </button>
                                         </div>
-                                    )}
+
+                                        <textarea
+                                            ref={textareaRef}
+                                            autoFocus
+                                            value={textValue}
+                                            onChange={(e) => setTextValue(e.target.value)}
+                                            onFocus={() => {
+                                                if (commitTimerRef.current) {
+                                                    clearTimeout(commitTimerRef.current);
+                                                    commitTimerRef.current = null;
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                // On mobile, relatedTarget is often null.
+                                                // We use a small timeout to see if focus comes back (e.g. after clicking a formatting button)
+                                                commitTimerRef.current = setTimeout(() => {
+                                                    // Only commit if we haven't refocused already
+                                                    if (document.activeElement !== textareaRef.current) {
+                                                        const groupElement = (e.relatedTarget as Element)?.closest?.('.group');
+                                                        if (!e.relatedTarget || !groupElement) {
+                                                            commitText();
+                                                        }
+                                                    }
+                                                }, 150);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitText(); }
+                                                if (e.key === "Escape") { deleteActiveText(e as any); }
+                                            }}
+                                            placeholder="Insert text here…"
+                                            rows={1}
+                                            className="bg-transparent border-0 border-b-2 border-dashed border-[#3B82F6] focus:border-solid outline-none resize-none overflow-hidden leading-tight p-0 mt-[-4px] select-text pointer-events-auto"
+                                            style={{
+                                                color: currentColor,
+                                                fontSize: `${textFontSize}px`,
+                                                fontFamily: textFontFamily,
+                                                fontWeight: textBold ? "bold" : "normal",
+                                                fontStyle: textItalic ? "italic" : "normal",
+                                                textDecoration: textUnderline ? "underline" : "none",
+                                                textAlign: textAlign,
+                                                minWidth: 120,
+                                                width: "auto",
+                                                caretColor: currentColor,
+                                            }}
+                                        />
+                                    </div>
+                                )}
                             </>
                         )}
                     />
                 </div>
                 {/* Right Sidebar - Tools (Bottom on Mobile, Right on Desktop) */}
                 {/* On mobile, if the keyboard is open, this docks above the keyboard. If closed, docks at bottom. */}
-                <div 
-                    ref={toolbarRef} 
-                    onPointerDown={(e) => e.preventDefault()}
+                <div
+                    ref={toolbarRef}
+                    onPointerDown={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName !== "INPUT" && target.tagName !== "SELECT" && target.tagName !== "TEXTAREA") {
+                            e.preventDefault();
+                        }
+                    }}
                     style={{ touchAction: 'manipulation' }}
                     className={`
-                        flex-shrink-0 w-full sm:w-56 h-auto sm:h-full bg-white dark:bg-[#24221F] border-t sm:border-t-0 sm:border-l border-[#E8E5E0] dark:border-[#2A2A2A] py-2 px-4 pb-1 sm:pb-4 sm:p-4 flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-5 transition-all duration-500 overflow-x-auto sm:overflow-y-auto custom-scrollbar flex
+                        flex-shrink-0 w-full sm:w-60 h-auto sm:h-full bg-white dark:bg-[#24221F] border-t sm:border-t-0 sm:border-l border-[#E8E5E0] dark:border-[#2A2A2A] py-2 px-4 pb-1 sm:pb-4 sm:p-4 flex-row sm:flex-col items-center sm:items-stretch gap-4 sm:gap-5 transition-all duration-500 overflow-x-auto sm:overflow-y-auto custom-scrollbar flex
                         ${activeTool === "select" ? 'sm:justify-start justify-center' : 'justify-start'}
                         ${isKeyboardOpen ? 'fixed left-0 right-0 bottom-0 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] !pb-3 bg-white/95 backdrop-blur-md sm:static sm:bg-white sm:backdrop-blur-none' : 'static'}
                     `}
@@ -985,7 +1201,7 @@ export default function PdfEditorPage() {
                     {activeTool === "highlight" && (
                         <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 flex-shrink-0 pr-4 sm:pr-0">
                             <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Colors</span>
-                            
+
                             {/* Desktop: Show full grid */}
                             <div className="hidden sm:grid sm:grid-cols-5 gap-2 w-full">
                                 {["#FEF08A", "#FDE047", "#FBBF24", "#A7F3D0", "#34D399", "#BFDBFE", "#60A5FA", "#FECACA", "#F87171"].map((color) => (
@@ -996,9 +1212,18 @@ export default function PdfEditorPage() {
                                         style={{ backgroundColor: color }}
                                     />
                                 ))}
-                                <div className="relative w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 flex items-center justify-center overflow-hidden border-[#E8E5E0] dark:border-[#3A3A3A]">
+                                <div
+                                    className="rainbow-picker-btn relative w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 cursor-pointer border-[#E8E5E0] dark:border-[#3A3A3A] overflow-hidden"
+                                    onClick={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setColorPickerPosition({
+                                            top: rect.bottom + window.scrollY + 8,
+                                            left: Math.max(8, rect.left + window.scrollX - 160)
+                                        });
+                                        setShowColorPicker(showColorPicker === "highlight" ? null : "highlight");
+                                    }}
+                                >
                                     <div className="absolute inset-0 bg-[conic-gradient(from_0deg,red,orange,yellow,green,blue,purple,red)] opacity-80" />
-                                    <input type="color" value={highlightColor} onChange={(e) => setHighlightColor(e.target.value)} className="absolute opacity-0 inset-[-20px] w-20 h-20 cursor-pointer" />
                                 </div>
                             </div>
 
@@ -1018,12 +1243,12 @@ export default function PdfEditorPage() {
                     {(activeTool === "pen" || activeTool === "text") && (
                         <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 flex-shrink-0 pr-4 sm:pr-0">
                             <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Colors</span>
-                            
+
                             {/* Desktop: Show full grid */}
                             <div className="hidden sm:grid sm:grid-cols-5 gap-2 w-full">
                                 {[
-                                    "#1E1E1E", "#757575", "#E0E0E0", "#FFFFFF", "#EF4444", 
-                                    "#F97316", "#F59E0B", "#EAB308", "#84CC16", "#10B981", 
+                                    "#1E1E1E", "#757575", "#E0E0E0", "#FFFFFF", "#EF4444",
+                                    "#F97316", "#F59E0B", "#EAB308", "#84CC16", "#10B981",
                                     "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899",
                                 ].map((color) => (
                                     <button
@@ -1035,9 +1260,18 @@ export default function PdfEditorPage() {
                                         style={{ backgroundColor: color }}
                                     />
                                 ))}
-                                <div className="relative w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 flex items-center justify-center overflow-hidden border-[#E8E5E0] dark:border-[#3A3A3A]">
+                                <div
+                                    className="rainbow-picker-btn relative w-8 h-8 rounded-full border transition-transform hover:scale-110 flex-shrink-0 cursor-pointer border-[#E8E5E0] dark:border-[#3A3A3A] overflow-hidden"
+                                    onClick={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setColorPickerPosition({
+                                            top: rect.bottom + window.scrollY + 8,
+                                            left: Math.max(8, rect.left + window.scrollX - 160)
+                                        });
+                                        setShowColorPicker(showColorPicker === "pen" ? null : "pen");
+                                    }}
+                                >
                                     <div className="absolute inset-0 bg-[conic-gradient(from_0deg,red,orange,yellow,green,blue,purple,red)] opacity-80" />
-                                    <input type="color" value={currentColor} onChange={(e) => setCurrentColor(e.target.value)} className="absolute opacity-0 inset-[-20px] w-20 h-20 cursor-pointer" />
                                 </div>
                             </div>
 
@@ -1070,8 +1304,8 @@ export default function PdfEditorPage() {
                                             if (!showFontMenu) {
                                                 const rect = fontButtonRef.current?.getBoundingClientRect();
                                                 if (rect) {
-                                                    setMenuPos({ 
-                                                        top: rect.top, 
+                                                    setMenuPos({
+                                                        top: rect.top,
                                                         left: rect.left,
                                                         width: rect.width
                                                     });
@@ -1080,18 +1314,18 @@ export default function PdfEditorPage() {
                                             setShowFontMenu(!showFontMenu);
                                         }}
                                         className={`text-[10px] sm:text-xs h-8 sm:h-9 w-[110px] sm:w-auto px-2 flex-shrink-0 rounded-md border text-[#252525] dark:text-white flex items-center justify-between gap-1 transition-all active:scale-95
-                                            ${showFontMenu 
-                                                ? 'border-[#3B82F6] bg-blue-50 dark:bg-blue-900/20' 
+                                            ${showFontMenu
+                                                ? 'border-[#3B82F6] bg-blue-50 dark:bg-blue-900/20'
                                                 : 'border-[#E8E5E0] dark:border-[#3A3A3A] bg-[#F5F3EF] dark:bg-[#1A1A1A]'
                                             }
                                         `}
                                     >
                                         <span className="truncate" style={{ fontFamily: textFontFamily }}>{textFontFamily}</span>
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`transition-transform duration-200 ${showFontMenu ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`transition-transform duration-200 ${showFontMenu ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
                                     </button>
                                 </div>
                             </div>
-                            
+
                             {/* Font Size Adjustments */}
                             <div className="flex flex-row sm:flex-col items-center sm:items-start gap-2 sm:gap-3 flex-shrink-0">
                                 <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#7D7D7D] hidden sm:block">Size</span>
@@ -1150,9 +1384,9 @@ export default function PdfEditorPage() {
                                             onClick={() => setTextAlign(align)}
                                             className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md text-xs transition-all ${textAlign === align ? "bg-[#252525] text-white dark:bg-white dark:text-[#252525]" : "bg-[#F5F3EF] dark:bg-[#1A1A1A] hover:bg-[#F0EDE8] dark:hover:bg-[#3A3A3A] text-[#252525] dark:text-white"}`}
                                         >
-                                            {align === "left" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>}
-                                            {align === "center" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg>}
-                                            {align === "right" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>}
+                                            {align === "left" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="10" x2="3" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="17" y1="18" x2="3" y2="18" /></svg>}
+                                            {align === "center" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="10" x2="6" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="18" y1="18" x2="6" y2="18" /></svg>}
+                                            {align === "right" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="21" y1="10" x2="7" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="21" y1="18" x2="7" y2="18" /></svg>}
                                         </button>
                                     ))}
                                 </div>
@@ -1163,22 +1397,22 @@ export default function PdfEditorPage() {
             </div>
             {/* Global Font Menu Overlay */}
             {showFontMenu && (
-                <div 
+                <div
                     className="fixed inset-0 z-[100]"
                     onPointerDown={(e) => {
                         e.preventDefault();
                         setShowFontMenu(false);
                     }}
                 >
-                    <div 
+                    <div
                         className="fixed bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-[#444] rounded-xl shadow-xl py-1 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-[101]"
                         style={{
                             // Check if it should be above or below based on screen height
-                            top: menuPos.top > window.innerHeight / 2 
-                                ? 'auto' 
+                            top: menuPos.top > window.innerHeight / 2
+                                ? 'auto'
                                 : `${menuPos.top + (window.innerWidth < 640 ? 36 : 40)}px`,
-                            bottom: menuPos.top > window.innerHeight / 2 
-                                ? `${window.innerHeight - menuPos.top + 8}px` 
+                            bottom: menuPos.top > window.innerHeight / 2
+                                ? `${window.innerHeight - menuPos.top + 8}px`
                                 : 'auto',
                             left: `${menuPos.left}px`,
                             width: `${Math.max(140, menuPos.width)}px`
@@ -1201,6 +1435,19 @@ export default function PdfEditorPage() {
                         ))}
                     </div>
                 </div>
+            )}
+            {showColorPicker && (
+                <CustomColorPicker
+                    color={showColorPicker === "pen" ? currentColor : highlightColor}
+                    onChange={(hex) => {
+                        if (showColorPicker === "pen") {
+                            setCurrentColor(hex);
+                        } else {
+                            setHighlightColor(hex);
+                        }
+                    }}
+                    position={colorPickerPosition}
+                />
             )}
         </div>
     );

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { Search, Upload, Plus, LayoutGrid, List, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SidebarToggleButton from "@/components/layout/SidebarToggleButton";
@@ -21,10 +21,15 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function NotesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const slug = params?.slug as string[] | undefined;
+  const tabFromUrl = (slug?.[0] || "workspaces") as "workspaces" | "notes" | "pdfs" | "all" | "favourites";
+
   const dialog = useAppDialog();
   const { show } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">("workspaces");
+  const [activeTab, setActiveTabState] = useState<"workspaces" | "notes" | "pdfs" | "all" | "favourites">(tabFromUrl);
+  
   const [viewMode, setViewModeState] = useState<"grid" | "list">(
     () => {
       if (typeof window !== "undefined") {
@@ -41,26 +46,29 @@ export default function NotesPage() {
       : "text-[#545454] dark:text-[#BABABA] hover:text-[#252525] dark:hover:text-white"
     }`;
 
-
-
   useEffect(() => {
     // Clear the search query whenever this component mounts
     setSearchQuery("");
 
-    // Removed libraryActiveTab persistence - always start with workspaces
     const savedView = localStorage.getItem('libraryViewMode');
     if (savedView === "grid" || savedView === "list") {
       setViewModeState(savedView);
     }
   }, []);
 
-
-
   const setActiveTab = (tab: "workspaces" | "notes" | "pdfs" | "all" | "favourites") => {
     setActiveTabState(tab);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", tab);
-    router.push(`/library?${params.toString()}`, { scroll: false });
+    
+    // Keep other query params (like workspace) but clean up the path
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("tab"); 
+    
+    const qs = p.toString() ? `?${p.toString()}` : "";
+    if (tab === "workspaces") {
+      router.push(`/library${qs}`, { scroll: false });
+    } else {
+      router.push(`/library/${tab}${qs}`, { scroll: false });
+    }
   };
 
   const setViewMode = (mode: "grid" | "list") => {
@@ -168,29 +176,34 @@ export default function NotesPage() {
   };
 
   const handleOpenWorkspace = (workspace: Workspace) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("workspace", workspace.id);
-    params.set("tab", "notes"); // Default to notes view when opening workspace
-    router.push(`/library?${params.toString()}`, { scroll: false });
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("workspace", workspace.id);
+    p.delete("tab");
+    router.push(`/library/notes?${p.toString()}`, { scroll: false });
   };
 
   const handleBackToWorkspaces = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("workspace");
-    params.set("tab", "workspaces");
-    router.push(`/library?${params.toString()}`, { scroll: false });
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("workspace");
+    p.delete("tab");
+    
+    const qs = p.toString() ? `?${p.toString()}` : "";
+    router.push(`/library${qs}`, { scroll: false });
   };
 
   // Sync state with URL (handles browser back/forward + deep links)
   useEffect(() => {
     const wsId = searchParams.get("workspace");
-    const tabParam = searchParams.get("tab") as any;
+    const tabParam = slug?.[0] as any;
 
     // Handle Tab Param
     if (tabParam && ["workspaces", "notes", "pdfs", "all", "favourites"].includes(tabParam)) {
       if (activeTab !== tabParam) {
         setActiveTabState(tabParam);
       }
+    } else if (!tabParam && activeTab !== "workspaces") {
+      // If we are at /library, it should be workspaces unless overridden
+      if (!wsId) setActiveTabState("workspaces");
     }
 
     // Handle Workspace Param
@@ -205,13 +218,15 @@ export default function NotesPage() {
       // clean up URL
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete("action");
-      router.replace(`/library?${newParams.toString()}`, { scroll: false });
+      const qs = newParams.toString() ? `?${newParams.toString()}` : "";
+      router.replace(`${window.location.pathname}${qs}`, { scroll: false });
     } else if (actionParam === "new-note") {
       handleCreateNativeNote();
       // clean up URL
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete("action");
-      router.replace(`/library?${newParams.toString()}`, { scroll: false });
+      const qs = newParams.toString() ? `?${newParams.toString()}` : "";
+      router.replace(`${window.location.pathname}${qs}`, { scroll: false });
     }
 
     // Handle Search Param (deep linking from old notifications)
@@ -226,7 +241,8 @@ export default function NotesPage() {
           // Clean up URL
           const newParams = new URLSearchParams(searchParams.toString());
           newParams.delete("search");
-          window.history.replaceState({}, "", `/library?${newParams.toString()}`);
+          const qs = newParams.toString() ? `?${newParams.toString()}` : "";
+          window.history.replaceState({}, "", `${window.location.pathname}${qs}`);
 
           // Open it
           handleNoteClick(exactMatch);
@@ -666,23 +682,21 @@ export default function NotesPage() {
               className="flex-1 flex flex-col"
             >
               {activeTab === "workspaces" && !activeWorkspace ? (
-                <motion.div
-                  layout
+                <div
                   className={
                     viewMode === "grid"
                       ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
                       : "grid grid-cols-1 lg:grid-cols-3 gap-4"
                   }
                 >
-                  <AnimatePresence mode="popLayout">
+                  <AnimatePresence>
                     {filteredWorkspaces.length > 0 ? filteredWorkspaces.map((ws) => (
                       <motion.div
                         key={ws.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
                       >
                         <WorkspaceCard
                           workspace={ws}
@@ -711,25 +725,23 @@ export default function NotesPage() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
+                </div>
               ) : (
-                <motion.div
-                  layout
+                <div
                   className={
                     viewMode === "grid"
                       ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4"
                       : "grid grid-cols-1 lg:grid-cols-3 gap-4"
                   }
                 >
-                  <AnimatePresence mode="popLayout">
+                  <AnimatePresence>
                     {filteredNotes.length > 0 ? filteredNotes.map((note) => (
                       <motion.div
                         key={note.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
                       >
                         <NoteCard
                           key={note.id}
@@ -765,7 +777,7 @@ export default function NotesPage() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
+                </div>
               )}
             </motion.div>
           )}

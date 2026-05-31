@@ -303,21 +303,21 @@ function NotificationItem({
                     } else if (payload.startsWith("search:")) {
                         const searchTerm = encodeURIComponent(payload.split(":")[1]);
                         if (n.type === "weak_subject") {
-                            router.push(`/preparation?tab=exercise&search=${searchTerm}`);
+                            router.push(`/preparation?search=${searchTerm}`);
                         } else {
                             router.push(`/library?search=${searchTerm}`);
                         }
                     } else {
                         // Fallback for old notifications without prefixes
                         if (n.type === "weak_subject") {
-                            router.push("/preparation?tab=exercise");
+                            router.push("/preparation");
                         } else {
                             // Assume old revision id
                             router.push(`/preparation/revision/${payload}`);
                         }
                     }
                 } else {
-                    router.push(n.type === "weak_subject" ? "/preparation?tab=exercise" : "/preparation?tab=revision");
+                    router.push(n.type === "weak_subject" ? "/preparation" : "/preparation/revision");
                 }
                 break;
             case "study_reminder":

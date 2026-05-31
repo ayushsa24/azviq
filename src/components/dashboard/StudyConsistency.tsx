@@ -251,49 +251,7 @@ export default function StudyConsistency() {
             <div className="px-4 sm:px-6 pb-4 sm:pb-6">
 
             {isLoading ? (
-                <div className="flex flex-col animate-pulse">
-                    <div className="relative overflow-x-auto pb-4 custom-scrollbar w-fit mx-auto max-w-full">
-                        <div className="flex gap-[2px] min-w-max pl-6 relative opacity-20">
-                            <div className="absolute left-0 top-0 flex flex-col gap-[2px] text-[9px] sm:text-[10px] text-[#7D7D7D] dark:text-[#BABABA] leading-[11px] sm:leading-[13px]">
-                                <div className="h-[11px] sm:h-[13px]"></div>
-                                <div className="h-[11px] sm:h-[13px]">Mon</div>
-                                <div className="h-[11px] sm:h-[13px]"></div>
-                                <div className="h-[11px] sm:h-[13px]">Wed</div>
-                                <div className="h-[11px] sm:h-[13px]"></div>
-                                <div className="h-[11px] sm:h-[13px]">Fri</div>
-                                <div className="h-[11px] sm:h-[13px]"></div>
-                            </div>
-                            {Array.from({ length: 52 }).map((_, weekIdx) => (
-                                <div key={weekIdx} className="flex flex-col gap-[2px]">
-                                    {Array.from({ length: 7 }).map((_, dayIdx) => (
-                                        <div key={dayIdx} className="w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] rounded-[2px] bg-[#252525]/10 dark:bg-white/10" />
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    {/* Stats Skeleton */}
-                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-[#E8E5E0] dark:border-[#545454] opacity-40">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-3 bg-[#545454] dark:bg-[#7D7D7D] rounded"></div>
-                            <div className="flex gap-[2px]">
-                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#CFCFCF] dark:bg-[#383838]"></div>
-                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#7D7D7D] dark:bg-[#545454]"></div>
-                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#545454] dark:bg-[#9E9E9E]"></div>
-                                <div className="w-[11px] h-[11px] rounded-[2px] bg-[#252525] dark:bg-white"></div>
-                            </div>
-                            <div className="w-8 h-3 bg-[#545454] dark:bg-[#7D7D7D] rounded"></div>
-                        </div>
-                        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4 sm:gap-6">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="flex flex-col gap-1.5">
-                                    <div className="w-16 h-2.5 bg-[#545454] dark:bg-[#7D7D7D] rounded"></div>
-                                    <div className="w-10 h-4 bg-[#252525] dark:bg-white rounded"></div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <div className="w-full h-[180px] bg-[#E8E5E0] dark:bg-[#2C2C2C] rounded-2xl animate-pulse" />
             ) : (
                 <div className="flex flex-col">
                     {/* Heatmap Grid */}

@@ -145,7 +145,7 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
         <React.Fragment key="shared-links-list-group">
           <motion.div
             key="shared-links-backdrop"
-            className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-[2px] touch-none"
+            className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-[2px] touch-none sm:bg-transparent sm:backdrop-blur-none sm:pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -159,10 +159,12 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
             exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.95 }}
             transition={isMobile ? { duration: 0.25, ease: "easeOut" } : { type: "spring", damping: 25, stiffness: 400 }}
             drag={isMobile ? "y" : false}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.8 }}
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
             onDragEnd={(_, info) => {
-              if (isMobile && (info.offset.y > 150 || info.velocity.y > 600)) {
+              if (isMobile && (info.offset.y > 100 || info.velocity.y > 500)) {
                 closeModal();
               }
             }}
@@ -171,12 +173,14 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
               rounded-t-[20px] sm:rounded-xl
               shadow-2xl overflow-hidden flex flex-col overscroll-contain
               ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-white" : "bg-[#F5F3EF] text-[#252525]"}`}
-            style={{ touchAction: isMobile ? "pan-y" : "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Mobile drag handle */}
+            {/* Mobile drag handle — the ONLY area that initiates drag */}
             {isMobile && (
-              <div className="flex-shrink-0 w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing z-50">
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="flex-shrink-0 w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing z-50 touch-none"
+              >
                 <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
               </div>
             )}
@@ -184,6 +188,19 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
             {/* ── MAIN SCROLLABLE AREA ─── */}
             <div
               ref={scrollContainerRef}
+              onTouchStart={(e) => {
+                touchStartY.current = e.touches[0].clientY;
+              }}
+              onTouchEnd={(e) => {
+                if (!isMobile) return;
+                const el = scrollContainerRef.current;
+                if (!el) return;
+                const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+                // Close only if: swiped down 60px+ AND content is already at the very top
+                if (deltaY > 60 && el.scrollTop <= 0) {
+                  closeModal();
+                }
+              }}
               className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide"
             >
               {/* ── STICKY HEADER AREA ── */}
@@ -298,8 +315,18 @@ export const SharedLinksModal: React.FC<SharedLinksModalProps> = ({
                     ))
                   ) : sharedLinks.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-[#7D7D7D]">
-                        No {linksType === "archive" ? "archived chats" : (linksType === "import" || linksType === "import-chat") ? "imported items" : "shared links"} found.
+                      <td colSpan={4} className="px-6 py-6">
+                        <div className={`flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[260px] ${isDark ? "border-[#333]" : "border-[#DEDBD6]"}`}>
+                          <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm ${isDark ? "bg-[#252525]" : "bg-white"}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isDark ? "text-[#BABABA]" : "text-[#252525]"}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                          </div>
+                          <h3 className={`text-lg font-bold mb-1 ${isDark ? "text-white" : "text-[#252525]"}`}>
+                            {linksType === "archive" ? "No archived chats" : linksType === "import" ? "No imported notes" : linksType === "import-chat" ? "No imported chats" : linksType === "note" ? "No shared notes" : "No shared links"}
+                          </h3>
+                          <p className={`text-sm max-w-xs ${isDark ? "text-[#BABABA]" : "text-[#7D7D7D]"}`}>
+                            {linksType === "archive" ? "Chats you archive will appear here." : linksType === "import" || linksType === "import-chat" ? "Items imported from shared links will appear here." : "Links you share from your notes or chats will appear here."}
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   ) : (

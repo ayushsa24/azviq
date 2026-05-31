@@ -73,10 +73,10 @@ export default function PdfViewerWrapper({
             <div
               key={pg}
               id={`thumb-item-${pg}`}
-              className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 ${
+              className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 transform ${
                 isActive
-                  ? "border-[#E8E5E0] dark:border-[#3A3A3A] bg-[#E8E5E0] dark:bg-[#3A3A3A] shadow-md"
-                  : "border-[#E8E5E0] dark:border-[#3A3A3A] hover:border-[#BABABA] dark:hover:border-[#7D7D7D]"
+                  ? "border-[#252525] dark:border-white bg-[#F5F3EF] dark:bg-[#3A3A3A] shadow-md scale-102"
+                  : "border-transparent bg-white dark:bg-transparent hover:border-[#BABABA] dark:hover:border-[#545454]"
               }`}
               onClick={() => onThumbnailClick?.(pg)}
             >
@@ -90,7 +90,7 @@ export default function PdfViewerWrapper({
               <div
                 className={`text-center py-1 text-xs font-semibold transition-colors ${
                   isActive
-                    ? "text-[#252525] dark:text-white bg-[#E8E5E0] dark:bg-[#333]"
+                    ? "text-[#252525] dark:text-white bg-[#E8E5E0] dark:bg-[#333] font-bold"
                     : "text-[#545454] dark:text-[#7D7D7D] bg-[#F5F3EF] dark:bg-[#1A1A1A]"
                 }`}
               >

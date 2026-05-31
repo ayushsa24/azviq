@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { CheckCircle2, BookOpen, Play, Pause, RotateCcw, X, Target } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSession } from "next-auth/react";
 import useSWR from "swr";
 
 export default function DashboardStats() {
@@ -11,6 +12,7 @@ export default function DashboardStats() {
     const [tasksDue, setTasksDue] = useState(0);
     const [revisionsDue, setRevisionsDue] = useState(0);
     const [weakTopics, setWeakTopics] = useState(0);
+    const { data: session, status } = useSession();
 
     const getTodayString = () => new Date().toISOString().split('T')[0];
 
@@ -28,6 +30,7 @@ export default function DashboardStats() {
     const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR('/api/tasks');
     const { data: suggestionData, isLoading: suggestionLoading, mutate: mutateSuggestions } = useSWR('/api/suggestions');
     const { data: pcData } = useSWR('/api/parent-control');
+    const { data: dbTimerData } = useSWR(status === "authenticated" && session?.user?.email ? `/api/study/timer?date=${getTodayString()}` : null);
 
     const isLoadingTasks = tasksLoading && !tasksData;
     const isLoadingSuggestions = suggestionLoading && !suggestionData;
@@ -74,6 +77,53 @@ export default function DashboardStats() {
         };
     }, [tasksData, suggestionData, mutateTasks, mutateSuggestions]);
 
+    // Handle incoming DB timer data from SWR (which revalidates on window focus!)
+    useEffect(() => {
+        if (!dbTimerData?.timerState) return;
+        const dbState = dbTimerData.timerState;
+        const today = getTodayString();
+        
+        try {
+            const rawLocal = localStorage.getItem("dashboard_study_data");
+            const local = rawLocal ? JSON.parse(rawLocal) : null;
+            const isLocallyActive = localStorage.getItem("study_timer_active") === "true";
+
+            // We need to sync and update local storage if:
+            // 1. We have no local data for today
+            // 2. We are paused locally, and the DB has different data (we always trust DB when paused)
+            // 3. We are active locally, but the DB has a higher elapsed time (another device is playing)
+            
+            const noLocalDataForToday = !local || local.date !== today;
+            const pausedAndDifferent = !isLocallyActive && (
+                dbState.elapsedSeconds !== (local?.elapsedSeconds || 0) ||
+                dbState.targetMinutes !== local?.targetMinutes ||
+                dbState.isActive !== isLocallyActive
+            );
+            const activeButBehind = isLocallyActive && (dbState.elapsedSeconds || 0) > (local?.elapsedSeconds || 0);
+
+            if (noLocalDataForToday || pausedAndDifferent || activeButBehind) {
+                const updated = {
+                    date: today,
+                    elapsedSeconds: dbState.elapsedSeconds || 0,
+                    targetMinutes: dbState.targetMinutes || null,
+                    lastUpdated: dbState.lastUpdated
+                };
+                
+                setStudyData(updated);
+                localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
+                localStorage.setItem("study_timer_active", dbState.isActive ? "true" : "false");
+                setIsActive(dbState.isActive || false);
+                
+                // Dispatch events to keep the AppShell tick synchronized
+                window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: dbState.isActive } }));
+                window.dispatchEvent(new CustomEvent('study-timer-tick', { detail: { studyData: updated, isActive: dbState.isActive } }));
+            }
+        } catch (e) {
+            console.error("Error parsing local timer state", e);
+        }
+    }, [dbTimerData]);
+
+    // Initial load from local storage (so it doesn't wait for network)
     useEffect(() => {
         const savedStudy = localStorage.getItem("dashboard_study_data");
         if (savedStudy) {
@@ -89,16 +139,41 @@ export default function DashboardStats() {
         }
     }, []);
 
-    // Sync database daily study target hours automatically (only once per day at the start of the day)
+    // Sync parent-control daily target hours as a FALLBACK only.
+    // This only applies when no manual timer goal has been set for today.
+    // It must NEVER overwrite elapsedSeconds — always preserve whatever the DB timer sync loaded.
     useEffect(() => {
         const syncTarget = () => {
             if (pcData?.entries && pcData.entries.length > 0) {
                 const dbTargetHours = pcData.entries[0].daily_target_hours;
                 const today = getTodayString();
                 const targetMins = dbTargetHours !== null && dbTargetHours !== undefined ? dbTargetHours * 60 : null;
+                if (targetMins === null) return; // nothing to apply
 
                 setStudyData(prev => {
-                    const updated = { ...prev, date: today, targetMinutes: targetMins };
+                    // Only apply parent-control target if no manual target is already set
+                    // (meaning the user hasn't set a custom goal or the DB timer sync hasn't
+                    // loaded a target yet). NEVER touch elapsedSeconds.
+                    if (prev.targetMinutes !== null) return prev; // already has a target — skip
+
+                    // Also read localStorage to get the absolute freshest elapsedSeconds
+                    // (AppShell may have written a newer value between renders)
+                    let freshElapsed = prev.elapsedSeconds;
+                    try {
+                        const raw = localStorage.getItem("dashboard_study_data");
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (parsed.date === today) {
+                                freshElapsed = parsed.elapsedSeconds || 0;
+                                // If localStorage already has a targetMinutes, respect it
+                                if (parsed.targetMinutes !== null && parsed.targetMinutes !== undefined) {
+                                    return prev; // DB timer sync already wrote a target — skip
+                                }
+                            }
+                        }
+                    } catch { /* ignore */ }
+
+                    const updated = { ...prev, date: today, elapsedSeconds: freshElapsed, targetMinutes: targetMins };
                     localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
                     return updated;
                 });
@@ -109,7 +184,7 @@ export default function DashboardStats() {
         const today = getTodayString();
         const lastSyncedDate = localStorage.getItem("dashboard_study_target_synced_date");
 
-        // Sync automatically if it's a new day
+        // Only run on a new day (avoids overwriting user-set goal mid-session)
         if (lastSyncedDate !== today) {
             syncTarget();
         }
@@ -159,7 +234,7 @@ export default function DashboardStats() {
         };
     }, [showPicker]);
 
-    const handlePlayClick = () => {
+    const handlePlayClick = async () => {
         if (studyData.targetMinutes === null) {
             if (!goalInput) return;
             const [hours, mins] = goalInput.split(':').map(Number);
@@ -171,6 +246,23 @@ export default function DashboardStats() {
                 setIsActive(true);
                 localStorage.setItem('study_timer_active', 'true');
                 window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: true } }));
+                
+                try {
+                    await fetch("/api/study/timer", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            date: newData.date || getTodayString(),
+                            timerState: {
+                                elapsedSeconds: newData.elapsedSeconds || 0,
+                                targetMinutes: newData.targetMinutes,
+                                isActive: true
+                            }
+                        })
+                    });
+                } catch (e) {
+                    console.error("Failed to sync timer state on play:", e);
+                }
             }
         } else {
             const nextActive = !isActive;
@@ -180,6 +272,23 @@ export default function DashboardStats() {
             localStorage.setItem("dashboard_study_data", JSON.stringify(newData));
             localStorage.setItem('study_timer_active', nextActive ? 'true' : 'false');
             window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: nextActive } }));
+            
+            try {
+                await fetch("/api/study/timer", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        date: newData.date || getTodayString(),
+                        timerState: {
+                            elapsedSeconds: newData.elapsedSeconds || 0,
+                            targetMinutes: newData.targetMinutes,
+                            isActive: nextActive
+                        }
+                    })
+                });
+            } catch (e) {
+                console.error("Failed to sync timer state on pause/play:", e);
+            }
         }
     };
 

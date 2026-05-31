@@ -98,6 +98,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   // 1. Timer Tick Interval (Local Storage & Custom Events)
   useEffect(() => {
+    let tickCount = 0;
     const tickTimer = () => {
       if (document.hidden) return; // Automatic pause when moving out
       if (localStorage.getItem('study_timer_active') !== 'true') return;
@@ -119,6 +120,24 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             const updated = { ...parsed, elapsedSeconds: nextElapsed, lastUpdated: new Date().toISOString() };
             localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
             window.dispatchEvent(new CustomEvent('study-timer-tick', { detail: { studyData: updated, isActive: !shouldStop } }));
+            
+            // Background sync every 15 seconds while playing
+            tickCount++;
+            if (tickCount >= 15) {
+              tickCount = 0;
+              fetch("/api/study/timer", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  date: updated.date,
+                  timerState: {
+                    elapsedSeconds: updated.elapsedSeconds,
+                    targetMinutes: updated.targetMinutes,
+                    isActive: !shouldStop
+                  }
+                })
+              }).catch(() => {});
+            }
           } else {
             const reset = { date: today, elapsedSeconds: 0, targetMinutes: null, lastUpdated: new Date().toISOString() };
             localStorage.setItem("dashboard_study_data", JSON.stringify(reset));
@@ -133,133 +152,42 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
-  // 2. Fetch study timer state from DB on mount/load
+  // DB read/write is now handled directly in DashboardStats (SWR fetch + save on pause).
+
+  // Emergency save — fires when user closes tab or navigates away while timer is running.
+  // DashboardStats handles all other saves (on pause, on set goal, on reset).
   useEffect(() => {
-    const today = getTodayString();
-    
-    const fetchTimerState = async () => {
-      try {
-        const res = await fetch(`/api/study/timer?date=${today}`);
-        if (!res.ok) return;
-        const { timerState } = await res.json();
-        
-        if (timerState) {
-          const savedStudy = localStorage.getItem("dashboard_study_data");
-          let shouldUpdateLocal = false;
-          
-          if (savedStudy) {
-            try {
-              const parsed = JSON.parse(savedStudy);
-              if (parsed.date !== today) {
-                shouldUpdateLocal = true;
-              } else {
-                const dbTime = new Date(timerState.lastUpdated || 0).getTime();
-                const localTime = new Date(parsed.lastUpdated || 0).getTime();
-                if (dbTime > localTime || timerState.elapsedSeconds > parsed.elapsedSeconds) {
-                  shouldUpdateLocal = true;
-                }
-              }
-            } catch {
-              shouldUpdateLocal = true;
-            }
-          } else {
-            shouldUpdateLocal = true;
-          }
-          
-          if (shouldUpdateLocal) {
-            const updated = {
-              date: today,
-              elapsedSeconds: timerState.elapsedSeconds || 0,
-              targetMinutes: timerState.targetMinutes || null,
-              lastUpdated: timerState.lastUpdated
-            };
-            localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
-            localStorage.setItem("study_timer_active", timerState.isActive ? "true" : "false");
-            
-            // Dispatch to update active screen elements immediately
-            window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: timerState.isActive } }));
-            window.dispatchEvent(new CustomEvent('study-timer-tick', { detail: { studyData: updated, isActive: timerState.isActive } }));
-          }
-        }
-      } catch (e) {
-        console.error("Failed to fetch timer state from database", e);
-      }
-    };
-    
-    fetchTimerState();
-  }, []);
-
-  // 3. Sync local timer state to database (on play, pause, reset, periodically, or unload)
-  useEffect(() => {
-    let tickCount = 0;
-    
-    const saveToDb = async (forceState?: boolean) => {
-      const savedStudy = localStorage.getItem("dashboard_study_data");
-      if (!savedStudy) return;
-      
-      try {
-        const parsed = JSON.parse(savedStudy);
-        const isActive = forceState !== undefined ? forceState : localStorage.getItem("study_timer_active") === "true";
-        
-        await fetch("/api/study/timer", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            date: parsed.date || getTodayString(),
-            timerState: {
-              elapsedSeconds: parsed.elapsedSeconds || 0,
-              targetMinutes: parsed.targetMinutes || null,
-              isActive: isActive
-            }
-          })
-        });
-      } catch (e) {
-        console.error("Failed to sync timer state to DB:", e);
-      }
-    };
-
-    const handleStateChange = (e: any) => {
-      saveToDb(e.detail.isActive);
-    };
-    
-    const handleTickChange = () => {
-      tickCount++;
-      if (tickCount >= 10) {
-        tickCount = 0;
-        saveToDb();
-      }
-    };
-
     const handleUnload = () => {
       const savedStudy = localStorage.getItem("dashboard_study_data");
       if (!savedStudy) return;
       try {
         const parsed = JSON.parse(savedStudy);
         const isActive = localStorage.getItem("study_timer_active") === "true";
+        
+        // CRITICAL: Only emergency save if the timer is ACTUALLY PLAYING on this specific device.
+        // If it's paused here, we have nothing new to report, and saving would accidentally 
+        // overwrite the DB with our old time if another device is currently playing!
+        if (!isActive) return;
+
         fetch("/api/study/timer", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          keepalive: true,
+          keepalive: true, // Ensures the request completes even after page unloads
           body: JSON.stringify({
             date: parsed.date || getTodayString(),
             timerState: {
               elapsedSeconds: parsed.elapsedSeconds || 0,
               targetMinutes: parsed.targetMinutes || null,
-              isActive: isActive
+              isActive: isActive // preserve the running state on refresh
             }
           })
         });
       } catch {}
     };
 
-    window.addEventListener("study-timer-state", handleStateChange);
-    window.addEventListener("study-timer-tick", handleTickChange);
     window.addEventListener("beforeunload", handleUnload);
     document.addEventListener("visibilitychange", handleUnload);
-
     return () => {
-      window.removeEventListener("study-timer-state", handleStateChange);
-      window.removeEventListener("study-timer-tick", handleTickChange);
       window.removeEventListener("beforeunload", handleUnload);
       document.removeEventListener("visibilitychange", handleUnload);
     };
