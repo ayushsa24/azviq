@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 
 interface BulletPoint {
   title: string;
@@ -9,54 +8,79 @@ interface BulletPoint {
   icon: React.ReactNode;
 }
 
-interface ChatFeature {
+interface ParentFeature {
   title: string;
   desc: string;
   category: string;
   accent: string;
-  badge?: string;
   bullets: BulletPoint[];
   image: string;
 }
 
-const CHAT_FEATURES: ChatFeature[] = [
+const PARENT_FEATURES: ParentFeature[] = [
   {
-    title: "New Chat, Fresh Context",
-    desc: "Start a clean conversation at any time. Every new chat is fully isolated — your AI starts fresh without any leftover context from previous sessions.",
-    category: "Conversations",
-    accent: "#3B82F6",
+    title: "Family Members & Daily Reports",
+    desc: "Keep everyone in the loop. Register guardian email addresses to automatically send detailed performance updates every evening. Parents and educators can stay informed on quiz performance, completed notes, and focus durations without interfering with study flow.",
+    category: "Family Hub",
+    accent: "#3B82F6", // Blue
     bullets: [
       {
-        title: "Isolated Session Memory",
-        desc: "Each chat is its own bubble. Switch topics freely without the AI getting confused by previous conversations.",
+        title: "Registered Recipients",
+        desc: "Configure designated family email accounts. Registered members receive study summaries and achievement reports automatically every evening.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         )
       },
       {
-        title: "Chat History Sidebar",
-        desc: "All your past conversations are listed and searchable. Revisit any previous session in one click.",
+        title: "Guardian Management",
+        desc: "Easily add new guardian, tutor, or counselor emails to the list to receive child activity metrics and feedback reports automatically.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         )
       }
     ],
-    image: "/landingpage/chat-new.png",
+    image: "/landingpage/parental-family.png",
   },
   {
-    title: "Temporary Private Chat",
-    desc: "Need a quick, private lookup? Temporary chats are never stored — perfect for sensitive topics, quick calculations, or anything you don't want saved.",
-    category: "Privacy",
-    accent: "#F59E0B",
-    badge: "Temp",
+    title: "Restricted AI Content",
+    desc: "Ensure a safe learning environment. Filter AI teacher queries and note completions for younger age groups. Our safety filters block non-academic content and restrict explanations to student-friendly languages.",
+    category: "Safety Filters",
+    accent: "#EF4444", // Red
     bullets: [
       {
-        title: "Never Saved to History",
-        desc: "Temporary sessions vanish the moment you close them. No logs, no traces left behind.",
+        title: "Content Moderation Filters",
+        desc: "Automatically filter notes text, chat responses, and practice questions to provide age-appropriate explanations and textbook help.",
+        icon: (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        )
+      },
+      {
+        title: "Focus Preservation Modes",
+        desc: "Block casual chat topics and non-educational prompt threads to keep the AI teacher sessions centered entirely on active study materials.",
+        icon: (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+        )
+      }
+    ],
+    image: "/landingpage/parental-safety.png",
+  },
+  {
+    title: "Daily Study Target",
+    desc: "Help your child build consistent study schedules. Set target focus durations tracked directly on consistency graphs. Give students clear milestones to hit every day to establish productive habits.",
+    category: "Targets",
+    accent: "#F59E0B", // Amber
+    bullets: [
+      {
+        title: "Minimum Target Duration",
+        desc: "Configure minimum target study durations (e.g., 2 hrs/day) to guide daily focus times and track completion on consistency boards.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -64,74 +88,47 @@ const CHAT_FEATURES: ChatFeature[] = [
         )
       },
       {
-        title: "Instant Disposable Sessions",
-        desc: "Start a temp chat from the toolbar in one click. No setup, no naming — just ask and go.",
+        title: "Consistency Mapping",
+        desc: "Compare daily target goals against actual study hours in the consistency graphs, showing completed streaks and focus records.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
           </svg>
         )
       }
     ],
-    image: "/landingpage/chat-temp.png",
+    image: "/landingpage/parental-targets.png",
   },
   {
-    title: "Image Upload & Visual Q&A",
-    desc: "Snap a photo of a whiteboard, a handwritten equation, or a textbook diagram and drop it into the chat. The AI reads the image and answers your questions instantly.",
-    category: "Visual AI",
-    accent: "#22C55E",
+    title: "Report Delivery & Schedule",
+    desc: "Every day at 8:00 PM IST, added family members receive an automated email summarizing daily progress metrics. Keep progress reports predictable and scheduled.",
+    category: "Scheduling",
+    accent: "#10B981", // Emerald
     bullets: [
       {
-        title: "Diagram & Photo Analysis",
-        desc: "Upload lecture slides, biology diagrams, or circuit schematics. The AI identifies, labels, and explains every element.",
+        title: "Report Delivery Time",
+        desc: "Schedule daily email delivery schedules. Defaults to 8:00 PM IST to review study consistency metrics during family discussions.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         )
       },
       {
-        title: "Handwriting Recognition",
-        desc: "Wrote your notes by hand? Photograph them and ask the AI to explain, translate, or expand on what you wrote.",
+        title: "Performance Summaries",
+        desc: "Sent emails aggregate completed quiz scores, note creation counts, active Pomodoro study time, and identified weak topic warning summaries.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         )
       }
     ],
-    image: "/landingpage/chat-image.png",
-  },
-  {
-    title: "Share Chat with Classmates",
-    desc: "Found a helpful AI explanation? Share the entire chat thread with anyone via a clean link. Perfect for study groups, peer review, and collaborative learning.",
-    category: "Collaboration",
-    accent: "#8B5CF6",
-    bullets: [
-      {
-        title: "One-Click Share Link",
-        desc: "Generate a shareable URL for any conversation. Anyone with the link can read the full Q&A thread.",
-        icon: (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
-        )
-      },
-      {
-        title: "Study Group Discussions",
-        desc: "Share AI-generated breakdowns with your class group. Turn AI answers into collaborative study material.",
-        icon: (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        )
-      }
-    ],
-    image: "/landingpage/chat-share.png",
-  },
+    image: "/landingpage/parental-reports.png",
+  }
 ];
 
-export default function AIChatSection() {
+export default function ParentControlSection() {
   const [activeFeature, setActiveFeature] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -146,13 +143,14 @@ export default function AIChatSection() {
           const scrollableDistance = sectionHeight - viewportHeight;
           const progress = Math.max(0, Math.min(1, scrolledIntoSection / (scrollableDistance || 1)));
           const idx = Math.min(
-            Math.floor(progress * CHAT_FEATURES.length),
-            CHAT_FEATURES.length - 1
+            Math.floor(progress * PARENT_FEATURES.length),
+            PARENT_FEATURES.length - 1
           );
           setActiveFeature(idx);
         }
       }
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -160,12 +158,12 @@ export default function AIChatSection() {
   return (
     <section className="relative w-full bg-[#F4F4F6]/50 border-t border-black/[0.05]">
       {/* Scroll track */}
-      <div ref={sectionRef} className="w-full" style={{ height: `${(CHAT_FEATURES.length * 50) + 100}vh` }}>
+      <div ref={sectionRef} className="w-full" style={{ height: `${(PARENT_FEATURES.length * 50) + 100}vh` }}>
         <div className="sticky top-0 h-screen flex flex-col md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
 
           {/* LEFT — Text + Bullets */}
           <div className="w-full md:w-1/2 relative h-[480px] md:h-[580px]">
-            {CHAT_FEATURES.map((f, index) => (
+            {PARENT_FEATURES.map((f, index) => (
               <motion.div
                 key={index}
                 className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-16"
@@ -185,16 +183,8 @@ export default function AIChatSection() {
                   >
                     {f.category}
                   </span>
-                  {f.badge && (
-                    <span
-                      className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: `${f.accent}18`, color: f.accent }}
-                    >
-                      {f.badge}
-                    </span>
-                  )}
                   <p className="text-xs text-[#6E6E73] uppercase tracking-[0.12em] font-semibold">
-                    AI Feature 0{index + 1}
+                    Parental Mode 0{index + 1}
                   </p>
                 </div>
 
@@ -211,16 +201,16 @@ export default function AIChatSection() {
                 {/* Bullet cards */}
                 <div className="flex flex-col gap-4 max-w-[480px]">
                   {f.bullets.map((b, bIdx) => (
-                    <div key={bIdx} className="flex items-start gap-3.5 bg-black/[0.02] border border-black/[0.04] p-3 rounded-xl hover:bg-black/[0.03] transition-all duration-150">
+                    <div key={bIdx} className="flex items-center gap-3.5 bg-white border border-black/[0.04] p-3.5 rounded-xl hover:bg-black/[0.02] transition-all duration-150 shadow-sm">
                       <div
-                        className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg"
+                        className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg mt-0.5"
                         style={{ backgroundColor: `${f.accent}16`, color: f.accent }}
                       >
                         {b.icon}
                       </div>
                       <div>
                         <h4 className="text-[14px] font-bold text-[#1D1D1F]">{b.title}</h4>
-                        <p className="text-xs text-[#6E6E73] mt-0.5 leading-relaxed">{b.desc}</p>
+                        <p className="text-xs text-[#6E6E73] mt-0.5 leading-relaxed max-w-[340px]">{b.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -228,30 +218,18 @@ export default function AIChatSection() {
 
                 {/* Progress dots */}
                 <div className="flex gap-2 mt-8">
-                  {CHAT_FEATURES.map((_, i) => (
+                  {PARENT_FEATURES.map((_, i) => (
                     <div key={i} className={`h-1.5 rounded-full transition-all duration-500 ${i === activeFeature ? "w-6 bg-[#E84B1B]" : "w-1.5 bg-black/15"}`} />
                   ))}
                 </div>
-
-                {index === CHAT_FEATURES.length - 1 && (
-                  <Link
-                    href="/signup"
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#1D1D1F] hover:text-[#3B82F6] transition-colors duration-200"
-                  >
-                    Try AI Chat free
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </Link>
-                )}
               </motion.div>
             ))}
           </div>
 
-          {/* RIGHT — Animated Mock Image Showcase */}
+          {/* RIGHT — Animated Image Showcase */}
           <div className="hidden md:flex w-1/2 items-center justify-center pl-8 h-[500px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-white shadow-2xl overflow-hidden">
-              {CHAT_FEATURES.map((feat, index) => (
+              {PARENT_FEATURES.map((feat, index) => (
                 <motion.img
                   key={index}
                   src={feat.image}

@@ -18,8 +18,8 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${scrolled ? "bg-[rgba(244,244,246,0.95)] backdrop-blur-xl border-black/[0.06] shadow-sm" : "bg-transparent border-transparent"}`}>
-      <div className="w-full px-8 h-14 flex items-center justify-between">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b px-6 ${scrolled ? "bg-[rgba(244,244,246,0.95)] backdrop-blur-xl border-black/[0.06] shadow-sm" : "bg-transparent border-transparent"}`}>
+      <div className="max-w-6xl mx-auto w-full h-14 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-white/40 backdrop-blur-md border border-black/[0.08] rounded-lg flex items-center justify-center p-0 shadow-sm">

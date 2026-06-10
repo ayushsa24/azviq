@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 
 interface BulletPoint {
   title: string;
@@ -9,54 +8,25 @@ interface BulletPoint {
   icon: React.ReactNode;
 }
 
-interface ChatFeature {
+interface DashboardFeature {
   title: string;
   desc: string;
   category: string;
   accent: string;
-  badge?: string;
   bullets: BulletPoint[];
   image: string;
 }
 
-const CHAT_FEATURES: ChatFeature[] = [
+const DASHBOARD_FEATURES: DashboardFeature[] = [
   {
-    title: "New Chat, Fresh Context",
-    desc: "Start a clean conversation at any time. Every new chat is fully isolated — your AI starts fresh without any leftover context from previous sessions.",
-    category: "Conversations",
-    accent: "#3B82F6",
+    title: "AI Focus Stats & Timer",
+    desc: "Track active revision session durations with built-in Pomodoro timing and view urgent study indicators. Stay hyper-focused by segmenting study blocks, filtering distractions, and prioritizing immediate learning goals directly on your dashboard.",
+    category: "Focus Hub",
+    accent: "#3B82F6", // Blue
     bullets: [
       {
-        title: "Isolated Session Memory",
-        desc: "Each chat is its own bubble. Switch topics freely without the AI getting confused by previous conversations.",
-        icon: (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-        )
-      },
-      {
-        title: "Chat History Sidebar",
-        desc: "All your past conversations are listed and searchable. Revisit any previous session in one click.",
-        icon: (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
-          </svg>
-        )
-      }
-    ],
-    image: "/landingpage/chat-new.png",
-  },
-  {
-    title: "Temporary Private Chat",
-    desc: "Need a quick, private lookup? Temporary chats are never stored — perfect for sensitive topics, quick calculations, or anything you don't want saved.",
-    category: "Privacy",
-    accent: "#F59E0B",
-    badge: "Temp",
-    bullets: [
-      {
-        title: "Never Saved to History",
-        desc: "Temporary sessions vanish the moment you close them. No logs, no traces left behind.",
+        title: "Integrated Pomodoro Timer",
+        desc: "Set standard 25-minute focus intervals or customize your study-to-break durations to optimize retention and fight screen fatigue.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -64,74 +34,102 @@ const CHAT_FEATURES: ChatFeature[] = [
         )
       },
       {
-        title: "Instant Disposable Sessions",
-        desc: "Start a temp chat from the toolbar in one click. No setup, no naming — just ask and go.",
+        title: "Urgent Action Alerts",
+        desc: "Stay updated with live prompts highlighting tasks due in the next 24 hours alongside critical notes containing weak topic areas.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         )
       }
     ],
-    image: "/landingpage/chat-temp.png",
+    image: "/landingpage/dashboard-stats.png",
   },
   {
-    title: "Image Upload & Visual Q&A",
-    desc: "Snap a photo of a whiteboard, a handwritten equation, or a textbook diagram and drop it into the chat. The AI reads the image and answers your questions instantly.",
-    category: "Visual AI",
-    accent: "#22C55E",
+    title: "Daily Tasks & To-Do List",
+    desc: "Manage daily educational requirements and mark tasks complete with custom workspace badges. Keep your schedule organized, assign priorities to different topics, and coordinate all study checklists from one clean view.",
+    category: "Daily Checklist",
+    accent: "#F59E0B", // Amber
     bullets: [
       {
-        title: "Diagram & Photo Analysis",
-        desc: "Upload lecture slides, biology diagrams, or circuit schematics. The AI identifies, labels, and explains every element.",
+        title: "Workspace Badge Tags",
+        desc: "Know exactly where each task lives. Easily sort items belonging to your Library, note-taking pages, quizzes, or collaborative Kanban boards.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         )
       },
       {
-        title: "Handwriting Recognition",
-        desc: "Wrote your notes by hand? Photograph them and ask the AI to explain, translate, or expand on what you wrote.",
+        title: "Quick Complete Actions",
+        desc: "Check tasks off instantly with immediate updates that dynamically recalculate your weekly progress metrics and streak counts.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         )
       }
     ],
-    image: "/landingpage/chat-image.png",
+    image: "/landingpage/dashboard-todo.png",
   },
   {
-    title: "Share Chat with Classmates",
-    desc: "Found a helpful AI explanation? Share the entire chat thread with anyone via a clean link. Perfect for study groups, peer review, and collaborative learning.",
-    category: "Collaboration",
-    accent: "#8B5CF6",
+    title: "Study Consistency & Streaks",
+    desc: "Monitor study consistency parameters, streak durations, and overall learning hours. Build healthy habits with visual streak lines, heatmaps, and achievements that celebrate your progress.",
+    category: "Consistency",
+    accent: "#E84B1B", // Orange/Rose
     bullets: [
       {
-        title: "One-Click Share Link",
-        desc: "Generate a shareable URL for any conversation. Anyone with the link can read the full Q&A thread.",
+        title: "Weekly Streak Maps",
+        desc: "Visualize your weekly and monthly study patterns on a mini grid. Keep your fire indicators active by studying a minimum duration every day.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         )
       },
       {
-        title: "Study Group Discussions",
-        desc: "Share AI-generated breakdowns with your class group. Turn AI answers into collaborative study material.",
+        title: "Historical Performance Metrics",
+        desc: "Analyze parameters including Total Study Days, Total Hours accumulated, Current active streak counts, and your all-time Longest Streak record.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
           </svg>
         )
       }
     ],
-    image: "/landingpage/chat-share.png",
+    image: "/landingpage/dashboard-consistency.png",
   },
+  {
+    title: "AI Suggestions & Recommendations",
+    desc: "Get tailored revision directions based on weak topics, previous quiz scores, and spaced repetition schedules. The AI analyzes your quiz performance to automatically recommend notes that need review.",
+    category: "AI Recommendations",
+    accent: "#10B981", // Emerald
+    bullets: [
+      {
+        title: "Weak Topic Warnings",
+        desc: "Receive immediate feedback showing subject areas where your test score fell below target, helping you fix comprehension gaps before exams.",
+        icon: (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        )
+      },
+      {
+        title: "Spaced Repetition Prompts",
+        desc: "Get automated alerts suggesting revision or card practice for specific subjects that are starting to fade from your active memory.",
+        icon: (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+        )
+      }
+    ],
+    image: "/landingpage/dashboard-suggestions.png",
+  }
 ];
 
-export default function AIChatSection() {
+export default function DashboardScrollingSection() {
   const [activeFeature, setActiveFeature] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -146,26 +144,27 @@ export default function AIChatSection() {
           const scrollableDistance = sectionHeight - viewportHeight;
           const progress = Math.max(0, Math.min(1, scrolledIntoSection / (scrollableDistance || 1)));
           const idx = Math.min(
-            Math.floor(progress * CHAT_FEATURES.length),
-            CHAT_FEATURES.length - 1
+            Math.floor(progress * DASHBOARD_FEATURES.length),
+            DASHBOARD_FEATURES.length - 1
           );
           setActiveFeature(idx);
         }
       }
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <section className="relative w-full bg-[#F4F4F6]/50 border-t border-black/[0.05]">
+    <section ref={sectionRef} className="relative w-full bg-[#F4F4F6]/50 border-t border-black/[0.05]">
       {/* Scroll track */}
-      <div ref={sectionRef} className="w-full" style={{ height: `${(CHAT_FEATURES.length * 50) + 100}vh` }}>
+      <div className="w-full" style={{ height: `${(DASHBOARD_FEATURES.length * 50) + 100}vh` }}>
         <div className="sticky top-0 h-screen flex flex-col md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
 
           {/* LEFT — Text + Bullets */}
           <div className="w-full md:w-1/2 relative h-[480px] md:h-[580px]">
-            {CHAT_FEATURES.map((f, index) => (
+            {DASHBOARD_FEATURES.map((f, index) => (
               <motion.div
                 key={index}
                 className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-16"
@@ -185,16 +184,8 @@ export default function AIChatSection() {
                   >
                     {f.category}
                   </span>
-                  {f.badge && (
-                    <span
-                      className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: `${f.accent}18`, color: f.accent }}
-                    >
-                      {f.badge}
-                    </span>
-                  )}
                   <p className="text-xs text-[#6E6E73] uppercase tracking-[0.12em] font-semibold">
-                    AI Feature 0{index + 1}
+                    Dashboard Feature 0{index + 1}
                   </p>
                 </div>
 
@@ -228,30 +219,18 @@ export default function AIChatSection() {
 
                 {/* Progress dots */}
                 <div className="flex gap-2 mt-8">
-                  {CHAT_FEATURES.map((_, i) => (
+                  {DASHBOARD_FEATURES.map((_, i) => (
                     <div key={i} className={`h-1.5 rounded-full transition-all duration-500 ${i === activeFeature ? "w-6 bg-[#E84B1B]" : "w-1.5 bg-black/15"}`} />
                   ))}
                 </div>
-
-                {index === CHAT_FEATURES.length - 1 && (
-                  <Link
-                    href="/signup"
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#1D1D1F] hover:text-[#3B82F6] transition-colors duration-200"
-                  >
-                    Try AI Chat free
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </Link>
-                )}
               </motion.div>
             ))}
           </div>
 
-          {/* RIGHT — Animated Mock Image Showcase */}
+          {/* RIGHT — Animated Image Showcase */}
           <div className="hidden md:flex w-1/2 items-center justify-center pl-8 h-[500px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-white shadow-2xl overflow-hidden">
-              {CHAT_FEATURES.map((feat, index) => (
+              {DASHBOARD_FEATURES.map((feat, index) => (
                 <motion.img
                   key={index}
                   src={feat.image}

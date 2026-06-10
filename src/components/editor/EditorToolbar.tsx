@@ -38,11 +38,19 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
         return () => window.removeEventListener("resize", check);
     }, []);
 
+    const toolbarRef = useRef<HTMLDivElement>(null);
+
     // ── Show toolbar on mouseup when text is selected (desktop only) ──────────
     useEffect(() => {
         if (!editor) return;
 
-        const onMouseUp = () => {
+        const onMouseUp = (e: MouseEvent) => {
+            // If the user is clicking inside the toolbar itself (like clicking "Bold"), 
+            // do not recalculate the position, otherwise the toolbar jumps as text changes width.
+            if (toolbarRef.current && toolbarRef.current.contains(e.target as Node)) {
+                return;
+            }
+
             // If AI just closed, skip this mouseup and reset flag
             if (suppressNextMouseUpRef.current) {
                 suppressNextMouseUpRef.current = false;
@@ -162,6 +170,7 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
             {!isMobile && toolbarPos && !isAiOpen &&
                 createPortal(
                     <div
+                        ref={toolbarRef}
                         className="fixed z-[1000] flex items-center gap-1 bg-white dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#3A3A3A] shadow-lg rounded-full px-3 py-1.5 pointer-events-auto animate-in fade-in duration-150"
                         style={{
                             // Clamp Y: if selection-end is near/below viewport bottom, cap at 70px from bottom

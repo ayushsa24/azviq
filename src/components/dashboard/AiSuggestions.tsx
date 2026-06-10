@@ -29,11 +29,19 @@ export default function AiSuggestions() {
         const originalData = data;
         const updatedSuggestions = suggestions.map(s => {
             if (s.id === suggestionId && s.multiple_actions) {
+                const newActions = s.multiple_actions.map(act =>
+                    act.id === itemId ? { ...act, status: newStatus } : act
+                );
+
+                // If there are no completed actions left, explicitly reset the history view toggle
+                // so it doesn't accidentally spring open next time they complete a new item
+                if (newActions.filter(act => act.status === 'completed').length === 0) {
+                    setShowHistory(prev => ({ ...prev, [suggestionId]: false }));
+                }
+
                 return {
                     ...s,
-                    multiple_actions: s.multiple_actions.map(act =>
-                        act.id === itemId ? { ...act, status: newStatus } : act
-                    )
+                    multiple_actions: newActions
                 };
             }
             return s;
@@ -48,7 +56,8 @@ export default function AiSuggestions() {
                 headers: { "Content-Type": "application/json" }
             });
             if (!res.ok) throw new Error("Failed to update");
-            mutate("/api/suggestions");
+            // Removed the empty mutate() call here to prevent the unnecessary GET request.
+            // The optimistic update above is sufficient to keep the UI in sync.
         } catch (err) {
             console.error(err);
             mutate("/api/suggestions", originalData, false);
@@ -99,7 +108,7 @@ export default function AiSuggestions() {
                 {suggestions.map((suggestion) => {
                     const activeActions = suggestion.multiple_actions?.filter(act => act.status === 'active') || [];
                     const completedActions = suggestion.multiple_actions?.filter(act => act.status === 'completed') || [];
-                    const isHistoryVisible = !!showHistory[suggestion.id];
+                    const isHistoryVisible = !!showHistory[suggestion.id] && completedActions.length > 0;
                     const itemCount = (activeActions.length + (completedActions.length > 0 ? completedActions.length + 1 : 0));
 
                     return (
@@ -127,7 +136,6 @@ export default function AiSuggestions() {
                                 </button>
                             )}
 
-                            {/* Header Area - Fixed */}
                             <div className="mb-4">
                                 <div className="flex items-start gap-3 mb-3 pr-8">
                                     <div className={`p-2 rounded-xl shrink-0 ${isDark ? "bg-[#1A1A1A]" : "bg-[#F5F3EF]"}`}>
@@ -138,7 +146,10 @@ export default function AiSuggestions() {
                                     </h3>
                                 </div>
                                 <p className={`text-sm leading-relaxed ${isDark ? "text-[#CFCFCF]" : "text-[#545454]"}`}>
-                                    {isHistoryVisible ? "Review your completed study goals below." : suggestion.description}
+                                    {isHistoryVisible 
+                                        ? "Review your completed study goals below." 
+                                        : (suggestion.multiple_actions ? suggestion.description.replace(/\d+/, activeActions.length.toString()) : suggestion.description)
+                                    }
                                 </p>
                             </div>
 

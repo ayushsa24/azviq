@@ -306,7 +306,7 @@ export default function NoteEditorPage() {
             // The owner should always be able to trigger a save unless they explicitly locked it for themselves.
             // Importers are controlled by the parentShareMode.
             if (isLocked && note?.original_note_id) return;
-            debouncedSave(editor.getHTML(), titleRef.current);
+            debouncedSave(editor.getHTML());
         },
     });
 
@@ -601,9 +601,6 @@ export default function NoteEditorPage() {
                     title: titleToSave,
                     href: `/library/note/${id}`,
                 });
-            } else {
-                // Otherwise just trigger a refresh so any other changes (like icons) reflect
-                window.dispatchEvent(new CustomEvent("recentActivityUpdated"));
             }
 
             // 2. Collaborative Sync: If this is an import, also update the original source
@@ -656,7 +653,7 @@ export default function NoteEditorPage() {
         }
     };
 
-    const debouncedSave = useDebouncedCallback((content: string, titleContent: string) => {
+    const debouncedSave = useDebouncedCallback((content: string, titleContent?: string) => {
         handleSave(content, titleContent);
     }, 1000);
 
