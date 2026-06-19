@@ -369,8 +369,8 @@ export default function DashboardChecklist() {
                         </div>
                     ) : visibleItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-2 sm:py-3 gap-2 animate-in fade-in duration-500">
-                            <div className="w-10 h-10 rounded-full bg-[#F0EDE8] dark:bg-[#333] flex items-center justify-center">
-                                <ListTodo className="w-5 h-5 text-[#7D7D7D] dark:text-[#BABABA]" />
+                            <div className="w-10 h-10 rounded-full bg-[#C2A27A]/10 dark:bg-[#C2A27A]/15 flex items-center justify-center">
+                                <ListTodo className="w-5 h-5 text-[#C2A27A]" />
                             </div>
                             <p className="text-xs text-[#7D7D7D] dark:text-[#BABABA] text-center">No tasks found.<br />Tap <strong>Add</strong> to create one.</p>
                         </div>
@@ -491,10 +491,10 @@ export default function DashboardChecklist() {
                                 {/* Giant Title */}
                                 <input
                                     type="text"
-                                    placeholder="Start working on assignment"
+                                    placeholder="What needs to be done?"
                                     value={form.title}
                                     onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                                    className="w-full text-4xl sm:text-5xl font-bold bg-transparent border-none text-[#252525] dark:text-white placeholder-[#BDBDBD] focus:ring-0 p-0 outline-none leading-tight mb-6"
+                                    className="w-full text-3xl sm:text-4xl font-bold bg-transparent border-none text-[#252525] dark:text-white placeholder-[#E8E5E0] dark:placeholder-[#444] focus:ring-0 p-0 outline-none leading-tight mb-6"
                                 />                                {/* Properties Section - Structured like the image */}
                                 <div className="space-y-3 mb-8 max-w-2xl">
                                     {/* Reminder Time Row */}

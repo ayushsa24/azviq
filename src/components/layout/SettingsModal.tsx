@@ -159,6 +159,20 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
+  const [userProfile, setUserProfile] = useState<{ name?: string, avatar_url?: string, username?: string } | null>(null);
+
+  useEffect(() => {
+    if (isOpen && activeTab === "account") {
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        fetch("/api/profile", { headers: { "x-user-id": userId } })
+          .then(r => r.json())
+          .then(d => { if (d && !d.error) setUserProfile(d); })
+          .catch(() => { });
+      }
+    }
+  }, [isOpen, activeTab]);
+
   const [showSharedLinks, setShowSharedLinks] = useState(() => {
     if (typeof window === "undefined") return false;
     return pathname.includes("/settings/notesharedlink") ||
@@ -523,6 +537,22 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
           report_time: timeParam !== undefined ? timeParam : localReportTime,
         }),
       });
+
+      // Instantly sync the new target to the dashboard timer
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("dashboard_study_target_synced_date");
+        try {
+          const raw = localStorage.getItem("dashboard_study_data");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            parsed.targetMinutes = finalTarget !== null ? finalTarget * 60 : null;
+            localStorage.setItem("dashboard_study_data", JSON.stringify(parsed));
+            // Trigger a custom event so the AppShell/Dashboard instantly updates if mounted
+            window.dispatchEvent(new CustomEvent("studyTimerUpdate", { detail: { studyData: parsed } }));
+          }
+        } catch { /* ignore */ }
+      }
+
       setModelSaveSuccess(true);
       setTimeout(() => setModelSaveSuccess(false), 2000);
       mutatePC();
@@ -1317,16 +1347,16 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                    {session?.user?.image ? (
-                      <img src={session.user.image} className="w-full h-full object-cover" alt="User" />
+                    {(userProfile?.avatar_url || session?.user?.image) ? (
+                      <img src={userProfile?.avatar_url || session?.user?.image!} className="w-full h-full object-cover" alt="User" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-[#C2A27A] text-white font-bold text-2xl">
-                        {session?.user?.name?.[0] || 'A'}
+                        {(userProfile?.name?.[0] || session?.user?.name?.[0]) || 'A'}
                       </div>
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold">{session?.user?.name || "Member"}</h3>
+                    <h3 className="font-bold">{userProfile?.name || session?.user?.name || "Member"}</h3>
                     <p className="text-xs text-[#7D7D7D]">{session?.user?.email}</p>
                   </div>
                 </div>
@@ -1505,11 +1535,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                           >
                             <span>
                               {localTarget === "unlimited" ? "No target set" :
-                               localTarget === "1" ? "1 hrs/day" :
-                               localTarget === "2" ? "2 hrs/day" :
-                               localTarget === "4" ? "4 hrs/day" :
-                               localTarget === "6" ? "6 hrs/day" :
-                               localTarget === "8" ? "8 hrs/day" : "No target set"}
+                                localTarget === "1" ? "1 hrs/day" :
+                                  localTarget === "2" ? "2 hrs/day" :
+                                    localTarget === "4" ? "4 hrs/day" :
+                                      localTarget === "6" ? "6 hrs/day" :
+                                        localTarget === "8" ? "8 hrs/day" : "No target set"}
                             </span>
                             <ChevronDown className={`w-4 h-4 text-[#7D7D7D] transition-transform duration-200 ${isTargetDropdownOpen ? "rotate-180" : ""}`} />
                           </button>
@@ -1541,13 +1571,12 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                                       handleSaveParentSettings(t);
                                     }
                                   }}
-                                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                                    localTarget === opt.value
+                                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${localTarget === opt.value
                                       ? "bg-[#C2A27A]/10 dark:bg-[#C2A27A]/20 text-[#C2A27A]"
                                       : isDark
                                         ? "text-[#BABABA] hover:bg-white/5 hover:text-white"
                                         : "text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]"
-                                  }`}
+                                    }`}
                                 >
                                   <span>{opt.label}</span>
                                   {localTarget === opt.value && <Check className="w-3.5 h-3.5" />}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, CheckCircle2, Circle, Trash2, CalendarDays, ChevronDown, ArrowRight, Check } from "lucide-react";
+import { Plus, CheckCircle2, Circle, Trash2, CalendarDays, ChevronDown, ArrowRight, Check, PartyPopper, Sparkles } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { format } from "date-fns";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
@@ -322,12 +322,24 @@ export default function DashboardTasks() {
                             ))}
                         </div>
                     ) : displayTasks.length === 0 ? (
-                        <div className="text-center py-4 sm:py-6 animate-in fade-in duration-500">
-                            <p className="text-sm text-[#545454] dark:text-[#7D7D7D]">
-                                {filterRange === "today" ? "All caught up for today! 🎉" :
-                                    filterRange === "overdue" ? "No overdue tasks! Great job! 🙌" :
-                                        "No tasks found for this period."}
-                            </p>
+                        <div className="flex flex-col items-center justify-center py-6 sm:py-8 animate-in fade-in duration-500 gap-3 text-center">
+                            {filterRange === "today" ? (
+                                <>
+                                    <div className="w-10 h-10 rounded-full bg-[#C2A27A]/10 dark:bg-[#C2A27A]/15 flex items-center justify-center">
+                                        <PartyPopper className="w-5 h-5 text-[#C2A27A]" />
+                                    </div>
+                                    <p className="text-sm font-medium text-[#545454] dark:text-[#7D7D7D]">All caught up for today!</p>
+                                </>
+                            ) : filterRange === "overdue" ? (
+                                <>
+                                    <div className="w-10 h-10 rounded-full bg-[#C2A27A]/10 dark:bg-[#C2A27A]/15 flex items-center justify-center">
+                                        <Sparkles className="w-5 h-5 text-[#C2A27A]" />
+                                    </div>
+                                    <p className="text-sm font-medium text-[#545454] dark:text-[#7D7D7D]">No overdue tasks! Great job!</p>
+                                </>
+                            ) : (
+                                <p className="text-sm font-medium text-[#545454] dark:text-[#7D7D7D]">No tasks found for this period.</p>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-2 animate-in fade-in duration-500">

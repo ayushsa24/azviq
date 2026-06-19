@@ -12,6 +12,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import AppShell from "@/components/layout/AppShell";
 import { AppDialogProvider } from "@/components/ui/AppDialog";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { PostHogProvider } from "@/analytics/provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -113,6 +114,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${lexend.variable} antialiased`}
       >
         <AuthProvider>
+          <PostHogProvider>
           <UserProvider>
             <LanguageProvider>
               <ZoomProvider>
@@ -130,6 +132,7 @@ export default function RootLayout({
               </ZoomProvider>
             </LanguageProvider>
           </UserProvider>
+          </PostHogProvider>
         </AuthProvider>
       </body>
     </html>

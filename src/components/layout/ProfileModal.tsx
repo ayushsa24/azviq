@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { X, User, Edit3, Save, Camera, Trash2 } from "lucide-react";
 import { useAppDialog } from "@/components/ui/AppDialog";
+import { useSession } from "next-auth/react";
 
 interface Props {
     open: boolean;
@@ -17,6 +18,7 @@ export default function ProfileModal({ open, onClose }: Props) {
     const fromParam = searchParams.get("from") || "/dashboard";
     const isDark = theme === "dark";
     const dialog = useAppDialog();
+    const { update } = useSession();
 
     const [editing, setEditing] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -84,7 +86,13 @@ export default function ProfileModal({ open, onClose }: Props) {
             headers: { "Content-Type": "application/json", "x-user-id": userId },
             body: JSON.stringify({ ...form, avatar_url: avatarUrl }),
         });
-        if (res.ok) { setEditing(false); setAvatarFile(null); setAvatarPreview(""); }
+        if (res.ok) { 
+            setForm({ ...form, avatar_url: avatarUrl });
+            setEditing(false); 
+            setAvatarFile(null); 
+            setAvatarPreview(""); 
+            await update(); // Force NextAuth to refresh the global session immediately
+        }
     };
 
     const inputCls = `w-full p-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? "bg-[#2E2E2E] border-[#3A3A3A] text-[#CFCFCF]" : "bg-white border-[#7D7D7D]/40 text-[#252525]"

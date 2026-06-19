@@ -110,17 +110,19 @@ export const authOptions: NextAuthOptions = {
         token.image = user.image;
       }
 
-      // Always fetch the latest is_onboarded status from Supabase to avoid stale sessions
+      // Always fetch the latest status from Supabase to avoid stale sessions
       if (token.email) {
         const { data: dbUser } = await supabase
           .from("users")
-          .select("id, is_onboarded")
+          .select("id, is_onboarded, name, avatar_url")
           .eq("email", token.email)
           .maybeSingle();
 
         if (dbUser) {
           token.id = dbUser.id;
           token.is_onboarded = dbUser.is_onboarded;
+          token.name = dbUser.name || null;
+          token.image = dbUser.avatar_url || null;
         }
       }
 

@@ -43,6 +43,7 @@ function SignupForm() {
     avatar_url: "",
   });
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [onboardingErrors, setOnboardingErrors] = useState<{ [key: string]: string }>({});
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [dailyTargetHours, setDailyTargetHours] = useState("unlimited");
@@ -203,17 +204,17 @@ function SignupForm() {
         dialog.showAlert("Image size should be less than 2MB", "warning");
         return;
       }
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setAvatarPreview(result);
-        setProfileForm({ ...profileForm, avatar_url: result });
+        setAvatarPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleAvatarRemove = () => {
+    setAvatarFile(null);
     setAvatarPreview(null);
     setProfileForm({ ...profileForm, avatar_url: "" });
   };
@@ -245,13 +246,32 @@ function SignupForm() {
     setOnboardingErrors({});
 
     try {
+      let finalAvatarUrl = profileForm.avatar_url;
+      if (avatarFile) {
+        const fd = new FormData();
+        fd.append("avatar", avatarFile);
+        const upRes = await fetch("/api/upload-avatar", {
+          method: "POST",
+          headers: { "x-user-id": userId },
+          body: fd
+        });
+        if (upRes.ok) {
+          const upData = await upRes.json();
+          finalAvatarUrl = upData.url;
+        } else {
+          dialog.showAlert("Failed to upload profile picture", "error");
+          setIsSavingProfile(false);
+          return;
+        }
+      }
+
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "x-user-id": userId,
         },
-        body: JSON.stringify(profileForm),
+        body: JSON.stringify({ ...profileForm, avatar_url: finalAvatarUrl }),
       });
 
       if (res.ok) {

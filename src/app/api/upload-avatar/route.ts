@@ -45,25 +45,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'avatars');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
     // Generate unique filename
     const timestamp = Date.now();
     const filename = `${userId}_${timestamp}.${file.name.split('.').pop()}`;
-    const filepath = join(uploadsDir, filename);
 
-    // Save file
+    // Prepare buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
 
-    // Return the URL
-    const url = `/uploads/avatars/${filename}`;
-    return NextResponse.json({ url });
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filename, buffer, {
+        contentType: file.type,
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Supabase storage error:', uploadError);
+      throw new Error('Failed to upload image to storage');
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filename);
+
+    return NextResponse.json({ url: publicUrl });
 
   } catch (error) {
     console.error('Avatar upload error:', error);

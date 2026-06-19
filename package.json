@@ -54,6 +54,8 @@
     "openai": "^6.22.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
+    "posthog-js": "^1.384.0",
+    "posthog-node": "^5.36.9",
     "razorpay": "^2.9.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
