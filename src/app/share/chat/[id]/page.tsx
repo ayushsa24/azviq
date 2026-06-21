@@ -8,11 +8,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Bot, User, Copy, Check, MessageCircle, ExternalLink, Loader2, Sun, Moon } from "lucide-react";
+import { Bot, User, Copy, Check, MessageCircle, ExternalLink, Loader2, Sun, Moon, X } from "lucide-react";
 
 type Message = {
     role: "user" | "model";
     content: string;
+    image?: string;
 };
 
 type SharedChat = {
@@ -34,6 +35,7 @@ export default function SharedChatPage() {
     const [isPrivate, setIsPrivate] = useState(false);
     const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchShared() {
@@ -41,6 +43,23 @@ export default function SharedChatPage() {
                 const res = await fetch(`/api/share/chat/${id}`);
                 if (!res.ok) { setIsPrivate(true); setIsLoading(false); return; }
                 const data = await res.json();
+                if (data.shared && Array.isArray(data.shared.messages)) {
+                    data.shared.messages = data.shared.messages.map((msg: Message) => {
+                        if (msg.role === "user" && msg.content?.trim().startsWith('{')) {
+                            try {
+                                const parsed = JSON.parse(msg.content);
+                                return {
+                                    ...msg,
+                                    content: parsed.text || parsed.content || msg.content,
+                                    image: parsed.image || msg.image
+                                };
+                            } catch (e) {
+                                return msg;
+                            }
+                        }
+                        return msg;
+                    });
+                }
                 setShared(data.shared);
             } catch {
                 setIsPrivate(true);
@@ -241,6 +260,17 @@ export default function SharedChatPage() {
 
                         {/* Bubble */}
                         <div className={`relative flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-[85%] md:max-w-[75%]" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}>
+                            {msg.role === "user" && msg.image && (
+                                <div className={`rounded-2xl overflow-hidden border ${isDark ? 'border-white/10' : 'border-black/10'} shadow-md transition-transform hover:scale-[1.01] bg-black/5 dark:bg-white/5 w-fit max-w-[280px] sm:max-w-md flex-shrink-0 mb-1`}>
+                                    <img
+                                        src={msg.image}
+                                        alt="Study Material"
+                                        className="block w-full h-auto object-contain max-h-[320px] md:max-h-[500px] cursor-zoom-in"
+                                        onClick={() => setImagePreviewUrl(msg.image || null)}
+                                    />
+                                </div>
+                            )}
+
                             <div
                                 className={`relative px-4 py-3 text-[14px] md:text-[15px] rounded-2xl ${
                                     msg.role === "user"
@@ -302,6 +332,35 @@ export default function SharedChatPage() {
                 </button>
                 <p className={`text-xs ${isDark ? "text-[#545454]" : "text-[#BABABA]"}`}>Shared via Azviq AI</p>
             </div>
+
+            {/* ── Image Lightbox ── */}
+            {imagePreviewUrl && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200">
+                    <div
+                        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+                        onClick={() => setImagePreviewUrl(null)}
+                    />
+
+                    <div className="absolute top-4 right-4 z-[160] md:top-8 md:right-8">
+                        <button
+                            onClick={() => setImagePreviewUrl(null)}
+                            className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all duration-200 backdrop-blur-md border border-white/20 shadow-xl group"
+                            title="Close preview"
+                        >
+                            <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        </button>
+                    </div>
+
+                    <div className="relative w-full h-full flex items-center justify-center pointer-events-none transform animate-in zoom-in-95 duration-300">
+                        <img
+                            src={imagePreviewUrl}
+                            alt="Preview Full Screen"
+                            className="max-w-full max-h-full object-contain shadow-2xl rounded-lg pointer-events-auto cursor-zoom-out"
+                            onClick={() => setImagePreviewUrl(null)}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

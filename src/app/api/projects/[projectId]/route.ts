@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 export async function PUT(
     req: Request,
-    context: { params: Record<string, string> }
+    context: { params: Promise<{ projectId: string }> }
 ) {
     const params = await context.params;
     try {
@@ -63,7 +63,7 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    context: { params: Record<string, string> }
+    context: { params: Promise<{ projectId: string }> }
 ) {
     const params = await context.params;
     try {

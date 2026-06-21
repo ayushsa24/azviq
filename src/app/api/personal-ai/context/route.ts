@@ -31,7 +31,8 @@ function stripHtml(html: string): string {
 async function extractPdfText(pdfUrl: string): Promise<string> {
   try {
     // Dynamically import pdf-parse to avoid Next.js build issues
-    const pdfParse = (await import("pdf-parse")).default;
+    const pdfParseModule = (await import("pdf-parse")) as any;
+    const pdfParse = pdfParseModule.default || pdfParseModule;
 
     // Fetch the PDF binary from the URL (Supabase Storage public URL)
     const response = await fetch(pdfUrl);

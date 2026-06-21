@@ -24,6 +24,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const userId = session?.user?.id || localStorage.getItem("userId");
       
       if (!userId) {
+        setUser(null);
         setIsLoading(false);
         return;
       }
@@ -41,6 +42,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data);
+      } else {
+        setUser(null);
       }
     } catch (error) {
       console.error("Failed to fetch user profile:", error);

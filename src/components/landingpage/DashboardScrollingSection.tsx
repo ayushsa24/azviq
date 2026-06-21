@@ -43,7 +43,7 @@ const DASHBOARD_FEATURES: DashboardFeature[] = [
         )
       }
     ],
-    image: "/landingpage/dashboard-stats.png",
+    image: "/landingpage/dashboard.png",
   },
   {
     title: "Daily Tasks & To-Do List",
@@ -70,7 +70,7 @@ const DASHBOARD_FEATURES: DashboardFeature[] = [
         )
       }
     ],
-    image: "/landingpage/dashboard-todo.png",
+    image: "/landingpage/dashboard.png",
   },
   {
     title: "Study Consistency & Streaks",
@@ -98,7 +98,7 @@ const DASHBOARD_FEATURES: DashboardFeature[] = [
         )
       }
     ],
-    image: "/landingpage/dashboard-consistency.png",
+    image: "/landingpage/dashboard.png",
   },
   {
     title: "AI Suggestions & Recommendations",
@@ -125,7 +125,7 @@ const DASHBOARD_FEATURES: DashboardFeature[] = [
         )
       }
     ],
-    image: "/landingpage/dashboard-suggestions.png",
+    image: "/landingpage/dashboard.png",
   }
 ];
 
@@ -157,13 +157,13 @@ export default function DashboardScrollingSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#F4F4F6]/50 border-t border-black/[0.05]">
+    <section id="dashboard" ref={sectionRef} className="relative w-full bg-[#F4F4F6]/50 border-t border-black/[0.05]">
       {/* Scroll track */}
       <div className="w-full" style={{ height: `${(DASHBOARD_FEATURES.length * 50) + 100}vh` }}>
-        <div className="sticky top-0 h-screen flex flex-col md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
+        <div className="sticky top-0 h-screen flex flex-col justify-center md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
 
           {/* LEFT — Text + Bullets */}
-          <div className="w-full md:w-1/2 relative h-[480px] md:h-[580px]">
+          <div className="w-full md:w-[42%] relative h-[480px] md:h-[580px]">
             {DASHBOARD_FEATURES.map((f, index) => (
               <motion.div
                 key={index}
@@ -228,14 +228,14 @@ export default function DashboardScrollingSection() {
           </div>
 
           {/* RIGHT — Animated Image Showcase */}
-          <div className="hidden md:flex w-1/2 items-center justify-center pl-8 h-[500px]">
+          <div className="hidden md:flex w-full md:w-[58%] items-center justify-center pl-8 md:pl-12 h-[500px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-white shadow-2xl overflow-hidden">
               {DASHBOARD_FEATURES.map((feat, index) => (
                 <motion.img
                   key={index}
                   src={feat.image}
                   alt={feat.title}
-                  className="absolute w-full h-full object-cover"
+                  className="absolute w-full h-full object-cover object-left-top"
                   animate={{
                     opacity: activeFeature === index ? 1 : 0,
                     scale: activeFeature === index ? 1 : 1.04,

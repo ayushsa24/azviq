@@ -151,10 +151,10 @@ export default function DataControlSection() {
     <section className="relative w-full bg-white border-t border-black/[0.05]">
       {/* Scroll track */}
       <div ref={sectionRef} className="w-full" style={{ height: `${(CONTROL_FEATURES.length * 50) + 100}vh` }}>
-        <div className="sticky top-0 h-screen flex flex-col md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
+        <div className="sticky top-0 h-screen flex flex-col justify-center md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
 
           {/* LEFT — Text + Bullets */}
-          <div className="w-full md:w-1/2 relative h-[480px] md:h-[580px]">
+          <div className="w-full md:w-[42%] relative h-[480px] md:h-[580px]">
             {CONTROL_FEATURES.map((f, index) => (
               <motion.div
                 key={index}
@@ -219,7 +219,7 @@ export default function DataControlSection() {
           </div>
 
           {/* RIGHT — Animated Image Showcase */}
-          <div className="hidden md:flex w-1/2 items-center justify-center pl-8 h-[500px]">
+          <div className="hidden md:flex w-full md:w-[58%] items-center justify-center pl-8 md:pl-12 h-[500px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-white shadow-2xl overflow-hidden">
               {CONTROL_FEATURES.map((feat, index) => (
                 <motion.img

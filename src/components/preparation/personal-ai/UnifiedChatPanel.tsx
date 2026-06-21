@@ -329,7 +329,10 @@ export default function UnifiedChatPanel({
 
     // Optimistically add thinking bubble
     if (isInit) {
-      setMessages([{ role: "assistant", content: "", isThinking: true }]);
+      setMessages([
+        { role: "user", content: "SESSION_START" },
+        { role: "assistant", content: "", isThinking: true }
+      ]);
     } else {
       setMessages(prev => [...prev, { role: "assistant", content: "", isThinking: true }]);
     }

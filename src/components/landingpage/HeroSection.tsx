@@ -1,37 +1,32 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function HeroSection() {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isHandPressed, setIsHandPressed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Use motion values for parallax — updates CSS directly, never triggers React re-render
-  const rawX = useMotionValue(0);
-  const rawY = useMotionValue(0);
-  const springX = useSpring(rawX, { stiffness: 45, damping: 25 });
-  const springY = useSpring(rawY, { stiffness: 45, damping: 25 });
-  const springXNeg = useSpring(rawX, { stiffness: 45, damping: 25 });
-  const springYNeg = useSpring(rawY, { stiffness: 45, damping: 25 });
-
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
-
     const handleMouseMove = (e: MouseEvent) => {
-      const x = ((e.clientX - window.innerWidth / 2) / (window.innerWidth / 2)) * -20;
-      const y = ((e.clientY - window.innerHeight / 2) / (window.innerHeight / 2)) * -20;
-      rawX.set(x);
-      rawY.set(y);
+      const x = (e.clientX - window.innerWidth / 2) / (window.innerWidth / 2);
+      const y = (e.clientY - window.innerHeight / 2) / (window.innerHeight / 2);
+      setMousePos({ x, y });
     };
 
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("mousemove", handleMouseMove);
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [rawX, rawY]);
+  }, []);
+
+  const parallaxX = mousePos.x * -20;
+  const parallaxY = mousePos.y * -20;
 
   return (
     <>
@@ -40,12 +35,13 @@ export default function HeroSection() {
         {/* Keyboard Left (Parallax Animated) */}
         <motion.div
           className="absolute left-[-35px] md:left-[-45px] lg:left-[-45px] top-[25%] w-[180px] md:w-[260px] lg:w-[320px] pointer-events-none z-10 hidden md:block"
-          style={{ x: springX, y: springY }}
+          animate={{ x: parallaxX, y: parallaxY }}
+          transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
-          <img
-            src="/landingpage/keyboard.PNG"
-            alt="keyboard desk setup"
-            className="w-full h-auto rotate-[-8deg]"
+          <img 
+            src="/landingpage/keyboard.PNG" 
+            alt="keyboard desk setup" 
+            className="w-full h-auto rotate-[-8deg]" 
             style={{ filter: "drop-shadow(10px 20px 30px rgba(0, 0, 0, 0.15))" }}
           />
         </motion.div>
@@ -53,12 +49,13 @@ export default function HeroSection() {
         {/* Book/Glasses Right (Parallax Animated) */}
         <motion.div
           className="absolute right-[-20px] md:right-[-25px] lg:right-[-30px] top-[25%] w-[180px] md:w-[260px] lg:w-[320px] pointer-events-none z-10 hidden md:block"
-          style={{ x: springXNeg, y: springYNeg }}
+          animate={{ x: -parallaxX, y: -parallaxY }}
+          transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
-          <img
-            src="/landingpage/book.PNG"
-            alt="book glasses desk setup"
-            className="w-full h-auto rotate-[8deg]"
+          <img 
+            src="/landingpage/book.PNG" 
+            alt="book glasses desk setup" 
+            className="w-full h-auto rotate-[8deg]" 
             style={{ filter: "drop-shadow(-10px 20px 30px rgba(0, 0, 0, 0.15))" }}
           />
         </motion.div>
@@ -66,12 +63,13 @@ export default function HeroSection() {
         {/* Cable Bottom-Left */}
         <motion.div
           className="absolute left-[-5px] md:left-[-16px] lg:left-[-25px] top-[64%] md:top-[74%] lg:top-[80%] w-[100px] md:w-[140px] lg:w-[170px] pointer-events-none z-10 hidden md:block"
-          style={{ x: springX, y: springY }}
+          animate={{ x: parallaxX, y: parallaxY }}
+          transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
-          <img
-            src="/landingpage/cabel.PNG"
-            alt="wire cable desk setup"
-            className="w-full h-auto rotate-[-10deg]"
+          <img 
+            src="/landingpage/cabel.PNG" 
+            alt="wire cable desk setup" 
+            className="w-full h-auto rotate-[-10deg]" 
             style={{ filter: "drop-shadow(8px 16px 20px rgba(0, 0, 0, 0.18))" }}
           />
         </motion.div>
@@ -81,23 +79,21 @@ export default function HeroSection() {
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[280px] md:w-[360px] lg:w-[430px] pointer-events-none z-30"
           animate={{
             y: isHandPressed ? 20 : [0, -8, 0],
-            opacity: scrolled ? 0 : 1,
+            opacity: scrolled ? 0 : 1
           }}
           transition={{
-            y: isHandPressed
-              ? { type: "spring", stiffness: 200, damping: 15 }
-              : { repeat: Infinity, duration: 6, ease: "easeInOut" },
-            opacity: { duration: 0.3 },
+            y: isHandPressed ? { type: "spring", stiffness: 200, damping: 15 } : { repeat: Infinity, duration: 6, ease: "easeInOut" },
+            opacity: { duration: 0.3 }
           }}
         >
-          <img
-            src="/landingpage/hand.PNG"
-            alt="hand pointing down"
-            className="w-full h-auto"
-            style={{
+          <img 
+            src="/landingpage/hand.PNG" 
+            alt="hand pointing down" 
+            className="w-full h-auto" 
+            style={{ 
               filter: "drop-shadow(0px 20px 40px rgba(0, 0, 0, 0.18))",
               maskImage: "linear-gradient(to bottom, transparent, black 18%)",
-              WebkitMaskImage: "linear-gradient(to bottom, transparent, black 18%)",
+              WebkitMaskImage: "linear-gradient(to bottom, transparent, black 18%)"
             }}
           />
         </motion.div>
@@ -116,16 +112,13 @@ export default function HeroSection() {
             </Link>
           </div>
 
-          {/* Center Image — static, no GPU promotion to avoid compositing flicker */}
+          {/* Center Image */}
           <div className="relative w-[320px] md:w-[480px] lg:w-[560px] z-20 mb-5">
-            <img
-              src="/landingpage/center.PNG"
-              alt="Azviq Device Center"
-              className="w-full h-auto"
-              style={{
-                filter:
-                  "drop-shadow(10px 15px 12px rgba(0, 0, 0, 0.24)) drop-shadow(30px 40px 30px rgba(0, 0, 0, 0.18))",
-              }}
+            <img 
+              src="/landingpage/center.PNG" 
+              alt="Azviq Device Center" 
+              className="w-full h-auto" 
+              style={{ filter: "drop-shadow(10px 15px 12px rgba(0, 0, 0, 0.24)) drop-shadow(30px 40px 30px rgba(0, 0, 0, 0.18))" }}
             />
           </div>
 
@@ -135,12 +128,7 @@ export default function HeroSection() {
               Your Ultimate AI Study Workspace
             </h1>
             <p className="text-[14px] md:text-[16px] text-[#6E6E73] max-w-[580px] mx-auto leading-relaxed font-medium">
-              Azviq is an all-in-one platform featuring{" "}
-              <span className="text-[#1D1D1F] font-semibold">AI-powered note-taking</span>, smart{" "}
-              <span className="text-[#1D1D1F] font-semibold">task tracking</span>, instant{" "}
-              <span className="text-[#1D1D1F] font-semibold">quiz generation</span>, and automated{" "}
-              <span className="text-[#1D1D1F] font-semibold">revision schedules</span>. Everything
-              you need to master your studies, in one unified desk workspace.
+              Azviq is an all-in-one platform featuring <span className="text-[#1D1D1F] font-semibold">AI-powered note-taking</span>, smart <span className="text-[#1D1D1F] font-semibold">task tracking</span>, instant <span className="text-[#1D1D1F] font-semibold">quiz generation</span>, and automated <span className="text-[#1D1D1F] font-semibold">revision schedules</span>. Everything you need to master your studies, in one unified desk workspace.
             </p>
           </div>
         </div>
@@ -154,28 +142,21 @@ export default function HeroSection() {
               <span className="text-xl">⏱️</span>
               <h4 className="font-bold text-[#1D1D1F] text-[15px]">Productivity companion</h4>
             </div>
-            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">
-              Time management apps, custom study message, Pomodoro focus timer.
-            </p>
+            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">Time management apps, custom study message, Pomodoro focus timer.</p>
           </div>
           <div className="text-left md:px-8">
             <div className="flex items-center gap-3 mb-3">
               <span className="text-xl">⚡</span>
-              <h4 className="font-bold text-[#1D1D1F] text-[15px]">AI &amp; Integration</h4>
+              <h4 className="font-bold text-[#1D1D1F] text-[15px]">AI & Integration</h4>
             </div>
-            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">
-              Personal AI study librarian, connection to PDFs and notes, integrations with calendar
-              events.
-            </p>
+            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">Personal AI study librarian, connection to PDFs and notes, integrations with calendar events.</p>
           </div>
           <div className="text-left md:pl-8">
             <div className="flex items-center gap-3 mb-3">
               <span className="text-xl">⚙️</span>
               <h4 className="font-bold text-[#1D1D1F] text-[15px]">Student friendly</h4>
             </div>
-            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">
-              Open dashboard, heatmap tracking, simple visual stats, no vendor lock-in.
-            </p>
+            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">Open dashboard, heatmap tracking, simple visual stats, no vendor lock-in.</p>
           </div>
         </div>
       </div>

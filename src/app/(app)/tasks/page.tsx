@@ -35,6 +35,8 @@ import { AITaskModal } from "@/components/tasks/AITaskModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ProjectDetailModal } from "@/components/tasks/ProjectDetailModal";
 import { motion, useDragControls, AnimatePresence, LayoutGroup } from "framer-motion";
+import { triggerConfetti } from "@/lib/utils/confetti";
+
 
 
 export default function TasksPage() {
@@ -138,9 +140,11 @@ export default function TasksPage() {
   const [showProjectFavorites, setShowProjectFavorites] = useState(false);
   const searchParams = useSearchParams();
 
-  // Open task from URL if provided (e.g. from notifications)
+  // Open task or project from URL if provided (e.g. from notifications or command palette)
   useEffect(() => {
     const taskId = searchParams.get("id");
+    const projectId = searchParams.get("projectId");
+
     if (taskId && tasks.length > 0 && !selectedTask) {
       const task = tasks.find((t: any) => t.id === taskId);
       if (task) {
@@ -152,7 +156,19 @@ export default function TasksPage() {
         window.history.replaceState({}, "", newUrl.toString());
       }
     }
-  }, [searchParams, tasks, selectedTask]);
+
+    if (projectId && projects.length > 0 && !selectedProject) {
+      const proj = projects.find((p: any) => p.id === projectId);
+      if (proj) {
+        setSelectedProject(proj);
+        
+        // Remove the ID from the URL so it doesn't reopen on refresh
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("projectId");
+        window.history.replaceState({}, "", newUrl.toString());
+      }
+    }
+  }, [searchParams, tasks, projects, selectedTask, selectedProject]);
 
   // Remove the old manual fetchData effect
 
@@ -168,6 +184,11 @@ export default function TasksPage() {
 
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
+    const taskToUpdate = tasks.find((t: any) => t.id === taskId);
+    if (taskToUpdate && newStatus === "done" && taskToUpdate.status !== "done") {
+      triggerConfetti();
+    }
+
     // Optimistic update
     mutateTasks((currentData: any) => {
       if (!currentData) return currentData;
