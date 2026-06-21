@@ -140,11 +140,33 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
+  // Sync state if session_id query param updates while already mounted (e.g. from Command Palette)
+  useEffect(() => {
+    const urlSessionId = searchParams.get("session_id");
+    if (urlSessionId && urlSessionId !== sessionId) {
+      const fetchSessionInfo = async () => {
+        try {
+          const res = await fetch(`/api/personal-ai/sessions/${urlSessionId}`);
+          if (res.ok) {
+            const json = await res.json();
+            const sess = json.data?.session;
+            if (sess?.note_id) {
+              handleNoteSelect(sess.note_id, sess.id);
+            }
+          }
+        } catch (e) {
+          console.error("URL Session update failed", e);
+        }
+      };
+      fetchSessionInfo();
+    }
+  }, [searchParams, sessionId, handleNoteSelect]); 
+
   // 2. Sync State to URL
   useEffect(() => {
-    // Only sync if we are on the main preparation page.
+    // Only sync if we are on the main preparation page or its AI Teacher tab.
     // If we've navigated to a modal route (like /trash or /settings), don't interfere with its URL.
-    if (pathname !== "/preparation") return;
+    if (pathname !== "/preparation" && pathname !== "/preparation/ai_teacher") return;
 
     const params = new URLSearchParams(searchParams.toString());
     const currentParam = params.get("session_id");
@@ -152,12 +174,12 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     if (sessionId) {
       if (currentParam !== sessionId) {
         params.set("session_id", sessionId);
-        router.push(`/preparation?${params.toString()}`, { scroll: false });
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
       }
     } else {
       if (currentParam) {
         params.delete("session_id");
-        router.push(`/preparation?${params.toString()}`, { scroll: false });
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
       }
     }
   }, [sessionId, router, searchParams, pathname]);
