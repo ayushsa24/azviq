@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { motion, useDragControls, AnimatePresence } from "framer-motion";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
+import { triggerConfetti } from "@/lib/utils/confetti";
 
 interface TaskDetailModalProps {
     task: any | null;
@@ -134,6 +135,10 @@ export function TaskDetailModal({
     if (!task || !localTask) return null;
 
     const handleUpdateField = (field: string, value: any) => {
+        if (field === "status" && value === "done" && localTask.status !== "done") {
+            triggerConfetti();
+        }
+
         setLocalTask((prev: any) => {
             const updated = { ...prev, [field]: value };
             if (field === "linked_document_id" && value) {
@@ -255,11 +260,11 @@ export function TaskDetailModal({
                                                     : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
                                         }`}
                                 >
-                                    <option value="not_started">Not started</option>
-                                    <option value="in_progress">In progress</option>
-                                    <option value="in_review">In review</option>
-                                    <option value="done">Done</option>
-                                    <option value="archived">Archive</option>
+                                    <option value="not_started" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">Not started</option>
+                                    <option value="in_progress" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">In progress</option>
+                                    <option value="in_review" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">In review</option>
+                                    <option value="done" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">Done</option>
+                                    <option value="archived" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">Archive</option>
                                 </select>
                             </div>
                         </div>
@@ -276,9 +281,9 @@ export function TaskDetailModal({
                                     onChange={(e) => handleUpdateField("project_id", e.target.value || null)}
                                     className="bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-[#252525] p-1 -ml-1 rounded transition-colors w-full cursor-pointer appearance-none"
                                 >
-                                    <option value="">No Project</option>
+                                    <option value="" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">No Project</option>
                                     {projects.map((p) => (
-                                        <option key={p.id} value={p.id}>{p.title}</option>
+                                        <option key={p.id} value={p.id} className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">{p.title}</option>
                                     ))}
                                 </select>
                             </div>

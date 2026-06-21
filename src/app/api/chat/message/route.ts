@@ -8,7 +8,8 @@ const MessageSchema = z.object({
     chatId: z.string().min(1, "chatId is required"),
     userId: z.string().uuid("userId must be a valid UUID"),
     role: z.enum(["user", "model", "system", "assistant"]),
-    content: z.string().min(1, "content cannot be empty").max(20000, "content too long"),
+    content: z.string().max(20000, "content too long").default(""),
+    image: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
             return apiError("Invalid request data", 400, "VALIDATION_ERROR", validation.error.flatten());
         }
 
-        const { chatId, role, content } = validation.data;
+        const { chatId, role, content, image } = validation.data;
 
         // 3. Verify ownership & get userId
         const { data: dbUser } = await supabase
@@ -47,12 +48,16 @@ export async function POST(req: Request) {
         const userId = dbUser.id;
 
         // 4. Save message (skip for temporary chats)
-        if (chatId !== "temp-chat" && content.trim().length > 0) {
+        if (chatId !== "temp-chat" && (content.trim().length > 0 || image)) {
+            const contentToSave = image
+                ? JSON.stringify({ text: content, image })
+                : content;
+
             const { error } = await supabase.from("messages").insert({
                 chat_id: chatId,
                 user_id: userId,
                 role,
-                content,
+                content: contentToSave,
                 email: session.user.email,
             });
             if (error) throw error;

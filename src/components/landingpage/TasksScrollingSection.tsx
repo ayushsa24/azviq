@@ -104,18 +104,18 @@ export default function TasksScrollingSection() {
   }, []);
 
   return (
-    <section className="relative w-full bg-white border-t border-black/[0.05]">
+    <section id="tasks" className="relative w-full bg-white border-t border-black/[0.05]">
       {/* Scroll track */}
       <div ref={sectionRef} className="w-full" style={{ height: `${(TASKS_FEATURES.length * 40) + 100}vh` }}>
         {/* Sticky viewport */}
-        <div className="sticky top-0 h-screen flex flex-col md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
+        <div className="sticky top-0 h-screen flex flex-col justify-center md:flex-row items-center px-6 md:px-16 max-w-[85rem] mx-auto w-full">
 
           {/* Left Text Column */}
-          <div className="w-full md:w-1/2 relative h-[420px] md:h-[530px]">
+          <div className="w-full md:w-[35%] relative h-[420px] md:h-[530px]">
             {TASKS_FEATURES.map((feature, index) => (
               <motion.div
                 key={index}
-                className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-16"
+                className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-12"
                 initial={false}
                 animate={{
                   opacity: activeFeature === index ? 1 : 0,
@@ -185,14 +185,14 @@ export default function TasksScrollingSection() {
           </div>
 
           {/* Right Image Column */}
-          <div className="hidden md:flex w-1/2 items-center justify-center pl-8 h-[500px]">
+          <div className="hidden md:flex w-[65%] items-center justify-center pl-12 h-[540px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-white shadow-2xl overflow-hidden">
               {TASKS_FEATURES.map((feature, index) => (
                 <motion.img
                   key={index}
                   src={feature.image}
                   alt={feature.title}
-                  className="absolute w-full h-full object-cover"
+                  className="absolute w-full h-full object-cover object-left-top"
                   animate={{
                     opacity: activeFeature === index ? 1 : 0,
                     scale: activeFeature === index ? 1 : 1.04,

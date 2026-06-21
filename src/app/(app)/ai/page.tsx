@@ -56,6 +56,7 @@ import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/utils/image";
 import { motion, AnimatePresence } from "framer-motion";
 
+
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) {
@@ -1340,7 +1341,7 @@ function AiChatCore() {
           await fetch("/api/chat/message", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chatId: newChatId, role: msg.role, content: msg.content }),
+            body: JSON.stringify({ chatId: newChatId, role: msg.role, content: msg.content, image: msg.image }),
           });
         }
 

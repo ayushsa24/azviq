@@ -11,7 +11,7 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, ClipboardCheck, BookOpen, Bell, HelpCircle, Trash2, Crown, Inbox, Search
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, ClipboardCheck, BookOpen, Bell, HelpCircle, Trash2, Crown, Inbox
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
@@ -83,12 +83,13 @@ export default function Sidebar({
       const topNavHeight = topNavContainerRef.current.clientHeight;
       const recentHeaderHeight = recentHeaderRef.current.clientHeight;
       
-      // nav has py-3 (24px), recent section has mt-4 (16px), and let's add a safe padding margin
-      const availableSpace = navHeight - topNavHeight - recentHeaderHeight - 48;
+      // nav has py-3 (24px), recent section has mt-4 (16px)
+      // Reduced padding deductions to be more aggressive
+      const availableSpace = navHeight - topNavHeight - recentHeaderHeight - 12;
       
-      // Each recent item is 36px high (including padding & spacing)
-      const itemHeight = 36;
-      const count = Math.max(0, Math.floor(availableSpace / itemHeight));
+      // Assume a smaller item height to force the count up
+      const itemHeight = 32;
+      const count = Math.max(0, Math.floor(availableSpace / itemHeight)) + 1;
       setVisibleRecentCount(count);
     };
 
@@ -139,7 +140,7 @@ export default function Sidebar({
     <>
       <aside
         onMouseLeave={onMouseLeave}
-        className={`fixed flex flex-col z-[90] transition-all duration-300 ease-in-out hidden md:flex antialiased tracking-tight overscroll-contain
+        className={`fixed flex flex-col z-[90] transition-all duration-300 ease-in-out hidden md:flex antialiased tracking-tight
           ${isDark ? "bg-[#1A1A1A]" : "bg-white"}
           ${open
             /* Pinned open: flush full height, no radius */
@@ -193,7 +194,7 @@ export default function Sidebar({
         </div>
 
         {/* ── NAV ITEMS ── */}
-        <nav ref={navRef} className="flex-1 flex flex-col overflow-hidden py-3 px-2 overscroll-contain">
+        <nav ref={navRef} className="flex-1 flex flex-col overflow-hidden py-3 px-2">
           <div ref={topNavContainerRef} className="space-y-1.5 shrink-0">
             {navItems.map((item) => {
             const Icon = item.icon;
@@ -218,23 +219,6 @@ export default function Sidebar({
               </Link>
             );
             })}
-
-            {/* SEARCH / COMMAND PALETTE TRIGGER BUTTON */}
-            <button
-              onClick={() => window.dispatchEvent(new Event("toggle-command-palette"))}
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-[13.5px] font-[500] border border-dashed text-left w-full cursor-pointer mt-1.5
-                ${isDark 
-                  ? "border-[#2E2E2E] text-[#BABABA] hover:bg-[#252525] hover:text-white hover:border-[#545454]" 
-                  : "border-[#7D7D7D]/30 text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525] hover:border-[#7D7D7D]/50"}`}
-            >
-              <Search className="w-4 h-4 shrink-0 text-[#88888F] group-hover:scale-110 transition-transform duration-200" />
-              <span>Search...</span>
-              <kbd className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
-                isDark ? "bg-[#252525] border-[#545454] text-[#88888F]" : "bg-white border-[#7D7D7D]/30 text-[#88888F]"
-              }`}>
-                ⌘K
-              </kbd>
-            </button>
           </div>
           
           <div className="mt-4 flex flex-col shrink-0">

@@ -23,6 +23,7 @@ import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { useToast } from "@/contexts/ToastContext";
+import { triggerConfetti } from "@/lib/utils/confetti";
 
 interface ProjectDetailModalProps {
     project: any | null;
@@ -153,6 +154,9 @@ export function ProjectDetailModal({
         const taskToUpdate = projectTasks.find(t => t.id === taskId);
         if (!taskToUpdate) return;
         try {
+            if (newStatus === "done" && taskToUpdate.status !== "done") {
+                triggerConfetti();
+            }
             await fetch(`/api/tasks/${taskId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -386,11 +390,11 @@ export function ProjectDetailModal({
                                                             : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
                                                 }`}
                                         >
-                                            <option value="not_started">Not started</option>
-                                            <option value="in_progress">In progress</option>
-                                            <option value="in_review">In review</option>
-                                            <option value="done">Done</option>
-                                            <option value="archived">Archive</option>
+                                            <option value="not_started" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">Not started</option>
+                                            <option value="in_progress" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">In progress</option>
+                                            <option value="in_review" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">In review</option>
+                                            <option value="done" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">Done</option>
+                                            <option value="archived" className="bg-white dark:bg-[#1F1F1F] text-gray-900 dark:text-gray-200">Archive</option>
                                         </select>
                                     </div>
                                 </div>

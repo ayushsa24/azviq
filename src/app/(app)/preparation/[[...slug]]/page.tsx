@@ -13,6 +13,7 @@ import GenerateExerciseModal from "@/components/preparation/GenerateExerciseModa
 import CreateRevisionModal from "@/components/preparation/CreateRevisionModal";
 import { logRecentActivity } from "@/lib/logRecentActivity";
 
+
 type TabType = "exercise" | "revision" | "ai_teacher";
 
 const TABS: { id: TabType; label: string }[] = [

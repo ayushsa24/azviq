@@ -104,8 +104,8 @@ const CHAT_FEATURES: ChatFeature[] = [
   },
   {
     title: "Share Chat with Classmates",
-    desc: "Found a helpful AI explanation? Share the entire chat thread with anyone via a clean link. Perfect for study groups, peer review, and collaborative learning.",
-    category: "Collaboration",
+    desc: "Found a helpful AI explanation? Share the read-only conversation thread with anyone via a clean, simple link. Perfect for study groups, peer review, and quick references.",
+    category: "Sharing",
     accent: "#8B5CF6",
     bullets: [
       {
@@ -118,11 +118,11 @@ const CHAT_FEATURES: ChatFeature[] = [
         )
       },
       {
-        title: "Study Group Discussions",
-        desc: "Share AI-generated breakdowns with your class group. Turn AI answers into collaborative study material.",
+        title: "One-Click Import",
+        desc: "Anyone with the link can import the shared conversation thread directly into their own workspace with a single click.",
         icon: (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
         )
       }
@@ -158,17 +158,17 @@ export default function AIChatSection() {
   }, []);
 
   return (
-    <section className="relative w-full bg-[#F4F4F6]/50 border-t border-black/[0.05]">
+    <section id="ai-chat" className="relative w-full bg-[#F4F4F6]/50 border-t border-black/[0.05]">
       {/* Scroll track */}
       <div ref={sectionRef} className="w-full" style={{ height: `${(CHAT_FEATURES.length * 50) + 100}vh` }}>
-        <div className="sticky top-0 h-screen flex flex-col md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
+        <div className="sticky top-0 h-screen flex flex-col justify-center md:flex-row items-center px-6 md:px-16 max-w-[85rem] mx-auto w-full">
 
           {/* LEFT — Text + Bullets */}
-          <div className="w-full md:w-1/2 relative h-[480px] md:h-[580px]">
+          <div className="w-full md:w-[35%] relative h-[480px] md:h-[580px]">
             {CHAT_FEATURES.map((f, index) => (
               <motion.div
                 key={index}
-                className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-16"
+                className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-12"
                 initial={false}
                 animate={{
                   opacity: activeFeature === index ? 1 : 0,
@@ -249,14 +249,14 @@ export default function AIChatSection() {
           </div>
 
           {/* RIGHT — Animated Mock Image Showcase */}
-          <div className="hidden md:flex w-1/2 items-center justify-center pl-8 h-[500px]">
+          <div className="hidden md:flex w-[65%] items-center justify-center pl-12 h-[540px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-white shadow-2xl overflow-hidden">
               {CHAT_FEATURES.map((feat, index) => (
                 <motion.img
                   key={index}
                   src={feat.image}
                   alt={feat.title}
-                  className="absolute w-full h-full object-cover"
+                  className="absolute w-full h-full object-cover object-left-top"
                   animate={{
                     opacity: activeFeature === index ? 1 : 0,
                     scale: activeFeature === index ? 1 : 1.04,

@@ -14,6 +14,9 @@ import { ProfileProvider, useProfile } from "@/contexts/ProfileContext";
 import TrashModal from "./TrashModal";
 import ProfileModal from "./ProfileModal";
 import PricingModal from "../PricingModal";
+import CommandPalette from "./CommandPalette";
+import OfflineIndicator from "./OfflineIndicator";
+import { triggerConfetti } from "@/lib/utils/confetti";
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -116,6 +119,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               shouldStop = true;
               localStorage.setItem('study_timer_active', 'false');
               window.dispatchEvent(new CustomEvent('study-timer-state', { detail: { isActive: false } }));
+              triggerConfetti();
             }
             const updated = { ...parsed, elapsedSeconds: nextElapsed, lastUpdated: new Date().toISOString() };
             localStorage.setItem("dashboard_study_data", JSON.stringify(updated));
@@ -305,6 +309,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       {/* Global Pricing Popup */}
       <PricingModal open={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
+
+      {/* Global Command Palette (Cmd+K Menu) */}
+      <CommandPalette />
+
+      {/* Global Offline Network Status Indicator */}
+      <OfflineIndicator />
 
       {mounted && !open && (
         <div

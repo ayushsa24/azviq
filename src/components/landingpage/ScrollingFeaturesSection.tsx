@@ -75,8 +75,8 @@ const STICKY_FEATURES: StickyFeature[] = [
     image: "/landingpage/notes.png",
   },
   {
-    title: "Intelligent PDF Reader",
-    desc: "Read, highlight, and chat with your PDFs. Our AI analyzes your documents so you can ask complex questions and get instant, cited answers. Upload books, research papers, or syllabus PDFs to create context for your study sessions.",
+    title: "Interactive PDF Reader",
+    desc: "Read, annotate, and mark up your study materials directly inside the app. Highlight key paragraphs, sketch on diagrams, and add comment boxes on lecture notes, research papers, or textbooks to enhance your learning experience.",
     category: "Active Reading",
     accent: "#22C55E", // Green
     bullets: [
@@ -132,18 +132,18 @@ export default function ScrollingFeaturesSection() {
   }, []);
 
   return (
-    <section className="relative w-full bg-white border-t border-black/[0.05]">
+    <section id="library" className="relative w-full bg-white border-t border-black/[0.05]">
       {/* Scroll track */}
       <div ref={featureSectionRef} className="w-full" style={{ height: `${(STICKY_FEATURES.length * 50) + 100}vh` }}>
         {/* Sticky viewport */}
-        <div className="sticky top-0 h-screen flex flex-col md:flex-row items-center px-6 md:px-16 max-w-7xl mx-auto w-full">
+        <div className="sticky top-0 h-screen flex flex-col justify-center md:flex-row items-center px-6 md:px-16 max-w-[85rem] mx-auto w-full">
 
           {/* Left Text Column */}
-          <div className="w-full md:w-1/2 relative h-[420px] md:h-[530px]">
+          <div className="w-full md:w-[35%] relative h-[420px] md:h-[530px]">
             {STICKY_FEATURES.map((feature, index) => (
               <motion.div
                 key={index}
-                className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-16"
+                className="absolute inset-0 flex flex-col justify-center pr-0 md:pr-12"
                 initial={false}
                 animate={{
                   opacity: activeFeature === index ? 1 : 0,
@@ -154,11 +154,11 @@ export default function ScrollingFeaturesSection() {
               >
                 {/* Category & Badge */}
                 <div className="flex items-center gap-3 mb-4">
-                  <span 
+                  <span
                     className="text-[11px] uppercase tracking-[0.14em] font-bold px-2 py-0.5 rounded-full"
-                    style={{ 
-                      backgroundColor: `${feature.accent}12`, 
-                      color: feature.accent 
+                    style={{
+                      backgroundColor: `${feature.accent}12`,
+                      color: feature.accent
                     }}
                   >
                     {feature.category}
@@ -168,7 +168,7 @@ export default function ScrollingFeaturesSection() {
 
                 {/* Main Headline */}
                 <h3 className="text-[28px] md:text-[38px] font-bold text-[#1D1D1F] leading-tight mb-4">{feature.title}</h3>
-                
+
                 {/* Description */}
                 <p className="text-[14px] md:text-[16px] text-[#6E6E73] leading-relaxed font-medium mb-6 max-w-[460px]">
                   {feature.desc}
@@ -178,11 +178,11 @@ export default function ScrollingFeaturesSection() {
                 <div className="flex flex-col gap-4 max-w-[480px]">
                   {feature.bullets.map((bullet, bIdx) => (
                     <div key={bIdx} className="flex items-start gap-3.5 bg-black/[0.02] border border-black/[0.04] p-3 rounded-xl hover:bg-black/[0.03] transition-all duration-150">
-                      <div 
+                      <div
                         className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg"
-                        style={{ 
-                          backgroundColor: `${feature.accent}16`, 
-                          color: feature.accent 
+                        style={{
+                          backgroundColor: `${feature.accent}16`,
+                          color: feature.accent
                         }}
                       >
                         {bullet.icon}
@@ -213,14 +213,14 @@ export default function ScrollingFeaturesSection() {
           </div>
 
           {/* Right Image Column */}
-          <div className="hidden md:flex w-1/2 items-center justify-center pl-8 h-[500px]">
+          <div className="hidden md:flex w-[65%] items-center justify-center pl-12 h-[540px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-[#F4F4F6] shadow-2xl overflow-hidden">
               {STICKY_FEATURES.map((feature, index) => (
                 <motion.img
                   key={index}
                   src={feature.image}
                   alt={feature.title}
-                  className="absolute w-full h-full object-cover"
+                  className="absolute w-full h-full object-cover object-left-top"
                   animate={{
                     opacity: activeFeature === index ? 1 : 0,
                     scale: activeFeature === index ? 1 : 1.04,

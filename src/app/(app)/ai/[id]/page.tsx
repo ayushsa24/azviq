@@ -1,5 +1,10 @@
 import AiPage from "../page";
 
+export const metadata = {
+  title: "AI Chat — Azviq",
+};
+
+
 export default function AiChatPage({ params }: { params: { id: string } }) {
   // We can pass the id down if needed, but AiPage currently handles its own 
   // params via URL or state. For consistency with the requirement of [id],
