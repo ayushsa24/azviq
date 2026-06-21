@@ -10,6 +10,8 @@ import DataControlSection from "./landingpage/DataControlSection";
 import ParentControlSection from "./landingpage/ParentControlSection";
 import FeaturesBento from "./landingpage/FeaturesBento";
 import AIChatSection from "./landingpage/AIChatSection";
+import PricingSection from "./landingpage/PricingSection";
+import FaqSection from "./landingpage/FaqSection";
 import FinalCTA from "./landingpage/FinalCTA";
 import Footer from "./landingpage/Footer";
 
@@ -53,6 +55,12 @@ export default function LandingPage({ isLoggedIn = false }: Props) {
 
       {/* FEATURES BENTO */}
       <FeaturesBento />
+
+      {/* PRICING SECTION */}
+      <PricingSection />
+
+      {/* FAQ SECTION */}
+      <FaqSection />
 
       {/* FINAL CTA */}
       <FinalCTA />
