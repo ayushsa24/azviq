@@ -7,12 +7,8 @@ const nextConfig: NextConfig = {
   // @ts-ignore - allowedDevOrigins is a top-level configuration key in Next.js 15+ dev server
   allowedDevOrigins: ["*.trycloudflare.com", "localhost:3000"],
 
-  // Hide the Next.js development server N logo
-  devIndicators: {
-    appIsrStatus: false,
-    buildActivityPosition: 'bottom-right',
-    buildActivity: false,
-  },
+  // Hide the Next.js development server build indicator
+  devIndicators: false,
 
   experimental: {
     serverActions: {

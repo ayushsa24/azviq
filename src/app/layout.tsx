@@ -13,6 +13,7 @@ import AppShell from "@/components/layout/AppShell";
 import { AppDialogProvider } from "@/components/ui/AppDialog";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { PostHogProvider } from "@/analytics/provider";
+import CookieConsent from "@/components/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,14 +31,41 @@ const lexend = Lexend({
 });
 
 export const metadata: Metadata = {
-  title: "Azviq",
-  description: "AI-powered study companion",
+  metadataBase: new URL("https://azviq.in"),
+  title: {
+    default: "Azviq — AI-Powered Study Companion",
+    template: "%s — Azviq",
+  },
+  description: "Upload PDFs, chat with AI Teacher, generate custom revision exercises, and organize your study notes seamlessly.",
   icons: {
     icon: [
       { url: "/icon-light.png", media: "(prefers-color-scheme: light)" },
       { url: "/icon-dark.png", media: "(prefers-color-scheme: dark)" },
     ],
     apple: "/icon-light.png",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://azviq.in",
+    title: "Azviq — AI-Powered Study Companion",
+    description: "Upload PDFs, chat with AI Teacher, generate custom revision exercises, and organize your study notes seamlessly.",
+    siteName: "Azviq",
+    images: [
+      {
+        url: "/azviq_logo.png",
+        width: 1200,
+        height: 630,
+        alt: "Azviq — AI-Powered Study Companion",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Azviq — AI-Powered Study Companion",
+    description: "Upload PDFs, chat with AI Teacher, generate custom revision exercises, and organize your study notes seamlessly.",
+    images: ["/azviq_logo.png"],
+    creator: "@azviq",
   },
 };
 
@@ -63,7 +91,11 @@ export default function RootLayout({
         
         {/* Safari / iOS Specific */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Azviq" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/icon-light.png" />
+        <link rel="apple-touch-startup-image" href="/icon-light.png" media="(prefers-color-scheme: light)" />
+        <link rel="apple-touch-startup-image" href="/icon-dark.png" media="(prefers-color-scheme: dark)" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -109,6 +141,46 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* Google Structured Data / JSON-LD Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "Azviq",
+              "operatingSystem": "All",
+              "applicationCategory": "EducationalApplication",
+              "description": "An AI-powered study companion designed for students to manage libraries, chat with custom AI tutors, and generate personalized revision tools.",
+              "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "INR",
+                "lowPrice": "0",
+                "highPrice": "399",
+                "offers": [
+                  {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "INR",
+                    "name": "Free Starter Plan"
+                  },
+                  {
+                    "@type": "Offer",
+                    "price": "149",
+                    "priceCurrency": "INR",
+                    "name": "Lite Plan"
+                  },
+                  {
+                    "@type": "Offer",
+                    "price": "399",
+                    "priceCurrency": "INR",
+                    "name": "Premium Plan"
+                  }
+                ]
+              }
+            })
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${lexend.variable} antialiased`}
@@ -124,6 +196,7 @@ export default function RootLayout({
                       <ToastProvider>
                         <AppDialogProvider>
                           {children}
+                          <CookieConsent />
                         </AppDialogProvider>
                       </ToastProvider>
                     </SettingsProvider>
