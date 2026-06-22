@@ -445,9 +445,9 @@ export default function DashboardStats() {
 
             {/* Combined for mobile */}
             {isLoadingTasks || isLoadingSuggestions ? (
-                <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[88px] animate-pulse sm:hidden"></div>
+                <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[110px] animate-pulse sm:hidden"></div>
             ) : (
-                <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[88px] animate-in fade-in duration-500`}>
+                <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[110px] animate-in fade-in duration-500`}>
                     <p className="text-xs font-semibold text-[#545454] dark:text-[#BABABA] mb-2">Today's Due</p>
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">

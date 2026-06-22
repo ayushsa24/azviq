@@ -16,8 +16,17 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 function applyTheme(theme: Theme, pathname: string | null = null) {
   const root = document.documentElement;
 
-  // Force light mode on the landing page (/)
-  const targetTheme = pathname === "/" ? "light" : theme;
+  const isForcedLightPage = 
+    pathname === "/" ||
+    pathname?.startsWith("/privacy") ||
+    pathname?.startsWith("/terms") ||
+    pathname?.startsWith("/help") ||
+    pathname?.startsWith("/about") ||
+    pathname?.startsWith("/contact") ||
+    pathname?.startsWith("/feedback");
+
+  // Force light mode on landing page and public legal/help pages
+  const targetTheme = isForcedLightPage ? "light" : theme;
 
   // Temporarily disable all transitions so the class-swap is instantaneous
   const style = document.createElement("style");
@@ -43,6 +52,7 @@ function applyTheme(theme: Theme, pathname: string | null = null) {
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', '#1A1A1A'));
   } else {
     root.classList.remove("dark");
+
     const isWhiteHeader = 
       pathname?.includes("/library/note/") || 
       pathname?.includes("/library/pdf/") ||
@@ -52,8 +62,8 @@ function applyTheme(theme: Theme, pathname: string | null = null) {
       pathname === "/ai" || 
       pathname?.startsWith("/ai/");
     
-    // For landing page, use its exact light background color #F4F4F6
-    const lightColor = pathname === "/" ? "#F4F4F6" : (isWhiteHeader ? "#FFFFFF" : "#F5F3EF");
+    // Public landing/policy pages use #F4F4F6, white editors/chats use #FFFFFF, standard app layouts use #F5F3EF
+    const lightColor = isForcedLightPage ? "#F4F4F6" : (isWhiteHeader ? "#FFFFFF" : "#F5F3EF");
     root.style.backgroundColor = lightColor;
     // Update all theme-color tags for Brave + the media-query light one
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', lightColor));
