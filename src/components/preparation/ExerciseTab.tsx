@@ -33,7 +33,7 @@ function formatDate(iso: string) {
 
 export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, onStartExercise, viewMode = "grid" }: ExerciseTabProps) {
     const { theme } = useTheme();
-    const { data, mutate, isLoading } = useSWR(refreshKey ? `/api/exercises?refresh=${refreshKey}` : "/api/exercises", fetcher);
+    const { data, mutate, isLoading: swrLoading } = useSWR(refreshKey ? `/api/exercises?refresh=${refreshKey}` : "/api/exercises", fetcher, { keepPreviousData: true });
     
     const exercises = data?.exercises || [];
     const isDark = theme === 'dark';
@@ -41,6 +41,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
     const dialog = useAppDialog();
     const { show } = useToast();
     const { mutate: globalMutate } = useSWRConfig();
+    const isLoading = swrLoading && !data;
 
 
     // Expose mutate so parent can call after generate
@@ -187,19 +188,12 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                     </p>
                 </div>
             ) : (
-                <motion.div 
-                    layout
+                <div 
                     className={isList ? "grid grid-cols-1 lg:grid-cols-3 gap-4 w-full" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 w-full"}
                 >
-                        <AnimatePresence mode="popLayout">
-                            {filtered.map((ex: any, idx: number) => (
-                                <motion.div
+                        {filtered.map((ex: any, idx: number) => (
+                            <div
                                 key={ex.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                                 onClick={() => onStartExercise?.(ex)}
                                 className={`group relative cursor-pointer bg-white dark:bg-white/5 border border-[#E8E5E0] dark:border-[#7D7D7D]/30 hover:bg-[#F9F8F6] dark:hover:bg-white/10 hover:border-[#D1D1D1] dark:hover:border-[#444] shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow duration-200
                                     ${isList 
@@ -256,7 +250,7 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                     <>
                                         {/* Top Badge Overlay */}
                                         <div className="absolute top-3 right-3 z-10 transition-all">
-                                            <div className="rounded shadow-sm bg-[#252525] dark:bg-white text-white dark:text-[#252525] text-[0.5rem] sm:text-[0.625rem] px-1 py-0 sm:px-1.5 sm:py-0.5 font-bold uppercase transform-gpu">
+                                            <div className="rounded shadow-sm bg-[#252525] dark:bg-[#5A5A5A] text-white dark:text-[#CCCCCC] text-[0.5rem] sm:text-[0.625rem] px-1 py-0 sm:px-1.5 sm:py-0.5 font-bold uppercase transform-gpu">
                                                 EXERCISE
                                             </div>
                                         </div>
@@ -314,10 +308,9 @@ export default function ExerciseTab({ search = "", onNeedGenerate, refreshKey, o
                                         </div>
                                     </>
                                 )}
-                            </motion.div>
+                            </div>
                         ))}
-                    </AnimatePresence>
-                    </motion.div>
+                    </div>
             )}
             </div>
     );

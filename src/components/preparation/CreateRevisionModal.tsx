@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Modal from "@/components/ui/Modal";
-import { FileText, Sparkles, Loader2, Search, Check, ChevronDown, File as FileIcon, AlertCircle, Plus } from "lucide-react";
+import { FileText, Sparkles, Loader2, Search, Check, ChevronDown, File as FileIcon, AlertCircle, AlertTriangle, Plus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 import { motion } from "framer-motion";
@@ -107,6 +107,29 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
 
     const cleanTitle = (title: string) => title.replace(/^\[\w+\]\s*/, "");
 
+    const selectedNote = notes.find(n => n.id === selectedNoteId);
+    const lowContentWarning = selectedNote ? (() => {
+        const isPdf = !!(selectedNote.file_url);
+        const rawContent = selectedNote.content || "";
+        
+        // Strip block tags and convert them to newlines, then strip remaining HTML tags
+        const plainText = rawContent
+            .replace(/<\/p>/gi, "\n")
+            .replace(/<\/li>/gi, "\n")
+            .replace(/<\/div>/gi, "\n")
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<\/h[1-6]>/gi, "\n")
+            .replace(/<[^>]+>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&\w+;/g, "");
+
+        const nonEmptyLines = plainText.split("\n").filter((l: string) => l.trim().length > 0);
+        if (isPdf && nonEmptyLines.length === 0) return "This PDF appears to have no extractable text content.";
+        if (nonEmptyLines.length === 0) return "This note is empty. Add some content before generating a revision.";
+        if (nonEmptyLines.length < 6) return `This ${isPdf ? "PDF" : "note"} has very little content (${nonEmptyLines.length} line${nonEmptyLines.length === 1 ? "" : "s"}). The revision may not be very useful.`;
+        return null;
+    })() : null;
+
     return (
         <Modal open={isOpen} onClose={handleClose} title="Create Revision">
             <div className="space-y-5 pb-2">
@@ -210,8 +233,21 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                                     </div>
                                 )}
                             </div>
-                            <p className="text-xs text-[#BABABA] mt-2">Supports both text notes (📝) and PDF files (📄).</p>
+                            <p className="text-xs text-[#BABABA] mt-2 flex items-center gap-1 flex-wrap">
+                                Supports both text notes
+                                <FileText size={11} className="inline shrink-0" />
+                                and PDF files
+                                <FileIcon size={11} className="inline shrink-0" />.
+                            </p>
                         </div>
+
+                        {/* Low Content Warning */}
+                        {lowContentWarning && (
+                            <div className={`p-3 rounded-xl flex items-start gap-2.5 ${isDark ? "bg-amber-500/10 border border-amber-500/20 text-amber-300" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
+                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                                <p className="text-xs leading-relaxed">{lowContentWarning}</p>
+                            </div>
+                        )}
 
                         {/* Error Banner */}
                         {error && (
@@ -240,8 +276,8 @@ export default function CreateRevisionModal({ isOpen, onClose, onSuccess }: Crea
                                 setError("");
                                 handleGenerate();
                             }}
-                            disabled={!selectedNoteId || isGenerating || isFetchingNotes}
-                            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${selectedNoteId && !isGenerating && !isFetchingNotes
+                            disabled={!selectedNoteId || isGenerating || isFetchingNotes || !!lowContentWarning}
+                            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${(selectedNoteId && !isGenerating && !isFetchingNotes && !lowContentWarning)
                                 ? isDark ? "bg-white text-[#252525] hover:bg-white/90" : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
                                 : isDark ? "bg-[#252525] text-[#545454] cursor-not-allowed" : "bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed"
                                 }`}

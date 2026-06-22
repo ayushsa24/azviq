@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -11,13 +12,14 @@ import { useEffect, useState, useRef } from "react";
 import {
   Home, Library, CheckSquare, TrendingUp,
   MessageCircle, Settings, LogOut, Sparkles, User, ChevronRight,
-  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, ClipboardCheck, BookOpen, Bell, HelpCircle, Trash2, Crown, Inbox
+  Sun, Moon, ChevronsLeft, Clock, FileText, File as FileIcon, ClipboardCheck, BookOpen, Bell, HelpCircle, Trash2, Crown, Inbox, Search
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import NotificationPanel from "./NotificationPanel";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getAvatarColor } from "@/lib/utils";
 import { translations } from "@/utils/translations";
 import useSWR from "swr";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
@@ -164,6 +166,7 @@ export default function Sidebar({
           </span>
           <button
             data-notification-bell
+            aria-label="Notifications"
             onClick={() => setPanelOpen(!panelOpen)}
             className={`p-1.5 rounded-xl transition-all duration-300 hover:scale-110 relative cursor-pointer shrink-0
             ${isDark
@@ -219,6 +222,24 @@ export default function Sidebar({
               </Link>
             );
             })}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("toggle-command-palette"))}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-[13.5px] font-[500] text-left border border-dashed mt-2
+                ${isDark 
+                  ? "bg-[#252525]/40 border-[#333] text-[#BABABA] hover:bg-[#252525] hover:text-white" 
+                  : "bg-[#F5F3EF] border-[#DEDBD6] text-[#545454] hover:bg-[#E8E5E0] hover:text-[#252525]"
+                }`}
+            >
+              <Search className="w-4 h-4 shrink-0" />
+              <span className="flex-1">Search...</span>
+              <kbd className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border leading-none
+                ${isDark
+                  ? "bg-[#1A1A1A] border-[#333] text-[#88888F]"
+                  : "bg-white border-[#DEDBD6] text-[#88888F]"
+                }`}>
+                ⌘K
+              </kbd>
+            </button>
           </div>
           
           <div className="mt-4 flex flex-col shrink-0">
@@ -406,11 +427,20 @@ export default function Sidebar({
               }`}
           >
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="Profile" className="w-8 h-8 rounded-full object-cover shrink-0" />
+              <Image 
+                src={profile.avatar_url} 
+                alt="Profile" 
+                width={32} 
+                height={32} 
+                className="w-8 h-8 rounded-full object-cover shrink-0" 
+                unoptimized={profile.avatar_url?.startsWith("data:")}
+              />
             ) : (
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-semibold text-xs
-                ${isDark ? "bg-[#2E2E2E] text-white" : "bg-[#E8E5E0] text-[#545454]"}`}>
-                {profile?.name ? profile.name[0].toUpperCase() : <User className="w-4 h-4" />}
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-semibold text-xs text-white"
+                style={{ backgroundColor: getAvatarColor(profile?.name) }}
+              >
+                {(profile?.name?.[0] || 'A').toUpperCase()}
               </div>
             )}
             <div className="flex-1 min-w-0">

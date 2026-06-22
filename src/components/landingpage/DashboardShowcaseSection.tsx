@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 export default function DashboardShowcaseSection() {
   return (
@@ -18,9 +19,11 @@ export default function DashboardShowcaseSection() {
             <span className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] opacity-80" />
             <span className="w-2.5 h-2.5 rounded-full bg-[#27C93F] opacity-80" />
           </div>
-          <img 
+          <Image 
             src="/landingpage/home.png" 
             alt="Azviq Dashboard Screenshot" 
+            width={1200}
+            height={800}
             className="w-full h-auto rounded-b-xl"
           />
         </div>

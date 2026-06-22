@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import LandingPage from "@/components/LandingPage";
 
 export const metadata = {
-  title: "Azviq — AI-Powered Study Workspace",
+  title: { absolute: "Azviq — AI-Powered Study Workspace" },
   description: "Notes, PDFs, AI teacher, and task planner — all in one place. Study smarter with Azviq.",
 };
 

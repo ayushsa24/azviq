@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useZoom } from "@/contexts/ZoomContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -11,6 +12,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useRouter } from "next/navigation";
+import { getAvatarColor } from "@/lib/utils";
 
 export default function Header({ 
   onMenuClick, 
@@ -68,8 +70,9 @@ export default function Header({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           {/* LOGO BUTTON */}
-          <div
+          <button
             onClick={onMenuClick}
+            aria-label={open ? "Close sidebar" : "Open sidebar"}
             className={`cursor-pointer group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 relative overflow-hidden shrink-0 hover:scale-110
               ${theme === 'dark' ? 'hover:bg-[#545454] text-white' : 'hover:bg-[#F0EDE8] text-[#252525]'}`}
           >
@@ -84,7 +87,7 @@ export default function Header({
             ) : (
               <PanelLeft className="w-5 h-5 absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-all duration-300 text-current" />
             )}
-          </div>
+          </button>
 
           {/* TITLE */}
           <span className={`font-bold text-2xl tracking-tighter transition-colors pl-1 cursor-default font-[var(--font-lexend)]
@@ -98,6 +101,7 @@ export default function Header({
       <div className="flex items-center gap-2">
         <button
           data-notification-bell
+          aria-label="Notifications"
           onClick={() => setPanelOpen(!panelOpen)}
           className={`md:hidden p-2 rounded-xl transition-all duration-300 hover:scale-110 relative
           ${theme === 'dark'
@@ -116,19 +120,30 @@ export default function Header({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
+            aria-label="User profile menu"
+            aria-expanded={dropdownOpen}
+            aria-haspopup="true"
             className={`p-1 rounded-xl transition-all duration-300 hover:scale-110 overflow-hidden flex items-center gap-1 cursor-pointer
               ${theme === 'dark'
                 ? 'text-[#CFCFCF] hover:bg-[#545454] hover:text-white'
                 : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'
               }`}>
             {user?.avatar_url || session?.user?.image ? (
-              <img
+              <Image
                 src={user?.avatar_url || session?.user?.image || ""}
                 alt="Profile"
+                width={32}
+                height={32}
                 className="w-8 h-8 rounded-full object-cover"
+                unoptimized={(user?.avatar_url || session?.user?.image)?.startsWith("data:")}
               />
             ) : (
-              <User className="w-5 h-5" />
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-semibold text-xs text-white"
+                style={{ backgroundColor: getAvatarColor(user?.name || session?.user?.name) }}
+              >
+                {(user?.name?.[0] || session?.user?.name?.[0] || 'A').toUpperCase()}
+              </div>
             )}
             <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''
               }`} />

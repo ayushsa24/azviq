@@ -225,7 +225,7 @@ export function NoteCard({
             )}
 
             {!isList && (
-                <div className="absolute top-3 right-3 rounded shadow-sm transition-all bg-[#252525] dark:bg-white text-white dark:text-[#252525] text-[0.5rem] sm:text-[0.625rem] px-1 py-0 sm:px-1.5 sm:py-0.5 font-bold transform-gpu">
+                <div className="absolute top-3 right-3 rounded shadow-sm transition-all bg-[#252525] dark:bg-[#5A5A5A] text-white dark:text-[#CCCCCC] text-[0.5rem] sm:text-[0.625rem] px-1 py-0 sm:px-1.5 sm:py-0.5 font-bold transform-gpu">
                     {note.original_note_id ? "IMPORTED" : (isPdf ? "PDF" : "NOTE")}
                 </div>
             )}

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { X, User, Edit3, Save, Camera, Trash2 } from "lucide-react";
+import Image from "next/image";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { useSession } from "next-auth/react";
+import { getAvatarColor } from "@/lib/utils";
 
 interface Props {
     open: boolean;
@@ -131,7 +133,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                                 <Edit3 className="w-3 h-3" /> Edit
                             </button>
                         )}
-                        <button onClick={handleCloseModal} className={`p-1.5 rounded-xl transition-colors ${isDark ? "hover:bg-[#2E2E2E] text-[#7D7D7D]" : "hover:bg-[#CFCFCF] text-[#9E9E9E]"}`}>
+                        <button onClick={handleCloseModal} aria-label="Close Profile Modal" className={`p-1.5 rounded-xl transition-colors ${isDark ? "hover:bg-[#2E2E2E] text-[#7D7D7D]" : "hover:bg-[#CFCFCF] text-[#9E9E9E]"}`}>
                             <X className="w-4 h-4" />
                         </button>
                     </div>
@@ -144,21 +146,30 @@ export default function ProfileModal({ open, onClose }: Props) {
                     <div className="flex justify-center">
                         <div className="relative">
                             {avatarPreview || form.avatar_url ? (
-                                <img src={avatarPreview || form.avatar_url} alt="Avatar" className="w-20 h-20 rounded-full object-cover ring-4 ring-offset-2 ring-[#E8E5E0] dark:ring-[#2E2E2E]" />
+                                <Image 
+                                    src={avatarPreview || form.avatar_url} 
+                                    alt="Avatar" 
+                                    width={80} 
+                                    height={80} 
+                                    className="w-20 h-20 rounded-full object-cover ring-4 ring-offset-2 ring-[#E8E5E0] dark:ring-[#2E2E2E]" 
+                                    unoptimized={avatarPreview.startsWith("data:")}
+                                />
                             ) : (
-                                <div className={`w-20 h-20 rounded-full flex items-center justify-center ring-4 ring-offset-2
-                  ${isDark ? "bg-[#2E2E2E] ring-[#2E2E2E] text-[#7D7D7D]" : "bg-[#F0EDE8] ring-[#E8E5E0] text-[#9E9E9E]"}`}>
-                                    <User className="w-8 h-8" />
+                                <div 
+                                    className="w-20 h-20 rounded-full flex items-center justify-center ring-4 ring-offset-2 ring-transparent text-white font-bold text-3xl"
+                                    style={{ backgroundColor: getAvatarColor(form?.name) }}
+                                >
+                                    {(form.name?.[0] || 'A').toUpperCase()}
                                 </div>
                             )}
                             {editing && (
                                 <>
-                                    <label className="absolute bottom-0 right-0 bg-blue-500 text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-600 shadow-md">
+                                    <label aria-label="Upload avatar" className="absolute bottom-0 right-0 bg-blue-500 text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-600 shadow-md">
                                         <Camera className="w-3.5 h-3.5" />
-                                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" aria-hidden="true" />
                                     </label>
                                     {(form.avatar_url || avatarPreview) && (
-                                        <button onClick={handleRemoveImage} className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-md">
+                                        <button onClick={handleRemoveImage} aria-label="Remove avatar" className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-md">
                                             <Trash2 className="w-3 h-3" />
                                         </button>
                                     )}

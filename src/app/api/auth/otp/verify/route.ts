@@ -4,6 +4,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { randomUUID } from "crypto";
 import { Redis } from "@upstash/redis";
+import { sendWelcomeEmail } from "@/lib/auth-utils";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -80,17 +81,26 @@ export async function POST(req: NextRequest) {
 
     // 6. Type-specific success actions
     if (type === "SIGNUP") {
-      const { error: updateError } = await supabase
+      const { data: updatedUser, error: updateError } = await supabase
         .from("users")
         .update({ is_verified: true })
-        .eq("email", email.toLowerCase());
+        .eq("email", email.toLowerCase())
+        .select("id")
+        .single();
 
       if (updateError) {
         console.error("[OTP Verify] Failed to verify user:", updateError);
         return NextResponse.json({ error: "Failed to verify account. Please try again." }, { status: 500 });
       }
 
-      return NextResponse.json({ message: "Email verified successfully.", verified: true });
+      // Send welcome email in background
+      try {
+        await sendWelcomeEmail(email.toLowerCase());
+      } catch (emailErr) {
+        console.error("[OTP Verify] Failed to send welcome email:", emailErr);
+      }
+
+      return NextResponse.json({ message: "Email verified successfully.", verified: true, userId: updatedUser?.id });
     }
 
     if (type === "PASSWORD_RESET") {

@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
   // Hide the Next.js development server build indicator
   devIndicators: false,
 
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "*.supabase.in" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "*.googleusercontent.com" },
+      { protocol: "https", hostname: "avatars.githubusercontent.com" },
+    ],
+  },
+
   experimental: {
     serverActions: {
       allowedOrigins: ["*.trycloudflare.com", "localhost:3000"],

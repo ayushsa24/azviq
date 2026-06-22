@@ -169,7 +169,7 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}
-                        className={`hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
+                        className="hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                         title="Open Sidebar"
                     >
                         <PanelLeft size={18} />
@@ -178,7 +178,7 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
                 <button
                     onClick={onBack}
                     title="Back"
-                    className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 ${isDark ? 'text-[#7D7D7D] hover:bg-[#545454] hover:text-white' : 'text-[#545454] hover:bg-[#F0EDE8] hover:text-[#252525]'}`}
+                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                 >
                     <ArrowLeft size={20} />
                 </button>

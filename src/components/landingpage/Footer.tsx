@@ -1,5 +1,5 @@
-"use client";
 import Link from "next/link";
+import Image from "next/image";
 
 const FOOTER_LINKS = {
   Product: ["Dashboard", "Library", "AI Chat", "Tasks", "Preparation"],

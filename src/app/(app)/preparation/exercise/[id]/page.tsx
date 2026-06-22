@@ -22,8 +22,7 @@ function ExercisePageSkeleton({ onBack }: { onBack: () => void }) {
                 {!sidebarOpen && (
                     <button
                         onClick={toggleSidebar}
-                        className={`hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0
-                          ${isDark ? 'hover:bg-[#333] text-[#7D7D7D] hover:text-white' : 'hover:bg-[#E8E5E0] text-[#545454] hover:text-[#252525]'}`}
+                        className="hidden md:flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                         title="Open Sidebar"
                     >
                         <PanelLeft className="w-5 h-5" />
@@ -31,8 +30,7 @@ function ExercisePageSkeleton({ onBack }: { onBack: () => void }) {
                 )}
                 <button
                     onClick={onBack}
-                    className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0
-                      ${isDark ? 'hover:bg-[#333] text-white' : 'hover:bg-[#E8E5E0] text-[#252525]'}`}
+                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 shrink-0 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>

@@ -1,7 +1,7 @@
 import AiPage from "../page";
 
 export const metadata = {
-  title: "AI Chat — Azviq",
+  title: "AI Chat",
 };
 
 

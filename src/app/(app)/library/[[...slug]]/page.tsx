@@ -85,7 +85,7 @@ export default function NotesPage() {
   const [selectedWorkspaceForRename, setSelectedWorkspaceForRename] = useState<Workspace | null>(null);
 
   const { mutate } = useSWRConfig();
-  const { data: wsData, isLoading: wsLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher);
+  const { data: wsData, isLoading: wsLoading, mutate: mutateWorkspaces } = useSWR("/api/workspaces", fetcher, { keepPreviousData: true });
   const workspaces: Workspace[] = wsData?.workspaces || [];
 
   const workspaceIdFromUrl = searchParams.get("workspace");
@@ -100,10 +100,12 @@ export default function NotesPage() {
   }, [activeTab, activeWorkspace]);
 
   const notesUrl = activeWorkspace ? `/api/notes?workspace_id=${activeWorkspace.id}` : "/api/notes";
-  const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR(notesUrl, fetcher);
+  const { data: notesData, isLoading: notesLoading, mutate: mutateNotes } = useSWR(notesUrl, fetcher, { keepPreviousData: true });
   const notes: NoteItem[] = notesData?.notes || [];
 
-  const isLoading = wsLoading || notesLoading;
+  // Only show skeleton on the very first load when we have NO data at all.
+  // keepPreviousData means isLoading stays false during re-fetches, preventing the flicker.
+  const isLoading = (wsLoading && !wsData) || (notesLoading && !notesData);
 
   const refetchData = () => {
     mutateWorkspaces();
@@ -499,7 +501,7 @@ export default function NotesPage() {
         {activeWorkspace && (
           <button
             onClick={handleBackToWorkspaces}
-            className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white"
+            className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white"
             title="Back to Workspaces"
           >
             <ArrowLeft size={18} />
@@ -633,13 +635,8 @@ export default function NotesPage() {
 
       {/* SCROLLABLE CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-y-auto min-h-0 px-4 sm:px-6 mt-2 custom-scrollbar">
-        <AnimatePresence mode="wait">
           {isLoading ? (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
               className={
                 viewMode === "grid"
                   ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 pt-1 animate-pulse"
@@ -672,16 +669,9 @@ export default function NotesPage() {
                   )}
                 </div>
               ))}
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
-              key={activeTab + (activeWorkspace?.id || "")}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="flex-1 flex flex-col"
-            >
+            <div className="flex-1 flex flex-col">
               {activeTab === "workspaces" && !activeWorkspace ? (
                 <div
                   className={
@@ -690,32 +680,22 @@ export default function NotesPage() {
                       : "grid grid-cols-1 lg:grid-cols-3 gap-4"
                   }
                 >
-                  <AnimatePresence>
                     {filteredWorkspaces.length > 0 ? filteredWorkspaces.map((ws) => (
-                      <motion.div
+                      <WorkspaceCard
                         key={ws.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <WorkspaceCard
-                          workspace={ws}
-                          onClick={handleOpenWorkspace}
-                          viewMode={viewMode}
-                          onRename={handleRenameWorkspaceClick}
-                          onDelete={handleDeleteWorkspaceClick}
-                          onTogglePin={handleTogglePinWorkspace}
-                        />
-                      </motion.div>
+                        workspace={ws}
+                        onClick={handleOpenWorkspace}
+                        viewMode={viewMode}
+                        onRename={handleRenameWorkspaceClick}
+                        onDelete={handleDeleteWorkspaceClick}
+                        onTogglePin={handleTogglePinWorkspace}
+                      />
                     )) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}
+                      <div
+                        className="col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]"
                       >
-                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
-                          <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]">
+                          <Search className="w-6 h-6 text-[#252525] dark:text-[#BABABA]" />
                         </div>
                         <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
                         <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
@@ -723,9 +703,8 @@ export default function NotesPage() {
                             ? "Try adjusting your search query."
                             : "Create your first workspace to get started."}
                         </p>
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
                 </div>
               ) : (
                 <div
@@ -735,37 +714,26 @@ export default function NotesPage() {
                       : "grid grid-cols-1 lg:grid-cols-3 gap-4"
                   }
                 >
-                  <AnimatePresence>
                     {filteredNotes.length > 0 ? filteredNotes.map((note) => (
-                      <motion.div
+                      <NoteCard
                         key={note.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <NoteCard
-                          key={note.id}
-                          note={note}
-                          onClick={handleNoteClick}
-                          viewMode={viewMode}
-                          onRename={handleRenameClick}
-                          onMove={handleMoveClick}
-                          onDelete={handleDeleteClick}
-                          onToggleFavourite={handleToggleFavourite}
-                          onTogglePin={handleTogglePin}
-                          isPinnedOverride={activeTab === "favourites" ? !!note.is_pinned_in_favourites : !!note.is_pinned}
-                          workspaces={workspaces}
-                        />
-                      </motion.div>
+                        note={note}
+                        onClick={handleNoteClick}
+                        viewMode={viewMode}
+                        onRename={handleRenameClick}
+                        onMove={handleMoveClick}
+                        onDelete={handleDeleteClick}
+                        onToggleFavourite={handleToggleFavourite}
+                        onTogglePin={handleTogglePin}
+                        isPinnedOverride={activeTab === "favourites" ? !!note.is_pinned_in_favourites : !!note.is_pinned}
+                        workspaces={workspaces}
+                      />
                     )) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className={`col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]`}
+                      <div
+                        className="col-span-full flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl min-h-[400px] border-[#DEDBD6] dark:border-[#333]"
                       >
-                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]`}>
-                          <Search className={`w-6 h-6 text-[#252525] dark:text-[#BABABA]`} />
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 shadow-sm bg-white dark:bg-[#252525]">
+                          <Search className="w-6 h-6 text-[#252525] dark:text-[#BABABA]" />
                         </div>
                         <h3 className="text-lg font-bold text-[#252525] dark:text-white mb-1">No files found</h3>
                         <p className="text-sm text-[#7D7D7D] dark:text-[#BABABA] max-w-xs">
@@ -775,14 +743,12 @@ export default function NotesPage() {
                               ? "Upload a file or create a note in this workspace."
                               : "Upload a file or create a note to get started."}
                         </p>
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
       </div>
 
       <UploadNoteModal

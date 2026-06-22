@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "AI Chat — Azviq",
+  title: "AI Chat",
 };
 
 export default function AILayout({ children }: { children: React.ReactNode }) {

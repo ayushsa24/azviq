@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 export default function HeroSection() {
@@ -38,9 +39,11 @@ export default function HeroSection() {
           animate={{ x: parallaxX, y: parallaxY }}
           transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
-          <img 
+          <Image 
             src="/landingpage/keyboard.PNG" 
             alt="keyboard desk setup" 
+            width={800}
+            height={800}
             className="w-full h-auto rotate-[-8deg]" 
             style={{ filter: "drop-shadow(10px 20px 30px rgba(0, 0, 0, 0.15))" }}
           />
@@ -52,9 +55,11 @@ export default function HeroSection() {
           animate={{ x: -parallaxX, y: -parallaxY }}
           transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
-          <img 
+          <Image 
             src="/landingpage/book.PNG" 
             alt="book glasses desk setup" 
+            width={800}
+            height={800}
             className="w-full h-auto rotate-[8deg]" 
             style={{ filter: "drop-shadow(-10px 20px 30px rgba(0, 0, 0, 0.15))" }}
           />
@@ -66,9 +71,11 @@ export default function HeroSection() {
           animate={{ x: parallaxX, y: parallaxY }}
           transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
-          <img 
+          <Image 
             src="/landingpage/cabel.PNG" 
             alt="wire cable desk setup" 
+            width={800}
+            height={800}
             className="w-full h-auto rotate-[-10deg]" 
             style={{ filter: "drop-shadow(8px 16px 20px rgba(0, 0, 0, 0.18))" }}
           />
@@ -86,9 +93,11 @@ export default function HeroSection() {
             opacity: { duration: 0.3 }
           }}
         >
-          <img 
+          <Image 
             src="/landingpage/hand.PNG" 
             alt="hand pointing down" 
+            width={800}
+            height={800}
             className="w-full h-auto" 
             style={{ 
               filter: "drop-shadow(0px 20px 40px rgba(0, 0, 0, 0.18))",
@@ -114,9 +123,11 @@ export default function HeroSection() {
 
           {/* Center Image */}
           <div className="relative w-[320px] md:w-[480px] lg:w-[560px] z-20 mb-5">
-            <img 
+            <Image 
               src="/landingpage/center.PNG" 
               alt="Azviq Device Center" 
+              width={1200}
+              height={800}
               className="w-full h-auto" 
               style={{ filter: "drop-shadow(10px 15px 12px rgba(0, 0, 0, 0.24)) drop-shadow(30px 40px 30px rgba(0, 0, 0, 0.18))" }}
             />

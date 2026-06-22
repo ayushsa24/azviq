@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Tasks — Azviq",
+  title: "Tasks",
 };
 
 export default function TasksLayout({ children }: { children: React.ReactNode }) {

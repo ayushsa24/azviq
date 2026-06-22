@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import ContactPage from "@/components/ContactPage";
 
 export const metadata = {
-  title: "Contact Us — Azviq",
+  title: "Contact Us",
   description: "Get in touch with the Azviq team for support, feedback, or general inquiries.",
 };
 
