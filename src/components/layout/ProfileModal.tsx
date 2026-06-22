@@ -46,6 +46,10 @@ export default function ProfileModal({ open, onClose }: Props) {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                dialog.showAlert("Profile picture must be under 2MB", "error");
+                return;
+            }
             setAvatarFile(file);
             const reader = new FileReader();
             reader.onloadend = () => setAvatarPreview(reader.result as string);

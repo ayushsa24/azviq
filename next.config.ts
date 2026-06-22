@@ -4,9 +4,6 @@ const nextConfig: NextConfig = {
   // Transpile react-pdf for ESM compatibility in Next.js 15/16
   transpilePackages: ["react-pdf"],
   
-  // @ts-ignore - allowedDevOrigins is a top-level configuration key in Next.js 15+ dev server
-  allowedDevOrigins: ["*.trycloudflare.com", "localhost:3000"],
-
   // Hide the Next.js development server build indicator
   devIndicators: false,
 
@@ -22,7 +19,6 @@ const nextConfig: NextConfig = {
 
   experimental: {
     serverActions: {
-      allowedOrigins: ["*.trycloudflare.com", "localhost:3000"],
       bodySizeLimit: "20mb",
     },
     proxyClientMaxBodySize: "20mb",
