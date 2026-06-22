@@ -57,3 +57,4 @@ tunnel.log
 # Environment
 .env.local
 CLAUDE.md
+DEPLOYMENT_CHECKLIST.md
