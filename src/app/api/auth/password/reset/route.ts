@@ -4,9 +4,17 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { Redis } from "@upstash/redis";
 
+import { Ratelimit } from "@upstash/ratelimit";
+
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+// Allow 3 password resets per 30 minutes
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, "30 m"),
 });
 
 const Schema = z.object({
@@ -16,6 +24,12 @@ const Schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(`pw_reset_redis_${ip}`);
+    if (!success) {
+      return NextResponse.json({ error: "Too many password reset attempts. Please try again later." }, { status: 429 });
+    }
+
     let body: unknown;
     try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
 

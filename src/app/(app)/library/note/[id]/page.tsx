@@ -764,7 +764,7 @@ export default function NoteEditorPage() {
                         )}
                         <button
                             onClick={() => router.back()}
-                            className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300"
+                            className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-all duration-300 hover:scale-110 active:scale-95"
                         >
                             <ArrowLeft size={20} />
                         </button>
@@ -817,7 +817,7 @@ export default function NoteEditorPage() {
                     {/* Always visible Back button */}
                     <button
                         onClick={() => router.back()}
-                        className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
+                        className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-all duration-300 hover:scale-110 active:scale-95"
                         title="Back"
                     >
                         <ArrowLeft size={20} />
@@ -1175,7 +1175,7 @@ export default function NoteEditorPage() {
                         }
                     }}
                 >
-                    {editor && <EditorToolbar editor={editor} isQuotaExceeded={isQuotaExceeded} />}
+                    {editor && <EditorToolbar editor={editor} isQuotaExceeded={isQuotaExceeded} isInlineAiActive={!!aiInlinePos} />}
                     {aiInlinePos && (
                         <AiInlineInput
                             initialTop={aiInlinePos.top}
@@ -1187,7 +1187,8 @@ export default function NoteEditorPage() {
                                 aiStreamEndPosRef.current = null;
                                 if (editor) {
                                     try {
-                                        editor.chain().focus().setTextSelection(editor.state.selection.to).run();
+                                        // Just update selection without forcing focus
+                                        editor.commands.setTextSelection(editor.state.selection.to);
                                     } catch {}
                                 }
                             }}

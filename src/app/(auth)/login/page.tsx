@@ -278,7 +278,7 @@ function LoginForm() {
                       type="email"
                       placeholder="name@example.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => setEmail(e.target.value.toLowerCase())}
                       className={`w-full pl-10 pr-4 py-2.5 lg:py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all
                         'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus' ${emailError ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                     />
@@ -325,8 +325,7 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  className={`w-full py-3 lg:py-3.5 rounded-xl font-bold text-sm transition-all border flex items-center justify-center gap-2
-                    'bg-white/5' : 'bg-white border-gray-200 text-[#1a1a1a] hover:bg-gray-50 shadow-sm' dark:'bg-transparent dark:border-[#333] dark:text-white dark:hover'`}
+                  className="w-full py-3 lg:py-3.5 rounded-xl font-bold text-sm transition-all border flex items-center justify-center gap-2 bg-white border-gray-200 text-[#1a1a1a] hover:bg-gray-50 shadow-sm dark:bg-transparent dark:border-[#333] dark:text-white dark:hover:bg-white/5"
                 >
                   <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -389,7 +388,7 @@ function LoginForm() {
                           required
                           placeholder="name@example.com"
                           value={forgotEmail}
-                          onChange={(e) => setForgotEmail(e.target.value)}
+                          onChange={(e) => setForgotEmail(e.target.value.toLowerCase())}
                           className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2
                             'ring-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus'`}
                         />

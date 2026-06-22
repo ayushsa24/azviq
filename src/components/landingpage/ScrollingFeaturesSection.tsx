@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 interface BulletPoint {
@@ -216,17 +217,22 @@ export default function ScrollingFeaturesSection() {
           <div className="hidden md:flex w-[65%] items-center justify-center pl-12 h-[540px]">
             <div className="relative w-full h-full rounded-2xl border border-black/[0.08] bg-[#F4F4F6] shadow-2xl overflow-hidden">
               {STICKY_FEATURES.map((feature, index) => (
-                <motion.img
+                <motion.div
                   key={index}
-                  src={feature.image}
-                  alt={feature.title}
-                  className="absolute w-full h-full object-cover object-left-top"
+                  className="absolute inset-0"
                   animate={{
                     opacity: activeFeature === index ? 1 : 0,
                     scale: activeFeature === index ? 1 : 1.04,
                   }}
                   transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-                />
+                >
+                  <Image
+                    src={feature.image}
+                    alt={feature.title}
+                    fill
+                    className="object-cover object-left-top"
+                  />
+                </motion.div>
               ))}
             </div>
           </div>

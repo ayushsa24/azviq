@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import useSWR from "swr";
+import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
+import { getAvatarColor } from "@/lib/utils";
 import {
   X,
   Bell,
@@ -158,6 +160,14 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const [deleteEmail, setDeleteEmail] = useState("");
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  // State for Password Change
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const [userProfile, setUserProfile] = useState<{ name?: string, avatar_url?: string, username?: string } | null>(null);
 
@@ -584,6 +594,68 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const pushStatus = statusConfig[pushPermission] ?? statusConfig.default;
   const StatusIcon = pushStatus.icon;
 
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (!oldPassword) {
+      setPasswordError("Please enter your current password.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      setPasswordError("New password must contain at least one uppercase letter.");
+      return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      setPasswordError("New password must contain at least one symbol.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await fetch("/api/profile/password", {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": localStorage.getItem("userId") || "" 
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update password");
+      }
+      setPasswordSuccess("Password updated successfully.");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setPasswordSuccess("");
+      }, 3000);
+      
+    } catch (err: any) {
+      setPasswordError(err.message);
+      
+      // Auto-hide error message after 3 seconds
+      setTimeout(() => {
+        setPasswordError("");
+      }, 3000);
+      
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (deleteEmail !== session?.user?.email) {
       setDeleteError("Email address does not match your account.");
@@ -645,7 +717,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
           {/* Header Area */}
           <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 border-b border-[#E8E5E0] dark:border-[#545454] bg-[#F5F3EF]/90 dark:bg-[#1A1A1A]/90 md:dark:bg-[#1F1F1F]/90 backdrop-blur-[2px] h-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:h-20 pt-[env(safe-area-inset-top,0px)] sm:pt-0`}>
             <h2 className="text-lg font-bold sm:text-2xl">{translations[language].settings}</h2>
-            <button onClick={handleClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
+            <button onClick={handleClose} aria-label="Close settings modal" className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -1348,16 +1420,112 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 shrink-0">
                     {(userProfile?.avatar_url || session?.user?.image) ? (
-                      <img src={userProfile?.avatar_url || session?.user?.image!} className="w-full h-full object-cover" alt="User" />
+                      <Image 
+                        src={userProfile?.avatar_url || session?.user?.image!} 
+                        alt="User" 
+                        width={64} 
+                        height={64} 
+                        className="w-full h-full object-cover" 
+                        unoptimized={(userProfile?.avatar_url || session?.user?.image!)?.startsWith("data:")}
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#C2A27A] text-white font-bold text-2xl">
-                        {(userProfile?.name?.[0] || session?.user?.name?.[0]) || 'A'}
+                      <div 
+                        className="w-full h-full flex items-center justify-center text-white font-bold text-2xl"
+                        style={{ backgroundColor: getAvatarColor(userProfile?.name || session?.user?.name) }}
+                      >
+                        {(userProfile?.name?.[0] || session?.user?.name?.[0] || 'A').toUpperCase()}
                       </div>
                     )}
                   </div>
                   <div>
                     <h3 className="font-bold">{userProfile?.name || session?.user?.name || "Member"}</h3>
                     <p className="text-xs text-[#7D7D7D]">{session?.user?.email}</p>
+                  </div>
+                </div>
+
+                {/* Password Change */}
+                <div className="pt-6 border-t border-black/5 dark:border-white/5 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Change Password</h3>
+                    <p className="text-xs text-[#7D7D7D]">Update your account password</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <input
+                      type="password"
+                      placeholder="Old Password"
+                      value={oldPassword}
+                      onChange={(e) => {
+                        setOldPassword(e.target.value);
+                        setPasswordError("");
+                        setPasswordSuccess("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newPassword && confirmPassword && !isChangingPassword) {
+                          handleChangePassword();
+                        }
+                      }}
+                      className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all
+                        ${isDark
+                          ? "bg-[#252525] border-[#3A3A3A] text-white focus:border-[#545454]"
+                          : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] focus:border-[#D1D1D1]"}`}
+                    />
+                    
+                    {oldPassword.length > 0 && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <input
+                          type="password"
+                          placeholder="New Password (min 8 chars, 1 uppercase, 1 symbol)"
+                          value={newPassword}
+                          onChange={(e) => {
+                            setNewPassword(e.target.value);
+                            setPasswordError("");
+                            setPasswordSuccess("");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && newPassword && confirmPassword && !isChangingPassword) {
+                              handleChangePassword();
+                            }
+                          }}
+                          className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all
+                            ${isDark
+                              ? "bg-[#252525] border-[#3A3A3A] text-white focus:border-[#545454]"
+                              : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] focus:border-[#D1D1D1]"}`}
+                        />
+                        <input
+                          type="password"
+                          placeholder="Confirm New Password"
+                          value={confirmPassword}
+                          onChange={(e) => {
+                            setConfirmPassword(e.target.value);
+                            setPasswordError("");
+                            setPasswordSuccess("");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && newPassword && confirmPassword && !isChangingPassword) {
+                              handleChangePassword();
+                            }
+                          }}
+                          className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all
+                            ${isDark
+                              ? "bg-[#252525] border-[#3A3A3A] text-white focus:border-[#545454]"
+                              : "bg-[#F7F7F8] border-[#E8E5E0] text-[#252525] focus:border-[#D1D1D1]"}`}
+                        />
+                        
+                        <button
+                          onClick={handleChangePassword}
+                          disabled={isChangingPassword || !newPassword || !confirmPassword}
+                          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 flex justify-center items-center gap-2
+                            ${isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]" : "bg-[#252525] text-white hover:bg-[#333]"}
+                            disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {isChangingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}
+                        </button>
+                      </div>
+                    )}
+
+                    {passwordError && <p className="text-[11px] text-red-500 font-medium">{passwordError}</p>}
+                    {passwordSuccess && <p className="text-[11px] text-green-500 font-medium">{passwordSuccess}</p>}
                   </div>
                 </div>
 

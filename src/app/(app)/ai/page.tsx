@@ -1642,7 +1642,7 @@ function AiChatCore() {
           </button>
 
           {isArchivedExpanded && (
-            <div className="mt-1 pl-2 space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
+            <div className="mt-1 pl-2 space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
               {archivedChats.length === 0 ? (
                 <p className={`text-xs py-2 px-3 opacity-60`}>
                   No archived chats
@@ -1674,7 +1674,7 @@ function AiChatCore() {
                         e.stopPropagation();
                         handleToggleArchive(session.id, true);
                       }}
-                      className={`p-1.5 rounded-md transition-opacity shrink-0 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-[#F0EDE8]"}`}
+                      className={`p-1.5 rounded-md transition-opacity shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 ${theme === "dark" ? "hover:bg-[#7D7D7D]" : "hover:bg-[#F0EDE8]"}`}
                     >
                       <Pin className="w-3.5 h-3.5 opacity-70 rotate-180" />
                     </button>

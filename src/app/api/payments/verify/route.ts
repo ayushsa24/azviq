@@ -19,6 +19,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import crypto from "crypto";
+import { sendUpgradeEmail } from "@/lib/auth-utils";
 
 // ---------------------------------------------------------------------------
 // Plan Configuration
@@ -121,6 +122,13 @@ export async function POST(req: Request) {
         { error: "Payment verified but plan update failed. Contact support." },
         { status: 500 }
       );
+    }
+
+    // Send upgrade email in background
+    try {
+      await sendUpgradeEmail(session.user.email, plan, expiry);
+    } catch (emailErr) {
+      console.error("[payments/verify] Failed to send upgrade email:", emailErr);
     }
 
     console.log(`[payments/verify] ✅ Plan '${plan}' activated for ${session.user.email} until ${expiry.toISOString()}`);

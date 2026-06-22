@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import FeedbackPage from "@/components/FeedbackPage";
 
 export const metadata = {
-  title: "Feedback — Azviq",
+  title: "Feedback",
   description: "Share your thoughts, report bugs, or suggest features for Azviq.",
 };
 

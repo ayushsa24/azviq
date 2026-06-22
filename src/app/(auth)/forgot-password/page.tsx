@@ -13,12 +13,12 @@ type Step = "EMAIL" | "OTP" | "NEW_PASSWORD" | "SUCCESS";
 export default function ForgotPassword() {
   const { theme } = useTheme();
   const router = useRouter();
-  
+
   const [step, setStep] = useState<Step>("EMAIL");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   // OTP state
   const [countdown, setCountdown] = useState(60);
   const [resetToken, setResetToken] = useState("");
@@ -52,7 +52,7 @@ export default function ForgotPassword() {
       if (!res.ok) {
         throw new Error(data.error || "Something went wrong");
       }
-      
+
       setStep("OTP");
       setCountdown(60);
     } catch (err: any) {
@@ -74,7 +74,7 @@ export default function ForgotPassword() {
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || "Verification failed");
       }
@@ -110,7 +110,7 @@ export default function ForgotPassword() {
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || "Reset failed");
 
       setStep("SUCCESS");
@@ -186,9 +186,9 @@ export default function ForgotPassword() {
               We've sent a 6-digit code to <span className="font-bold opacity-100">{email}</span>.
             </p>
 
-            <OtpInput 
-              length={6} 
-              onComplete={handleVerifyOtp} 
+            <OtpInput
+              length={6}
+              onComplete={handleVerifyOtp}
               error={!!error}
               disabled={loading}
             />
@@ -269,8 +269,8 @@ export default function ForgotPassword() {
 
         {step === "EMAIL" && (
           <div className="mt-6 lg:mt-8 flex justify-center">
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="flex items-center gap-2 text-xs font-bold opacity-50 hover:opacity-100 transition-opacity"
             >
               <ArrowLeft className="w-3 h-3" />

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Modal from "@/components/ui/Modal";
-import { FileText, SearchCode, Sparkles, CheckCircle2, Search, Check, ChevronDown, File as FileIcon, AlertCircle, Plus } from "lucide-react";
+import { FileText, SearchCode, Sparkles, CheckCircle2, Search, Check, ChevronDown, File as FileIcon, AlertCircle, AlertTriangle, Plus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 import { motion } from "framer-motion";
@@ -96,6 +96,27 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
     };
 
     const selectedNote = notes.find((n: any) => n.id === selectedFile);
+    const lowContentWarning = selectedNote ? (() => {
+        const isPdf = !!(selectedNote.file_url);
+        const rawContent = selectedNote.content || "";
+        
+        // Strip block tags and convert them to newlines, then strip remaining HTML tags
+        const plainText = rawContent
+            .replace(/<\/p>/gi, "\n")
+            .replace(/<\/li>/gi, "\n")
+            .replace(/<\/div>/gi, "\n")
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<\/h[1-6]>/gi, "\n")
+            .replace(/<[^>]+>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&\w+;/g, "");
+
+        const nonEmptyLines = plainText.split("\n").filter((l: string) => l.trim().length > 0);
+        if (isPdf && nonEmptyLines.length === 0) return "This PDF appears to have no extractable text content.";
+        if (nonEmptyLines.length === 0) return "This note is empty. Add some content before generating an exercise.";
+        if (nonEmptyLines.length < 6) return `This ${isPdf ? "PDF" : "note"} has very little content (${nonEmptyLines.length} line${nonEmptyLines.length === 1 ? "" : "s"}). The exercise may not be very useful.`;
+        return null;
+    })() : null;
 
     const renderIcon = (title: string, fileUrl?: string | null, size = 16) => {
         const iconMatch = title.match(/^\[(\w+)\]/);
@@ -220,6 +241,14 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                             <p className="text-xs text-[#BABABA] mt-2">AI reads this document and crafts targeted questions.</p>
                         </div>
 
+                        {/* Low Content Warning */}
+                        {lowContentWarning && (
+                            <div className={`p-3 rounded-xl flex items-start gap-2.5 ${isDark ? "bg-amber-500/10 border border-amber-500/20 text-amber-300" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
+                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                                <p className="text-xs leading-relaxed">{lowContentWarning}</p>
+                            </div>
+                        )}
+
                         {/* Question Count Selector */}
                         <div className="mb-6">
                             <div className="flex items-center justify-between mb-2">
@@ -270,8 +299,8 @@ export default function GenerateExerciseModal({ isOpen, onClose, onSuccess }: Ge
                                 setError(null);
                                 handleGenerate();
                             }}
-                            disabled={!selectedFile || isFetchingNotes}
-                            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${selectedFile && !isFetchingNotes
+                            disabled={!selectedFile || isFetchingNotes || !!lowContentWarning}
+                            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${(selectedFile && !isFetchingNotes && !lowContentWarning)
                                 ? isDark ? 'bg-white text-[#252525] hover:bg-white/90' : 'bg-[#252525] text-white hover:bg-[#1A1A1A]'
                                 : isDark ? 'bg-[#252525] text-[#545454] cursor-not-allowed' : 'bg-[#E8E5E0] text-[#9E9E9E] cursor-not-allowed'
                                 }`}

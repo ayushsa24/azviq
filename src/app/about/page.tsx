@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import AboutPage from "@/components/AboutPage";
 
 export const metadata = {
-  title: "About Us — Azviq",
+  title: "About Us",
   description: "Learn about Azviq's mission to redefine how the world learns and studies with AI.",
 };
 

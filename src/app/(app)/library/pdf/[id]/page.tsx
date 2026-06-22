@@ -863,7 +863,7 @@ export default function PdfEditorPage() {
         return (
             <div className="flex flex-col items-center justify-center h-full gap-4 bg-[#F5F3EF] dark:bg-[#1A1A1A] text-[#252525] dark:text-white">
                 <p>PDF file not found.</p>
-                <button onClick={() => router.back()} className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-[#252525] transition-all">
+                <button onClick={() => router.back()} className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-all duration-300 hover:scale-110 active:scale-95">
                     <ArrowLeft size={24} />
                 </button>
             </div>
@@ -905,7 +905,7 @@ export default function PdfEditorPage() {
                         {/* Always visible Back button */}
                         <button
                             onClick={() => router.back()}
-                            className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:bg-[#F0EDE8] dark:hover:bg-[#545454] hover:text-[#252525] dark:hover:text-white rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
+                            className="p-2 text-[#545454] dark:text-[#7D7D7D] hover:text-[#252525] dark:hover:text-white transition-all duration-300 hover:scale-110 active:scale-95"
                             title="Back"
                         >
                             <ArrowLeft size={20} />

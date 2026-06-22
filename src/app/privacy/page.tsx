@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import PrivacyPolicyPage from "@/components/PrivacyPolicyPage";
 
 export const metadata = {
-  title: "Privacy Policy — Azviq",
+  title: "Privacy Policy",
   description: "Learn how Azviq collects, uses, and protects your personal data.",
 };
 

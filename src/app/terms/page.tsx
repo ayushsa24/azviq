@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import TermsPage from "@/components/TermsPage";
 
 export const metadata = {
-  title: "Terms of Service — Azviq",
+  title: "Terms of Service",
   description: "Read the Terms of Service governing your use of Azviq.",
 };
 

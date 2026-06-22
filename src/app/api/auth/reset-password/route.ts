@@ -2,9 +2,26 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// Allow 3 password resets per 30 minutes
+const ratelimit = new Ratelimit({
+  redis: new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  }),
+  limiter: Ratelimit.slidingWindow(3, "30 m"),
+});
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(`pw_reset_${ip}`);
+    if (!success) {
+      return NextResponse.json({ error: "Too many password reset attempts. Please try again later." }, { status: 429 });
+    }
+
     const { token, password } = await req.json();
 
     if (!token || !password) {

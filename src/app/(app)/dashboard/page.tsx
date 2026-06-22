@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import DashboardWrapper from "@/components/dashboard/DashboardWrapper";
 
 export const metadata = {
-  title: "Dashboard — Azviq",
+  title: "Dashboard",
 };
 
 

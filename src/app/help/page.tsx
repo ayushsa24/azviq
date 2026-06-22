@@ -4,7 +4,7 @@ import HelpCenterPage from "@/components/HelpCenterPage";
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Help Center — Azviq",
+  title: "Help Center",
   description: "Get support, read articles, and learn how to use Azviq to its fullest potential.",
 };
 

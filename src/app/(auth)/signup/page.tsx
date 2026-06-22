@@ -77,6 +77,13 @@ function SignupForm() {
       if (status === "authenticated" && session?.user) {
         // @ts-ignore
         setUserId(session.user.id || localStorage.getItem('userId'));
+        
+        // Pre-fill Google data if available
+        setProfileForm(prev => ({
+          ...prev,
+          name: prev.name || session.user?.name || "",
+          avatar_url: prev.avatar_url || session.user?.image || "",
+        }));
       }
     }
   }, [searchParams, status, session]);
@@ -160,6 +167,11 @@ function SignupForm() {
 
       setSuccessMessage("Account verified! Setting up your profile...");
 
+      if (data.userId) {
+        localStorage.setItem('userId', data.userId);
+        setUserId(data.userId);
+      }
+
       // Auto-login after successful verification
       const signInResult = await nextAuthSignIn("credentials", {
         email,
@@ -168,19 +180,25 @@ function SignupForm() {
       });
 
       if (signInResult?.ok) {
-        const userRes = await fetch("/api/auth/get-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        const userData = await userRes.json();
-        if (userData.user?.id) {
-          localStorage.setItem('userId', userData.user.id);
-          setUserId(userData.user.id);
+        if (data.userId) {
           setSuccessMessage("");
           setStep('onboarding');
         } else {
-          window.location.href = callbackUrl;
+          // Fallback if userId was not returned
+          const userRes = await fetch("/api/auth/get-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const userData = await userRes.json();
+          if (userData.user?.id) {
+            localStorage.setItem('userId', userData.user.id);
+            setUserId(userData.user.id);
+            setSuccessMessage("");
+            setStep('onboarding');
+          } else {
+            window.location.href = callbackUrl;
+          }
         }
       } else {
         window.location.href = "/login";
@@ -771,7 +789,7 @@ function SignupForm() {
                     type="email"
                     placeholder="name@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
                     className={`w-full pl-10 pr-4 py-2.5 lg:py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all
                       'ring-[#C2A27A]/50 focus:border-[#C2A27A]/50' : 'bg-white border-gray-200 text-[#1a1a1a] focus:ring-[#C2A27A]/20 focus:border-[#C2A27A]' dark:'bg-[#1c1c1c] dark:border-[#333] dark:text-white dark:focus' ${errors.email ? 'border-red-500 focus:ring-red-500/30' : ''}`}
                   />
@@ -826,8 +844,7 @@ function SignupForm() {
                     prompt: "select_account",
                   });
                 }}
-                className={`w-full py-3 lg:py-3.5 rounded-xl font-bold text-sm transition-all border flex items-center justify-center gap-2
-                  'bg-white/5' : 'bg-white border-gray-200 text-[#1a1a1a] hover:bg-gray-50 shadow-sm' dark:'bg-transparent dark:border-[#333] dark:text-white dark:hover'`}
+                className="w-full py-3 lg:py-3.5 rounded-xl font-bold text-sm transition-all border flex items-center justify-center gap-2 bg-white border-gray-200 text-[#1a1a1a] hover:bg-gray-50 shadow-sm dark:bg-transparent dark:border-[#333] dark:text-white dark:hover:bg-white/5"
               >
                 <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

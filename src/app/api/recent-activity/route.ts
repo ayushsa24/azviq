@@ -46,7 +46,7 @@ export async function GET(req: Request) {
 
         // Fetch original_note_id for notes that are still active
         const noteIds = filteredItems
-            .filter(i => i.item_type === "note")
+            .filter(i => i.item_type === "note" || i.item_type === "pdf")
             .map(i => i.item_id);
 
         let noteMap: Record<string, string> = {};
@@ -89,7 +89,7 @@ export async function GET(req: Request) {
                 // Update enrichedItems to use finalFilteredItems
                 const enrichedItems = finalFilteredItems.map(item => ({
                     ...item,
-                    original_note_id: item.item_type === "note" ? noteMap[item.item_id] : null
+                    original_note_id: (item.item_type === "note" || item.item_type === "pdf") ? noteMap[item.item_id] : null
                 })).slice(0, 15);
 
                 return NextResponse.json({ items: enrichedItems });
@@ -98,7 +98,7 @@ export async function GET(req: Request) {
 
         const enrichedItems = filteredItems.map(item => ({
             ...item,
-            original_note_id: item.item_type === "note" ? noteMap[item.item_id] : null
+            original_note_id: (item.item_type === "note" || item.item_type === "pdf") ? noteMap[item.item_id] : null
         })).slice(0, 15); // Return only the top 15 non-trashed items
 
         return NextResponse.json({ items: enrichedItems });

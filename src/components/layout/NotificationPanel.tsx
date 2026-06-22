@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useNotifications, Notification } from "@/contexts/NotificationContext";
 import { Bell, X, AlertTriangle, Trash2, Clock, TrendingUp, Calendar, BarChart2, Flame, ListTodo, Zap, CalendarClock, BookOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate, useDragControls } from "framer-motion";
 import { ICON_MAP } from "@/components/editor/EmojiPicker";
 
 const TYPE_CONFIG: Record<string, { icon: any }> = {
@@ -37,6 +37,8 @@ export default function NotificationPanel() {
     const touchStartY = useRef(0);
     const touchStartX = useRef(0);
     const [isMobile, setIsMobile] = useState(false);
+    const dragControls = useDragControls();
+    const [scrollTop, setScrollTop] = useState(0);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -44,6 +46,18 @@ export default function NotificationPanel() {
         window.addEventListener("resize", checkMobile);
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
+
+    // Prevent background scrolling when panel is open
+    useEffect(() => {
+        if (panelOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [panelOpen]);
 
     // Handle mobile hardware back button
     useEffect(() => {
@@ -101,6 +115,8 @@ export default function NotificationPanel() {
                         drag={isMobile ? "y" : false}
                         dragConstraints={{ top: 0, bottom: 0 }}
                         dragElastic={{ top: 0, bottom: 0.8 }}
+                        dragControls={dragControls}
+                        dragDirectionLock
                         onDragEnd={(_, info) => {
                             if (isMobile && (info.offset.y > 150 || info.velocity.y > 600)) {
                                 handleClose();
@@ -121,7 +137,10 @@ export default function NotificationPanel() {
                     >
                         {/* Mobile Drag Handle */}
                         {isMobile && (
-                            <div className="w-full flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing">
+                            <div 
+                                className="w-full flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                                onPointerDown={(e) => dragControls.start(e)}
+                            >
                                 <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700/50 rounded-full" />
                             </div>
                         )}
@@ -171,20 +190,10 @@ export default function NotificationPanel() {
                         <div 
                             ref={scrollContainerRef}
                             className="flex-1 overflow-y-auto custom-scrollbar overscroll-contain"
-                            onTouchStart={(e) => {
-                                touchStartY.current = e.touches[0].clientY;
-                                touchStartX.current = e.touches[0].clientX;
-                            }}
-                            onTouchEnd={(e) => {
-                                if (!isMobile) return;
-                                const el = scrollContainerRef.current;
-                                if (!el) return;
-                                const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-                                const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-                                
-                                // Only close if it's a clear downswipe (deltaY > 80) and NOT a side swipe
-                                if (deltaY > 80 && Math.abs(deltaY) > Math.abs(deltaX) && el.scrollTop <= 0) {
-                                    handleClose();
+                            onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                            onPointerDown={(e) => {
+                                if (isMobile && scrollTop <= 5) {
+                                    dragControls.start(e);
                                 }
                             }}
                         >

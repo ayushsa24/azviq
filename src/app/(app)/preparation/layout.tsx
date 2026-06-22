@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Preparation — Azviq",
+  title: "Preparation",
 };
 
 export default function PreparationLayout({ children }: { children: React.ReactNode }) {

@@ -14,9 +14,10 @@ import { LinkPopover } from "./LinkPopover";
 interface EditorToolbarProps {
     editor: Editor | null;
     isQuotaExceeded?: boolean;
+    isInlineAiActive?: boolean;
 }
 
-export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbarProps) {
+export function EditorToolbar({ editor, isQuotaExceeded = false, isInlineAiActive = false }: EditorToolbarProps) {
     const [isMobile, setIsMobile] = useState(false);
     const [toolbarPos, setToolbarPos] = useState<{ x: number; bottom: number } | null>(null);
     const [isAiOpen, setIsAiOpen] = useState(false);
@@ -163,7 +164,7 @@ export function EditorToolbar({ editor, isQuotaExceeded = false }: EditorToolbar
             <MobileSelectionBar
                 editor={editor}
                 onOpenAi={openAi}
-                isVisible={isMobile && editor.isEditable && mobileHasSelection && !isAiOpen}
+                isVisible={isMobile && editor.isEditable && mobileHasSelection && !isAiOpen && !isInlineAiActive}
             />
 
             {/* Desktop selection toolbar — portal into body, fixed near last selected word */}

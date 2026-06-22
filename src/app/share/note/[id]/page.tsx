@@ -366,7 +366,7 @@ export default function SharedNotePage() {
                     </h1>
 
                     <div id="share-editor-container" className="relative">
-                        <EditorToolbar editor={editor} />
+                        <EditorToolbar editor={editor} isInlineAiActive={!!aiInlinePos} />
 
                         {aiInlinePos && canEdit && (
                             <AiInlineInput
@@ -376,7 +376,7 @@ export default function SharedNotePage() {
                                 onClose={() => {
                                     setAiInlinePos(null);
                                     aiStreamEndPosRef.current = null;
-                                    editor?.commands.focus();
+                                    // Remove focus to prevent mobile keyboard from popping up
                                 }}
                                 onInsert={(htmlContent) => {
                                     if (editor && aiInlinePos) {
