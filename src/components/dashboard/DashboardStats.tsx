@@ -358,7 +358,7 @@ export default function DashboardStats() {
             <div className={`bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl shadow-sm transition-all duration-200 relative z-20 ${isDark
                 ? "hover:bg-white/5 hover:border-[#444]"
                 : "hover:bg-[#F9F8F6] hover:border-[#D1D1D1]"
-                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col pt-3.5 px-3.5 pb-2.5 min-h-[110px] sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:min-h-[88px]`}>
+                } shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md flex flex-col pt-3.5 px-3.5 pb-2.5 min-h-[110px] sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:min-h-[88px] h-full`}>
                 <p className="text-xs sm:text-sm font-semibold text-[#545454] dark:text-[#BABABA] sm:hidden mb-1">Daily Study Target</p>
                 <div className="hidden sm:block flex-1 sm:pr-2">
                     <p className="text-sm font-semibold text-[#545454] dark:text-[#BABABA] mb-1">Daily Study Target</p>
@@ -447,7 +447,7 @@ export default function DashboardStats() {
             {isLoadingTasks || isLoadingSuggestions ? (
                 <div className="bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-4 h-[110px] animate-pulse sm:hidden"></div>
             ) : (
-                <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[110px] animate-in fade-in duration-500`}>
+                <div className={`sm:hidden bg-white/80 backdrop-blur-md dark:bg-[#252525] border border-[#E8E5E0] dark:border-[#545454] rounded-3xl p-3.5 shadow-sm flex flex-col justify-between transition-all duration-200 min-h-[110px] h-full animate-in fade-in duration-500`}>
                     <p className="text-xs font-semibold text-[#545454] dark:text-[#BABABA] mb-2">Today's Due</p>
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
