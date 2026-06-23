@@ -263,7 +263,9 @@ function LoginForm() {
 
               {searchParams.get("error") && (
                 <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center font-medium">
-                  {searchParams.get("error") === "OAuthAccountNotLinked" || searchParams.get("error") === "AccountNotFound" 
+                  {searchParams.get("error") === "AccountExists"
+                    ? "Account already exists. Please log in."
+                    : searchParams.get("error") === "OAuthAccountNotLinked" || searchParams.get("error") === "AccountNotFound" 
                     ? "Account not found. Please sign up first." 
                     : "An error occurred during sign in."}
                 </div>

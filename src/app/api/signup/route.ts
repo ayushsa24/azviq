@@ -67,20 +67,7 @@ export async function POST(req: NextRequest) {
     let userId = "";
 
     if (existingUser) {
-      if (existingUser.is_verified) {
-        return apiError("An account with this email already exists.", 400, "USER_ALREADY_EXISTS");
-      }
-      
-      // If unverified, update their password so they can continue where they left off
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({ password_hash: hashedPassword })
-        .eq("id", existingUser.id);
-
-      if (updateError) {
-        return apiError("Failed to update unverified account.", 500, "DB_UPDATE_ERROR");
-      }
-      userId = existingUser.id;
+      return apiError("Account already exists. Please log in.", 400, "USER_ALREADY_EXISTS");
     } else {
       // 4. Insert user with is_verified: false (requires OTP verification before login)
       const { data, error } = await supabase
