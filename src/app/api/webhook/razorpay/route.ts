@@ -30,7 +30,7 @@ import crypto from "crypto";
 // ---------------------------------------------------------------------------
 
 const AMOUNT_TO_PLAN: Record<number, { tier: number; name: string }> = {
-  14900: { tier: 1, name: "lite" },    // ₹149
+  1100: { tier: 1, name: "lite" },     // ₹11
   39900: { tier: 2, name: "premium" }, // ₹399
 };
 
@@ -93,13 +93,19 @@ export async function POST(req: Request) {
     // 5. Fetch the user from Supabase
     const { data: dbUser } = await supabase
       .from("users")
-      .select("id, plan_tier")
+      .select("id, plan_tier, razorpay_payment_id")
       .eq("email", userEmail)
       .single();
 
     if (!dbUser) {
       console.error("[webhook/razorpay] User not found:", userEmail);
       return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
+
+    // 5b. Prevent Replay Attacks (Idempotency)
+    if (dbUser.razorpay_payment_id === paymentId) {
+      console.log(`[webhook/razorpay] ♻️ Payment ${paymentId} already processed for ${userEmail}. Ignoring replay.`);
+      return NextResponse.json({ received: true, status: "already_processed" });
     }
 
     // 6. Calculate expiry (30 days from now)

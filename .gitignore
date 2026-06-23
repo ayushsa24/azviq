@@ -58,3 +58,4 @@ tunnel.log
 .env.local
 CLAUDE.md
 DEPLOYMENT_CHECKLIST.md
+SECURITY_AUDIT_REPORT.md

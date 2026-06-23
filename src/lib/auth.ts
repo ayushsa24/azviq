@@ -98,6 +98,11 @@ export const authOptions: NextAuthOptions = {
             console.error("Error creating Google user in Supabase:", error);
             return false;
           }
+        } else {
+          // User already exists
+          if (authIntent === "signup") {
+            return "/login?error=AccountExists";
+          }
         }
       }
       return true;

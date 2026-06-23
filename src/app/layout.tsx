@@ -92,7 +92,7 @@ export default function RootLayout({
         {/* Safari / iOS Specific */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Azviq" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icon-light.png" />
         <link rel="apple-touch-startup-image" href="/icon-light.png" media="(prefers-color-scheme: light)" />
         <link rel="apple-touch-startup-image" href="/icon-dark.png" media="(prefers-color-scheme: dark)" />
@@ -104,10 +104,21 @@ export default function RootLayout({
                   var theme = localStorage.getItem('theme');
                   var supportDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   var isDark = theme === 'dark' || (!theme && supportDark);
-                  var color = isDark ? '#1A1A1A' : '#F5F3EF';
+                  
+                  var path = window.location.pathname;
+                  var isForcedLight = path === '/' || 
+                                      path === '/privacy' || path.startsWith('/privacy/') ||
+                                      path === '/terms' || path.startsWith('/terms/') ||
+                                      path === '/help' || path.startsWith('/help/') ||
+                                      path === '/about' || path.startsWith('/about/') ||
+                                      path === '/contact' || path.startsWith('/contact/') ||
+                                      path === '/feedback' || path.startsWith('/feedback/');
+                  
+                  var targetDark = isForcedLight ? false : isDark;
+                  var color = targetDark ? '#1A1A1A' : (isForcedLight ? '#F4F4F6' : '#F5F3EF');
                   
                   // Apply theme class
-                  if (isDark) {
+                  if (targetDark) {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
@@ -166,7 +177,7 @@ export default function RootLayout({
                   },
                   {
                     "@type": "Offer",
-                    "price": "149",
+                    "price": "11",
                     "priceCurrency": "INR",
                     "name": "Lite Plan"
                   },

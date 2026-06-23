@@ -27,7 +27,7 @@ export default function PricingSection() {
       name: "Lite",
       subtitle: "Academic Essential",
       desc: "Unlock more AI power with high quality model responses.",
-      price: "₹149",
+      price: "₹11",
       period: "/ month",
       features: [
         "200 AI chats / day",

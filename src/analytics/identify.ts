@@ -14,14 +14,12 @@ const PLAN_NAMES: Record<number, string> = {
   2: 'premium',
 };
 
-/**
- * Call once after login.
- * NEVER sends email, name, or any PII — only plan tier and signup date.
- */
 export function identifyUser(user: AzviqUser) {
   const ph = getPostHog();
 
   ph.identify(user.id, {
+    email: user.email ?? null,
+    name: user.name ?? null,
     // Safe properties only
     plan_tier: PLAN_NAMES[user.plan_tier ?? 0],
     is_premium: user.plan_tier === 2,

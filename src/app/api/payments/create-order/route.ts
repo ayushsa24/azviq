@@ -20,7 +20,7 @@ import Razorpay from "razorpay";
 // ---------------------------------------------------------------------------
 
 const PLAN_PRICES: Record<string, number> = {
-  lite: 14900,     // ₹149 in paise (Razorpay uses smallest currency unit)
+  lite: 1100,      // ₹11 in paise (Razorpay uses smallest currency unit)
   premium: 39900,  // ₹399 in paise
 };
 

@@ -81,6 +81,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    setIsKeyboardOpen(false);
+  }, [pathname]);
+
   // Global trigger for Pricing Modal
   useEffect(() => {
     const handleOpenPricing = () => setIsPricingOpen(true);
@@ -361,7 +365,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       )}
 
       <AnimatePresence>
-        {mounted && !isKeyboardOpen && !(isFullPageLayer && !isAiPage) && isBottomNavVisible && (
+        {mounted && (!isKeyboardOpen || isAiPage) && !(isFullPageLayer && !isAiPage) && isBottomNavVisible && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}

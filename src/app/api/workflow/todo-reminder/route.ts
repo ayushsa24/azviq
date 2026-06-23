@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { supabase } from "@/lib/supabase";
+import { Receiver } from "@upstash/qstash";
 
 // Configure web-push with VAPID keys
 webpush.setVapidDetails(
@@ -9,13 +10,33 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
+const receiver = new Receiver({
+  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || "",
+  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || "",
+});
+
 /**
  * Simple one-shot handler called by QStash at the scheduled time.
  * No @upstash/workflow SDK — just a plain POST that fires and finishes.
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const signature = req.headers.get("Upstash-Signature");
+    if (!signature) {
+      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+    }
+    
+    const rawBody = await req.text();
+    const isValid = await receiver.verify({
+      signature,
+      body: rawBody,
+    }).catch(() => false);
+
+    if (!isValid) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
     const { todoId, userId, title, note } = body as {
       todoId: string;
       userId: string;

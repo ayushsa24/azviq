@@ -137,7 +137,14 @@ function SignupForm() {
         setStep('verify');
         setCountdown(60);
       } else {
-        dialog.showAlert(data.error?.message || "Signup failed", "error");
+        if (data.error?.code === "USER_ALREADY_EXISTS") {
+          dialog.showAlert("Account already exists. Please log in.", "warning");
+          setTimeout(() => {
+            router.push("/login");
+          }, 1500);
+        } else {
+          dialog.showAlert(data.error?.message || "Signup failed", "error");
+        }
       }
     } catch (err) {
       dialog.showAlert("Something went wrong", "error");

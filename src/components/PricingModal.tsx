@@ -53,7 +53,7 @@ const PLANS = [
     id: "lite",
     name: "Lite",
     subtitle: "Academic Essential",
-    price: "₹149",
+    price: "₹11",
     period: "/ month",
     tier: 1,
     badge: "Most Popular",

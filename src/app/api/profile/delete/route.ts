@@ -27,15 +27,49 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 2. Delete the user's trash items first
-    // This ensures no orphaned data remains and avoids trigger conflicts
-    await supabase
-      .from("trash")
-      .delete()
-      .eq("user_id", dbUser.id);
+    // 2. Delete all related child data first to prevent Foreign Key constraint errors
+    // Fetch IDs for nested deletions
+    const [{ data: userChats }, { data: userNotes }] = await Promise.all([
+      supabase.from("chats").select("id").eq("user_id", dbUser.id),
+      supabase.from("notes").select("id").eq("user_id", dbUser.id)
+    ]);
+
+    const chatIds = userChats?.map((c) => c.id) || [];
+    const noteIds = userNotes?.map((n) => n.id) || [];
+
+    // Delete nested items that rely on chat_id or note_id
+    if (chatIds.length > 0) {
+      await supabase.from("messages").delete().in("chat_id", chatIds);
+      await supabase.from("shared_chats").delete().in("chat_id", chatIds);
+    }
+    if (noteIds.length > 0) {
+      await supabase.from("shared_notes").delete().in("note_id", noteIds);
+    }
+
+    // Delete all other tables that contain user_id
+    const tablesToWipe = [
+      "trash",
+      "recent_activity",
+      "notifications",
+      "revisions",
+      "exercises",
+      "study_sessions",
+      "personal_ai_sessions",
+      "chats",
+      "pdfs",
+      "notes",
+      "todos",
+      "tasks",
+      "projects",
+      "workspaces"
+    ];
+
+    for (const table of tablesToWipe) {
+      // Ignore errors for individual tables just in case a table is empty or missing
+      await supabase.from(table).delete().eq("user_id", dbUser.id);
+    }
 
     // 3. Delete the user from the public.users table
-    // Note: If you have foreign keys with ON DELETE CASCADE, this will delete related data.
     const { error: deleteError } = await supabase
       .from("users")
       .delete()
@@ -44,6 +78,13 @@ export async function DELETE(req: Request) {
     if (deleteError) {
       console.error("Delete user error:", deleteError);
       return NextResponse.json({ error: "Failed to delete user profile" }, { status: 500 });
+    }
+
+    // Attempt to delete from Auth if using Service Role Key
+    try {
+      await supabase.auth.admin.deleteUser(dbUser.id);
+    } catch (e) {
+      // Non-blocking if it fails (e.g. if we don't have service role)
     }
 
     // 3. Optional: Delete from Supabase Auth if using admin client

@@ -5,6 +5,20 @@ import { randomUUID } from "crypto";
 import { apiError, apiSuccess } from "@/lib/api";
 import { z } from "zod";
 import { sendOtpInternal } from "@/lib/auth-utils";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+// Limit: 3 signups per 1 hour per IP
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, "1 h"),
+  prefix: "azviq:signup_limit",
+});
 
 // --- Zod Schema: Strict signup validation ---
 const SignupSchema = z.object({
@@ -18,6 +32,14 @@ const SignupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // 0. IP Rate Limit (max 3 signups per hour per IP)
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return apiError("Too many signup attempts. Please try again later.", 429, "RATE_LIMIT_EXCEEDED");
+    }
+
     // 1. Parse and validate
     let body: unknown;
     try {
@@ -45,20 +67,7 @@ export async function POST(req: NextRequest) {
     let userId = "";
 
     if (existingUser) {
-      if (existingUser.is_verified) {
-        return apiError("An account with this email already exists.", 400, "USER_ALREADY_EXISTS");
-      }
-      
-      // If unverified, update their password so they can continue where they left off
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({ password_hash: hashedPassword })
-        .eq("id", existingUser.id);
-
-      if (updateError) {
-        return apiError("Failed to update unverified account.", 500, "DB_UPDATE_ERROR");
-      }
-      userId = existingUser.id;
+      return apiError("Account already exists. Please log in.", 400, "USER_ALREADY_EXISTS");
     } else {
       // 4. Insert user with is_verified: false (requires OTP verification before login)
       const { data, error } = await supabase

@@ -1,10 +1,34 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+// Limit: 2 messages per 1 hour per IP
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(2, "1 h"),
+  prefix: "azviq:contact_limit",
+});
+
 export async function POST(req: Request) {
   try {
+    // 0. IP Rate Limit
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many messages sent. Please try again later." },
+        { status: 429 }
+      );
+    }
     const { name, email, message } = await req.json();
 
     if (!name || !email || !message) {
@@ -22,7 +46,7 @@ export async function POST(req: Request) {
 
     // The email displayed on the frontend is support@azviq.in, but actual form submissions go here:
     const data = await resend.emails.send({
-      from: "Azviq Support <onboarding@resend.dev>", 
+      from: "Azviq Support <hello@azviq.in>", 
       to: ["aazviq@gmail.com"], // <--- Hidden backend email where you receive messages
       subject: `New Contact Form Submission from ${name}`,
       html: `

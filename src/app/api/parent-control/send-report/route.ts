@@ -150,7 +150,7 @@ export async function GET(req: Request) {
             let sentCount = 0;
             for (const email of emails) {
                 const { error: sendError } = await resend.emails.send({
-                    from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+                    from: process.env.RESEND_FROM_EMAIL || "hello@azviq.in",
                     to: email,
                     subject: `Daily Study Report — ${userRow?.name || "Student"} · ${dateLabel}`,
                     html: htmlContent,
