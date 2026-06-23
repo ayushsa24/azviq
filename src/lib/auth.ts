@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
+import { sendWelcomeEmail } from "@/lib/auth-utils";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
@@ -98,6 +99,11 @@ export const authOptions: NextAuthOptions = {
             console.error("Error creating Google user in Supabase:", error);
             return false;
           }
+
+          // Send welcome email asynchronously so it doesn't block login
+          sendWelcomeEmail(email).catch(err => {
+            console.error("Failed to send welcome email to new Google user:", err);
+          });
         } else {
           // User already exists
           if (authIntent === "signup") {
