@@ -18,6 +18,9 @@ export default function AskAIGlobalBar() {
         // on first render, before any effects fire — eliminating the empty page flash.
         if (typeof window !== 'undefined') {
             sessionStorage.setItem('ai_dashboard_query', query.trim());
+            if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
         }
         router.push(`/ai?q=${encodeURIComponent(query)}`);
     };

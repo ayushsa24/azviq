@@ -52,7 +52,11 @@ export default function BottomNav({ isFullPageLayer = false }: { isFullPageLayer
     };
   }, []);
 
-  const hidden = isKeyboardOpen || isModalOpen || isFullPageLayer || searchParams.get("fullscreen") === "true";
+  useEffect(() => {
+    setIsKeyboardOpen(false);
+  }, [pathname]);
+
+  const hidden = (isKeyboardOpen && !pathname.startsWith("/ai")) || isModalOpen || isFullPageLayer || searchParams.get("fullscreen") === "true";
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },

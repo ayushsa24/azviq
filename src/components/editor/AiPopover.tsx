@@ -203,7 +203,9 @@ export function AiPopover({
             // Once streaming is complete, replace the raw text with properly formatted HTML
             if (fullResponseRef.current) {
                 const { marked } = await import("marked");
-                const htmlResult = await marked.parse(fullResponseRef.current);
+                const DOMPurify = (await import("dompurify")).default;
+                const rawHtml = await marked.parse(fullResponseRef.current);
+                const htmlResult = DOMPurify.sanitize(rawHtml as string);
 
                 // Select the raw streamed text range and replace with formatted HTML
                 const endPos = startPos + fullResponseRef.current.length;
@@ -212,7 +214,7 @@ export function AiPopover({
                     .focus()
                     .setTextSelection({ from: startPos, to: endPos })
                     .deleteSelection()
-                    .insertContentAt(startPos, (htmlResult as string) + "<hr>")
+                    .insertContentAt(startPos, htmlResult + "<hr>")
                     .run();
 
                 const finalEndPos = editor.state.selection.to;
@@ -228,7 +230,10 @@ export function AiPopover({
             // Finalize what we have
             if (fullResponseRef.current) {
                 const { marked } = await import("marked");
-                const htmlResult = await marked.parse(fullResponseRef.current);
+                const DOMPurify = (await import("dompurify")).default;
+                const rawHtml = await marked.parse(fullResponseRef.current);
+                const htmlResult = DOMPurify.sanitize(rawHtml as string);
+                
                 const startPos = command === "Answer this"
                     ? insertAt + 2
                     : editor.state.selection.from;
@@ -238,7 +243,7 @@ export function AiPopover({
                     .focus()
                     .setTextSelection({ from: startPos, to: endPos })
                     .deleteSelection()
-                    .insertContentAt(startPos, (htmlResult as string) + "<hr>")
+                    .insertContentAt(startPos, htmlResult + "<hr>")
                     .run();
                 
                 const finalEndPos = editor.state.selection.to;

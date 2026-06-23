@@ -157,7 +157,11 @@ export function AiInlineInput({
             if (fullResponseRef.current) {
                 // AUTO-FORMAT IMMEDIATELY
                 const { marked } = await import("marked");
-                const htmlResult = await marked.parse(fullResponseRef.current);
+                const DOMPurify = (await import("dompurify")).default;
+                
+                const rawHtml = await marked.parse(fullResponseRef.current);
+                const htmlResult = DOMPurify.sanitize(rawHtml as string);
+                
                 onInsert(htmlResult);
                 
                 // SHOW BUBBLE

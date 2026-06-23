@@ -15,11 +15,22 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "No trash item ID provided" }, { status: 400 });
     }
 
+    const { data: user } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", session.user.email)
+      .single();
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     // Delete single item from trash
     const { error } = await supabase
       .from("trash")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", user.id); // Enforce ownership to prevent IDOR
       
     if (error) throw error;
 

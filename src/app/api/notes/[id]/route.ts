@@ -48,6 +48,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
         const isOwner = note.user_id === user.id;
         
+        // SECURITY FIX: Prevent IDOR (Insecure Direct Object Reference)
+        // If the user is not the owner, and the note is not explicitly shared as view/edit, reject access.
+        if (!isOwner && note.share_mode === "private" && !note.is_public) {
+            return NextResponse.json({ error: "Access Denied. This note is private." }, { status: 403 });
+        }
+        
         // SECURITY HARDENING: Re-verify the parent share mode and original ownership explicitly
         // This prevents "inspect" hacks if the join was optimized away or failed.
         let parentShareMode = note.original_note?.share_mode;
