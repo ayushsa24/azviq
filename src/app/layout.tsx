@@ -177,7 +177,7 @@ export default function RootLayout({
                   },
                   {
                     "@type": "Offer",
-                    "price": "149",
+                    "price": "11",
                     "priceCurrency": "INR",
                     "name": "Lite Plan"
                   },

@@ -30,7 +30,7 @@ import crypto from "crypto";
 // ---------------------------------------------------------------------------
 
 const AMOUNT_TO_PLAN: Record<number, { tier: number; name: string }> = {
-  14900: { tier: 1, name: "lite" },    // ₹149
+  1100: { tier: 1, name: "lite" },     // ₹11
   39900: { tier: 2, name: "premium" }, // ₹399
 };
 
