@@ -62,12 +62,16 @@ export async function GET(req: Request) {
         if (!userMap.has(entry.user_id)) {
             userMap.set(entry.user_id, { emails: [], targetHours: entry.daily_target_hours });
         }
-        userMap.get(entry.user_id)!.emails.push(entry.family_email);
+        if (entry.family_email && entry.family_email.trim() !== "") {
+            userMap.get(entry.user_id)!.emails.push(entry.family_email);
+        }
     }
 
     const results: { userId: string; sent: number; error?: string }[] = [];
 
     for (const [userId, { emails, targetHours }] of userMap.entries()) {
+        if (emails.length === 0) continue; // No emails to send for this user
+        
         try {
             // Fetch user info
             const { data: userRow } = await supabase
