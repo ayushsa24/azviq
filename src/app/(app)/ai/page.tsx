@@ -1761,8 +1761,10 @@ function AiChatCore() {
               <Ghost className="w-5 h-5" />
             </button>
           </div>
-          {/* Only show skeleton if explicitly loading OR if we have a real chat ID but local messages haven't synchronized yet */}
-          {messages.length === 0 && activeChatId && activeChatId !== "temp-chat" && !isImporting ? (
+          {/* Only show skeleton when viewing an existing chat with no local messages yet.
+               NEVER show during an active send (isLoading/isActuallySending) — prevents production
+               SWR revalidation race that briefly shows skeleton after dashboard-triggered sends. */}
+          {messages.length === 0 && activeChatId && activeChatId !== "temp-chat" && !isImporting && !isLoading && !isActuallySending ? (
             <div className="flex flex-col gap-10 px-4 md:px-0 max-w-4xl mx-auto w-full pt-10">
               {/* User Bubble Skeleton (Right aligned) */}
               <div className="flex justify-end transition-all duration-700 opacity-60">

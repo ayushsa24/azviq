@@ -213,11 +213,7 @@ export async function callGeminiStream(
             model: config.model
           });
           
-          let userFriendlyMsg = "\n\n*[Connection interrupted: The AI service failed to parse the stream. Please try again or switch to a different model.]*";
-          
-          if (streamErr.message?.includes("Failed to parse stream")) {
-            userFriendlyMsg = `\n\n*[Gemini Error: Stream parsing failed on '${config.model}'. This usually happens with experimental models or connection instability. Retrying with a different model might help.]*`;
-          }
+          const userFriendlyMsg = "\n\n*[Connection interrupted: Please try again after some time.]*";
 
           controller.enqueue(
             encoder.encode(JSON.stringify({ 
