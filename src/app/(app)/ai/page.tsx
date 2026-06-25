@@ -225,6 +225,9 @@ function AiChatCore() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [isActuallySending, setIsActuallySending] = useState(false);
+  const [isInputExpanded, setIsInputExpanded] = useState(false);
+  const [isInputOverflowing, setIsInputOverflowing] = useState(false);
+  const [expandedMsgIndices, setExpandedMsgIndices] = useState<Set<number>>(new Set());
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [generatingChatIds, setGeneratingChatIds] = useState<Set<string>>(new Set());
   const [sharingChatId, setSharingChatId] = useState<string | null>(null);
@@ -448,14 +451,23 @@ function AiChatCore() {
 
   // Auto-resize input textarea as user types (ChatGPT style)
   useEffect(() => {
-    if (inputRef.current) {
-      // Reset height to auto to get the correct scrollHeight
-      inputRef.current.style.height = 'auto';
-      // Set height based on scrollHeight, but cap at the max-height defined in CSS (120px)
-      const newHeight = Math.min(inputRef.current.scrollHeight, 120);
-      inputRef.current.style.height = `${newHeight}px`;
-    }
-  }, [input]);
+    const recalc = () => {
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto';
+        const scrollH = inputRef.current.scrollHeight;
+        const maxH = isInputExpanded ? 300 : 120;
+        inputRef.current.style.maxHeight = `${maxH}px`;
+        const newHeight = Math.min(scrollH, maxH);
+        inputRef.current.style.height = `${newHeight}px`;
+        // Track whether text overflows the collapsed cap
+        setIsInputOverflowing(scrollH > 120);
+      }
+    };
+    recalc();
+    // Recalc on resize so mobile keyboard viewport changes are handled
+    window.addEventListener('resize', recalc);
+    return () => window.removeEventListener('resize', recalc);
+  }, [input, isInputExpanded]);
 
   const toggleDictation = () => {
     if (!recognitionRef.current) {
@@ -610,6 +622,10 @@ function AiChatCore() {
 
 
   const startNewChat = () => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    setIsLoading(false);
+    setIsActuallySending(false);
+    isSendingRef.current = false;
     setActiveChatId(null);
     setMessages([]);
     setInput("");
@@ -622,6 +638,10 @@ function AiChatCore() {
     if (activeChatId === "temp-chat") {
       startNewChat();
     } else {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      setIsLoading(false);
+      setIsActuallySending(false);
+      isSendingRef.current = false;
       setActiveChatId("temp-chat");
       setMessages([]);
       window.history.pushState(null, '', `/ai/temp-chat`);
@@ -640,6 +660,10 @@ function AiChatCore() {
 
     // 2. Switch the active chat
     if (chatId !== activeChatId) {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      setIsLoading(false);
+      setIsActuallySending(false);
+      isSendingRef.current = false;
       isInternalNavRef.current = true;
       setActiveChatId(chatId);
       setMessages([]); // Clear current messages while new ones load
@@ -735,6 +759,8 @@ function AiChatCore() {
     setSelectedImage(null); // Clear image after sending
     setEditImage(null); // Clear edit image
     setEditingMessageIdx(null);
+    setIsInputExpanded(false);
+    setIsInputOverflowing(false);
     setIsLoading(true);
     setIsActuallySending(true);
     if (chatIdOfRequest) {
@@ -810,7 +836,9 @@ function AiChatCore() {
           setActiveChatId(chatIdOfRequest);
           window.history.replaceState(null, '', `/ai/${chatIdOfRequest}`);
 
-          // Optimistically update the sessions (sidebar) list
+          // Optimistically update the sessions (sidebar) list with the new chat.
+          // revalidate: true — triggers a background re-fetch so old chats also appear
+          // when navigating from the dashboard before SWR has loaded history yet.
           mutateSessions((currentData: { chats: ChatSession[] } | undefined) => {
             const existingChats = currentData?.chats || [];
             // Add the new chat from backend to the top of the list
@@ -818,7 +846,7 @@ function AiChatCore() {
               ...(currentData || {}),
               chats: [data.chat, ...existingChats]
             };
-          }, { revalidate: false });
+          }, { revalidate: true });
 
           // Add to generating set with the new ID
           setGeneratingChatIds(prev => {
@@ -1230,7 +1258,7 @@ function AiChatCore() {
         if (!res.ok) throw new Error("Failed to delete chat");
         return res;
       });
-      
+
       show({
         message: "Moved to trash",
         type: "success",
@@ -1391,7 +1419,7 @@ function AiChatCore() {
         isLongPressActive.current = false;
         return;
       }
-      switchChat(session.id, !!session.is_archived);
+      switchChat(session.id, !!session.is_archived, false);
     };
 
     const formatDate = (iso: string) => {
@@ -1748,10 +1776,10 @@ function AiChatCore() {
             </div>
             <button
               onClick={toggleTemporaryChat}
-              className={`p-2 rounded-lg transition-colors ${activeChatId === "temp-chat"
+              className={`p-2 rounded-lg transition-all duration-200 ${activeChatId === "temp-chat"
                 ? theme === "dark"
-                  ? "bg-[#333] text-white hover:bg-[#444]"
-                  : "bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm"
+                  ? "bg-red-900/30 text-red-400 border border-red-500/40 hover:bg-red-900/50"
+                  : "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
                 : theme === "dark"
                   ? "text-gray-300 hover:bg-[#252525]"
                   : "text-[#545454] hover:bg-[#F0EDE8]"
@@ -1875,7 +1903,7 @@ function AiChatCore() {
 
                 {/* Bubble Container */}
                 <div
-                  className={`relative flex flex-col gap-1 min-w-0 ${msg.role === "user" ? "items-end max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}
+                  className={`relative flex flex-col gap-1 min-w-0 ${msg.role === "user" ? "items-end max-w-[90%] sm:max-w-md" : "items-start w-full md:w-[calc(100%-48px)] max-w-full"}`}
                 >
                   {/* Timestamp - User Only, Mobile Only, On Long Press */}
                   {msg.role === "user" && activeMobileMessageIdx === idx && (
@@ -1995,7 +2023,7 @@ function AiChatCore() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-col items-end gap-1 max-w-full min-w-0">
                         {/* 1. Large Image Bubble */}
                         {msg.role === "user" && msg.image && (
                           <div className={`rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 shadow-md transition-transform hover:scale-[1.01] bg-black/5 dark:bg-white/5 w-fit max-w-[280px] sm:max-w-md flex-shrink-0`}>
@@ -2011,14 +2039,13 @@ function AiChatCore() {
                         {/* 2. Text Content Bubble (Small Gap) */}
                         {(msg.content || msg.isThinking) && !msg.content?.trim().startsWith('{') && (
                           <div
-                            style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
                             className={msg.role === "user"
                               ? theme === "dark"
-                                ? "w-fit max-w-full overflow-hidden bg-[#545454] text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed"
-                                : "w-fit max-w-full overflow-hidden bg-[#F0EDE8] text-gray-900 rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed"
+                                ? "w-fit max-w-full min-w-0 overflow-hidden bg-[#545454] text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed"
+                                : "w-fit max-w-full min-w-0 overflow-hidden bg-[#F0EDE8] text-gray-900 rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed"
                               : theme === "dark"
-                                ? "w-fit max-w-full overflow-hidden bg-[#252525] text-white border border-[#2E2E2E] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed"
-                                : "w-fit max-w-full overflow-hidden bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed"
+                                ? "w-full min-w-0 bg-[#252525] text-white border border-[#2E2E2E] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed"
+                                : "w-full min-w-0 bg-white text-[#252525] shadow-sm border border-[#7D7D7D]/40 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed"
                             }
                           >
                             {msg.role === "model" ? (
@@ -2063,13 +2090,13 @@ function AiChatCore() {
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                      h1: ({ ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
-                                      h2: ({ ...props }) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
-                                      h3: ({ ...props }) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
-                                      p: ({ ...props }) => <div className="mb-2 last:mb-0" {...props} />,
-                                      ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-1 my-2" {...props} />,
-                                      ol: ({ ...props }) => <ol className="list-decimal ml-4 space-y-1 my-2" {...props} />,
-                                      li: ({ ...props }) => <li className="pl-1" {...props} />,
+                                      h1: ({ ...props }) => <h1 className="text-lg font-bold mt-3 mb-1.5" {...props} />,
+                                      h2: ({ ...props }) => <h2 className="text-base font-bold mt-2.5 mb-1.5" {...props} />,
+                                      h3: ({ ...props }) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                                      p: ({ ...props }) => <div className="mb-1.5 last:mb-0" {...props} />,
+                                      ul: ({ ...props }) => <ul className="list-disc ml-4 space-y-0.5 my-1.5" {...props} />,
+                                      ol: ({ ...props }) => <ol className="list-decimal ml-4 space-y-0.5 my-1.5" {...props} />,
+                                      li: ({ ...props }) => <li className="pl-0.5" {...props} />,
                                       a: ({ ...props }) => <a className="text-indigo-400 hover:underline font-semibold" {...props} />,
                                       strong: ({ ...props }) => <strong className="font-bold text-inherit" {...props} />,
                                       table: ({ ...props }) => (
@@ -2089,10 +2116,11 @@ function AiChatCore() {
                                         <td className={`px-3 py-2 border-b ${theme === "dark" ? "border-[#252525]" : "border-[#E8E5E0]"}`} {...props} />
                                       ),
                                       pre: ({ children }) => <div className="not-prose">{children}</div>,
-                                      code({ inline, className, children, ...props }: any) {
+                                      code({ className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || "");
                                         const codeString = String(children).replace(/\n$/, "");
-                                        if (inline) {
+                                        const isInline = !match && !String(children).includes('\n');
+                                        if (isInline) {
                                           return (
                                             <code className={`px-1 py-0.5 rounded font-mono text-[11px] ${theme === "dark" ? "bg-white/10 text-[#C2A27A]" : "bg-black/5 text-[#A2825A]"}`} {...props}>
                                               {children}
@@ -2100,7 +2128,7 @@ function AiChatCore() {
                                           );
                                         }
                                         return (
-                                          <div className="relative group/code mb-4 mt-3 block w-full max-w-full">
+                                          <div className="relative group/code mb-2 mt-1.5 block w-full max-w-full overflow-hidden">
                                             <div className={`flex items-center justify-between px-4 py-2 text-[10px] font-sans rounded-t-xl ${theme === "dark" ? "bg-[#2A2A2A] text-gray-400 border border-b-0 border-[#545454]" : "bg-gray-800 text-gray-400 border border-b-0 border-gray-800"}`}>
                                               <span className="uppercase font-bold tracking-widest">{match?.[1] || "code"}</span>
                                               <button onClick={() => handleCopyCode(codeString)} className="flex items-center gap-1.5 hover:text-white transition-colors">
@@ -2113,7 +2141,7 @@ function AiChatCore() {
                                                 style={vscDarkPlus}
                                                 language={match?.[1] || "text"}
                                                 PreTag="div"
-                                                customStyle={{ margin: 0, padding: "1.25rem", background: "transparent", fontSize: "13px", lineHeight: "1.6" }}
+                                                customStyle={{ margin: 0, padding: "0.75rem", background: "transparent", fontSize: "13px", lineHeight: "1.5" }}
                                                 {...props}
                                               >
                                                 {codeString}
@@ -2129,7 +2157,41 @@ function AiChatCore() {
                                 )}
                               </>
                             ) : (
-                              <div className="whitespace-pre-wrap leading-relaxed break-words break-all sm:break-words max-w-full overflow-hidden">{msg.content}</div>
+                              // User message — collapse long text with expand button
+                              (() => {
+                                const isLong = msg.content.length > 200;
+                                const isExpanded = expandedMsgIndices.has(idx);
+                                return (
+                                  <div className="relative">
+                                    <div
+                                      className="whitespace-pre-wrap leading-relaxed break-words max-w-full transition-all duration-300"
+                                      style={{
+                                        maxHeight: isLong && !isExpanded ? '100px' : 'none',
+                                        overflow: isLong && !isExpanded ? 'hidden' : 'visible',
+                                      }}
+                                    >
+                                      {msg.content}
+                                    </div>
+                                    {isLong && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedMsgIndices(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(idx)) next.delete(idx); else next.add(idx);
+                                            return next;
+                                          })
+                                        }
+                                        className={`mt-1.5 flex items-center gap-1 text-[11px] font-medium transition-colors ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
+                                          }`}
+                                      >
+                                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                        {isExpanded ? 'Show less' : 'Show more'}
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })()
                             )}
                           </div>
                         )}
@@ -2375,14 +2437,15 @@ function AiChatCore() {
                 {/* 1. Attachment Button (Inside Pill) */}
                 <div className="relative flex items-center justify-center shrink-0">
                   <button
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 ${theme === "dark"
+                    className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${theme === "dark"
                       ? "text-gray-400 hover:bg-[#333] hover:text-white"
                       : "text-gray-500 hover:bg-[#F0EDE8] hover:text-[#252525]"
                       } hover:scale-110`}
                     title="Attach image"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5" />
                   </button>
                 </div>
 
@@ -2405,8 +2468,8 @@ function AiChatCore() {
                   }}
                   placeholder={isQuotaReached ? (usage?.chat?.reset ? `Daily limit reached. Resets in ${Math.ceil((usage.chat.reset - Date.now()) / (1000 * 60 * 60))}h` : "Daily limit reached.") : (selectedImage ? "Add a description..." : (messages.length === 0 ? "Ask anything" : "Ask Azviq AI anything..."))}
                   disabled={isQuotaReached && !isLoading}
-                  style={{ overflowWrap: 'anywhere', wordBreak: 'normal' }}
-                  className={`flex-1 max-h-[120px] min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-[9px] text-[15px] outline-none overflow-y-auto custom-scrollbar leading-tight font-medium whitespace-pre-wrap ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{ overflowWrap: 'anywhere', wordBreak: 'normal', maxHeight: isInputExpanded ? '300px' : '120px' }}
+                  className={`flex-1 min-h-[40px] bg-transparent border-0 focus:ring-0 resize-none px-3 py-[9px] text-[15px] outline-none overflow-y-auto custom-scrollbar leading-tight font-medium whitespace-pre-wrap transition-all duration-200 ${isQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                   rows={1}
                 />
 
@@ -2414,16 +2477,17 @@ function AiChatCore() {
                 <div className="flex items-center gap-1">
                   <div className="relative flex items-center justify-center shrink-0">
                     <button
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={toggleDictation}
                       title="Dictate"
-                      className={`flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 ${isDictating
+                      className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${isDictating
                         ? "bg-red-500 text-white animate-pulse"
                         : theme === "dark"
                           ? "text-gray-400 hover:bg-[#333] hover:text-white"
                           : "text-gray-500 hover:bg-[#F0EDE8] hover:text-[#252525]"
                         } hover:scale-110`}
                     >
-                      <Mic className="w-4 h-4" />
+                      <Mic className="w-5 h-5" />
                     </button>
                   </div>
 

@@ -56,7 +56,7 @@ export default function BottomNav({ isFullPageLayer = false }: { isFullPageLayer
     setIsKeyboardOpen(false);
   }, [pathname]);
 
-  const hidden = (isKeyboardOpen && !pathname.startsWith("/ai")) || isModalOpen || isFullPageLayer || searchParams.get("fullscreen") === "true";
+  const hidden = isKeyboardOpen || isModalOpen || isFullPageLayer || searchParams.get("fullscreen") === "true";
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },

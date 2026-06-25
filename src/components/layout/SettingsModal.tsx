@@ -106,6 +106,9 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
+  // Swipe-to-change tab states
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   const isDark = theme === "dark";
   const dialog = useAppDialog();
@@ -113,6 +116,14 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   // Sync state when URL changes (Back/Forward buttons & Initial Load)
   useEffect(() => {
     if (!isOpen) return;
+
+    // Scroll active tab into view on mobile
+    if (window.innerWidth < 640) {
+      const activeTabElement = document.getElementById(`settings-tab-${activeTab}`);
+      if (activeTabElement) {
+        activeTabElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
 
     const segments = pathname.split("/").filter(Boolean);
     if (segments[0] === "settings") {
@@ -154,6 +165,54 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       window.history.replaceState(null, '', newUrl);
     }
   }, [activeTab, isOpen, fromParam, pathname]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+    
+    // Prevent swipe-to-tab if the user was swiping on a slider/range input
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'range') {
+      setTouchStartX(null);
+      setTouchStartY(null);
+      return;
+    }
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    
+    const deltaX = touchStartX - touchEndX;
+    const deltaY = Math.abs(touchStartY - touchEndY);
+
+    // If sub-modal is open, don't swipe settings tabs
+    if (showSharedLinks) {
+      setTouchStartX(null);
+      setTouchStartY(null);
+      return;
+    }
+
+    if (Math.abs(deltaX) > 60 && deltaY < 50) {
+      const validTabs: Tab[] = ["general", "notifications", "models", "data", "parent_control", "account"];
+      const currentIndex = validTabs.findIndex(t => t === activeTab);
+      if (deltaX > 0) {
+        // Swipe Left -> Next Tab
+        if (currentIndex < validTabs.length - 1) {
+          setActiveTab(validTabs[currentIndex + 1]);
+        }
+      } else {
+        // Swipe Right -> Prev Tab
+        if (currentIndex > 0) {
+          setActiveTab(validTabs[currentIndex - 1]);
+        }
+      }
+    }
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
 
   // State for Account deletion
   const [isDeleting, setIsDeleting] = useState(false);
@@ -730,6 +789,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
               return (
                 <button
                   key={tab.id}
+                  id={`settings-tab-${tab.id}`}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-3 py-1.5 sm:py-2.5 rounded-xl transition-all text-[11px] sm:text-sm font-medium whitespace-nowrap shrink-0 sm:shrink outline-none ${isActive
                     ? isDark ? "bg-[#2E2E2E] text-white" : "bg-white text-[#252525]"
@@ -745,7 +805,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 custom-scrollbar">
+        <div 
+          className="flex-1 overflow-y-auto px-4 py-6 sm:p-8 custom-scrollbar"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           <div className={`max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 ${isDark ? "bg-[#1A1A1A] md:dark:bg-[#1F1F1F]" : ""}`}>
 
             {activeTab === "general" && (

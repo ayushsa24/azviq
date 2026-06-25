@@ -290,7 +290,7 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col min-w-0 h-full">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 custom-scrollbar">
 
             <AnimatePresence>
@@ -360,21 +360,29 @@ function TrashModal({ isOpen, onClose }: TrashModalProps) {
             </div>
           </div>
 
-          <div className={`px-6 py-4 border-t transition-colors ${isDark ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
-            <button
-              onClick={handleEmptyTrash}
-              disabled={isEmptying || filteredItems.length === 0}
-              className={`w-full h-11 flex items-center justify-center rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 ${isDark
-                  ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]"
-                  : "bg-[#252525] text-white hover:bg-[#1A1A1A]"
-                }`}
-            >
-              {isEmptying ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                `Empty ${activeCategory === 'all' ? 'Trash Bin' : (categories.find(c => c.id === activeCategory)?.label || 'Items')}`
-              )}
-            </button>
+          <div className={`px-6 py-4 border-t transition-colors mt-auto ${isDark ? "border-[#2E2E2E]" : "border-[#E8E5E0]"}`}>
+            {(() => {
+              const isDisabled = isEmptying || filteredItems.length === 0;
+              return (
+                <button
+                  onClick={handleEmptyTrash}
+                  disabled={isDisabled}
+                  className={`w-full h-11 flex items-center justify-center rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                    isDisabled 
+                      ? (isDark ? "bg-[#2A2A2A] text-[#7D7D7D] pointer-events-none" : "bg-[#E8E5E0] text-[#A0A0A0] pointer-events-none")
+                      : (isDark ? "bg-white text-[#1A1A1A] hover:bg-[#F0F0F0] active:scale-95" : "bg-[#252525] text-white hover:bg-[#1A1A1A] active:scale-95")
+                  }`}
+                >
+                  {isEmptying ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <span key={activeCategory}>
+                      {`Empty ${activeCategory === 'all' ? 'Trash Bin' : (categories.find(c => c.id === activeCategory)?.label || 'Items')}`}
+                    </span>
+                  )}
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>
