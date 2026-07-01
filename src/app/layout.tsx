@@ -15,6 +15,7 @@ import { ToastProvider } from "@/contexts/ToastContext";
 import { PostHogProvider } from "@/analytics/provider";
 import CookieConsent from "@/components/CookieConsent";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -86,9 +87,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Browser Theme Color - Matches App Header */}
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F5F3EF" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1A1A" />
+        {/* Browser Theme Color - Default light; inline script overrides for dark pages/OS */}
+        {/* Using a single non-media-query tag prevents mobile Chrome from picking dark */}
+        {/* before JS runs on forced-light pages like the landing page */}
+        <meta name="theme-color" content="#F4F4F6" />
         
         {/* Safari / iOS Specific */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -210,6 +212,7 @@ export default function RootLayout({
                           {children}
                           <CookieConsent />
                           <SpeedInsights />
+                          <Analytics />
                         </AppDialogProvider>
                       </ToastProvider>
                     </SettingsProvider>

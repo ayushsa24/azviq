@@ -77,7 +77,13 @@ function applyTheme(theme: Theme, pathname: string | null = null) {
     });
   });
 
-  localStorage.setItem("theme", theme);
+  // Save the user's real preference (not the forced override) so navigating
+  // away from a forced-light page restores the correct theme.
+  // We deliberately do NOT save "light" when the page forced it — that would
+  // lose the user's actual dark preference.
+  if (!isForcedLightPage) {
+    localStorage.setItem("theme", theme);
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -97,7 +103,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     setTheme(resolved);
-    localStorage.setItem("theme", resolved);
+    // Only persist if not on a forced-light page, so the user's real
+    // preference (e.g. dark) is never overwritten by the landing page.
+    const forcedLightPaths = ["/", "/privacy", "/terms", "/help", "/about", "/contact", "/feedback"];
+    const currentPath = window.location.pathname;
+    const isForcedLight = forcedLightPaths.some(p => currentPath === p || currentPath.startsWith(p + "/"));
+    if (!isForcedLight) {
+      localStorage.setItem("theme", resolved);
+    }
     setMounted(true);
   }, []);
 
