@@ -14,6 +14,7 @@ import { AppDialogProvider } from "@/components/ui/AppDialog";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { PostHogProvider } from "@/analytics/provider";
 import CookieConsent from "@/components/CookieConsent";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -208,6 +209,7 @@ export default function RootLayout({
                         <AppDialogProvider>
                           {children}
                           <CookieConsent />
+                          <SpeedInsights />
                         </AppDialogProvider>
                       </ToastProvider>
                     </SettingsProvider>

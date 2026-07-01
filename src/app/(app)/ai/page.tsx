@@ -589,7 +589,7 @@ function AiChatCore() {
 
     // Auto-create new chat if no ID is present and no query is pending
     const hasImport = !!localStorage.getItem("import_shared_chat");
-    if (!activeChatId && !hasImport && !pendingQueryRef.current) {
+    if (!activeChatId && !hasImport && !pendingQueryRef.current && !isSendingRef.current) {
       startNewChat();
     }
   }, [historyLoaded, activeChatId]);
