@@ -27,7 +27,7 @@ export default function PricingSection() {
       name: "Lite",
       subtitle: "Academic Essential",
       desc: "Unlock more AI power with high quality model responses.",
-      price: "₹11",
+      price: "₹99",
       period: "/ month",
       features: [
         "200 AI chats / day",
@@ -47,7 +47,7 @@ export default function PricingSection() {
       name: "Premium",
       subtitle: "Pro Researcher",
       desc: "Experience the ultimate study companion with top models.",
-      price: "₹399",
+      price: "₹249",
       period: "/ month",
       features: [
         "Unlimited AI chats",

@@ -76,10 +76,6 @@ export const authOptions: NextAuthOptions = {
         const authIntent = cookieStore.get("auth_intent_v2")?.value;
 
         if (!existingUser) {
-          if (authIntent === "login") {
-            return "/login?error=AccountNotFound";
-          }
-
           // Create new user in Supabase
           const { error } = await supabase
             .from("users")
@@ -104,11 +100,6 @@ export const authOptions: NextAuthOptions = {
           sendWelcomeEmail(email).catch(err => {
             console.error("Failed to send welcome email to new Google user:", err);
           });
-        } else {
-          // User already exists
-          if (authIntent === "signup") {
-            return "/login?error=AccountExists";
-          }
         }
       }
       return true;

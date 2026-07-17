@@ -13,19 +13,27 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
     try {
+      // If session is still loading and we have no cached ID, wait.
+      if (status === "loading" && !localStorage.getItem("userId")) {
+        return;
+      }
+
       // Prioritize session ID (for Google Auth), then localStorage (for manual login)
       // @ts-ignore
       const userId = session?.user?.id || localStorage.getItem("userId");
       
       if (!userId) {
         setUser(null);
-        setIsLoading(false);
+        // Only mark as done loading if session is definitely unauthenticated
+        if (status === "unauthenticated") {
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -50,11 +58,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [session]);
+  }, [session, status]);
 
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile, session]);
+  }, [fetchProfile, session, status]);
 
   return (
     <UserContext.Provider value={{ user, isLoading, refreshUser: fetchProfile }}>

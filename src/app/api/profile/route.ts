@@ -33,7 +33,10 @@ export async function GET(req: Request) {
     .eq("id", userId)
     .single();
 
-  if (error) return NextResponse.json({ error }, { status: 400 });
+  if (error) {
+    console.error("Profile fetch error:", error);
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 
   return NextResponse.json(data);
 }
@@ -64,22 +67,33 @@ export async function PUT(req: Request) {
 
   const body = await req.json();
 
+  const sanitize = (str: string) => str ? str.replace(/[<>{}[\]]/g, '') : str;
+
   const { error } = await supabase
     .from("users")
     .update({
-      name: body.name,
-      username: body.username,
-      bio: body.bio,
-      city: body.city,
-      mobile_no: body.mobile_no,
-      pronouns: body.pronouns,
+      name: sanitize(body.name),
+      username: body.username ? body.username.replace(/[^a-zA-Z0-9_]/g, '') : null,
+      bio: sanitize(body.bio),
+      city: sanitize(body.city),
+      mobile_no: body.mobile_no ? body.mobile_no.replace(/(?!^\+)[^\d]/g, '') : null,
+      pronouns: sanitize(body.pronouns),
       avatar_url: body.avatar_url,
       is_onboarded: true,
       updated_at: new Date(),
     })
     .eq("id", userId);
 
-  if (error) return NextResponse.json({ error }, { status: 400 });
+  if (error) {
+    console.error("Profile update error:", error);
+    
+    // Check for duplicate username unique constraint error
+    if (error.code === "23505" && error.message.includes("users_username_key")) {
+      return NextResponse.json({ error: "This username is already taken. Please try a different one." }, { status: 400 });
+    }
+    
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 
   return NextResponse.json({ success: true });
 }

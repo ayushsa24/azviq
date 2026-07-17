@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import useSWR from "swr";
 import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { getAvatarColor } from "@/lib/utils";
 import {
   X,
@@ -71,6 +71,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const { isOpen: contextIsOpen, closeSettings, initialTab } = useSettings();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const fromParam = searchParams.get("from") || "/dashboard";
 
   // Use prop if provided, otherwise fallback to context
@@ -80,7 +81,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
   const handleClose = () => {
     // Revert the URL to the actual originating page
     if (typeof window !== "undefined") {
-      window.history.pushState(null, '', fromParam);
+      router.replace(fromParam, { scroll: false });
     }
     originalClose();
   };
@@ -230,14 +231,18 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
 
   const [userProfile, setUserProfile] = useState<{ name?: string, avatar_url?: string, username?: string } | null>(null);
 
+  const [isUserProfileLoading, setIsUserProfileLoading] = useState(false);
+
   useEffect(() => {
     if (isOpen && activeTab === "account") {
       const userId = localStorage.getItem("userId");
       if (userId) {
+        setIsUserProfileLoading(true);
         fetch("/api/profile", { headers: { "x-user-id": userId } })
           .then(r => r.json())
           .then(d => { if (d && !d.error) setUserProfile(d); })
-          .catch(() => { });
+          .catch(() => { })
+          .finally(() => setIsUserProfileLoading(false));
       }
     }
   }, [isOpen, activeTab]);
@@ -1482,8 +1487,10 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
             {activeTab === "account" && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                    {(userProfile?.avatar_url || session?.user?.image) ? (
+                  <div className="w-16 h-16 rounded-full overflow-hidden shrink-0">
+                    {isUserProfileLoading ? (
+                      <div className={`w-full h-full animate-pulse ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                    ) : (userProfile?.avatar_url || session?.user?.image) ? (
                       <Image 
                         src={userProfile?.avatar_url || session?.user?.image!} 
                         alt="User" 
@@ -1502,8 +1509,17 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold">{userProfile?.name || session?.user?.name || "Member"}</h3>
-                    <p className="text-xs text-[#7D7D7D]">{session?.user?.email}</p>
+                    {isUserProfileLoading ? (
+                      <div className="flex flex-col gap-2 py-1">
+                        <div className={`h-5 w-32 rounded-md animate-pulse ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                        <div className={`h-3 w-40 rounded-md animate-pulse ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="font-bold">{userProfile?.name || session?.user?.name || "Member"}</h3>
+                        <p className="text-xs text-[#7D7D7D]">{session?.user?.email}</p>
+                      </>
+                    )}
                   </div>
                 </div>
 

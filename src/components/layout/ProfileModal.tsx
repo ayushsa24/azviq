@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { X, User, Edit3, Save, Camera, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -17,6 +17,7 @@ interface Props {
 export default function ProfileModal({ open, onClose }: Props) {
     const { theme } = useTheme();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const fromParam = searchParams.get("from") || "/dashboard";
     const isDark = theme === "dark";
     const dialog = useAppDialog();
@@ -25,6 +26,7 @@ export default function ProfileModal({ open, onClose }: Props) {
     const [editing, setEditing] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
     const [form, setForm] = useState({
         name: "", username: "", bio: "", city: "",
         mobile_no: "", pronouns: "", avatar_url: "",
@@ -33,10 +35,13 @@ export default function ProfileModal({ open, onClose }: Props) {
     useEffect(() => {
         if (!open) return;
         const userId = localStorage.getItem("userId");
-        if (!userId) return;
+        if (!userId) { setIsLoading(false); return; }
+        
+        setIsLoading(true);
         fetch("/api/profile", { headers: { "x-user-id": userId } })
             .then(r => r.json())
-            .then(d => { if (d && !d.error) setForm(d); });
+            .then(d => { if (d && !d.error) setForm(d); })
+            .finally(() => setIsLoading(false));
     }, [open]);
 
     if (!open) return null;
@@ -71,7 +76,7 @@ export default function ProfileModal({ open, onClose }: Props) {
 
     const handleCloseModal = () => {
         if (typeof window !== "undefined") {
-            window.history.pushState(null, '', fromParam);
+            router.replace(fromParam, { scroll: false });
         }
         onClose();
     };
@@ -149,7 +154,9 @@ export default function ProfileModal({ open, onClose }: Props) {
                     {/* Avatar */}
                     <div className="flex justify-center">
                         <div className="relative">
-                            {avatarPreview || form.avatar_url ? (
+                            {isLoading ? (
+                                <div className={`w-20 h-20 rounded-full animate-pulse ring-4 ring-offset-2 ring-transparent ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                            ) : avatarPreview || form.avatar_url ? (
                                 <Image 
                                     src={avatarPreview || form.avatar_url} 
                                     alt="Avatar" 
@@ -183,9 +190,18 @@ export default function ProfileModal({ open, onClose }: Props) {
                     </div>
 
                     {/* Name display */}
-                    <div className="text-center -mt-1">
-                        <p className={`text-base font-bold ${isDark ? "text-[#CFCFCF]" : "text-[#252525]"}`}>{form.name || "Your Name"}</p>
-                        <p className="text-xs text-[#7D7D7D] mt-0.5">@{form.username || "username"}</p>
+                    <div className="text-center -mt-1 flex flex-col items-center">
+                        {isLoading ? (
+                            <>
+                                <div className={`h-6 w-40 rounded-md animate-pulse mb-1 ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                                <div className={`h-4 w-24 rounded-md animate-pulse mt-0.5 ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                            </>
+                        ) : (
+                            <>
+                                <p className={`text-base font-bold ${isDark ? "text-[#CFCFCF]" : "text-[#252525]"}`}>{form.name || "Your Name"}</p>
+                                <p className="text-xs text-[#7D7D7D] mt-0.5">@{form.username || "username"}</p>
+                            </>
+                        )}
                     </div>
 
                     {/* Bio */}

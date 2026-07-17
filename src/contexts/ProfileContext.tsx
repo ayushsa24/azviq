@@ -13,13 +13,13 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const openProfile = () => {
+  const openProfile = React.useCallback(() => {
     setIsProfileOpen(true);
-  };
+  }, []);
   
-  const closeProfile = () => {
+  const closeProfile = React.useCallback(() => {
     setIsProfileOpen(false);
-  };
+  }, []);
 
   return (
     <ProfileContext.Provider value={{ isProfileOpen, openProfile, closeProfile }}>

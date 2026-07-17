@@ -64,7 +64,7 @@ export default function Sidebar({
   const router = useRouter();
   const isDark = theme === "dark";
   const { unreadCount, panelOpen, setPanelOpen } = useNotifications();
-  const { user: profile } = useUser();
+  const { user: profile, isLoading: isProfileLoading } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const { isProfileOpen, openProfile, closeProfile } = useProfile();
   const { data: recentData, mutate: mutateRecent, isLoading: isRecentLoading } = useSWR("/api/recent-activity", fetcher, {
@@ -336,10 +336,19 @@ export default function Sidebar({
                 className={`w-full text-left px-4 py-3 border-b transition-colors
                   ${isDark ? "border-[#3A3A3A] hover:bg-[#2E2E2E]" : "border-[#F0EDE8] hover:bg-[#CFCFCF]"}`}
               >
-                <p className={`text-sm font-semibold truncate ${isDark ? "text-white" : "text-[#252525]"}`}>
-                  {profile?.name || "My Account"}
-                </p>
-                {profile?.email && <p className="text-xs text-[#BABABA] truncate mt-0.5">{profile.email}</p>}
+                {isProfileLoading ? (
+                  <>
+                    <div className={`h-4 w-24 rounded-md animate-pulse mb-1 ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                    <div className={`h-3 w-32 rounded-md animate-pulse ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                  </>
+                ) : (
+                  <>
+                    <p className={`text-sm font-semibold truncate ${isDark ? "text-white" : "text-[#252525]"}`}>
+                      {profile?.name || "My Account"}
+                    </p>
+                    {profile?.email && <p className="text-xs text-[#BABABA] truncate mt-0.5">{profile.email}</p>}
+                  </>
+                )}
               </button>
 
               {/* Settings */}
@@ -426,7 +435,9 @@ export default function Sidebar({
                 : isDark ? "hover:bg-[#252525]" : "hover:bg-[#F0EDE8]"
               }`}
           >
-            {profile?.avatar_url ? (
+            {isProfileLoading ? (
+              <div className={`w-8 h-8 rounded-full shrink-0 animate-pulse ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+            ) : profile?.avatar_url ? (
               <Image 
                 src={profile.avatar_url} 
                 alt="Profile" 
@@ -444,10 +455,19 @@ export default function Sidebar({
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate leading-tight ${isDark ? "text-white" : "text-[#252525]"}`}>
-                {profile?.name || "My Account"}
-              </p>
-              {profile?.email && <p className="text-[10px] text-[#BABABA] truncate">{profile.email}</p>}
+              {isProfileLoading ? (
+                <div className="flex flex-col gap-1.5 mt-0.5">
+                  <div className={`h-3.5 w-20 rounded-md animate-pulse ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                  <div className={`h-2.5 w-24 rounded-md animate-pulse ${isDark ? 'bg-white/10' : 'bg-black/10'}`} />
+                </div>
+              ) : (
+                <>
+                  <p className={`text-sm font-semibold truncate leading-tight ${isDark ? "text-white" : "text-[#252525]"}`}>
+                    {profile?.name || "My Account"}
+                  </p>
+                  {profile?.email && <p className="text-[10px] text-[#BABABA] truncate">{profile.email}</p>}
+                </>
+              )}
             </div>
           </button>
         </div>

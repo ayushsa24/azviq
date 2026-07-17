@@ -15,14 +15,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [initialTab, setInitialTab] = useState("general");
 
-  const openSettings = (tab?: string) => {
+  const openSettings = React.useCallback((tab?: string) => {
     if (tab) setInitialTab(tab);
     setIsOpen(true);
-  };
-  const closeSettings = () => {
+  }, []);
+  const closeSettings = React.useCallback(() => {
     setIsOpen(false);
     setInitialTab("general");
-  };
+  }, []);
 
   return (
     <SettingsContext.Provider value={{ isOpen, initialTab, openSettings, closeSettings }}>
