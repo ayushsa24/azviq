@@ -46,9 +46,9 @@ const PREFS_STORAGE_KEY = "notification_preferences";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const { data, mutate, isLoading } = useSWR("/api/notifications", {
-        refreshInterval: 300000, // 5 minutes
-        revalidateOnFocus: false,
-        dedupingInterval: 60000,
+        refreshInterval: 30000, // 30 seconds
+        revalidateOnFocus: true,
+        dedupingInterval: 15000,
     });
     const notifications: Notification[] = data?.notifications ?? [];
     const [panelOpen, setPanelOpen] = useState(false);
@@ -258,6 +258,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         triggerGenerate();
     }, [triggerGenerate]);
 
+    // Periodic reminder checking (every 30 seconds while tab is visible)
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const interval = setInterval(() => {
+            // Only check when tab is visible to save resources
+            if (!document.hidden) {
+                checkReminders(false); // false = not manual trigger
+            }
+        }, 30000); // Check every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [checkReminders]);
+
 
     const markAsRead = useCallback(async (id: string) => {
         // Optimistic update
@@ -339,16 +353,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
             const due = todos.filter((item: any) => {
                 if (item.done || !item.time) return false;
-                
+
                 const itemHHMM = item.time.slice(0, 5);
                 const [itemH, itemM] = itemHHMM.split(':').map(Number);
                 const itemTotalMinutes = (itemH * 60) + itemM;
                 const currentTotalMinutes = (now.getHours() * 60) + now.getMinutes();
 
-                // Check if current time is within a 5-minute window of the target time
-                // This prevents missing a notification if there's network lag or the tab was briefly asleep
-                const diff = currentTotalMinutes - itemTotalMinutes;
-                if (diff < 0 || diff > 5) return false;
+                // Check if current time is within ±2 minutes of the target time
+                // This creates a 4-minute window centered on the scheduled time for better reliability
+                const diff = Math.abs(currentTotalMinutes - itemTotalMinutes);
+                if (diff > 2) return false;
 
                 let isMatchToday = false;
                 if (item.repeat === "today") {
