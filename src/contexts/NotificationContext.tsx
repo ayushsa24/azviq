@@ -258,19 +258,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         triggerGenerate();
     }, [triggerGenerate]);
 
-    // Periodic reminder checking (every 30 seconds while tab is visible)
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        const interval = setInterval(() => {
-            // Only check when tab is visible to save resources
-            if (!document.hidden) {
-                checkReminders(false); // false = not manual trigger
-            }
-        }, 30000); // Check every 30 seconds
-
-        return () => clearInterval(interval);
-    }, [checkReminders]);
 
 
     const markAsRead = useCallback(async (id: string) => {
@@ -518,6 +505,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             checkTaskDeadlines(true)
         ]);
     }, [checkToDos, checkTaskDeadlines]);
+
+    // Periodic reminder checking (every 30 seconds while tab is visible)
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const interval = setInterval(() => {
+            // Only check when tab is visible to save resources
+            if (!document.hidden) {
+                checkReminders();
+            }
+        }, 30000); // Check every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [checkReminders]);
 
     // Automatically mark all as read when the panel is opened
     useEffect(() => {
