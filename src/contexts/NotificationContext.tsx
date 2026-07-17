@@ -192,8 +192,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const lastFiredDate = typeof window !== "undefined" ? localStorage.getItem(GENERATE_COOLDOWN_KEY) : null;
         if (lastFiredDate === todayStr) return; // Already ran today
 
-        // Add a "random" element: 30% chance to fire this time. 
-        if (Math.random() > 0.3) return;
+        const isMonday = now.getDay() === 1;
+
+        // Add a "random" element: 30% chance to fire this time.
+        // On Monday we ALWAYS fire to guarantee the weekly summary is never skipped.
+        if (!isMonday && Math.random() > 0.3) return;
 
         try {
             localStorage.setItem(GENERATE_COOLDOWN_KEY, todayStr);
@@ -257,20 +260,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         triggerGenerate();
     }, [triggerGenerate]);
-
-    // Periodic reminder checking (every 30 seconds while tab is visible)
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        const interval = setInterval(() => {
-            // Only check when tab is visible to save resources
-            if (!document.hidden) {
-                checkReminders(false); // false = not manual trigger
-            }
-        }, 30000); // Check every 30 seconds
-
-        return () => clearInterval(interval);
-    }, [checkReminders]);
 
 
     const markAsRead = useCallback(async (id: string) => {
@@ -359,10 +348,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 const itemTotalMinutes = (itemH * 60) + itemM;
                 const currentTotalMinutes = (now.getHours() * 60) + now.getMinutes();
 
-                // Check if current time is within ±2 minutes of the target time
-                // This creates a 4-minute window centered on the scheduled time for better reliability
-                const diff = Math.abs(currentTotalMinutes - itemTotalMinutes);
-                if (diff > 2) return false;
+                // Only fire AT or AFTER the scheduled time, within a 4-minute window.
+                // Using Math.abs would allow firing 2 minutes EARLY — we don't want that.
+                const diff = currentTotalMinutes - itemTotalMinutes;
+                if (diff < 0 || diff > 4) return false;
 
                 let isMatchToday = false;
                 if (item.repeat === "today") {
@@ -386,7 +375,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             });
 
             for (const item of due) {
-                const key = `notified-todo-${item.id}-${todayStr}-${currentHHMM}`;
+                // Key is based on item's scheduled time (not current clock time)
+                // This ensures both interval runs within the same 4-min window share the same key,
+                // preventing the same reminder from firing twice.
+                const itemHHMM = item.time.slice(0, 5);
+                const key = `notified-todo-${item.id}-${todayStr}-${itemHHMM}`;
                 if (typeof window !== "undefined") {
                     if (localStorage.getItem(key)) continue;
                     localStorage.setItem(key, "true");
@@ -465,46 +458,33 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             });
 
             for (const task of dueToday) {
-                const key = `deadline-notified-${task.id}-${todayStr}`;
+                const key = `deadline-popup-${task.id}-${todayStr}`;
                 if (typeof window !== "undefined") {
                     if (localStorage.getItem(key)) continue;
                     localStorage.setItem(key, "true");
                 }
 
-                const postRes = await fetch("/api/notifications", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        type: "task_deadline",
-                        title: "Task Due Today",
-                        message: `Your task "${task.title}" is due today!`,
-                        related_topic: task.id,
-                    }),
-                });
+                // Only fire the OS popup — the DB notification (bell panel) is already
+                // created by the generate API as 'task_reminder'. No duplicate DB insert needed.
+                if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted" && !doNotDisturb) {
+                    const nowMs = Date.now();
+                    const sinceLast = nowMs - lastNativePushRef.current;
+                    const delay = sinceLast < 30000 ? 30000 - sinceLast : 0;
 
-                if (postRes.ok) {
-                    await fetchNotifications();
-                    // Native push notification with stagger
-                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted" && !doNotDisturb) {
-                        const now = Date.now();
-                        const sinceLast = now - lastNativePushRef.current;
-                        const delay = sinceLast < 30000 ? 30000 - sinceLast : 0;
-
-                        setTimeout(() => {
-                            new Notification("🗓️ Task Due Today", {
-                                body: `Your task "${task.title}" is due today!`,
-                                icon: "/azviq_logo_whitebg.png",
-                                tag: `deadline-${task.id}`,
-                            });
-                            lastNativePushRef.current = Date.now();
-                        }, delay);
-                    }
+                    setTimeout(() => {
+                        new Notification("🗓️ Task Due Today", {
+                            body: `Your task "${task.title}" is due today!`,
+                            icon: "/azviq_logo_whitebg.png",
+                            tag: `deadline-${task.id}`,
+                        });
+                        lastNativePushRef.current = Date.now();
+                    }, delay);
                 }
             }
         } catch (err) {
             console.error("Task deadline check failed:", err);
         }
-    }, [fetchNotifications, taskDueReminders, doNotDisturb]);
+    }, [taskDueReminders, doNotDisturb]);
 
     // Task deadlines are checked on manual trigger (checkReminders) only.
     // Server-side Upstash Workflow handles automated task deadline push notifications.
@@ -525,6 +505,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             markAllAsRead();
         }
     }, [panelOpen, unreadCount, markAllAsRead]);
+
+    // Periodic reminder checking (every 30 seconds while tab is visible)
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const interval = setInterval(() => {
+            // Only check when tab is visible to save resources
+            if (!document.hidden) {
+                checkReminders();
+            }
+        }, 30000); // Check every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [checkReminders]);
 
     return (
         <NotificationContext.Provider value={{
