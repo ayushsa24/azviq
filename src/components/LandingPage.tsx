@@ -2,8 +2,6 @@
 import Navbar from "./landingpage/Navbar";
 import HeroSection from "./landingpage/HeroSection";
 import DashboardShowcaseSection from "./landingpage/DashboardShowcaseSection";
-import DataControlSection from "./landingpage/DataControlSection";
-import ParentControlSection from "./landingpage/ParentControlSection";
 import FeaturesBento from "./landingpage/FeaturesBento";
 import PricingSection from "./landingpage/PricingSection";
 import FaqSection from "./landingpage/FaqSection";
@@ -27,14 +25,10 @@ export default function LandingPage({ isLoggedIn = false }: Props) {
       {/* DASHBOARD SHOWCASE SECTION */}
       <DashboardShowcaseSection />
 
-      {/* FEATURES BENTO (The Main Hub) */}
+      {/* FEATURES GRID */}
       <FeaturesBento />
 
-      {/* DATA CONTROL & PRIVACY SECTION */}
-      <DataControlSection />
 
-      {/* PARENTAL CONTROL SECTION */}
-      <ParentControlSection />
 
       {/* PRICING SECTION */}
       <PricingSection />

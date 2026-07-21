@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { Clock, Zap, Settings } from "lucide-react";
 
 export default function HeroSection() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -35,7 +36,7 @@ export default function HeroSection() {
       <section className="relative min-h-[85vh] flex flex-col items-center pt-0 pb-20 overflow-hidden">
         {/* Keyboard Left (Parallax Animated) */}
         <motion.div
-          className="absolute left-[-35px] md:left-[-45px] lg:left-[-45px] top-[25%] w-[180px] md:w-[260px] lg:w-[320px] pointer-events-none z-10 hidden md:block"
+          className="absolute left-[-35px] md:left-[-45px] lg:left-[-45px] top-[25%] w-[180px] md:w-[260px] lg:w-[320px] pointer-events-none z-10 hidden lg:block"
           animate={{ x: parallaxX, y: parallaxY }}
           transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
@@ -51,7 +52,7 @@ export default function HeroSection() {
 
         {/* Book/Glasses Right (Parallax Animated) */}
         <motion.div
-          className="absolute right-[-20px] md:right-[-25px] lg:right-[-30px] top-[25%] w-[180px] md:w-[260px] lg:w-[320px] pointer-events-none z-10 hidden md:block"
+          className="absolute right-[-20px] md:right-[-25px] lg:right-[-30px] top-[25%] w-[180px] md:w-[260px] lg:w-[320px] pointer-events-none z-10 hidden lg:block"
           animate={{ x: -parallaxX, y: -parallaxY }}
           transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
@@ -67,7 +68,7 @@ export default function HeroSection() {
 
         {/* Cable Bottom-Left */}
         <motion.div
-          className="absolute left-[-5px] md:left-[-16px] lg:left-[-25px] top-[64%] md:top-[74%] lg:top-[80%] w-[100px] md:w-[140px] lg:w-[170px] pointer-events-none z-10 hidden md:block"
+          className="absolute left-[-5px] md:left-[-16px] lg:left-[-25px] top-[64%] md:top-[74%] lg:top-[80%] w-[100px] md:w-[140px] lg:w-[170px] pointer-events-none z-10 hidden lg:block"
           animate={{ x: parallaxX, y: parallaxY }}
           transition={{ type: "spring", stiffness: 45, damping: 25 }}
         >
@@ -83,7 +84,7 @@ export default function HeroSection() {
 
         {/* Reaching Hand */}
         <motion.div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[280px] md:w-[360px] lg:w-[430px] pointer-events-none z-30"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[280px] md:w-[360px] lg:w-[430px] pointer-events-none z-30 hidden md:block"
           animate={{
             y: isHandPressed ? 20 : [0, -8, 0],
             opacity: scrolled ? 0 : 1
@@ -146,29 +147,48 @@ export default function HeroSection() {
       </section>
 
       {/* 3-COLUMN FEATURES BAR */}
-      <div className="w-full bg-[#EAEAEF] border-y border-black/[0.05] py-10 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 md:divide-x md:divide-black/10">
-          <div className="text-left md:pr-8">
+      <div className="w-full bg-white border-y border-black/[0.05] py-12 px-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 md:divide-x md:divide-black/[0.06]">
+          
+          {/* Column 1 */}
+          <div className="text-left md:pr-8 group cursor-default">
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-xl">⏱️</span>
-              <h4 className="font-bold text-[#1D1D1F] text-[15px]">Productivity companion</h4>
+              <div className="w-8 h-8 rounded-full bg-[#F4F4F6] flex items-center justify-center group-hover:bg-[#E84B1B]/10 transition-colors duration-300">
+                <Clock className="w-4 h-4 text-[#1D1D1F] group-hover:text-[#E84B1B] transition-colors duration-300" strokeWidth={2.5} />
+              </div>
+              <h4 className="font-bold text-[#1D1D1F] text-[16px] tracking-tight">Productivity companion</h4>
             </div>
-            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">Time management apps, custom study message, Pomodoro focus timer.</p>
+            <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium pl-11">
+              Master your schedule with built-in Pomodoro focus timers, personalized study reminders, and seamless time tracking.
+            </p>
           </div>
-          <div className="text-left md:px-8">
+
+          {/* Column 2 */}
+          <div className="text-left md:px-8 group cursor-default">
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-xl">⚡</span>
-              <h4 className="font-bold text-[#1D1D1F] text-[15px]">AI & Integration</h4>
+              <div className="w-8 h-8 rounded-full bg-[#F4F4F6] flex items-center justify-center group-hover:bg-indigo-600/10 transition-colors duration-300">
+                <Zap className="w-4 h-4 text-[#1D1D1F] group-hover:text-indigo-600 transition-colors duration-300" strokeWidth={2.5} />
+              </div>
+              <h4 className="font-bold text-[#1D1D1F] text-[16px] tracking-tight">AI & Integration</h4>
             </div>
-            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">Personal AI study librarian, connection to PDFs and notes, integrations with calendar events.</p>
+            <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium pl-11">
+              Meet your personal AI librarian. Instantly chat with your PDFs, notes, and calendar events for a unified workflow.
+            </p>
           </div>
-          <div className="text-left md:pl-8">
+
+          {/* Column 3 */}
+          <div className="text-left md:pl-8 group cursor-default">
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-xl">⚙️</span>
-              <h4 className="font-bold text-[#1D1D1F] text-[15px]">Student friendly</h4>
+              <div className="w-8 h-8 rounded-full bg-[#F4F4F6] flex items-center justify-center group-hover:bg-emerald-600/10 transition-colors duration-300">
+                <Settings className="w-4 h-4 text-[#1D1D1F] group-hover:text-emerald-600 transition-colors duration-300" strokeWidth={2.5} />
+              </div>
+              <h4 className="font-bold text-[#1D1D1F] text-[16px] tracking-tight">Student friendly</h4>
             </div>
-            <p className="text-[13px] text-[#6E6E73] leading-relaxed font-normal">Open dashboard, heatmap tracking, simple visual stats, no vendor lock-in.</p>
+            <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium pl-11">
+              Stay consistent with beautiful heatmap tracking, clear visual statistics, and an open dashboard with zero vendor lock-in.
+            </p>
           </div>
+
         </div>
       </div>
     </>
