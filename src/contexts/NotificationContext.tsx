@@ -53,7 +53,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const notifications: Notification[] = data?.notifications ?? [];
     const [panelOpen, setPanelOpen] = useState(false);
     const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">("default");
-    
+
     // Unified Notification Preferences
     const [prefs, setPrefs] = useState({
         studyReminders: true,
@@ -211,23 +211,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             // Fire native push for newly generated notifications with STAGGERING
             if (typeof window !== "undefined" && "Notification" in window) {
                 console.log("System notification check: permission is", Notification.permission);
-                
+
                 if (Notification.permission === "granted" && !doNotDisturb) {
                     const afterData = await fetch("/api/notifications").then(r => r.json());
                     const newNotifs: any[] = (afterData.notifications ?? []).filter(
                         (n: any) => {
                             if (existingIds.has(n.id)) return false;
-                            
+
                             // Category Filter
                             if (["weak_subject", "revision_reminder", "ai_task_complete"].includes(n.type) && !aiAlerts) return false;
                             if (n.type === "study_reminder" && !studyReminders) return false;
-                            
+
                             return ["study_reminder", "task_reminder", "streak_protection", "weekly_summary", "weak_subject", "revision_reminder", "ai_task_complete"].includes(n.type);
                         }
                     );
 
                     console.log(`Found ${newNotifs.length} new notifications to push.`);
-                    
+
                     // Stagger them: send one every 20 seconds
                     newNotifs.forEach((n, index) => {
                         setTimeout(() => {
@@ -322,10 +322,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (doNotDisturb) return; // DND blocks all notifications
         if (!isManual && isCheckingRef.current) return;
 
-        
+
         // Use visible state only to decide if we should do a full UI refresh, 
         // but background logic should always run.
-        
+
         isCheckingRef.current = true;
         try {
             const res = await fetch("/api/todos", { cache: "no-store" });
@@ -498,6 +498,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             checkTaskDeadlines(true)
         ]);
     }, [checkToDos, checkTaskDeadlines]);
+
+    // Periodic reminder checking (every 30 seconds while tab is visible)
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const interval = setInterval(() => {
+            // Only check when tab is visible to save resources
+            if (!document.hidden) {
+                checkReminders();
+            }
+        }, 30000); // Check every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [checkReminders]);
 
     // Automatically mark all as read when the panel is opened
     useEffect(() => {

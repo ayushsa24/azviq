@@ -4,18 +4,18 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import webpush from "web-push";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
-
 /**
  * TEST ONLY ROUTE — bypasses Upstash and directly fires a push notification.
  * Call this to verify your Service Worker + VAPID setup is working.
  * DELETE this file before going to production.
  */
 export async function POST(req: NextRequest) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
