@@ -2,14 +2,9 @@
 import Navbar from "./landingpage/Navbar";
 import HeroSection from "./landingpage/HeroSection";
 import DashboardShowcaseSection from "./landingpage/DashboardShowcaseSection";
-import DashboardScrollingSection from "./landingpage/DashboardScrollingSection";
-import ScrollingFeaturesSection from "./landingpage/ScrollingFeaturesSection";
-import TasksScrollingSection from "./landingpage/TasksScrollingSection";
-import PrepScrollingSection from "./landingpage/PrepScrollingSection";
 import DataControlSection from "./landingpage/DataControlSection";
 import ParentControlSection from "./landingpage/ParentControlSection";
 import FeaturesBento from "./landingpage/FeaturesBento";
-import AIChatSection from "./landingpage/AIChatSection";
 import PricingSection from "./landingpage/PricingSection";
 import FaqSection from "./landingpage/FaqSection";
 import FinalCTA from "./landingpage/FinalCTA";
@@ -32,29 +27,14 @@ export default function LandingPage({ isLoggedIn = false }: Props) {
       {/* DASHBOARD SHOWCASE SECTION */}
       <DashboardShowcaseSection />
 
-      {/* DASHBOARD SCROLLING FEATURES */}
-      <DashboardScrollingSection />
-
-      {/* SCROLLING FEATURES SECTION */}
-      <ScrollingFeaturesSection />
-
-      {/* FEATURE DEEP DIVE A — AI CHAT (sticky scroll, below Library) */}
-      <AIChatSection />
-
-      {/* TASKS SCROLLING FEATURES SECTION */}
-      <TasksScrollingSection />
-
-      {/* PREPARATION SCROLLING FEATURES SECTION */}
-      <PrepScrollingSection />
+      {/* FEATURES BENTO (The Main Hub) */}
+      <FeaturesBento />
 
       {/* DATA CONTROL & PRIVACY SECTION */}
       <DataControlSection />
 
       {/* PARENTAL CONTROL SECTION */}
       <ParentControlSection />
-
-      {/* FEATURES BENTO */}
-      <FeaturesBento />
 
       {/* PRICING SECTION */}
       <PricingSection />

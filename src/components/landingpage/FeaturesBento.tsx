@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 export default function FeaturesBento() {
   return (
@@ -19,20 +20,25 @@ export default function FeaturesBento() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-auto">
           
           {/* 1. DASHBOARD CARD (span-2, row-1) */}
-          <div className="md:col-span-2 group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-[360px]">
+          <Link href="/features/dashboard" className="md:col-span-2 group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-[360px] cursor-pointer">
             {/* Background Glow */}
             <div className="absolute -right-16 -top-16 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/10 transition-all duration-300" />
             
-            <div className="relative z-10">
-              <p className="text-[11px] text-indigo-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
-                Dashboard
-              </p>
-              <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
-                Your study command center
-              </h3>
-              <p className="text-[14px] text-[#6E6E73] leading-relaxed max-w-[440px] font-medium">
-                See everything at a glance. Study time, due tasks, revision schedule, AI suggestions, and your consistency heatmap — all in one place.
-              </p>
+            <div className="relative z-10 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-indigo-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
+                  Dashboard
+                </p>
+                <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
+                  Your study command center
+                </h3>
+                <p className="text-[14px] text-[#6E6E73] leading-relaxed max-w-[440px] font-medium">
+                  See everything at a glance. Study time, due tasks, revision schedule, AI suggestions, and your consistency heatmap.
+                </p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                <span className="text-indigo-600 font-bold">→</span>
+              </div>
             </div>
 
             {/* Visual Mockup */}
@@ -67,23 +73,28 @@ export default function FeaturesBento() {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* 2. AI CHAT CARD (span-1, row-1 & row-2) */}
-          <div className="md:col-span-1 md:row-span-2 group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-auto min-h-[360px] md:h-[744px]">
+          <Link href="/features/ai-chat" className="md:col-span-1 md:row-span-2 group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-auto min-h-[360px] md:h-[744px] cursor-pointer">
             {/* Background Glow */}
             <div className="absolute inset-0 bg-gradient-to-b from-purple-500/0 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
             
-            <div className="relative z-10 mb-6">
-              <p className="text-[11px] text-purple-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
-                AI Chat
-              </p>
-              <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
-                Ask your AI tutor anything
-              </h3>
-              <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium">
-                Chat with an AI that understands your note pages, files, and lectures to help you study smarter.
-              </p>
+            <div className="relative z-10 mb-6 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-purple-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
+                  AI Chat
+                </p>
+                <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
+                  Ask your AI tutor anything
+                </h3>
+                <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium">
+                  Chat with an AI that understands your note pages, files, and lectures to help you study smarter.
+                </p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 mt-1">
+                <span className="text-purple-600 font-bold">→</span>
+              </div>
             </div>
 
             {/* Chat Visual Mockup */}
@@ -108,23 +119,28 @@ export default function FeaturesBento() {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* 3. LIBRARY CARD (span-1, row-2) */}
-          <div className="group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-[360px]">
+          <Link href="/features/library" className="group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-[360px] cursor-pointer">
             {/* Background Glow */}
             <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/10 transition-all duration-300" />
             
-            <div className="relative z-10">
-              <p className="text-[11px] text-emerald-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
-                Library
-              </p>
-              <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
-                All notes in one place
-              </h3>
-              <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium">
-                Store notes, PDFs, external workspaces and study materials — completely organized and searchable.
-              </p>
+            <div className="relative z-10 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-emerald-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
+                  Library
+                </p>
+                <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
+                  All notes in one place
+                </h3>
+                <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium">
+                  Store notes, PDFs, external workspaces and study materials — completely organized and searchable.
+                </p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                <span className="text-emerald-600 font-bold">→</span>
+              </div>
             </div>
 
             {/* Folder Mockup */}
@@ -144,23 +160,28 @@ export default function FeaturesBento() {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* 4. TASKS CARD (span-1, row-2) */}
-          <div className="group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-[360px]">
+          <Link href="/features/tasks" className="group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden h-[360px] cursor-pointer">
             {/* Background Glow */}
             <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-rose-500/10 transition-all duration-300" />
             
-            <div className="relative z-10">
-              <p className="text-[11px] text-rose-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
-                Tasks
-              </p>
-              <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
-                Manage projects & tasks
-              </h3>
-              <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium">
-                Sleek Kanban boards for your active projects. Track progress from Not Started to Done easily.
-              </p>
+            <div className="relative z-10 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-rose-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
+                  Tasks
+                </p>
+                <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
+                  Manage projects
+                </h3>
+                <p className="text-[14px] text-[#6E6E73] leading-relaxed font-medium">
+                  Sleek Kanban boards for your active projects. Track progress easily.
+                </p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                <span className="text-rose-600 font-bold">→</span>
+              </div>
             </div>
 
             {/* Kanban Card Mockup */}
@@ -180,10 +201,10 @@ export default function FeaturesBento() {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* 5. PREPARATION CARD (span-3, row-3) */}
-          <div className="md:col-span-3 group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col md:flex-row justify-between items-center overflow-hidden h-auto min-h-[300px]">
+          <Link href="/features/prep" className="md:col-span-3 group relative bg-[#F4F4F6]/60 border border-black/[0.05] rounded-3xl p-8 hover:bg-white hover:border-black/15 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col md:flex-row justify-between items-center overflow-hidden h-auto min-h-[300px] cursor-pointer">
             {/* Background Glow */}
             <div className="absolute -left-16 -top-16 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/10 transition-all duration-300" />
             
@@ -191,8 +212,11 @@ export default function FeaturesBento() {
               <p className="text-[11px] text-amber-600 uppercase tracking-[0.14em] mb-3.5 font-bold">
                 Preparation
               </p>
-              <h3 className="text-2xl md:text-3xl font-bold text-[#1D1D1F] mb-3">
+              <h3 className="text-2xl md:text-3xl font-bold text-[#1D1D1F] mb-3 flex items-center gap-3">
                 Practice, revise, master
+                <span className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                  <span className="text-amber-600 font-bold text-sm">→</span>
+                </span>
               </h3>
               <p className="text-[14px] md:text-base text-[#6E6E73] leading-relaxed font-medium">
                 AI-generated exercises, flashcards, active recall reviews, and an AI Study Teacher that adapts dynamically to your weak areas and learning pace.
@@ -218,7 +242,7 @@ export default function FeaturesBento() {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
 
         </div>
       </div>
