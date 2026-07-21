@@ -41,6 +41,11 @@ jobs:
           SUPABASE_URL: https://dummy.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: dummy
           RESEND_API_KEY: re_123456789
+          UPSTASH_REDIS_REST_URL: https://dummy.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: dummy
+          VAPID_SUBJECT: mailto:test@example.com
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: dummy
+          VAPID_PRIVATE_KEY: dummy
 
       # 5. Build — makes sure production build doesn't break
       - name: Build
@@ -54,6 +59,11 @@ jobs:
           SUPABASE_URL: https://dummy.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: dummy
           RESEND_API_KEY: re_123456789
+          UPSTASH_REDIS_REST_URL: https://dummy.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: dummy
+          VAPID_SUBJECT: mailto:test@example.com
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: dummy
+          VAPID_PRIVATE_KEY: dummy
           # Skip Razorpay/QStash/email keys — they're not needed for build
           RAZORPAY_KEY_ID: dummy
           RAZORPAY_KEY_SECRET: dummy
