@@ -40,6 +40,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
           SUPABASE_URL: https://dummy.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: dummy
+          RESEND_API_KEY: re_123456789
 
       # 5. Build — makes sure production build doesn't break
       - name: Build
@@ -52,6 +53,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
           SUPABASE_URL: https://dummy.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: dummy
+          RESEND_API_KEY: re_123456789
           # Skip Razorpay/QStash/email keys — they're not needed for build
           RAZORPAY_KEY_ID: dummy
           RAZORPAY_KEY_SECRET: dummy
