@@ -3,23 +3,23 @@ import webpush from "web-push";
 import { supabase } from "@/lib/supabase";
 import { Receiver } from "@upstash/qstash";
 
-// Configure web-push with VAPID keys
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
-
-const receiver = new Receiver({
-  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || "",
-  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || "",
-});
-
 /**
  * Simple one-shot handler called by QStash at the scheduled time.
  * No @upstash/workflow SDK — just a plain POST that fires and finishes.
  */
 export async function POST(req: NextRequest) {
+  // Configure web-push with VAPID keys
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+
+  const receiver = new Receiver({
+    currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || "",
+    nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || "",
+  });
+
   try {
     const signature = req.headers.get("Upstash-Signature");
     if (!signature) {
