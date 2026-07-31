@@ -1,5 +1,6 @@
 "use client";
 
+import { Capacitor } from '@capacitor/core';
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Mail, ArrowLeft, Loader2, CheckCircle2, Lock, AlertCircle } from "lucide-react";
@@ -13,6 +14,12 @@ type Step = "EMAIL" | "OTP" | "NEW_PASSWORD" | "SUCCESS";
 export default function ForgotPassword() {
   const { theme } = useTheme();
   const router = useRouter();
+
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform());
+  }, []);
 
   const [step, setStep] = useState<Step>("EMAIL");
   const [email, setEmail] = useState("");
@@ -123,7 +130,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className={`fixed inset-0 flex items-center lg:items-start justify-center p-4 pt-32 lg:pt-[20vh] overflow-y-auto bg-gradient-to-br from-[#EAEAEA] via-[#FFFFFF] to-[#EAEAEA] dark:bg-gradient-to-br dark:from-[#1A1A1A] dark:via-[#2A2A2A] dark:to-[#1A1A1A]`}>
+    <div className={`fixed inset-0 flex ${isNative ? 'items-center pt-0' : 'items-center lg:items-start pt-32 lg:pt-[20vh]'} justify-center p-4 overflow-y-auto bg-gradient-to-br from-[#EAEAEA] via-[#FFFFFF] to-[#EAEAEA] dark:bg-gradient-to-br dark:from-[#1A1A1A] dark:via-[#2A2A2A] dark:to-[#1A1A1A]`}>
 
       <div className={`w-full max-w-sm p-8 rounded-3xl shadow-2xl backdrop-blur-md border transition-all bg-white/90 border-[#DDD]/50 text-[#252525] dark:bg-[#252525]/80 dark:border-[#444]/50 dark:text-white`}>
 

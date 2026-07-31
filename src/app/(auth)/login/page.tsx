@@ -1,5 +1,6 @@
 "use client";
 
+import { Capacitor } from '@capacitor/core';
 import { signIn } from "next-auth/react";
 import { useState, useEffect, Suspense } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -23,6 +24,11 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [view, setView] = useState<AuthView>("LOGIN");
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform());
+  }, []);
   
   // Login State
   const [email, setEmail] = useState("");
@@ -236,7 +242,7 @@ function LoginForm() {
       </div>
 
       {/* Right Side - Form Container */}
-      <div className="w-full lg:w-1/2 h-full flex items-start justify-center p-6 sm:p-12 relative pt-20 lg:pt-[20vh] overflow-y-auto">
+      <div className={`w-full lg:w-1/2 h-full flex ${isNative ? 'items-center pt-0' : 'items-start pt-20 lg:pt-[20vh]'} justify-center p-6 sm:p-12 relative overflow-y-auto`}>
         
         {/* Simple Straight Separator */}
         <div className={`hidden lg:block absolute top-0 left-0 w-px h-full z-10 pointer-events-none ${
@@ -349,17 +355,19 @@ function LoginForm() {
                 </Link>
               </p>
 
-              <div className="mt-6 flex justify-center">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium opacity-40 hover:opacity-80 transition-opacity group"
-                >
-                  <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  What is Azviq?
-                </Link>
-              </div>
+              {!isNative && (
+                <div className="mt-6 flex justify-center">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium opacity-40 hover:opacity-80 transition-opacity group"
+                  >
+                    <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    What is Azviq?
+                  </Link>
+                </div>
+              )}
             </>
           ) : (
             <div className="py-4 mt-4 lg:mt-0">
