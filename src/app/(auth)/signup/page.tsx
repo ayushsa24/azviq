@@ -1,5 +1,6 @@
 "use client";
 
+import { Capacitor } from '@capacitor/core';
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -20,6 +21,12 @@ function SignupForm() {
   const dialog = useAppDialog();
   // Preserve the callbackUrl through signup → onboarding → redirect
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const [isNative, setIsNative] = useState(false);
+  
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform());
+  }, []);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -420,7 +427,7 @@ function SignupForm() {
       </div>
 
       {/* Right Side - Form Container */}
-      <div className={`w-full lg:w-1/2 h-full flex items-start justify-center p-6 sm:p-12 relative ${step === 'onboarding' ? 'pt-20 lg:pt-[10vh]' : 'pt-20 lg:pt-[20vh]'} overflow-y-auto`}>
+      <div className={`w-full lg:w-1/2 h-full flex ${isNative ? 'items-center pt-0' : (step === 'onboarding' ? 'items-start pt-20 lg:pt-[10vh]' : 'items-start pt-20 lg:pt-[20vh]')} justify-center p-6 sm:p-12 relative overflow-y-auto`}>
 
         {/* Simple Straight Separator */}
         <div className={`hidden lg:block absolute top-0 left-0 w-px h-full z-10 pointer-events-none ${
