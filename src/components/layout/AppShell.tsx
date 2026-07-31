@@ -65,6 +65,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const [isBottomNavVisible, setIsBottomNavVisible] = useState(true);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
   const isAiPage = pathname.startsWith("/ai");
+  const isNative = mounted && Capacitor.isNativePlatform();
 
   useEffect(() => {
     const handleSidebarState = (e: any) => {
@@ -356,7 +357,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             : mounted && !open && !isFullPageLayer 
               ? 'md:px-[2.5%]' 
               : 'px-0'} 
-          ${mounted && (isKeyboardOpen || (isFullPageLayer && !isAiPage) || (isAiPage && !isBottomNavVisible)) ? 'pb-0' : 'pb-[calc(3rem+env(safe-area-inset-bottom,0px))] md:pb-0'} 
+          ${mounted && (isKeyboardOpen || (isFullPageLayer && !isAiPage) || (isAiPage && !isBottomNavVisible)) 
+            ? (isNative ? 'pb-[env(safe-area-inset-bottom,16px)]' : 'pb-0') 
+            : `pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0`} 
           transition-all duration-300 bg-transparent`}
       >
         {mounted && children}
