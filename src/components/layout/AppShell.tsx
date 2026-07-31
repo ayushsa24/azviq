@@ -19,6 +19,8 @@ import OfflineIndicator from "./OfflineIndicator";
 import { triggerConfetti } from "@/lib/utils/confetti";
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import CapacitorInit from "./CapacitorInit";
+import { Capacitor } from "@capacitor/core";
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -41,6 +43,18 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       }
     }
   }, [status, session, router]);
+
+  // Redirect native app users away from the public landing page (/) to either login or dashboard
+  useEffect(() => {
+    if (Capacitor.isNativePlatform() && pathname === "/") {
+      if (status === "loading") return;
+      if (status === "authenticated") {
+        router.replace("/dashboard");
+      } else if (status === "unauthenticated") {
+        router.replace("/login");
+      }
+    }
+  }, [pathname, status, router]);
 
 
   const isDashboard = pathname === "/dashboard";
@@ -278,6 +292,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       suppressHydrationWarning
       className="h-[100dvh] overflow-hidden flex flex-col bg-[#F5F3EF] dark:bg-[#1A1A1A] md:dark:bg-[#1F1F1F] text-foreground"
     >
+      <CapacitorInit />
 
       {mounted && (!isFullPageLayer ? (
         <Sidebar
