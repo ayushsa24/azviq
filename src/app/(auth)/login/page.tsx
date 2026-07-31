@@ -24,7 +24,10 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [view, setView] = useState<AuthView>("LOGIN");
-  const [isNative, setIsNative] = useState(false);
+  const [isNative, setIsNative] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return Capacitor.isNativePlatform();
+  });
 
   useEffect(() => {
     setIsNative(Capacitor.isNativePlatform());
@@ -249,15 +252,17 @@ function LoginForm() {
           'bg-black/5 dark:bg-white/5'
         }`} />
 
-        {/* Mobile Only Logo */}
-        <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
-          <img 
-            src="/azviq_logo.png" 
-            alt="Azviq Logo" 
-            className={`w-10 h-10 rounded-xl object-contain shadow-sm dark:invert dark:opacity-90`} 
-          />
-          <span className="font-bold text-2xl tracking-tight font-[var(--font-lexend)]">Azviq</span>
-        </div>
+        {/* Mobile Only Logo - hidden entirely on native APK (no branding needed) */}
+        {!isNative && (
+          <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
+            <img 
+              src="/azviq_logo.png" 
+              alt="Azviq Logo" 
+              className={`w-10 h-10 rounded-xl object-contain shadow-sm dark:invert dark:opacity-90`} 
+            />
+            <span className="font-bold text-2xl tracking-tight font-[var(--font-lexend)]">Azviq</span>
+          </div>
+        )}
 
         <div className="w-full max-w-[25rem]">
           {view === "LOGIN" ? (

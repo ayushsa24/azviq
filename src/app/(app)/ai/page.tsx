@@ -1,5 +1,6 @@
 "use client";
 
+import { Capacitor } from "@capacitor/core";
 import { useState, useEffect, useLayoutEffect, useRef, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -143,6 +144,11 @@ function AiChatCore() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [isHistoryInitialized, setIsHistoryInitialized] = useState(false);
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform());
+  }, []);
 
   // Sync sidebar state with global AppShell to hide drag handle
   useEffect(() => {
@@ -1759,7 +1765,7 @@ function AiChatCore() {
             }`}
         >
           {/* Mobile Header Toggle - Always show so users can access the menu */}
-          <div className="md:hidden shrink-0 sticky top-0 z-[60] flex items-center justify-between px-4 h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-[#F5F3EF] dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors">
+          <div className={`md:hidden shrink-0 sticky top-0 z-[60] flex items-center justify-between px-4 ${isNative ? 'h-[5.5rem] pt-8' : 'h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)]'} bg-[#F5F3EF] dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors`}>
             <div className="flex items-center">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}

@@ -15,7 +15,10 @@ export default function ForgotPassword() {
   const { theme } = useTheme();
   const router = useRouter();
 
-  const [isNative, setIsNative] = useState(false);
+  const [isNative, setIsNative] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return Capacitor.isNativePlatform();
+  });
 
   useEffect(() => {
     setIsNative(Capacitor.isNativePlatform());
