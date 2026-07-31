@@ -210,7 +210,7 @@ export default function TakeRevisionPage({ revision, onBack }: TakeRevisionPageP
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
+            <div className="flex-1 overflow-y-auto scrollbar-hide pb-[env(safe-area-inset-bottom,0px)]">
 
                 {/* SUMMARY TAB */}
                 {activeTab === "summary" && (
