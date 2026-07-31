@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Azviq</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F5F3EF;
+      color: #1A1A1A;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    /* Dark mode support (native class check) */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1A1A1A;
+        color: #FFFFFF;
+      }
+    }
+    .spacer {
+      height: 20px;
+    }
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 400px;
+      width: 100%;
+    }
+    .icon-container {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.04);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 32px;
+      transition: all 0.3s ease;
+    }
+    @media (prefers-color-scheme: dark) {
+      .icon-container {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+    }
+    .offline-icon {
+      width: 56px;
+      height: 56px;
+      stroke: #8E8D8A;
+    }
+    @media (prefers-color-scheme: dark) {
+      .offline-icon {
+        stroke: #A2A09C;
+      }
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    p {
+      font-size: 15px;
+      color: #6B6A68;
+      line-height: 1.5;
+      margin-bottom: 36px;
+    }
+    @media (prefers-color-scheme: dark) {
+      p {
+        color: #9C9A96;
+      }
+    }
+    .btn-retry {
+      background-color: #1A1A1A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-retry:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    @media (prefers-color-scheme: dark) {
+      .btn-retry {
+        background-color: #FFFFFF;
+        color: #1A1A1A;
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
+      }
+    }
+    .footer {
+      font-size: 13px;
+      color: #A2A09C;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .footer {
+        color: #5C5A56;
+      }
+    }
+    /* Loading spinner styling */
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #FFFFFF;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @media (prefers-color-scheme: dark) {
+      .spinner {
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #1A1A1A;
+      }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="spacer"></div>
+  
+  <div class="content">
+    <div class="icon-container">
+      <svg class="offline-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.5M5 12.5a10.94 10.94 0 0 1 5.83-2.84M8.58 6.14A16.59 16.59 0 0 1 12 5.5c2.92 0 5.67.76 8.08 2.1M12 18.5a3 3 0 0 0 2.22-4.97" />
+      </svg>
+    </div>
+    
+    <h1>No Connection</h1>
+    <p>We couldn't connect to the server. Please check your internet connection or Wi-Fi settings.</p>
+    
+    <button class="btn-retry" onclick="handleRetry()">
+      <span class="spinner" id="spinner"></span>
+      <span id="btn-text">Try Again</span>
+    </button>
+  </div>
+  
+  <div class="footer">AZVIQ</div>
+
+  <script>
+    function handleRetry() {
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btn-text');
+      
+      // Show loading indicator
+      spinner.style.display = 'inline-block';
+      btnText.textContent = 'Connecting...';
+      
+      // Attempt redirecting back to the live app shell
+      setTimeout(() => {
+        window.location.href = 'https://azviq.in';
+      }, 500);
+    }
+
+    // Auto-detect when online and redirect immediately
+    window.addEventListener('online', () => {
+      window.location.href = 'https://azviq.in';
+    });
+  </script>
+</body>
+</html>

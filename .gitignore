@@ -59,3 +59,10 @@ tunnel.log
 CLAUDE.md
 DEPLOYMENT_CHECKLIST.md
 SECURITY_AUDIT_REPORT.md
+
+# Capacitor local and compiled files
+*.apk
+android/local.properties
+/android/
+/assets/
+/scratch/

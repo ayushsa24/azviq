@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { randomUUID } from "crypto";
 
 export async function GET(req: Request) {
   try {
@@ -142,14 +143,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: sizeCheck.error }, { status: 413 });
     }
 
-    // Upload file to Supabase Storage
-    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}_${file.name}`;
+    // --- File type whitelist (client-supplied file.type can be spoofed, so validate both) ---
+    const ALLOWED_MIME_TYPES = new Set([
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "text/plain",
+    ]);
+    const ALLOWED_EXTENSIONS = new Set([".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".txt"]);
+
+    const rawExt = file.name.includes(".")
+      ? "." + file.name.split(".").pop()!.toLowerCase()
+      : "";
+
+    if (!ALLOWED_MIME_TYPES.has(file.type) || !ALLOWED_EXTENSIONS.has(rawExt)) {
+      return NextResponse.json(
+        { error: "File type not allowed. Only PDF, images, and plain text are accepted." },
+        { status: 415 }
+      );
+    }
+
+    // Use cryptographically secure UUID + safe extension only (never trust full file.name)
+    const safeFileName = `${randomUUID()}${rawExt}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await supabase.storage
       .from("notes")
-      .upload(fileName, buffer, {
-        contentType: file.type || "application/octet-stream",
+      .upload(safeFileName, buffer, {
+        contentType: file.type,
         upsert: false
       });
 
@@ -161,7 +184,7 @@ export async function POST(req: Request) {
     // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from("notes")
-      .getPublicUrl(fileName);
+      .getPublicUrl(safeFileName);
 
     // Save to Database
     const { data: note, error } = await supabase
