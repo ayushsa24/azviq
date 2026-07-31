@@ -366,7 +366,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Swipe Handle for AI Chat BottomNav */}
-      {mounted && isAiPage && !isKeyboardOpen && !isAiSidebarOpen && (
+      {mounted && isAiPage && !isKeyboardOpen && !isAiSidebarOpen && isBottomNavVisible && (
         <div className="fixed bottom-[calc(2.9rem+env(safe-area-inset-bottom,0px))] md:hidden left-0 right-0 z-[65] flex justify-center pointer-events-none">
           <motion.div 
             drag="y"
