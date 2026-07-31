@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Azviq</string>
+    <string name="title_activity_main">Azviq</string>
+    <string name="package_name">com.ayush.azviq</string>
+    <string name="custom_url_scheme">com.ayush.azviq</string>
+</resources>
