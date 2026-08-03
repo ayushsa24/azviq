@@ -59,11 +59,14 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
 
   useStudyTracker({ activityType: "personal_ai", isEnabled: true });
 
+  const selectedNoteIdRef = React.useRef<string | null>(null);
+
   // Load extracted content when a note is selected
   const handleNoteSelect = React.useCallback(async (noteId: string, preSessionId?: string | null) => {
-    const isNewNote = noteId !== selectedNoteId;
+    const isNewNote = noteId !== selectedNoteIdRef.current;
     
     setSelectedNoteId(noteId);
+    selectedNoteIdRef.current = noteId;
     
     // Only clear content if the note actually changed
     if (isNewNote) {
@@ -95,6 +98,11 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
       setIsHistoryLoading(false);
 
       // 2. Fetch context (note/pdf text)
+      if (!isNewNote) {
+        // If it's not a new note, we already have the context loading or loaded.
+        return;
+      }
+
       // If we already have a session, we load context in the background silently
       // but we still want the UI to feel "ready"
       if (!currentSessionId) {
@@ -140,10 +148,16 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
-  // Sync state if session_id query param updates while already mounted (e.g. from Command Palette)
+  // Keep a ref of the latest sessionId to avoid race conditions during Next.js router transitions
+  const currentSessionIdRef = React.useRef(sessionId);
+  useEffect(() => {
+    currentSessionIdRef.current = sessionId;
+  }, [sessionId]);
+
+  // Sync state if session_id query param updates while already mounted (e.g. from browser Back/Forward)
   useEffect(() => {
     const urlSessionId = searchParams.get("session_id");
-    if (urlSessionId && urlSessionId !== sessionId) {
+    if (urlSessionId && urlSessionId !== currentSessionIdRef.current) {
       const fetchSessionInfo = async () => {
         try {
           const res = await fetch(`/api/personal-ai/sessions/${urlSessionId}`);
@@ -160,7 +174,7 @@ export default function AITeacherTab({ isFocusMode = false, onFocusModeChange }:
       };
       fetchSessionInfo();
     }
-  }, [searchParams, sessionId, handleNoteSelect]); 
+  }, [searchParams, handleNoteSelect]); 
 
   // 2. Sync State to URL
   useEffect(() => {
