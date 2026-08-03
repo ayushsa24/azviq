@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   // Explicitly list safe columns — never return password_hash
   const { data, error } = await supabase
     .from("users")
-    .select("id, email, name, username, bio, city, mobile_no, pronouns, avatar_url, is_onboarded, is_verified, created_at, updated_at, subscription_tier, subscription_status")
+    .select("id, email, name, username, bio, city, mobile_no, pronouns, avatar_url, is_onboarded, is_verified, created_at, updated_at, plan_tier, plan_expiry")
     .eq("id", userId)
     .single();
 
