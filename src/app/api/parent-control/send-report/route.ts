@@ -152,6 +152,7 @@ export async function GET(req: Request) {
 
             // Send to all family emails
             let sentCount = 0;
+            let lastError: any = null;
             for (const email of emails) {
                 const { error: sendError } = await resend.emails.send({
                     from: process.env.RESEND_FROM_EMAIL || "hello@azviq.in",
@@ -160,11 +161,15 @@ export async function GET(req: Request) {
                     html: htmlContent,
                 });
 
-                if (!sendError) sentCount++;
-                else console.error(`Failed to send to ${email}:`, sendError);
+                if (!sendError) {
+                    sentCount++;
+                } else {
+                    console.error(`Failed to send to ${email}:`, sendError);
+                    lastError = sendError;
+                }
             }
 
-            results.push({ userId, sent: sentCount });
+            results.push({ userId, sent: sentCount, error: lastError });
         } catch (err) {
             console.error(`Error processing user ${userId}:`, err);
             results.push({ userId, sent: 0, error: String(err) });
