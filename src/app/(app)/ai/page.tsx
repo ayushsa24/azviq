@@ -1765,7 +1765,7 @@ function AiChatCore() {
             }`}
         >
           {/* Mobile Header Toggle - Always show so users can access the menu */}
-          <div className={`md:hidden shrink-0 sticky top-0 z-[60] flex items-center justify-between px-4 ${isNative ? 'h-[5.5rem] pt-8' : 'h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)]'} bg-[#F5F3EF] dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors`}>
+          <div className={`md:hidden shrink-0 sticky top-0 z-[60] flex items-center justify-between px-4 h-[calc(3.25rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-white dark:bg-[#1A1A1A] border-b border-[#7D7D7D]/40 dark:border-[#2E2E2E] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors`}>
             <div className="flex items-center">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -2326,7 +2326,7 @@ function AiChatCore() {
         </div>
 
         {/* Input Dock */}
-        <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-0.5 md:pb-0 text-left transition-all duration-300 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
+        <div className={`absolute bottom-0 left-0 w-full z-10 px-1 sm:px-5 pb-1 md:pb-0 text-left transition-all duration-300 ${theme === 'dark' ? 'bg-gradient-to-t from-[#161514] from-10% via-[#161514]/95 to-transparent' : 'bg-gradient-to-t from-[#F5F3EF] from-10% via-[#F5F3EF]/95 to-transparent'}`}>
           {apiError && (
             <div className="max-w-4xl mx-auto px-3 md:px-4 md:pl-16 mb-2">
               <div className={`w-full p-2.5 rounded-xl flex items-center justify-between border backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 ${theme === "dark" ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-red-50/80 border-red-200 text-red-600"}`}>

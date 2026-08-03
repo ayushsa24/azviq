@@ -20,7 +20,7 @@ export const AiTrigger = Extension.create<AiTriggerOptions>({
                 key: new PluginKey('aiTrigger'),
                 props: {
                     handleKeyDown: (view, event) => {
-                        if (event.key === ' ') {
+                        if (event.key === ' ' || event.key === 'Spacebar') {
                             const { state } = view;
                             const { selection } = state;
                             
@@ -46,6 +46,32 @@ export const AiTrigger = Extension.create<AiTriggerOptions>({
                                 // Prevent the space from actually being typed
                                 event.preventDefault();
                                 return true;
+                            }
+                        }
+                        return false;
+                    },
+                    handleTextInput: (view, from, to, text) => {
+                        // Handle mobile keyboards (Android/iOS) where keydown might not be triggered reliably
+                        if (text === ' ' || text === '\u00A0') {
+                            const { state } = view;
+                            const { selection } = state;
+                            
+                            if (!selection.empty) return false;
+
+                            const $pos = state.doc.resolve(selection.from);
+                            const parent = $pos.parent;
+
+                            if (parent.type.name === 'paragraph' && parent.textContent.trim() === '') {
+                                const coords = view.coordsAtPos(selection.from);
+                                const editorRect = view.dom.getBoundingClientRect();
+
+                                this.options.onTrigger({
+                                    top: coords.top,
+                                    left: editorRect.left,
+                                    from: selection.from,
+                                });
+
+                                return true; // prevent insertion
                             }
                         }
                         return false;
