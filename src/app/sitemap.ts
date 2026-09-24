@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://azviq.in").trim().replace(/\/$/, "");
+  const baseUrl = "https://azviq.in";
 
   const routes = [
     { url: "", priority: 1.0, changeFrequency: "daily" as const },
@@ -9,9 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: "/contact", priority: 0.8, changeFrequency: "monthly" as const },
     { url: "/feedback", priority: 0.5, changeFrequency: "monthly" as const },
     { url: "/privacy", priority: 0.3, changeFrequency: "yearly" as const },
-    { url: "/terms", priority: 0.3, changeFrequency: "yearly" as const },
-    { url: "/login", priority: 0.5, changeFrequency: "monthly" as const },
-    { url: "/signup", priority: 0.8, changeFrequency: "monthly" as const }
+    { url: "/terms", priority: 0.3, changeFrequency: "yearly" as const }
   ];
 
   return routes.map((route) => ({
@@ -21,3 +19,4 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route.priority
   }));
 }
+
