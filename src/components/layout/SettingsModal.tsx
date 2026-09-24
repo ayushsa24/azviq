@@ -165,7 +165,7 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       const newUrl = `${targetPath}?from=${encodeURIComponent(fromParam)}`;
       window.history.replaceState(null, '', newUrl);
     }
-  }, [activeTab, isOpen, fromParam, pathname]);
+  }, [activeTab, isOpen, fromParam]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartX(e.touches[0].clientX);
@@ -292,10 +292,11 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
     }
   }, [isOpen, initialTab]);
 
-  // Handle mobile hardware back button to intuitively close the shared links popup
+  // Handle mobile hardware back button to intuitively close modals
   useEffect(() => {
     const handlePopState = () => {
       const currentPath = window.location.pathname;
+      const isSettingsRoute = currentPath.startsWith("/settings");
       const isSubModalRoute = currentPath.includes("/settings/notesharedlink") ||
         currentPath.includes("/settings/chatsharedlink") ||
         currentPath.includes("/settings/archivechat");
@@ -303,11 +304,16 @@ function SettingsModalInner({ isOpen: propIsOpen, onClose: propOnClose }: Settin
       if (!isSubModalRoute && showSharedLinks) {
         setShowSharedLinks(false);
       }
+
+      // Close the main settings modal if we navigated completely out of the settings routes via back button
+      if (!isSettingsRoute && isOpen) {
+        originalClose();
+      }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [showSharedLinks]);
+  }, [showSharedLinks, isOpen, originalClose]);
 
   const { data: sharedLinksData, mutate: mutateSharedLinks, error: sharedLinksError } = useSWR(
     showSharedLinks ? (

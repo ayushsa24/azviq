@@ -154,9 +154,8 @@ export async function GET(req: Request) {
             let sentCount = 0;
             let lastError: any = null;
             for (const email of emails) {
-                const senderEmail = process.env.RESEND_FROM_EMAIL || "hello@azviq.in";
                 const { error: sendError } = await resend.emails.send({
-                    from: `Azviq <${senderEmail}>`,
+                    from: `Azviq Study <reports@azviq.in>`,
                     to: email,
                     subject: `Daily Study Report — ${userRow?.name || "Student"} · ${dateLabel}`,
                     html: htmlContent,
