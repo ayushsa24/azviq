@@ -53,7 +53,7 @@ export async function sendOtpInternal(email: string, type: OTPType) {
 
   // 5. Send via Resend
   await resend.emails.send({
-    from: "Azviq <hello@azviq.in>",
+    from: "Azviq Security <auth@azviq.in>",
     to: email,
     subject,
     html: `
@@ -129,7 +129,7 @@ export async function sendUpgradeEmail(email: string, plan: string, expiry: Date
   const subject = `Your Azviq ${plan === "lite" ? "Lite" : "Premium"} Plan is Active!`;
 
   await resend.emails.send({
-    from: "Azviq <hello@azviq.in>",
+    from: "Azviq Billing <billing@azviq.in>",
     to: email,
     subject,
     html: `

@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 
     // The email displayed on the frontend is support@azviq.in, but actual form submissions go here:
     const data = await resend.emails.send({
-      from: "Azviq Support <hello@azviq.in>",
+      from: "Azviq Support <support@azviq.in>",
       to: ["aazviq@gmail.com"], // <--- Hidden backend email where you receive messages
       subject: `New Contact Form Submission from ${safeName}`,
       html: `
