@@ -20,7 +20,7 @@ export default function AboutPage({ isLoggedIn = false }: { isLoggedIn?: boolean
             <span className="text-[#E84B1B]">learns and studies.</span>
           </h1>
           <p className="text-[16px] md:text-[20px] text-[#6E6E73] font-medium leading-relaxed max-w-2xl mx-auto">
-            Azviq was born from a simple belief: studying shouldn't be a disorganized, overwhelming process. We are building the ultimate AI-powered ecosystem to give every student a personalized, intelligent companion.
+            Azviq was born from a simple belief: studying shouldn&apos;t be a disorganized, overwhelming process. We are building the ultimate AI-powered ecosystem to give every student a personalized, intelligent companion.
           </p>
         </div>
       </section>
@@ -34,10 +34,10 @@ export default function AboutPage({ isLoggedIn = false }: { isLoggedIn?: boolean
                 The modern student is <br className="hidden md:block" /> overwhelmed by noise.
               </h2>
               <p className="text-[15px] text-[#6E6E73] leading-relaxed mb-6">
-                Between scattered PDFs, messy notebooks, dozens of browser tabs, and generic AI tools that don't actually understand the curriculum, students are spending more time organizing than actually learning.
+                Between scattered PDFs, messy notebooks, dozens of browser tabs, and generic AI tools that don&apos;t actually understand the curriculum, students are spending more time organizing than actually learning.
               </p>
               <p className="text-[15px] text-[#6E6E73] leading-relaxed">
-                We realized that what students needed wasn't just another note-taking app. They needed a unified workspace where their materials instantly transform into interactive, contextual learning experiences.
+                We realized that what students needed wasn&apos;t just another note-taking app. They needed a unified workspace where their materials instantly transform into interactive, contextual learning experiences.
               </p>
             </div>
             <div className="relative">
@@ -76,7 +76,7 @@ export default function AboutPage({ isLoggedIn = false }: { isLoggedIn?: boolean
               </div>
               <h3 className="text-[20px] font-bold mb-3">Hyper-Personalized</h3>
               <p className="text-[14px] text-[#88888F] leading-relaxed">
-                We don't believe in one-size-fits-all education. Our AI adapts to your specific reading speed, knowledge gaps, and the exact materials you upload.
+                We don&apos;t believe in one-size-fits-all education. Our AI adapts to your specific reading speed, knowledge gaps, and the exact materials you upload.
               </p>
             </div>
 
@@ -98,7 +98,7 @@ export default function AboutPage({ isLoggedIn = false }: { isLoggedIn?: boolean
               </div>
               <h3 className="text-[20px] font-bold mb-3">Frictionless Workflow</h3>
               <p className="text-[14px] text-[#88888F] leading-relaxed">
-                You shouldn't have to fight your tools. From seamless PDF imports to auto-generating tasks, every interaction in Azviq is engineered for maximum speed.
+                You shouldn&apos;t have to fight your tools. From seamless PDF imports to auto-generating tasks, every interaction in Azviq is engineered for maximum speed.
               </p>
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function AboutPage({ isLoggedIn = false }: { isLoggedIn?: boolean
           </h2>
           <p className="text-[16px] text-[#6E6E73] leading-relaxed max-w-3xl mx-auto mb-12">
             Under the hood, Azviq utilizes state-of-the-art Large Language Models (LLMs) and Vector Databases. 
-            When you upload a textbook, we don't just store it—we semantically parse it. This means when you ask your AI Teacher a question, it instantly retrieves the exact paragraph from page 243 of your PDF to give you an incredibly accurate, hallucination-free answer.
+            When you upload a textbook, we don&apos;t just store it—we semantically parse it. This means when you ask your AI Teacher a question, it instantly retrieves the exact paragraph from page 243 of your PDF to give you context-grounded, highly accurate answers with direct references to your material.
           </p>
           
           <div className="flex flex-wrap justify-center gap-4">
@@ -125,7 +125,7 @@ export default function AboutPage({ isLoggedIn = false }: { isLoggedIn?: boolean
               Contextual AI Chat
             </div>
             <div className="px-6 py-3 rounded-full border border-black/[0.08] text-[13px] font-bold text-[#1D1D1F] bg-[#F4F4F6]/50">
-              End-to-End Encryption
+              Encryption in Transit & at Rest
             </div>
             <div className="px-6 py-3 rounded-full border border-black/[0.08] text-[13px] font-bold text-[#1D1D1F] bg-[#F4F4F6]/50">
               Real-time Sync
@@ -141,7 +141,7 @@ export default function AboutPage({ isLoggedIn = false }: { isLoggedIn?: boolean
             Join us in building the future of learning.
           </h2>
           <p className="text-[15px] text-[#6E6E73] mb-8 font-medium">
-            Whether you're a high school student preparing for finals or a medical student tackling residency, Azviq is built for you.
+            Whether you&apos;re a high school student preparing for finals or a medical student tackling residency, Azviq is built for you.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="/login" className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#1D1D1F] text-white font-bold text-[14px] hover:bg-[#333336] transition-colors shadow-lg flex items-center justify-center gap-2">
