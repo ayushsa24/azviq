@@ -103,7 +103,7 @@ const CONTROL_FEATURES: ControlFeature[] = [
   },
   {
     title: "Permanent Storage Erasure",
-    desc: "Wipe sensitive files, delete old study records, and clean local device caches forever. We guarantee direct disk-level purging for deleted data to honor privacy regulations.",
+    desc: "Wipe sensitive files, delete old study records, and clear local storage data. We perform direct database-level purging for deleted records to honor privacy regulations.",
     category: "Deletion",
     accent: "#10B981", // Emerald
     bullets: [

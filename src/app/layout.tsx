@@ -9,7 +9,6 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { UserProvider } from "@/contexts/UserContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import AppShell from "@/components/layout/AppShell";
 import { AppDialogProvider } from "@/components/ui/AppDialog";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { PostHogProvider } from "@/analytics/provider";
@@ -163,6 +162,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               "name": "Azviq",
+              "url": "https://azviq.in",
               "operatingSystem": "All",
               "applicationCategory": "EducationalApplication",
               "description": "An AI-powered study companion designed for students to manage libraries, chat with custom AI tutors, and generate personalized revision tools.",
@@ -170,7 +170,7 @@ export default function RootLayout({
                 "@type": "AggregateOffer",
                 "priceCurrency": "INR",
                 "lowPrice": "0",
-                "highPrice": "399",
+                "highPrice": "249",
                 "offers": [
                   {
                     "@type": "Offer",
@@ -180,13 +180,13 @@ export default function RootLayout({
                   },
                   {
                     "@type": "Offer",
-                    "price": "11",
+                    "price": "99",
                     "priceCurrency": "INR",
                     "name": "Lite Plan"
                   },
                   {
                     "@type": "Offer",
-                    "price": "399",
+                    "price": "249",
                     "priceCurrency": "INR",
                     "name": "Premium Plan"
                   }

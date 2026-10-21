@@ -42,7 +42,7 @@ export default function FeaturesBento() {
     {
       id: "privacy",
       title: "Permanent Storage Erasure",
-      description: "Total control over your data. Permanently delete anything you want, anytime, with zero recovery.",
+      description: "Total control over your data. Permanently delete notes, chats, or materials anytime you choose.",
       link: "/features/data-privacy",
       icon: <Shield className="w-6 h-6 text-[#1D1D1F]" strokeWidth={2} />,
     },

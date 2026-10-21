@@ -6,7 +6,7 @@ import DataControlSection from "@/components/landingpage/DataControlSection";
 
 export const metadata = {
   title: "Data Privacy — Azviq",
-  description: "Total control over your data. Permanently delete anything you want, anytime, with zero recovery.",
+  description: "Total control over your data. Permanently delete notes, chats, or materials anytime you choose.",
 };
 
 export default async function DataPrivacyPage() {
