@@ -1,13 +1,16 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import LandingPage from "@/components/LandingPage";
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: { absolute: "Azviq — AI-Powered Study Workspace" },
   description: "Notes, PDFs, AI teacher, and task planner — all in one place. Study smarter with Azviq.",
+  alternates: {
+    canonical: "/",
+  },
 };
 
 // Adds <meta name="color-scheme" content="light"> only on the landing page.

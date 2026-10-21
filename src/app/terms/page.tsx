@@ -2,9 +2,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import TermsPage from "@/components/TermsPage";
 
-export const metadata = {
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "Terms of Service",
   description: "Read the Terms of Service governing your use of Azviq.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default async function Terms() {
